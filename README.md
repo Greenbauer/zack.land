@@ -5,7 +5,7 @@
 <dl>
   This is the frontend of my <a href="https://www.zack.land">portfolio website</a>.
 
-  See more at <a href="https://www.http://zack.land/portfolio/apps#item:This_web_site">portfolio website</a>
+  See more <a href="https://www.http://zack.land/portfolio/apps#item:This_web_site">here</a>.
 </dl>
 
 ## Credits
