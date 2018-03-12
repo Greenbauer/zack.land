@@ -106,7 +106,7 @@ const content = data.misc.map(d => (
             </Small>
           </p>
         </Column>
-        {d.repo ? button(d.repo, 'View Repo') : ''}
+        {d.repo ? button(d.repo, 'View Code') : ''}
       </Article>
     </Row>
   </Section>

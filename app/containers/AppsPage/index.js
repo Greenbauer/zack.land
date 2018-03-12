@@ -95,7 +95,7 @@ const content = data.apps.map(d => (
           </p>
         </Column>
           {d.url ? button(d.url, 'Visit Site') : ''}
-          {d.repo ? button(d.repo, 'View Repo') : ''}
+          {d.repo ? button(d.repo, 'View Code') : ''}
       </Article>
     </Row>
   </Section>
