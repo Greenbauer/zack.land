@@ -1,6 +1,5 @@
 # zack-land
 <div>
-# zack-land
 
 ## About
 
