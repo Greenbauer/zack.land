@@ -9,6 +9,7 @@ OBJLoader(THREE)
 
 import customShader from './customShader'
 import head from './geometry/head 3 low res.obj'
+import headRotation from './headRotation'
 import mainMatcap from './images/mainMatcap.jpg'
 import whiteMatcap from './images/whiteMatcap.jpg'
 import Wrapper from './Wrapper'
@@ -53,8 +54,11 @@ class Scene extends React.PureComponent {
   }
 
   handleMouseMove(evt) {
-    this.mouseX = ( evt.clientX - this.windowHalfX ) * 0.7
-    this.mouseY = ( evt.clientY - this.windowHalfY ) * 0.5
+    this.mouse = {
+      start: true,
+      x: ( evt.clientX - this.windowHalfX ) * 0.7,
+      y: ( evt.clientY - this.windowHalfY ) * 0.5
+    }
   }
 
   componentDidMount() {
@@ -149,14 +153,16 @@ class Scene extends React.PureComponent {
 
     // MOUSE MOVE ////////////////
 
-    this.mouseX = 0
-    this.mouseY = 0
+    this.mouse = {
+      start: false,
+      x: 0,
+      y: 0
+    }
 
     this.windowHalfX = window.innerWidth / 2;
     this.windowHalfY = window.innerHeight / 2;
 
     document.addEventListener( 'mousemove', this.handleMouseMove, false )
-
 
     this.mount.appendChild(this.renderer.domElement)
     this.start()
@@ -178,35 +184,9 @@ class Scene extends React.PureComponent {
   }
 
   animate() {
-    this.targetX = this.mouseX * .001
-    this.targetY = this.mouseY * .001
-
     // head rotation
     if (this.head) {
-
-      // head y limit
-      switch(true) {
-        case (this.targetX > 0.3):
-          this.head.rotation.y += 0.05 * ( 0.3 - this.head.rotation.y )
-          break
-        case (this.targetX < -0.5):
-          this.head.rotation.y += 0.05 * ( -0.5 - this.head.rotation.y )
-          break
-        default:
-          this.head.rotation.y += 0.05 * ( this.targetX - this.head.rotation.y )
-      }
-
-      // head x limit
-      switch(true) {
-        case (this.targetY > 0.13):
-          this.head.rotation.x += 0.05 * ( 0.13 - this.head.rotation.x )
-          break
-        case (this.targetY < -0.15):
-          this.head.rotation.x += 0.05 * ( -0.15 - this.head.rotation.x )
-          break
-        default:
-          this.head.rotation.x += 0.05 * ( this.targetY - this.head.rotation.x )
-      }
+      headRotation(this.head.rotation, this.mouse)
     }
 
     this.renderer.render(this.scene, this.camera)
