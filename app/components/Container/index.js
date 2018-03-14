@@ -35,9 +35,6 @@ const StyledContainer = styled.div`
       max-width: 100%;
     }
   }
-  @media (max-width: 576px) {
-
-  }
 `
 
 const Container = ({className="", ...props}) => (

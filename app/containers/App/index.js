@@ -21,7 +21,7 @@ const Body = styled.div`
   display: flex;
   flex-grow: 1;
   width: 100%;
-  padding-top: 100px;
+  padding-top: 140px;
 `
 
 export const App = props => {

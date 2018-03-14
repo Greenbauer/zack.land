@@ -11,9 +11,10 @@ import Scrollspy from 'react-scrollspy'
 import injectReducer from 'utils/injectReducer'
 import injectSaga from 'utils/injectSaga'
 
-import Article from 'components/Article'
 import Button from 'components/Button'
-import Column from 'components/Column'
+import Card from 'components/Card'
+import CardBody from 'components/CardBody'
+import CardColumns from 'components/CardColumns'
 import Container from 'components/Container'
 import H2 from 'components/H2'
 import H3 from 'components/H3'
@@ -22,7 +23,6 @@ import LoadingIndicator from 'components/LoadingIndicator'
 import Menu from 'components/Menu'
 import MenuItem from 'components/MenuItem'
 import Row from 'components/Row'
-import Section from 'components/Section'
 import Small from 'components/Small'
 
 import { changePageHeader } from 'containers/App/actions'
@@ -37,7 +37,7 @@ import { loadData } from './actions'
 import reducer from './reducer'
 import saga from './saga'
 
-// render media inside article
+// render media
 const media = srcs => {
   let key = 0
 
@@ -52,53 +52,49 @@ const media = srcs => {
 
     // define if the media is an image or video
     let mediaType = (
-      <Img  className={`bg-white`} src={src.name} alt={src.alt} />
+      <Img
+        className={`bg-white`}
+        src={src.name}
+        alt={src.alt}
+        key={key}
+      />
     )
 
     if (src.type == 'video') {
       mediaType = (
-        <video src={src.name} />
+        <video src={src.name} key={key} />
       )
     }
 
-    return (
-      <Column className={`sm-${col}`} key={key}>
-        {mediaType}
-      </Column>
-    )
+    return mediaType
   })
 }
 
 // render button if there is a link
 const button = (url, text) => (
-  <Column className="sm-12">
     <Button className="left" href={url} target="_blank">
       {text}
     </Button>
-  </Column>
 )
 
 // render projects
 const Content = data => data.map(d => (
-    <Column className="xl-4 col-lg-6" key={`d-${d.id}`}>
-      <Section className={d.src ? '': 'no-img'}>
-        <div
-          id={`item:${d.name.replace(/ /g,"_")}`}
-          className={`scroll-item`}
-        />
-        <Row>
-          {d.src ? media(d.src) : ''}
-          <Article>
-            <Column className="sm-12">
-              <H2>
-                {d.name}
-              </H2>
-            </Column>
-              {d.url ? button(d.url, 'View Gallery') : ''}
-          </Article>
-        </Row>
-      </Section>
-    </Column>
+    <Card className={d.src ? '': 'no-img'} key={`d-${d.id}`}>
+      <div
+        id={`item:${d.name.replace(/ /g,"_")}`}
+        className={`scroll-item`}
+      />
+
+        {d.src ? media(d.src) : ''}
+          <CardBody>
+            <H2>
+              {d.name}
+            </H2>
+
+            {d.url ? button(d.url, 'View Gallery') : ''}
+            </CardBody>
+
+    </Card>
   )
 )
 
@@ -129,7 +125,9 @@ export class ArtPage extends React.Component {
           <meta name="description" content="Zachary Greenbauer's Graphic Design Portfolio" />
         </Helmet>
           <Row className="gutters">
-            {data ? Content(data) : (<LoadingIndicator />)}
+            <CardColumns>
+              {data ? Content(data) : (<LoadingIndicator />)}
+            </CardColumns>
           </Row>
       </Container>
     )

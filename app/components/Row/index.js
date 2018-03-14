@@ -11,6 +11,7 @@ const StyledRow = styled.div`
     height: 100%;
     align-content: center;
     align-items: center; /* needed for chrome */
+    margin-top: -40px;
   }
 
   &.gutters {

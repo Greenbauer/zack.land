@@ -7,8 +7,10 @@ import styled from 'styled-components'
 const StyledSection = styled.div`
   position: relative;
   box-shadow: 0 0 20px #000000;
-  margin-top: 40px;
   background-color: #171717;
+  margin-bottom: 40px;
+
+  
 
   &.form {
     width: 460px;

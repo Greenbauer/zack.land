@@ -3,7 +3,7 @@
 import styled from 'styled-components'
 
 const StyledFooter = styled.div`
-  padding: 40px 0;
+  padding-bottom: 40px;
   width: 100%;
   top: 100%;
 

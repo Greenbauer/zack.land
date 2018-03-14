@@ -3,7 +3,6 @@
 import styled from 'styled-components'
 
 const Wrapper = styled.div`
-  margin-top: 40px;
 
   /* work around, because 'position: fixed;' with bootsrap 4 ignores parent styles */
   position: fixed;
