@@ -27,6 +27,7 @@ injectGlobal`
     min-width: 100%;
     position: relative;
     display: flex;
+    overflow-x: hidden;
   }
 
   p,

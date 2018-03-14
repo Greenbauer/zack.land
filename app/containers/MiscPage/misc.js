@@ -77,7 +77,7 @@ const Data = {
           I wanted my projector to have this feature, so I made this little robot.
           Every evening an Arduino rotates a servo, which moves an orange lens filter in front of a projector lens.
           Then, early the morning, it rotates back.
-          The casing is 3D printed painted and sanded to create a sleek black look.
+          The casing is 3D printed, painted and sanded to create a sleek black look.
           It’s also adjustable and will fit most projector setups.
         </p>
       ),
