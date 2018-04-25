@@ -3,7 +3,6 @@
 import PropTypes from 'prop-types'
 import React from 'react'
 import { Switch, Route } from 'react-router-dom'
-import { CSSTransition, TransitionGroup } from 'react-transition-group' // not used
 import { connect } from 'react-redux'
 import { compose } from 'redux'
 import { createStructuredSelector } from 'reselect'
@@ -27,9 +26,9 @@ class PortfolioPage extends React.Component {
     this.props.onLoadState(this.state.title)
   }
 
-  componentWillUpdate() {
-    this.props.onLoadState(this.state.title)
-  }
+  // componentWillUpdate() {
+  //   this.props.onLoadState(this.state.title)
+  // }
 
   render() {
     return (

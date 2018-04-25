@@ -82,100 +82,48 @@ injectGlobal`
   /* react transition group transitions */
 
   .transition-group {
-    position: relative;
-    /*display: flex;
-    flex-grow: 1;*/
+    display: flex;
     width: 100%;
+    position: relative;
+    //display: contents;
+    //position: absolute;
   }
 
-  /*.transition-group > * {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-  }*/
 
-  /* slideRight animation */
-
-  .slideRight-enter {
+  /* slide right animation */
+  .slide-right-enter {
     transform: translate(100vw, 0);
   }
-
-  .slideRight-enter.slideRight-enter-active {
+  .slide-right-enter.slide-right-enter-active {
     transform: translate(0, 0);
     transition: transform 0.8s ease;
   }
-
-  .slideRight-exit {
+  .slide-right-exit {
     transform: translate(0, 0);
   }
-
-  .slideRight-exit.slideRight-exit-active {
+  .slide-right-exit.slide-right-exit-active {
     transform: translate(100vw, 0);
-    transition: transform 0.8s ease;
+    transition: transform .8s ease;
   }
 
-  /* no animation */
 
-  .no-enter {
-    transform: translate(0, -100vh);
-  }
 
-  .no-enter.no-enter-active {
-    transform: translate(0, 0);
-    transition: transform 0.8s ease;
-  }
-
-  .no-exit {
-    transform: translate(0, 0);
-  }
-
-  .no-exit.no-exit-active {
-    transform: translate(0, -100vh);
-    transition: transform 3.8s ease;
-    transition-delay: 2s;
-  }
-
-  /* fade animation */
-
-  .fade-enter {
+  .fade-appear, .fade-enter {
     opacity: 0;
   }
 
-  .fade-enter.fade-enter-active {
+  .fade-appear-active, .fade-enter-active {
+    transition: opacity 1s linear;
+    transition-delay: 1s;
     opacity: 1;
-    transition: opacity 0.3s ease;
-    transition-delay: 0.3s;
   }
 
   .fade-exit {
+    transition: opacity 1s linear;
     opacity: 1;
   }
 
-  .fade-exit.fade-exit-active {
+  .fade-exit-active {
     opacity: 0;
-    transition: opacity 0.3s ease;
   }
-
-  /* slideRightInner animation */
-
-  .slideRightInner-enter {
-    transform: translate(100%, 0);
-  }
-
-  .slideRightInner-enter.slideRightInner-enter-active {
-    transform: translate(0, 0);
-    transition: transform 0.4s ease;
-  }
-
-  .slideRightInner-exit {
-    transform: translate(0, 0);
-  }
-
-  .slideRightInner-exit.slideRightInner-exit-active {
-    transform: translate(100%, 0);
-    transition: transform 0.4s ease;
-  }
-
 `

@@ -17,7 +17,7 @@ const Data = {
           The create page has an advanced user interface, where text is warped and extruded, rendering a realistic 3D representation of the real product.
           Just type text and see that text warped to fit the temples.
           You can also change the font, ear tip icons, and colors.
-           <a href={'http://www.shapeways.com'}> Shapeways</a>,
+           <a href={'http://www.shapeways.com'} target="_blank"> Shapeways</a>,
           one of the world’s largest 3D printing companies,
           has Banner Eyewear featured on their website.
         </p>
@@ -47,7 +47,7 @@ const Data = {
       name: "perfsealers.com",
       desc: (
         <p>
-          <a href={'http://www.perfsealers.com'}>Perf Sealers</a> is an oil and gas company that sells dissolvable ball sealers.
+          <a href={'http://www.perfsealers.com'} target="_blank">Perf Sealers</a> is an oil and gas company that sells dissolvable ball sealers.
           I help with many projects, including building and maintaining their website.
         </p>
       ),
@@ -74,6 +74,18 @@ const Data = {
       ),
       tech: "AWS, Express, Node.js, MongoDB, React, Redux, Styled Components, three.js",
       repo: "https://github.com/Greenbauer/zack-land",
+    },
+    {
+      id: 4,
+      name: "Codepen Pens",
+      desc: (
+        <p>
+          This is a list of a few random things I have built on
+          <a href="http://codepen.io" target="_blank"> codepen</a>.
+        </p>
+      ),
+      tech: "React, Sass, RESTful APIs",
+      codepen: true,
     },
   ]
 }
