@@ -8,12 +8,16 @@ import { compose } from 'redux'
 import Scrollspy from 'react-scrollspy'
 import { createStructuredSelector } from 'reselect'
 
+import injectReducer from 'utils/injectReducer'
+import injectSaga from 'utils/injectSaga'
+
 import Article from 'components/Article'
 import Button from 'components/Button'
 import Column from 'components/Column'
 import Container from 'components/Container'
 import H2 from 'components/H2'
 import H3 from 'components/H3'
+import H4 from 'components/H4'
 import Img from 'components/Img'
 import Menu from 'components/Menu'
 import MenuItem from 'components/MenuItem'
@@ -22,6 +26,15 @@ import Section from 'components/Section'
 import Small from 'components/Small'
 
 import { changePageHeader } from 'containers/App/actions'
+import {
+  makeCodepenLoading,
+  makeCodepenError,
+  makeCodepenSuccess,
+  makeCodepenData,
+} from './selectors'
+import { loadData } from './actions'
+import reducer from './reducer'
+import saga from './saga'
 
 import data from './apps'
 
@@ -67,7 +80,7 @@ const button = (url, text) => (
 )
 
 // render content
-const content = data.apps.map(d => (
+const content = props => data.apps.map(d => (
   <Section className={d.src ? '': 'no-img'}
     key={`d-${d.id}`}
   >
@@ -96,10 +109,32 @@ const content = data.apps.map(d => (
         </Column>
           {d.url ? button(d.url, 'Visit Site') : ''}
           {d.repo ? button(d.repo, 'View Code') : ''}
+
+          {d.codepen ?
+            <ul>{
+              codepen(props.codepenCollection)
+            }</ul> : ''
+          }
+
       </Article>
     </Row>
   </Section>
 ))
+
+// render codepen collection
+const codepen = data => {
+  if (!data) return
+  return data.map(d => (
+  <li key={`d-${d.id}`}>
+    <Column className="sm-12">
+      <H4>
+        <a href={d.url} target="_blank">
+          {d.name}
+        </a>
+      </H4>
+    </Column>
+  </li>
+))}
 
 // scroll menu items
 const menuItems = data.apps.map(d => (
@@ -127,6 +162,7 @@ export class AppsPage extends React.Component {
 
   componentWillMount() {
     this.props.onLoadState(this.state.title)
+    this.props.onLoadCollection()
   }
 
   componentWillUpdate() {
@@ -154,8 +190,9 @@ export class AppsPage extends React.Component {
           </Column>
 
           <Column className="md-8">
-            {content}
+            {content(this.props)}
           </Column>
+
         </Row>
       </Container>
     )
@@ -163,7 +200,17 @@ export class AppsPage extends React.Component {
 }
 
 AppsPage.PropTypes = {
+  loading: PropTypes.bool,
+  error: PropTypes.oneOfType([
+    PropTypes.object,
+    PropTypes.bool,
+  ]),
+  codepenCollection: PropTypes.oneOfType([
+    PropTypes.array,
+    PropTypes.bool,
+  ]),
   onLoadState: PropTypes.func,
+  onLoadProfile: PropTypes.func.isRequired
 }
 
 export function mapDispatchToProps(dispatch) {
@@ -171,13 +218,23 @@ export function mapDispatchToProps(dispatch) {
     onLoadState: (title) => {
       dispatch(changePageHeader(title))
     },
+    onLoadCollection: (evt) => { dispatch(loadData()) },
   }
 }
 
-const mapStateToProps = createStructuredSelector({})
+const mapStateToProps = createStructuredSelector({
+  codepenCollection: makeCodepenData(),
+  loading: makeCodepenLoading(),
+  error: makeCodepenError(),
+})
 
 const withConnect = connect(mapStateToProps, mapDispatchToProps)
 
+const withReducer = injectReducer({ key: 'apps', reducer })
+const withSaga = injectSaga({ key: 'apps', saga })
+
 export default compose(
+  withReducer,
+  withSaga,
   withConnect,
 )(AppsPage)

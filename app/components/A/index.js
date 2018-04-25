@@ -18,7 +18,6 @@ const StyledA = styled.span`
   &:focus {
     border-color: rgba(255, 49, 175, 0.7); /* pink */
   }
-
 `
 
 const A = ({href="#", className="", ...props}) => (

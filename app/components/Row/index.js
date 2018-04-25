@@ -23,6 +23,13 @@ const StyledRow = styled.div`
      padding-right: 20px;
    }
   }
+
+  @media (max-width: 767px) {
+    &.float-right, &.float-left {
+      float: none !important;
+    }
+  }
+
 `
 
 const Row = ({className="", ...props}) => (

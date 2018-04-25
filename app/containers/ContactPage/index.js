@@ -37,15 +37,15 @@ export class ContactPage extends React.Component {
           <title>Contact Me</title>
           <meta name="description" content="Contact Me" />
         </Helmet>
-        <Section className="form">
-          <Row className="row-centered">
+        <Row className="float-right">
+          <Section className="form">
             <Article className="form">
               <Column className="sm-12 col-centered">
                 <ContactForm />
               </Column>
             </Article>
-          </Row>
-        </Section>
+          </Section>
+        </Row>
       </Container>
     )
   }

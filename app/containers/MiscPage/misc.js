@@ -39,7 +39,7 @@ const Data = {
       name: "Buoyancy Sorting Robot",
       desc: (
         <p>
-          This is a robot which I designed, programmed, and fabricated for <a href={'http://www.perfsealers.com'}>Perf Sealers</a>.
+          This is a robot which I designed, programmed, and fabricated for <a href={'http://www.perfsealers.com'} target="_blank">Perf Sealers</a>.
           This machine sorts plastic balls by buoyancy.
           It weighs each ball. Then determines if it will float, sink, or be neutral in a specified fluid.
           It weighs 1 ball about every 3 seconds and is accurate within a percentage of a gram.
@@ -98,7 +98,7 @@ const Data = {
         <p>
           This is a very simple custom mount to hold a Shofar upright on the wall.
           It’s made from matte black laser cut acrylic.
-          It was a fun challenge figuring out how to fit my design with the complex geometry of the shofar.
+          It was a fun challenge figuring out how to design around the complex geometry of the shofar.
         </p>
       ),
       tech: "Cinema 4D, Illustrator, Laser Cutting, Photogrammetry",
