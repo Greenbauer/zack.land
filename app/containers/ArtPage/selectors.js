@@ -1,34 +1,28 @@
-// ArtPage Selectors
-
 import { createSelector } from 'reselect'
+import { initialState } from './reducer'
 
-const selectArt = (state) => state.get('art')
+const selectArt = state => state.art || initialState
 
-const makeBehanceData = () => createSelector(
-  selectArt,
-  (artState) => artState.get('data')
-  //(artState) => artState.getIn(['userData', 'dataitories'])
-)
+export const makeBehanceData = () =>
+  createSelector(
+    selectArt,
+    artState => artState.data,
+  )
 
-const makeBehanceLoading = () => createSelector(
-  selectArt,
-  (artState) => artState.get('loading')
-)
+export const makeBehanceLoading = () =>
+  createSelector(
+    selectArt,
+    artState => artState.loading,
+  )
 
-const makeBehanceError = () => createSelector(
-  selectArt,
-  (artState) => artState.get('error')
-)
+export const makeBehanceError = () =>
+  createSelector(
+    selectArt,
+    artState => artState.error,
+  )
 
-const makeBehanceSuccess = () => createSelector(
-  selectArt,
-  (artState) => artState.get('success')
-)
-
-export {
-  selectArt,
-  makeBehanceLoading,
-  makeBehanceError,
-  makeBehanceSuccess,
-  makeBehanceData,
-}
+export const makeBehanceSuccess = () =>
+  createSelector(
+    selectArt,
+    artState => artState.success,
+  )

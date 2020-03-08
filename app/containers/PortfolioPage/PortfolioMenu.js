@@ -1,60 +1,42 @@
-// PortfolioMenu for PortfolioPage
-
 import PropTypes from 'prop-types'
 import React from 'react'
-import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet'
+import { Col, Container, Row } from 'react-bootstrap'
 
-import Column from 'components/Column'
-import Container from 'components/Container'
-import H3 from 'components/H3'
 import Menu from 'components/Menu'
-import MenuItem from 'components/MenuItem'
-import Row from 'components/Row'
 
-import Arrow from './Arrow'
+function PortfolioMenu(props) {
+  const items = [
+    {
+      name: 'Web Apps',
+      route: `${props.match.url}/apps`,
+    },
+    {
+      name: 'Digital Art',
+      route: `${props.match.url}/art`,
+    },
+    {
+      name: 'Miscellaneous',
+      route: `${props.match.url}/misc`,
+    },
+  ]
 
-class PortfolioMenu extends React.Component {
-
-  render() {
-    return (
-      <Container>
-        <Helmet>
-          <title>Portfolio</title>
-          <meta name="description" content="Zachary Greenbauer's Portfolio" />
-        </Helmet>
-        <Row>
-
-          <Column className="md-4">
-            <Menu className="needed">
-                <MenuItem>
-                  <H3>
-                    <Link to={`${this.props.match.url}/apps`}>Web Apps</Link>
-                  </H3>
-                </MenuItem>
-
-                <MenuItem>
-                  <H3>
-                    <Link to={`${this.props.match.url}/art`}>Digital Art</Link>
-                  </H3>
-                </MenuItem>
-
-                <MenuItem>
-                  <H3>
-                    <Link to={`${this.props.match.url}/misc`}>Miscellaneous</Link>
-                  </H3>
-                </MenuItem>
-                <Arrow />
-            </Menu>
-          </Column>
-
-        </Row>
-      </Container>
-    )
-  }
+  return (
+    <Container>
+      <Helmet>
+        <title>Portfolio</title>
+        <meta name="description" content="Zachary Greenbauer's Portfolio" />
+      </Helmet>
+      <Row>
+        <Col md={4}>
+          <Menu className="needed" items={items} useArrow />
+        </Col>
+      </Row>
+    </Container>
+  )
 }
 
-PortfolioMenu.PropTypes = {
+PortfolioMenu.propTypes = {
   match: PropTypes.object.isRequired,
 }
 

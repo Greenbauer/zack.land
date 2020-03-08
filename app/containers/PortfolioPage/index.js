@@ -1,7 +1,5 @@
-// PortfolioPage
-
 import PropTypes from 'prop-types'
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Switch, Route } from 'react-router-dom'
 import { connect } from 'react-redux'
 import { compose } from 'redux'
@@ -14,43 +12,27 @@ import MiscPage from 'containers/MiscPage/Loadable'
 
 import PortfolioMenu from './PortfolioMenu'
 
-class PortfolioPage extends React.Component {
-  constructor(props) {
-    super(props)
-    this.state = {
-      title: 'Portfolio'
-     }
-  }
+function PortfolioPage(props) {
+  useEffect(() => props.onLoadState('Portfolio'), [])
 
-  componentWillMount() {
-    this.props.onLoadState(this.state.title)
-  }
-
-  // componentWillUpdate() {
-  //   this.props.onLoadState(this.state.title)
-  // }
-
-  render() {
-    return (
-      <Switch location={this.props.history.location}>
-        <Route exact path={this.props.match.url} component={PortfolioMenu} />
-        <Route path={`${this.props.match.url}/apps`} component={AppsPage} />
-        <Route path={`${this.props.match.url}/art`} component={ArtPage} />
-        <Route path={`${this.props.match.url}/misc`} component={MiscPage} />
-        <Route path={`${this.props.match.url}/`} component={PortfolioMenu} />
-      </Switch>
-    )
-  }
+  return (
+    <Switch>
+      <Route exact path={props.match.url} component={PortfolioMenu} />
+      <Route path={`${props.match.url}/apps`} component={AppsPage} />
+      <Route path={`${props.match.url}/art`} component={ArtPage} />
+      <Route path={`${props.match.url}/misc`} component={MiscPage} />
+    </Switch>
+  )
 }
 
-PortfolioPage.PropTypes = {
-  onLoadState: PropTypes.string,
+PortfolioPage.propTypes = {
+  onLoadState: PropTypes.any,
   match: PropTypes.object.isRequired,
 }
 
-export function mapDispatchToProps(dispatch) {
+function mapDispatchToProps(dispatch) {
   return {
-    onLoadState: (title) => {
+    onLoadState: title => {
       dispatch(changePageHeader(title))
     },
   }
@@ -58,8 +40,9 @@ export function mapDispatchToProps(dispatch) {
 
 const mapStateToProps = createStructuredSelector({})
 
-const withConnect = connect(mapStateToProps, mapDispatchToProps)
+const withConnect = connect(
+  mapStateToProps,
+  mapDispatchToProps,
+)
 
-export default compose(
-  withConnect,
-)(PortfolioPage)
+export default compose(withConnect)(PortfolioPage)

@@ -3,53 +3,20 @@
  */
 
 import { createSelector } from 'reselect'
+import { initialState } from './reducer'
 
-const selectGlobal = (state) => state.get('global')
+const selectGlobal = state => state.global || initialState
 
-const selectRoute = (state) => state.get('route')
+const selectRouter = state => state.router
 
-const makeSelectCurrentUser = () => createSelector(
-  selectGlobal,
-  (globalState) => globalState.get('currentUser')
-)
+export const makeSelectLocation = () =>
+  createSelector(
+    selectRouter,
+    routerState => routerState.location,
+  )
 
-const makeSelectLoading = () => createSelector(
-  selectGlobal,
-  (globalState) => globalState.get('loading')
-)
-
-const makeSelectError = () => createSelector(
-  selectGlobal,
-  (globalState) => globalState.get('error')
-)
-
-const makeSelectSuccess = () => createSelector(
-  selectGlobal,
-  (globalState) => globalState.get('success')
-)
-
-const makeSelectRepos = () => createSelector(
-  selectGlobal,
-  (globalState) => globalState.getIn(['userData', 'repositories'])
-)
-
-const makeSelectLocation = () => createSelector(
-  selectRoute,
-  (routeState) => routeState.get('location').toJS()
-)
-
-const updateHeaderTitle = () => createSelector(
-  selectGlobal,
-  (globalState) => globalState.get('title')
-)
-
-export {
-  selectGlobal,
-  makeSelectCurrentUser,
-  makeSelectLoading,
-  makeSelectError,
-  makeSelectSuccess,
-  makeSelectRepos,
-  makeSelectLocation,
-  updateHeaderTitle,
-}
+export const updateHeaderTitle = () =>
+  createSelector(
+    selectGlobal,
+    globalState => globalState.title,
+  )

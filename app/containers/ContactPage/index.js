@@ -1,63 +1,45 @@
-// ContactPage
-
 import PropTypes from 'prop-types'
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Helmet } from 'react-helmet'
 import { connect } from 'react-redux'
 import { compose } from 'redux'
 import { createStructuredSelector } from 'reselect'
-
-import Article from 'components/Article'
-import Column from 'components/Column'
-import Container from 'components/Container'
-import H2 from 'components/H2'
-import Row from 'components/Row'
-import Section from 'components/Section'
+import { Col, Container, Row } from 'react-bootstrap'
 
 import { changePageHeader } from 'containers/App/actions'
 
-import ContactForm from './contactForm'
+import ContactForm from '../ContactForm'
 
-export class ContactPage extends React.Component {
-  constructor(props) {
-    super(props)
-    this.state = {
-      title: 'Contact Me'
-    }
-  }
+function ContactPage(props) {
+  useEffect(() => props.onLoadState('Contact Me'), [])
 
-  componentWillMount() {
-    this.props.onLoadState(this.state.title)
-  }
-
-  render() {
-    return (
-      <Container>
-        <Helmet>
-          <title>Contact Me</title>
-          <meta name="description" content="Contact Me" />
-        </Helmet>
-        <Row className="float-right">
-          <Section className="form">
-            <Article className="form">
-              <Column className="sm-12 col-centered">
-                <ContactForm />
-              </Column>
-            </Article>
-          </Section>
-        </Row>
-      </Container>
-    )
-  }
+  return (
+    <Container>
+      <Helmet>
+        <title>Contact Me</title>
+        <meta name="description" content="Contact Me" />
+      </Helmet>
+      <Row>
+        <Col sm={4} />
+        <Col sm={8}>
+          <div className="section form-section">
+            <div className="article">
+              <ContactForm />
+            </div>
+          </div>
+        </Col>
+      </Row>
+    </Container>
+  )
 }
 
-ContactPage.PropTypes = {
+ContactPage.propTypes = {
   onLoadState: PropTypes.func,
 }
 
-export function mapDispatchToProps(dispatch) {
+function mapDispatchToProps(dispatch) {
   return {
-    onLoadState: (title) => {
+    onLoadState: title => {
       dispatch(changePageHeader(title))
     },
   }
@@ -65,8 +47,9 @@ export function mapDispatchToProps(dispatch) {
 
 const mapStateToProps = createStructuredSelector({})
 
-const withConnect = connect(mapStateToProps, mapDispatchToProps)
+const withConnect = connect(
+  mapStateToProps,
+  mapDispatchToProps,
+)
 
-export default compose(
-  withConnect,
-)(ContactPage)
+export default compose(withConnect)(ContactPage)

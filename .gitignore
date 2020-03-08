@@ -3,6 +3,7 @@ coverage
 build
 node_modules
 stats.json
+banner-eyewear
 
 # Cruft
 .DS_Store

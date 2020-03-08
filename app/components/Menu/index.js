@@ -1,40 +1,75 @@
-// Menu
-
 import PropTypes from 'prop-types'
-import React from 'react'
-import styled from 'styled-components'
+import React, { useEffect, useRef, useState } from 'react'
+import Scrollspy from 'react-scrollspy'
+import { Link } from 'react-router-dom'
+
+import Arrow from './Arrow'
 
 import Wrapper from './Wrapper'
 
-const StyledMenu = styled.ul`
-  display: block;
-  border-right: 1px solid #222;
-  margin: 0 50px 0 0;
-  max-width: none;
-  padding: 0;
-
-  /* work around, because 'position: fixed;' with bootsrap 4 ignores parent styles */
-  position: absolute;
-  right: 66.67%; /* must be same as all other cols in row */
-
-  @media (max-width: 767px) {
-    max-width: none;
-    position: relative;
-    right: auto;
-    margin: 0;
-    padding: 0;
-    border: none;
-  }
-`
-
-const Menu = ({className="", ...props}) => (
-  <Wrapper className={`${className}`}>
-    <StyledMenu className={`${className}`} {...props} />
-  </Wrapper>
+// for scrollspy reference
+const scrollRef = item => (
+  <a href={`#${item.name.replace(/ /g, '-')}`}>{item.name}</a>
 )
 
+// for page routing
+const link = item => (
+  <Link href={item.name} to={item.route}>
+    {item.name}
+  </Link>
+)
+
+function Menu(props) {
+  let menuItems = []
+  let scrollItems = []
+
+  if (props.items) {
+    // menu items
+    menuItems = props.items.map(item => (
+      <li className="menu-item" key={`${item.name.replace(/ /g, '-')}`}>
+        <h3>{item.route ? link(item) : scrollRef(item)}</h3>
+      </li>
+    ))
+
+    // scrollspy item map
+    scrollItems = menuItems.map(item => item.key)
+  }
+
+  const [width, setWidth] = useState(0)
+
+  const ref = useRef(null)
+
+  const handleWidth = () => {
+    if (ref.current && ref.current.parentNode)
+      setWidth(ref.current.parentNode.clientWidth)
+  }
+
+  useEffect(() => {
+    handleWidth()
+
+    window.addEventListener('resize', handleWidth)
+    return () => window.removeEventListener('resize', handleWidth)
+  }, [])
+
+  return (
+    <Wrapper ref={ref} menuWidth={width} {...props}>
+      <div className="menu">
+        <Scrollspy
+          items={[...scrollItems]}
+          currentClassName="active"
+          offset={500}
+        >
+          {menuItems}
+        </Scrollspy>
+        {props.useArrow && <Arrow />}
+      </div>
+    </Wrapper>
+  )
+}
+
 Menu.propTypes = {
-  className: PropTypes.string,
+  useArrow: PropTypes.bool,
+  items: PropTypes.array,
 }
 
 export default Menu
