@@ -1,134 +1,85 @@
-// Header
-
 import PropTypes from 'prop-types'
-import React from 'react'
-import ReactDOM, {render} from 'react-dom'
+import React, { useState, useEffect } from 'react'
 import { connect } from 'react-redux'
 import { compose } from 'redux'
 import { createStructuredSelector } from 'reselect'
-import { LinkContainer, IndexLinkContainer } from 'react-router-bootstrap'
-
-import Container from 'components/Container'
-import Row from 'components/Row'
-import Column from 'components/Column'
+import { Container, Navbar, Nav } from 'react-bootstrap'
+import { NavLink } from 'react-router-dom'
 
 import { updateHeaderTitle } from 'containers/App/selectors'
 
 import Collapse from './Collapse'
 import Hamburger from './Hamburger'
-import NavBar from './NavBar'
-import NavList from './NavList'
 import NavListBackground from './NavListBackground'
-import NavListItem from './NavListItem'
-import Title from './Title'
 
-export class Header extends React.Component {
-  constructor(props) {
-    super(props)
-    this.handleScroll = this.handleScroll.bind(this)
-    this.handleClick = this.handleClick.bind(this)
-    this.state = {
-      isActive: false,
-      isScrolling: false
-    }
-  }
+function Header(props) {
+  const [isActive, setIsActive] = useState(false)
+  const [isScrolling, setIsScrolling] = useState(false)
 
-  componentDidMount() {
-    document.addEventListener('scroll', this.handleScroll)
-  }
-
-  componentWillUnmount() {
-    document.removeEventListener('scroll', this.handleScroll)
-  }
-
-  // detect srolling
-  handleScroll(evt) {
-    if (window.scrollY > 10) {
-      this.setState({
-        isScrolling: true
-      })
-
-    } else {
-      this.setState({
-        isScrolling: false
-      })
-    }
+  // detect scrolling
+  const handleScroll = () => {
+    if (window.scrollY > 10) setIsScrolling(true)
+    else setIsScrolling(false)
   }
 
   // toggle collapsing mobile menu
-  handleClick() {
-    this.setState({isActive: !this.state.isActive})
-  }
+  const handleClick = () => setIsActive(!isActive)
 
-  render() {
-    return (
-      <NavBar isScrolling={this.state.isScrolling}>
-        <Container>
+  useEffect(() => {
+    document.addEventListener('scroll', handleScroll)
+    return () => document.removeEventListener('scroll', handleScroll)
+  }, [])
 
-          <Collapse
-            isActive={this.state.isActive}
-            isScrolling={this.state.isScrolling}
-          >
-            <NavList id="nav-list">
-              <NavListItem onClick={this.handleClick}>
+  return (
+    <Navbar
+      className={`navbar-toggleable-sm fixed-top ${isScrolling && 'scrolling'}`}
+    >
+      <Container>
+        <Collapse isActive={isActive}>
+          <Nav activeKey="/" id="navbar">
+            <Nav.Item onClick={handleClick}>
+              <Nav.Link as={NavLink} exact to="/" activeClassName="active">
+                Home
+              </Nav.Link>
+            </Nav.Item>
 
-                <IndexLinkContainer className="nav-link" to="/">
-                  <a key={1}>
-                    Home
-                  </a>
-                </IndexLinkContainer>
-              </NavListItem>
+            <Nav.Item onClick={handleClick}>
+              <Nav.Link as={NavLink} to="/portfolio" activeClassName="active">
+                Portfolio
+              </Nav.Link>
+            </Nav.Item>
 
-              <NavListItem onClick={this.handleClick}>
-                <LinkContainer className="nav-link" to="/portfolio">
-                  <a key={2}>
-                    Portfolio
-                  </a>
-                </LinkContainer>
-              </NavListItem>
+            <Nav.Item onClick={handleClick}>
+              <Nav.Link as={NavLink} to="/contact" activeClassName="active">
+                Contact
+              </Nav.Link>
+            </Nav.Item>
 
-              <NavListItem onClick={this.handleClick}>
-                <LinkContainer className="nav-link" to="/contact">
-                  <a key={3}>
-                    Contact
-                  </a>
-                </LinkContainer>
-              </NavListItem>
+            <NavListBackground />
+          </Nav>
+        </Collapse>
 
-              <NavListBackground />
+        <Hamburger onClick={handleClick} isActive={isActive} />
 
-            </NavList>
-          </Collapse>
-
-          <Hamburger
-            onClick={this.handleClick}
-            isActive={this.state.isActive}
-          />
-          <Title>
-            {this.props.title}
-          </Title>
-
-        </Container>
-      </NavBar>
-    )
-  }
+        <div className="header-title">{props.title}</div>
+      </Container>
+    </Navbar>
+  )
 }
 
-Header.PropTypes = {
+Header.propTypes = {
   title: PropTypes.string,
-}
-
-export function mapDispatchToProps(dispatch) {
-  return {
-  }
 }
 
 const mapStateToProps = createStructuredSelector({
   title: updateHeaderTitle(),
 })
 
-const withConnect = connect(mapStateToProps, mapDispatchToProps, null, {pure: true})
+const withConnect = connect(
+  mapStateToProps,
+  {},
+  null,
+  { pure: true },
+)
 
-export default compose(
-  withConnect,
-)(Header)
+export default compose(withConnect)(Header)

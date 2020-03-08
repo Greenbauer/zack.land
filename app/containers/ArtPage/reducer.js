@@ -1,15 +1,8 @@
 /*
  * ArtReducer
- *
- * The reducer takes care of our data. Using actions, we can change our
- * application state.
- * To add a new action, add it to the switch statement in the reducer function
- *
- * Example:
- * case YOUR_ACTION_CONSTANT:
- *   return state.set('yourStateVariable', true);
  */
-import { fromJS } from 'immutable'
+
+import produce from 'immer'
 import {
   LOAD_BEHANCE_SUCCESS,
   LOAD_BEHANCE_ERROR,
@@ -17,34 +10,33 @@ import {
 } from './constants'
 
 // The initial state of the App
-const initialState = fromJS({
-  data: false,
+export const initialState = {
+  data: undefined,
   loading: false,
   error: false,
   success: false,
-})
-
-function artReducer(state = initialState, action) {
-  switch (action.type) {
-      case LOAD_BEHANCE:
-        return state
-          .set('data', false)
-          .set('loading', true)
-          .set('error', false)
-          .set('success', false)
-      case LOAD_BEHANCE_SUCCESS:
-        return state
-          .set('data', action.data)
-          .set('loading', false)
-          .set('success', true)
-      case LOAD_BEHANCE_ERROR:
-        return state
-          .set('error', action.error)
-          .set('success', false)
-          .set('loading', false)
-      default:
-      return state
-  }
 }
 
-export default artReducer
+/* eslint-disable default-case, no-param-reassign */
+export default (state = initialState, action) =>
+  produce(state, draft => {
+    switch (action.type) {
+      case LOAD_BEHANCE:
+        draft.data = undefined
+        draft.loading = true
+        draft.error = false
+        draft.success = false
+        break
+      case LOAD_BEHANCE_SUCCESS:
+        draft.data = action.data
+        draft.loading = false
+        draft.error = false
+        draft.success = true
+        break
+      case LOAD_BEHANCE_ERROR:
+        draft.loading = false
+        draft.error = action.error
+        draft.success = false
+        break
+    }
+  })

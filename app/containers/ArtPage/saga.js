@@ -1,6 +1,4 @@
-// ArtPage Saga
-
-import { call, put, select, takeLatest } from 'redux-saga/effects'
+import { call, put, takeLatest } from 'redux-saga/effects'
 
 import request from 'utils/request'
 
@@ -10,12 +8,11 @@ import { LOAD_BEHANCE } from './constants'
 export function* getBehanceProfile() {
   // get behance profile published projects data
   try {
-    // Call our request helper (see 'utils/request')
     const data = yield call(request, '/behance', {
-    method: 'GET',
-  })
+      method: 'GET',
+    })
     yield put(dataLoaded(data))
-  } catch (err) {console.log(err)
+  } catch (err) {
     yield put(dataLoadingError(err))
   }
 }

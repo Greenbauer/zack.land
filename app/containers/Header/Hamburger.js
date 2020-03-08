@@ -1,8 +1,8 @@
-// Hamburger for Header
-
 import PropTypes from 'prop-types'
 import React from 'react'
 import styled from 'styled-components'
+
+import { md, lightestColor } from 'global-styles'
 
 const StyledHamburger = styled.div`
   width: 25px;
@@ -13,8 +13,9 @@ const StyledHamburger = styled.div`
   cursor: pointer;
   display: none;
   margin-top: 15px;
+  z-index: 9999;
 
-  @media (max-width: 767px) {
+  @media (${md}) {
     display: inline-block;
   }
 
@@ -23,46 +24,42 @@ const StyledHamburger = styled.div`
     position: absolute;
     height: 1px;
     width: 100%;
-    background: #dddddd;
+    background: ${lightestColor};
     border-radius: 9px;
     opacity: 1;
     left: 0;
     transform: rotate(0deg);
-    transition: .25s ease-in-out;
+    transition: 0.25s ease-in-out;
   }
 
   span:nth-child(1) {
-    top: ${props => props.isActive ? '9' : '0'}px;
-    transform: ${props => props.isActive ? 'rotate(135deg)' : ''};
+    top: ${props => (props.isActive ? '9' : '0')}px;
+    ${props => props.isActive && 'transform: rotate(135deg)'};
   }
 
   span:nth-child(2) {
     top: 9px;
-    opacity: ${props => props.isActive ? '0' : '1'};
-    left: ${props => props.isActive ? '-25px' : ''};
+    opacity: ${props => (props.isActive ? '0' : '1')};
+    ${props => props.isActive && 'left: -25px'};
   }
 
   span:nth-child(3) {
     top: 18px;
-    top: ${props => props.isActive ? '9' : '18'}px;
-    transform: ${props => props.isActive ? 'rotate(-135deg)' : ''};
+    top: ${props => (props.isActive ? '9' : '18')}px;
+    ${props => props.isActive && 'transform: rotate(-135deg)'};
   }
 `
 
-const Hamburger = ({className="", ...props}) => (
-  <StyledHamburger
-    className={`hamburger ${className}`}
-    {...props}
-  >
+const Hamburger = props => (
+  <StyledHamburger className="hamburger" {...props}>
     <span />
     <span />
     <span />
   </StyledHamburger>
 )
 
-Hamburger.PropTypes = {
-  className: PropTypes.string,
-  isActive: PropTypes.bool.isRequired
+Hamburger.propTypes = {
+  isActive: PropTypes.bool.isRequired,
 }
 
 export default Hamburger

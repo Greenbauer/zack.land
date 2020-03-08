@@ -1,31 +1,69 @@
-// Wrapper for Menu
-
 import styled from 'styled-components'
 
-const Wrapper = styled.div`
+import {
+  border,
+  md,
+  lightestColor,
+  pinkColor,
+  yellowColor,
+} from 'global-styles'
 
-  /* work around, because 'position: fixed;' with bootsrap 4 ignores parent styles */
+export default styled.div`
   position: fixed;
-  width: 1440px; /* must be same as Container */
+  width: ${props => props.menuWidth - 30}px !important;
 
-  @media (max-width: 1850px) {
-    width: 1140px;
-  }
-  @media (max-width: 1350px) {
-    width: 900px;
-  }
-  @media (max-width: 991px) {
-    width: 760px;
-  }
-  @media (max-width: 767px) {
-    width: auto;
-    position: relative;
-    display: none;
+  .menu {
+    display: block;
+    border-right: ${border};
+    margin: 0 10px 0 0;
+    padding: 0 !important;
 
-    &.needed {
-      display: block;
+    /* this is to keep text from line breaking */
+    width: ${props => props.menuWidth + 15}px !important;
+    position: absolute;
+    right: 0;
+
+    ul {
+      padding: 0 !important;
+
+      li.menu-item {
+        padding: 20px 40px 20px 0;
+        text-align: right;
+        display: block;
+        position: relative;
+        word-wrap: break-word;
+
+        @media (${md}) {
+          text-align: center;
+          font-size: 1.5rem;
+          border-top: ${border};
+          padding: 20px 40px;
+
+          &:last-child {
+            border-bottom: ${border};
+          }
+        }
+
+        a {
+          color: ${lightestColor} !important;
+
+          &:hover {
+            color: ${pinkColor} !important;
+          }
+        }
+
+        &.active a {
+          color: ${yellowColor} !important;
+        }
+      }
+    }
+
+    @media (${md}) {
+      position: relative;
+      left: -25px;
+      margin: 0;
+      padding: 0;
+      border: none;
     }
   }
 `
-
-export default Wrapper
