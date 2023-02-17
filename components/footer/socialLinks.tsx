@@ -1,12 +1,7 @@
-import { cloneElement } from 'react'
-import {
-  FaBehance,
-  FaGithub,
-  FaInstagram,
-  FaLinkedin,
-} from 'react-icons/fa';
+import { cloneElement } from 'react';
+import { FaBehance, FaGithub, FaInstagram, FaLinkedin } from 'react-icons/fa';
 
-type SocialLinkType = { Icon: JSX.Element, url: string }
+type SocialLinkType = { Icon: JSX.Element; url: string };
 
 const socialLinks: SocialLinkType[] = [
   {
@@ -25,7 +20,7 @@ const socialLinks: SocialLinkType[] = [
     Icon: <FaLinkedin />,
     url: 'https://www.linkedin.com/in/greenbauer',
   },
-]
+];
 
 export default function SocialLinks() {
   return (
@@ -36,5 +31,5 @@ export default function SocialLinks() {
         </a>
       ))}
     </div>
-  )
+  );
 }

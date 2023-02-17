@@ -1,4 +1,4 @@
-import styles from '@/styles/Menu.module.scss'
+import styles from './menu.module.scss';
 
 export default function Arrow() {
   return (
@@ -6,5 +6,5 @@ export default function Arrow() {
       <div className="first" />
       <div className="second" />
     </div>
-  )
+  );
 }

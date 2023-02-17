@@ -1,18 +1,19 @@
-import { useMemo, useRef } from 'react'
-import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader'
-import { useLoader, useFrame } from '@react-three/fiber'
-import { BufferGeometry, Mesh, Group } from 'three'
-import useMatcap from './useMatcap'
+import { useFrame, useLoader } from '@react-three/fiber';
+import { useMemo, useRef } from 'react';
+import { BufferGeometry, Group, Mesh } from 'three';
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
+
+import useMatcap from './useMatcap';
 
 export type Mouse = {
-  isMoving: boolean
-  x: number
-  y: number
-}
+  isMoving: boolean;
+  x: number;
+  y: number;
+};
 
-type MyHeadType = { mouse: Mouse }
-type MyHeadGeometry = { [key: string]: BufferGeometry }
-type Vector = { x: number, y: number }
+type MyHeadType = { mouse: Mouse };
+type MyHeadGeometry = { [key: string]: BufferGeometry };
+type Vector = { x: number; y: number };
 
 let frameCount: number = 0;
 let frameCountLimit: number = 300;
@@ -20,20 +21,20 @@ let isFrameCounting: boolean = false;
 let randomPosition: Vector = { x: 0, y: 0 };
 
 export default function MyHead({ mouse }: MyHeadType) {
-  const myHeadRef = useRef<Group>(null)
+  const myHeadRef = useRef<Group>(null);
   const myHeadObj = useLoader(OBJLoader, '/background/geometry/myHead.obj');
-  const mainMaterial = useMatcap('/background/images/mainMatcap.jpg')
-  const whiteMaterial = useMatcap('/background/images/whiteMatcap.jpg')
+  const mainMaterial = useMatcap('/background/images/mainMatcap.jpg');
+  const whiteMaterial = useMatcap('/background/images/whiteMatcap.jpg');
 
   const myHeadGeometry: MyHeadGeometry = useMemo(() => {
-    const geometry: MyHeadGeometry = {}
+    const geometry: MyHeadGeometry = {};
     myHeadObj.traverse((child) => {
       if (child instanceof Mesh) {
-        geometry[child.name] = child.geometry
+        geometry[child.name] = child.geometry;
       }
     });
 
-    return geometry
+    return geometry;
   }, [myHeadObj]);
 
   const pointInLimit = (point: number, min: number, max: number) => {
@@ -46,7 +47,7 @@ export default function MyHead({ mouse }: MyHeadType) {
     frameCount = 0;
     mouse.isMoving = false;
     isFrameCounting = false;
-  }
+  };
 
   const startRandomRotation = () => {
     const randomNumber = (min: number, max: number) => {
@@ -60,7 +61,7 @@ export default function MyHead({ mouse }: MyHeadType) {
       x: randomNumber(1200, -2000),
       y: randomNumber(520, -600),
     };
-  }
+  };
 
   const rotateMyHead = () => {
     const { rotation } = myHeadRef.current!;
@@ -68,7 +69,7 @@ export default function MyHead({ mouse }: MyHeadType) {
     let speed: number = 0.05;
 
     if (mouse.isMoving) {
-      stopRandomRotation()
+      stopRandomRotation();
     } else {
       if (isFrameCounting) {
         lookPosition = randomPosition;
@@ -78,7 +79,7 @@ export default function MyHead({ mouse }: MyHeadType) {
       frameCount += 1;
 
       if (frameCount > frameCountLimit) {
-        startRandomRotation()
+        startRandomRotation();
       }
     }
 
@@ -89,11 +90,11 @@ export default function MyHead({ mouse }: MyHeadType) {
 
     rotation.x += speed * (lookPosition.y - rotation.x);
     rotation.y += speed * (lookPosition.x - rotation.y);
-  }
+  };
 
   useFrame(() => {
-    rotateMyHead()
-  })
+    rotateMyHead();
+  });
 
   return (
     <group position={[0, 5, 0]} ref={myHeadRef}>

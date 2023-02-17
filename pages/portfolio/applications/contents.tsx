@@ -1,4 +1,4 @@
-import { Content } from "@/types";
+import { Content } from '@/types';
 
 const Contents: Content[] = [
   {
@@ -70,10 +70,9 @@ const Contents: Content[] = [
         Enjoy!
       </p>
     ),
-    tech:
-      'AWS, Serverless, Next.js, Node.js, React, Redux, Sass, three.js',
+    tech: 'AWS, Serverless, Next.js, Node.js, React, Sass, three.js',
     repo: 'https://github.com/Greenbauer/zack-land',
   },
-]
+];
 
-export default Contents
+export default Contents;

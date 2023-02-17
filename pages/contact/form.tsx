@@ -1,14 +1,15 @@
+import { Col, Form as BSForm, Row } from 'react-bootstrap';
 import { useForm } from 'react-hook-form';
-import { Col, Form as BSForm, Row } from 'react-bootstrap'
-import Button from '@/components/button'
-import { post } from '@/utils/request';
+
+import Button from '@/components/button';
 import FormField, { FieldType } from '@/components/formField';
+import { post } from '@/utils/request';
 
 export type ContactFormData = {
-  name: string
-  email: string
-  subject: string
-  message: string
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
 };
 
 const fields: FieldType[] = [
@@ -36,7 +37,7 @@ const fields: FieldType[] = [
     type: 'textarea',
     isRequired: true,
   },
-]
+];
 
 export default function Form() {
   const {
@@ -52,29 +53,28 @@ export default function Form() {
       isSubmitted,
       isSubmitSuccessful,
     },
-  } = useForm<ContactFormData>({ mode: 'onBlur' })
+  } = useForm<ContactFormData>({ mode: 'onBlur' });
 
   const handleOnSubmit = async (data: ContactFormData) => {
     try {
-      const res = await post('/api/email', data)
+      const res = await post('/api/email', data);
       if (!res) throw new Error();
-
     } catch (error) {
-      setError('root', { type: 'sending' })
-      console.error(error)
+      setError('root', { type: 'sending' });
+      console.error(error);
     }
 
-    // 'root' errors will mark the form as invalid, 
-    // so this will reevaluate the form to see if that is still true. 
-    trigger()
-  }
+    // 'root' errors will mark the form as invalid,
+    // so this will reevaluate the form to see if validity is still true.
+    trigger();
+  };
 
   return (
     <Row>
       <Col sm={12}>
         <BSForm onSubmit={handleSubmit(handleOnSubmit)}>
           <BSForm.Group>
-            {fields.map(field => (
+            {fields.map((field) => (
               <FormField
                 key={field.name}
                 field={field}
@@ -87,10 +87,7 @@ export default function Form() {
             <Button
               type="submit"
               disabled={
-                !isDirty ||
-                !isValid ||
-                isSubmitting ||
-                isSubmitSuccessful
+                !isDirty || !isValid || isSubmitting || isSubmitSuccessful
               }
             >
               Submit
@@ -99,13 +96,12 @@ export default function Form() {
               <div className="alert">
                 {isSubmitSuccessful
                   ? 'Your message has been sent'
-                  : 'An error has occured'
-                }
+                  : 'An error has occured'}
               </div>
             )}
           </div>
         </BSForm>
       </Col>
     </Row>
-  )
+  );
 }

@@ -1,22 +1,24 @@
-import { Content } from "@/types";
+import { Content } from '@/types';
 
 const Contents: Content[] = [
   {
     name: 'Smart Bed',
     desc: (
       <p>
-        I designed and fabricated this king sized smart bed. It
-        is mostly made from plywood with walnut veneer added on. I went with a modern floating design,
-        where the bed has a hidden base and is mounted to the wall. This bed was designed with modularity in mind,
-        where it can break down into ten pieces, where each piece can easily be carried by one person.
-        It uses load cells to detect when a person is in the bed and on which side.
-        Depending on the time of day, and if a person is sleeping, it will set several LED strips to a certain color.
-        The LED strips can also be controlled with embedded buttons next to the built in night stands.
-        This smart bed also has an API that is integrated with my home automation system to control other automations throughout the house.
+        I designed and fabricated this king sized smart bed. It is mostly made
+        from plywood with walnut veneer added on. I went with a modern floating
+        design, where the bed has a hidden base and is mounted to the wall. This
+        bed was designed with modularity in mind, where it can break down into
+        ten pieces, where each piece can easily be carried by one person. It
+        uses load cells to detect when a person is in the bed and on which side.
+        Depending on the time of day, and if a person is sleeping, it will set
+        several LED strips to a certain color. The LED strips can also be
+        controlled with embedded buttons next to the built in night stands. This
+        smart bed also has an API that is integrated with my home automation
+        system to control other automations throughout the house.
       </p>
     ),
-    tech:
-      'Cinema 4D, Raspberry Pi, Robotics Engineering, Software Engineering, Woodworking',
+    tech: 'Cinema 4D, Raspberry Pi, Robotics Engineering, Software Engineering, Woodworking',
     repo: 'https://github.com/Greenbauer/smart_bed',
     src: [
       {
@@ -52,8 +54,7 @@ const Contents: Content[] = [
         mathematically designed to be very comfortable.
       </p>
     ),
-    tech:
-      'Architecture, Cinema 4D, CNC, Illustrator, Laser Cutting, Woodworking',
+    tech: 'Architecture, Cinema 4D, CNC, Illustrator, Laser Cutting, Woodworking',
     src: [
       {
         key: '/miscellaneous/parametric-chair-1.jpg',
@@ -86,8 +87,7 @@ const Contents: Content[] = [
         beautifuly.
       </p>
     ),
-    tech:
-      '3D Printing, Arduino, AutoCAD, Laser Cutting, Mechanical Engineering, Robotics Engineering, SolidWorks',
+    tech: '3D Printing, Arduino, AutoCAD, Laser Cutting, Mechanical Engineering, Robotics Engineering, SolidWorks',
     src: [
       {
         key: 'CnYKbnzrn4k',
@@ -119,8 +119,7 @@ const Contents: Content[] = [
         projector setups.
       </p>
     ),
-    tech:
-      '3D Printing, Arduino, AutoCAD, Mechanical Engineering, Robotics Engineering, SolidWorks',
+    tech: '3D Printing, Arduino, AutoCAD, Mechanical Engineering, Robotics Engineering, SolidWorks',
     repo: 'https://github.com/Greenbauer/night-shift-lens',
     src: [
       {
@@ -163,6 +162,6 @@ const Contents: Content[] = [
       },
     ],
   },
-]
+];
 
-export default Contents
+export default Contents;

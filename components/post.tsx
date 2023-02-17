@@ -1,40 +1,33 @@
-import { Col, Row } from 'react-bootstrap'
-import Button from '@/components/button'
-import { Element } from 'react-scroll'
-import { Content } from '@/types'
-import Media from './media'
+import { Col, Row } from 'react-bootstrap';
+import { Element } from 'react-scroll';
 
-type PostType = { content: Content }
+import Button from '@/components/button';
+import { Content } from '@/types';
+import { menuNameToId } from '@/utils/menu';
+
+import Media from './media';
+
+type PostType = { content: Content };
 
 export default function Post({ content }: PostType) {
-  const { name, url, src, desc, tech, repo } = content
+  const { name, url, src, desc, tech, repo } = content;
 
   return (
     <div className="section">
-      <Element name={name} className="scroll-element" />
+      <Element name={menuNameToId(name)} className="scroll-element" />
       <Row className="g-0">
-        {!!src && (
-          <Media sources={src} />
-        )}
+        {!!src && <Media sources={src} />}
         <div className="article">
           <Col sm={12}>
-            <h2>
-              {name}
-            </h2>
+            <h2>{name}</h2>
           </Col>
-          {!!desc && (
-            <Col sm={12}>
-              {desc}
-            </Col>
-          )}
+          {!!desc && <Col sm={12}>{desc}</Col>}
           {!!tech && (
             <Col sm={12}>
               <p>
                 Technology used:
                 <br />
-                <small>
-                  {tech}
-                </small>
+                <small>{tech}</small>
               </p>
             </Col>
           )}
@@ -55,5 +48,5 @@ export default function Post({ content }: PostType) {
         </div>
       </Row>
     </div>
-  )
+  );
 }

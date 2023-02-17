@@ -1,8 +1,9 @@
-import { Col, Container, Row } from 'react-bootstrap'
-import Link from 'next/link'
-import { useRouter } from 'next/router'
-import SocialLinks from './socialLinks'
-import styles from '@/styles/Footer.module.scss'
+import Link from 'next/link';
+import { useRouter } from 'next/router';
+import { Col, Container, Row } from 'react-bootstrap';
+
+import styles from './footer.module.scss';
+import SocialLinks from './socialLinks';
 
 function defaultText() {
   return (
@@ -14,7 +15,7 @@ function defaultText() {
       </Link>
       .
     </h6>
-  )
+  );
 }
 
 function contactPageText() {
@@ -24,12 +25,12 @@ function contactPageText() {
       <br />
       Ill will respond as soon as I can.
     </h6>
-  )
+  );
 }
 
 export default function Footer() {
-  const router = useRouter()
-  
+  const router = useRouter();
+
   return (
     <footer>
       <Container>
@@ -38,13 +39,10 @@ export default function Footer() {
             <SocialLinks />
           </Col>
           <Col md={6} className={styles.footerText}>
-            {router.pathname === '/contact'
-              ? contactPageText()
-              : defaultText()
-            }
+            {router.pathname === '/contact' ? contactPageText() : defaultText()}
           </Col>
         </Row>
       </Container>
     </footer>
-  )
+  );
 }

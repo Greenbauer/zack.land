@@ -1,29 +1,20 @@
 {
   "extends": [
     "next/core-web-vitals",
-    "eslint:recommended",
-    "plugin:@typescript-eslint/recommended"    
+    "next",
+    "plugin:prettier/recommended"
   ],
+  "plugins": ["simple-import-sort", "unused-imports"],
   "rules": {
-    "linebreak-style": 0,
-    "default-param-last": 0,
-    "max-len": [
-      "warn",
+    "prettier/prettier": [
+      "error",
       {
-        "code": 140
+        "singleQuote": true,
+        "endOfLine": "auto"
       }
     ],
-    "no-restricted-syntax": 0,
-    "no-await-in-loop": 0,
-    "no-console": [
-      "warn",
-      {
-        "allow": [
-          "warn",
-          "error",
-          "info"
-        ]
-      }
-    ]
+    "simple-import-sort/imports": "error",
+    "simple-import-sort/exports": "error",
+    "unused-imports/no-unused-imports": "error"
   }
 }

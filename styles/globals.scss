@@ -1,7 +1,6 @@
 @use 'library.module';
 
 #__next {
-  background-color: transparent;
   min-height: 100%;
   min-height: 100vh;
   min-width: 100%;
@@ -30,20 +29,17 @@ h1 {
   font-size: 4em;
   font-weight: 500;
   margin-bottom: 0.4em;
-  text-transform: Uppercase;
+  text-transform: uppercase;
   letter-spacing: 0.05em;
-
   background: library.$darkestColor linear-gradient(80deg,
-      library.$yellowColor 4%,
-      library.$pinkColor 8%,
-      library.$cyanColor 20%,
-      library.$darkBlueColor 85%);
-  background-size: auto auto;
+  library.$yellowColor 4%,
+  library.$pinkColor 8%,
+  library.$cyanColor 20%,
+  library.$darkBlueColor 85%);
   background-size: 100% 100%;
+  /* stylelint-disable-next-line scale-unlimited/declaration-strict-value */
   color: transparent;
   background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
 
   @media (max-width: library.$xl) {
     font-size: 3.2rem;
@@ -63,11 +59,11 @@ h1 {
 }
 
 h2 {
-  font-family: 'Roboto', sans-serif;
+  font-family: Roboto, sans-serif;
   font-weight: 100 !important;
   font-size: 2rem;
   margin-bottom: 20px;
-  text-transform: Uppercase;
+  text-transform: uppercase;
   letter-spacing: 0.03em;
   color: library.$lightestColor;
 
@@ -86,7 +82,7 @@ h2 {
 
 h3 {
   font-size: 26px !important;
-  text-transform: Uppercase;
+  text-transform: uppercase;
   letter-spacing: 0.03em;
   color: library.$lightestColor;
   padding: 0;
@@ -131,7 +127,7 @@ h4 {
 }
 
 h6 {
-  font-family: 'Roboto', sans-serif;
+  font-family: Roboto, sans-serif;
   font-weight: 100 !important;
   font-size: 1.5rem !important;
   letter-spacing: 0.03rem !important;
@@ -149,24 +145,21 @@ h6 {
   }
 }
 
-p,
-label {
+p,label {
   font-size: 18px;
   line-height: 1.5em;
   color: library.$lightColor;
 }
 
-small,
-.text-muted {
+small,.text-muted {
   color: library.$mediumLightColor !important;
-  font-family: 'Roboto', sans-serif;
+  font-family: Roboto, sans-serif;
   font-weight: 400;
   letter-spacing: 0.07em;
   font-size: 16px;
 }
 
-a,
-a span {
+a,a span {
   text-decoration: none !important;
   color: library.$cyanColor !important;
 
@@ -231,17 +224,18 @@ footer {
 }
 
 .article {
-  padding: 40px 40px 35px 40px;
+  padding: 40px 40px 35px;
   width: 100%;
 
   li {
-    padding: 15px 0 5px 0;
+    padding: 15px 0 5px;
   }
 }
 
 .youtube {
   position: relative;
   padding-bottom: 56.25%;
+
   /* is 16:9 */
   height: 0;
 
@@ -277,9 +271,7 @@ footer {
   }
 
   @media (max-width: library.$md) {
-
-    .col-xl-4,
-    .col-lg-6 {
+    .col-xl-4,.col-lg-6 {
       flex: 0 0 100%;
       max-width: 100%;
     }
@@ -294,8 +286,7 @@ form {
     color: library.$mediumLightColor !important;
     border: #1b1b1b !important;
 
-    &:hover,
-    &:focus {
+    &:hover,&:focus {
       background-color: library.$darkestColor !important;
       border: #1b1b1b !important;
       color: library.$mediumLightColor !important;
@@ -315,8 +306,7 @@ form {
     color: library.$mediumLightColor !important;
     border: #1b1b1b !important;
 
-    &:hover,
-    &:focus {
+    &:hover,&:focus {
       background-color: library.$darkestColor !important;
       color: library.$mediumLightColor !important;
       border: #1b1b1b !important;

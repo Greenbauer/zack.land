@@ -1,17 +1,18 @@
+import Link from 'next/link';
+import { useRouter } from 'next/router';
+import { useState } from 'react';
+import { Container, Nav, Navbar } from 'react-bootstrap';
 
-import { useState } from 'react'
-import { Container, Navbar, Nav } from 'react-bootstrap'
-import Link from 'next/link'
-import Collapse from './collapse'
-import MenuButton from './menuButton'
-import NavListBackground from './navListBackground'
-import styles from '@/styles/Header.module.scss'
-import { useRouter } from 'next/router'
-import useScroll from '@/hooks/useScroll'
+import useScroll from '@/hooks/useScroll';
 
-type HeaderType = { title: string }
+import Collapse from './collapse';
+import styles from './header.module.scss';
+import MenuButton from './menuButton';
+import NavListBackground from './navListBackground';
 
-type LinkType = { label: string, path: string }
+type HeaderType = { title: string };
+
+type LinkType = { label: string; path: string };
 
 const links: LinkType[] = [
   {
@@ -25,21 +26,21 @@ const links: LinkType[] = [
   {
     label: 'Contact',
     path: '/contact',
-  }
-]
+  },
+];
 
-export default function Header({title}: HeaderType) {
-  const router = useRouter()
-  const { isScrolling } = useScroll({ startLimit: 10 })
-  const [isMenuActive, setIsMenuActive] = useState(false)
+export default function Header({ title }: HeaderType) {
+  const router = useRouter();
+  const { isScrolling } = useScroll({ startLimit: 10 });
+  const [isMenuActive, setIsMenuActive] = useState(false);
 
-  const toggleMenu = () => setIsMenuActive(!isMenuActive)
+  const toggleMenu = () => setIsMenuActive(!isMenuActive);
 
   return (
     <Navbar
-      className={
-        `${styles.navbar} navbar-toggleable-sm fixed-top ${isScrolling ? 'scrolling' : ''}`
-      }
+      className={`${styles.navbar} navbar-toggleable-sm fixed-top ${
+        isScrolling && !isMenuActive ? 'scrolling' : ''
+      }`}
     >
       <Container>
         <Collapse isActive={isMenuActive}>
@@ -60,5 +61,5 @@ export default function Header({title}: HeaderType) {
         <h5 className={styles.headerTitle}>{title}</h5>
       </Container>
     </Navbar>
-  )
+  );
 }

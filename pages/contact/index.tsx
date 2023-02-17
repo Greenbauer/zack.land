@@ -1,7 +1,8 @@
-import { Col, Row } from 'react-bootstrap'
+import { Col, Row } from 'react-bootstrap';
 
-import Form from './form'
-import Layout from '@/components/layout'
+import Layout from '@/components/layout';
+
+import Form from './form';
 
 export default function Contact() {
   return (
@@ -17,5 +18,5 @@ export default function Contact() {
         </Col>
       </Row>
     </Layout>
-  )
+  );
 }
