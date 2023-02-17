@@ -1,0 +1,33 @@
+$lightestColor: #dddddd;
+$lightColor: #999999;
+$mediumLightColor: #777777;
+$mediumDarkColor: #333333;
+$darkColor: #171717;
+$darkestColor: #111111;
+$borderColor: #222222;
+$darkBlueColor: rgba(0, 51, 128, 0.75);
+$cyanColor: rgba(61, 225, 255, 0.75);
+$pinkColor: rgba(255, 49, 175, 0.75);
+$yellowColor: rgba(255, 210, 101, 0.75);
+
+$border: 1px solid $borderColor;
+$shadow: 0 0 20px rgba(0, 0, 0, .8);
+
+$sm: 576px;
+$md: 768px;
+$lg: 992px;
+$xl: 1200px;
+
+:export {
+    lightestColor: $lightestColor;
+    lightColor: $lightColor;
+    mediumLightColor: $mediumLightColor;
+    mediumDarkColor: $mediumDarkColor;
+    darkColor: $darkColor;
+    darkestColor: $darkestColor;
+    borderColor: $borderColor;
+    darkBlueColor: $darkBlueColor;
+    cyanColor: $cyanColor;
+    pinkColor: $pinkColor;
+    yellowColor: $yellowColor;
+}

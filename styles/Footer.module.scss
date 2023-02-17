@@ -1,0 +1,75 @@
+@use 'library.module';
+
+.footerSocialLinks {
+    text-align: left;
+
+    >* {
+        display: flex;
+        align-items: flex-end;
+        height: 100%;
+        bottom: 6px;
+
+        a {
+            padding: 0 20px;
+
+            path {
+                fill: library.$lightColor;
+            }
+
+            &:hover path {
+                fill: library.$yellowColor;
+            }
+
+            &:active path {
+                fill: library.$mediumDarkColor;
+            }
+        }
+
+        a:first-of-type {
+            padding-left: 0;
+        }
+    }
+
+    @media (max-width: library.$md) {
+        position: relative;
+        order: 1;
+
+        >* {
+            justify-content: center;
+        }
+
+        a:first-of-type {
+            padding-left: 20px;
+        }
+    }
+}
+
+.footerText {
+    text-align: right;
+
+    a {
+        padding: 0 0 0.3% 0;
+        border-bottom: 1px solid library.$pinkColor;
+        /* pink */
+
+        &:hover {
+            border-color: library.$yellowColor;
+            /* yellow */
+        }
+
+        &:active {
+            border-color: library.$mediumDarkColor;
+        }
+
+        &:focus {
+            border-color: library.$pinkColor;
+            /* pink */
+        }
+    }
+
+    @media (max-width: library.$md) {
+        text-align: center;
+        order: 0;
+        padding-bottom: 40px;
+    }
+}

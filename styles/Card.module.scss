@@ -1,0 +1,23 @@
+@use 'library.module';
+
+.card {
+    box-shadow: library.$shadow;
+    border: none !important;
+    border-radius: 0 !important;
+    background-color: library.$darkColor !important;
+    margin-bottom: 15px !important;
+    display: inline-block;
+    width: 100%;
+
+    img {
+        background-color: #ffffff;
+    }
+
+    @media (max-width: library.$md) {
+        margin: 0;
+    }
+}
+
+.cardBody {
+    padding: 40px 40px 35px 40px;
+}
