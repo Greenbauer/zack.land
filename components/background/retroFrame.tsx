@@ -1,7 +1,9 @@
 /* eslint-disable react/no-unknown-property */
 import { BufferGeometry, Shape, Vector3 } from 'three';
 
-import { borderColor, darkestColor } from '@/styles/_library.module.scss';
+import library from '@/styles/_library.module.scss';
+
+const { borderColor, darkestColor } = library;
 
 export default function RetroFrame() {
   const hiddenShape = new Shape();
