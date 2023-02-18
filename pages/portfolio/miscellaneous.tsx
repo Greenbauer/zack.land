@@ -1,10 +1,9 @@
 import { Col, Row } from 'react-bootstrap';
 
+import Contents from '@/components/contents/miscellaneous';
 import Layout from '@/components/layout';
-import Menu from '@/components/Menu';
-import Post from '@/components/Post';
-
-import Contents from './contents';
+import Menu from '@/components/menu';
+import Post from '@/components/post';
 
 export default function Miscellaneous() {
   return (

@@ -20,6 +20,7 @@ export default function Button({
   return (
     <div className={styles.button}>
       {type === 'submit' ? (
+        // @ts-ignore: bootstrap bug
         <BSButton type={type} disabled={disabled}>
           {children}
         </BSButton>
