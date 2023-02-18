@@ -5,14 +5,12 @@ import { FaPause, FaPlay } from 'react-icons/fa';
 import library from '@/styles/_library.module.scss';
 
 export default function Custom404() {
-  const videoRef = useRef(null);
+  const videoRef = useRef<any>(null);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
   const handleTogglePlayVideo = () => {
     if (videoRef.current) {
-      // @ts-ignore
       if (isVideoPlaying) videoRef.current.pause();
-      // @ts-ignore
       else videoRef.current.play();
 
       setIsVideoPlaying(!isVideoPlaying);
@@ -36,36 +34,29 @@ export default function Custom404() {
         style={{
           position: 'absolute',
           width: 'calc(100% - 40px)',
-          maxWidth: '500px',
-          top: '20px',
+          top: '10px',
           left: '30px',
           zIndex: '99',
         }}
       >
         <Col>
-          <div className="section">
-            <div className="article">
-              <Row
-                style={{
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}
-              >
-                <Col>
-                  <h5>404 - Page not found</h5>
-                </Col>
-                <Col style={{ flex: '0 1' }}>
-                  <a>
-                    {isVideoPlaying ? (
-                      <FaPause size={24} />
-                    ) : (
-                      <FaPlay size={24} />
-                    )}
-                  </a>
-                </Col>
-              </Row>
-            </div>
-          </div>
+          <Row
+            style={{
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '20px',
+              background: library.darkColor,
+            }}
+          >
+            <Col>
+              <h3>404 - Page not found</h3>
+            </Col>
+            <Col style={{ flex: '0 1' }}>
+              <a>
+                {isVideoPlaying ? <FaPause size={24} /> : <FaPlay size={24} />}
+              </a>
+            </Col>
+          </Row>
         </Col>
       </Row>
       <div
@@ -74,6 +65,7 @@ export default function Custom404() {
           justifyContent: 'center',
           alignItems: 'center',
           overflow: 'hidden',
+          zIndex: '0',
         }}
       >
         <video

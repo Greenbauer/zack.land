@@ -20,7 +20,7 @@ export default function Media({ sources }: MediaType) {
 
         // define if the media is an image or video
         let mediaType = (
-          <Image src={key} alt={alt} width={1000} height={1000} />
+          <Image src={key} alt={alt} width={800} height={800} priority />
         );
 
         if (type === 'YouTube') {

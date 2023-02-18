@@ -3,7 +3,7 @@ import { Element } from 'react-scroll';
 
 import Button from '@/components/button';
 import { Content } from '@/types';
-import { menuNameToId } from '@/utils/menu';
+import { toMenuId } from '@/utils/menu';
 
 import Media from './media';
 
@@ -14,7 +14,7 @@ export default function Post({ content }: PostType) {
 
   return (
     <div className="section">
-      <Element name={menuNameToId(name)} className="scroll-element" />
+      <Element name={toMenuId(name)} className="scroll-element" />
       <Row className="g-0">
         {!!src && <Media sources={src} />}
         <div className="article">

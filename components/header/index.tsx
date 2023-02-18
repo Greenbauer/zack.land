@@ -1,13 +1,14 @@
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Container, Nav, Navbar } from 'react-bootstrap';
 
 import useScroll from '@/hooks/useScroll';
+import useWindowSize from '@/hooks/useWindowSize';
 
 import Collapse from './collapse';
 import styles from './header.module.scss';
-import MenuButton from './menuButton';
+import MobileNavButton from './mobileNavButton';
 import NavListBackground from './navListBackground';
 
 type HeaderType = { title: string };
@@ -31,10 +32,17 @@ const links: LinkType[] = [
 
 export default function Header({ title }: HeaderType) {
   const router = useRouter();
+  const navRef = useRef<any>(null);
   const { isScrolling } = useScroll({ startLimit: 10 });
+  const { width } = useWindowSize();
   const [isMenuActive, setIsMenuActive] = useState(false);
+  const [offsetLeft, setOffsetLeft] = useState(0);
 
   const toggleMenu = () => setIsMenuActive(!isMenuActive);
+
+  useEffect(() => {
+    setOffsetLeft(navRef.current?.offsetLeft || 0);
+  }, [width]);
 
   return (
     <Navbar
@@ -42,7 +50,7 @@ export default function Header({ title }: HeaderType) {
         isScrolling && !isMenuActive ? 'scrolling' : ''
       }`}
     >
-      <Container>
+      <Container ref={navRef}>
         <Collapse isActive={isMenuActive}>
           <div className={styles.navContent}>
             <Nav activeKey={`/${router.pathname.split('/')[1]}`} id="navbar">
@@ -53,11 +61,11 @@ export default function Header({ title }: HeaderType) {
                   </Nav.Link>
                 </Nav.Item>
               ))}
-              <NavListBackground />
+              <NavListBackground offsetLeft={offsetLeft} />
             </Nav>
           </div>
         </Collapse>
-        <MenuButton onClick={toggleMenu} isActive={isMenuActive} />
+        <MobileNavButton onClick={toggleMenu} isActive={isMenuActive} />
         {!!title && <h5 className={styles.headerTitle}>{title}</h5>}
       </Container>
     </Navbar>
