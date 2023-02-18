@@ -6,7 +6,7 @@ import Menu, { MenuItem } from '@/components/menu';
 const items: MenuItem[] = [
   {
     name: 'Web Apps',
-    path: '/portfolio/applications',
+    path: '/portfolio/web-apps',
   },
   {
     name: 'Digital Art',

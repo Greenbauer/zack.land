@@ -22,17 +22,17 @@ const Contents: Content[] = [
     url: '/banner-eyewear',
     src: [
       {
-        key: '/applications/glasses-computer.jpg',
+        key: '/web-apps/glasses-computer.jpg',
         alt: 'Banner Eyewear',
         type: 'img',
       },
       {
-        key: '/applications/create-your-own-square.gif',
+        key: '/web-apps/create-your-own-square.gif',
         alt: 'Banner Eyewear',
         type: 'img',
       },
       {
-        key: '/applications/selfie-ig.jpg',
+        key: '/web-apps/selfie-ig.jpg',
         alt: 'Banner Eyewear',
         type: 'img',
       },
@@ -54,7 +54,7 @@ const Contents: Content[] = [
     url: 'http://www.perfsealers.com',
     src: [
       {
-        key: '/applications/balls-in-fluid.jpg',
+        key: '/web-apps/balls-in-fluid.jpg',
         alt: 'Perf Sealers',
         type: 'img',
       },

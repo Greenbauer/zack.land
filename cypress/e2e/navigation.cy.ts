@@ -15,9 +15,9 @@ export default describe('Navigation', () => {
     cy.get('.navbar h5').contains('Portfolio');
 
     // web apps
-    cy.get('li a[href*="/portfolio/applications"]').click();
+    cy.get('li a[href*="/portfolio/web-apps"]').click();
 
-    cy.get('.navbar h5').contains('Web Applications');
+    cy.get('.navbar h5').contains('Web Apps');
     cy.get('.section').should('exist');
 
     // art

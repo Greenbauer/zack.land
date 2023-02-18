@@ -6,9 +6,9 @@ import Post from '@/components/post';
 
 import Contents from './contents';
 
-export default function Applications() {
+export default function WebApps() {
   return (
-    <Layout title={'Web Applications'}>
+    <Layout title={'Web Apps'}>
       <Row>
         <Col md={4} className="d-none d-md-block">
           <Menu items={Contents.map((content) => ({ name: content.name }))} />
