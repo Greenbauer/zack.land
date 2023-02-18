@@ -21,17 +21,7 @@
       display: block;
       position: relative;
       word-wrap: break-word;
-
-      @media (max-width: library.$md) {
-        text-align: center;
-        font-size: 1.5rem;
-        border-top: library.$border;
-
-        &:last-child {
-          border-bottom: library.$border;
-        }
-      }
-
+      
       a {
         padding: 5px 10px 5px 0;
         margin: 25px 30px 25px 0;
@@ -54,6 +44,23 @@
     margin: 0;
     padding: 0;
     border: none;
+
+    ul {
+      li {
+        text-align: center;
+        font-size: 1.5rem;
+        border-top: library.$border;
+
+        &:last-child {
+          border-bottom: library.$border;
+        }
+
+        a {
+          padding: 10px  0;
+          margin: 10px 0;
+        }
+      }
+    }
   }
 }
 

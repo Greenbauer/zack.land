@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Link as RSLink } from 'react-scroll';
 
-import { menuNameToId } from '@/utils/menu';
+import { toMenuId } from '@/utils/menu';
 
 import Arrow from './arrow';
 import styles from './menu.module.scss';
@@ -32,7 +32,7 @@ export default function Menu({ items = [], useArrow = false }: MenuType) {
                   ) : (
                     <RSLink
                       activeClass="active"
-                      to={menuNameToId(name)}
+                      to={toMenuId(name)}
                       delay={0}
                       offset={0}
                       spy
