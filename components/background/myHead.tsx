@@ -1,0 +1,112 @@
+import { useFrame, useLoader } from '@react-three/fiber';
+import { useMemo, useRef } from 'react';
+import { BufferGeometry, Group, Mesh } from 'three';
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
+
+import useMatcap from './useMatcap';
+
+export type Mouse = {
+  isMoving: boolean;
+  x: number;
+  y: number;
+};
+
+type MyHeadType = { mouse: Mouse };
+type MyHeadGeometry = { [key: string]: BufferGeometry };
+type Vector = { x: number; y: number };
+
+let frameCount: number = 0;
+let frameCountLimit: number = 300;
+let isFrameCounting: boolean = false;
+let randomPosition: Vector = { x: 0, y: 0 };
+
+export default function MyHead({ mouse }: MyHeadType) {
+  const myHeadRef = useRef<Group>(null);
+  const myHeadObj = useLoader(OBJLoader, '/background/geometry/myHead.obj');
+  const mainMaterial = useMatcap('/background/images/mainMatcap.jpg');
+  const whiteMaterial = useMatcap('/background/images/whiteMatcap.jpg');
+
+  const myHeadGeometry: MyHeadGeometry = useMemo(() => {
+    const geometry: MyHeadGeometry = {};
+    myHeadObj.traverse((child) => {
+      if (child instanceof Mesh) {
+        geometry[child.name] = child.geometry;
+      }
+    });
+
+    return geometry;
+  }, [myHeadObj]);
+
+  const pointInLimit = (point: number, min: number, max: number) => {
+    if (point > max) return max;
+    if (point < min) return min;
+    return point;
+  };
+
+  const stopRandomRotation = () => {
+    frameCount = 0;
+    mouse.isMoving = false;
+    isFrameCounting = false;
+  };
+
+  const startRandomRotation = () => {
+    const randomNumber = (min: number, max: number) => {
+      return Math.floor(Math.random() * (max - min)) + min;
+    };
+
+    frameCount = 0;
+    frameCountLimit = randomNumber(300, 800);
+    isFrameCounting = true;
+    randomPosition = {
+      x: randomNumber(1200, -2000),
+      y: randomNumber(520, -600),
+    };
+  };
+
+  const rotateMyHead = () => {
+    const { rotation } = myHeadRef.current!;
+    let lookPosition: Vector = { x: mouse.x, y: mouse.y };
+    let speed: number = 0.05;
+
+    if (mouse.isMoving) {
+      stopRandomRotation();
+    } else {
+      if (isFrameCounting) {
+        lookPosition = randomPosition;
+        speed = 0.01;
+      }
+
+      frameCount += 1;
+
+      if (frameCount > frameCountLimit) {
+        startRandomRotation();
+      }
+    }
+
+    lookPosition = {
+      x: pointInLimit(lookPosition.x * 0.001, -0.5, 0.3),
+      y: pointInLimit(lookPosition.y * 0.001, -0.15, 0.13),
+    };
+
+    rotation.x += speed * (lookPosition.y - rotation.x);
+    rotation.y += speed * (lookPosition.x - rotation.y);
+  };
+
+  useFrame(() => {
+    rotateMyHead();
+  });
+
+  return (
+    <group position={[0, 5, 0]} ref={myHeadRef}>
+      <mesh geometry={myHeadGeometry.skin}>
+        <shaderMaterial attach="material" {...mainMaterial} />
+      </mesh>
+      <mesh geometry={myHeadGeometry.rightEye}>
+        <shaderMaterial attach="material" {...whiteMaterial} />
+      </mesh>
+      <mesh geometry={myHeadGeometry.leftEye}>
+        <shaderMaterial attach="material" {...whiteMaterial} />
+      </mesh>
+    </group>
+  );
+}
