@@ -28,8 +28,8 @@ export default async function handler(
       const { name, email, subject, message }: ContactFormData = body;
 
       await transporter.sendMail({
-        from: `zack land --> ${name} <noreply@zack.land>`,
-        to: 'zacharygreenbauer@gmail.com',
+        from: `zack land --> ${name} <${process.env.FROM_EMAIL}>`,
+        to: process.env.TO_EMAIL,
         subject: subject,
         html: `
           <body>
