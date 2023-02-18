@@ -1,4 +1,4 @@
-# zack-land
+# zack.land
 <div>
 
 ## About
