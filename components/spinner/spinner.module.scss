@@ -1,0 +1,51 @@
+@use '@/styles/library.module';
+
+.wrapper {
+  position: fixed;
+  bottom: 50%;
+  margin: auto;
+  left: 0;
+  right: 0;
+}
+
+.spinner {
+  &::after {
+    border-radius: 50%;
+    width: 20em;
+    height: 20em;
+  }
+
+  border-radius: 50%;
+  width: 20em;
+  height: 20em;
+  margin: 60px auto;
+  font-size: 10px;
+  position: relative;
+  text-indent: -9999em;
+  border-top: library.$border;
+  border-right: library.$border;
+  border-bottom: library.$border;
+  border-left: 1px solid library.$lightestColor;
+  transform: translateZ(0);
+  animation: load8 1.1s infinite linear;
+
+  @keyframes load8 {
+    0% {
+      transform: rotate(0deg);
+    }
+
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes load8 {
+    0% {
+      transform: rotate(0deg);
+    }
+
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+}

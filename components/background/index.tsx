@@ -6,6 +6,7 @@ import { PerspectiveCamera as PerspectiveCameraType } from 'three';
 import useMousePosition from '@/hooks/useMousePosition';
 import useWindowSize from '@/hooks/useWindowSize';
 
+import Spinner from '../spinner';
 import styles from './background.module.scss';
 import MyHead, { Mouse } from './myHead';
 import RetroFrame from './retroFrame';
@@ -28,7 +29,7 @@ export default function Background() {
 
   return (
     <div className={styles.wrapper}>
-      <Suspense fallback={null}>
+      <Suspense fallback={<Spinner />}>
         <Canvas flat className={styles.canvas}>
           <MyHead mouse={mouse} />
           <RetroFrame />

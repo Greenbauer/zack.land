@@ -2,6 +2,8 @@ import { useRef, useState } from 'react';
 import { Col, Container, Row } from 'react-bootstrap';
 import { FaPause, FaPlay } from 'react-icons/fa';
 
+import library from '@/styles/_library.module.scss';
+
 export default function Custom404() {
   const videoRef = useRef(null);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
@@ -19,6 +21,17 @@ export default function Custom404() {
 
   return (
     <Container onClick={handleTogglePlayVideo} style={{ cursor: 'pointer' }}>
+      <div
+        style={{
+          position: 'fixed',
+          top: '0',
+          bottom: '0',
+          left: '0',
+          right: '0',
+          background: library.darkestColor,
+          zIndex: '-1',
+        }}
+      />
       <Row
         style={{
           position: 'absolute',

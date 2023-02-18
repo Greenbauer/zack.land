@@ -71,7 +71,7 @@ const Contents: Content[] = [
       </p>
     ),
     tech: 'AWS, Serverless, Next.js, Node.js, React, Sass, three.js',
-    repo: 'https://github.com/Greenbauer/zack-land',
+    repo: 'https://github.com/Greenbauer/zack.land',
   },
 ];
 

@@ -1,13 +1,8 @@
-import { Open_Sans, Roboto } from '@next/font/google';
 import Head from 'next/head';
 import { Container } from 'react-bootstrap';
 
-import Background from './background';
 import Footer from './footer';
 import Header from './header';
-
-const openSans = Open_Sans({ subsets: ['latin'] });
-const roboto = Roboto({ subsets: ['latin'], weight: ['100', '400'] });
 
 type LayoutType = {
   children: JSX.Element;
@@ -17,20 +12,6 @@ type LayoutType = {
 export default function Layout({ children, title = '' }: LayoutType) {
   return (
     <>
-      <style jsx global>
-        {`
-          main {
-            font-family: ${openSans.style.fontFamily};
-          }
-
-          h2,
-          h6,
-          small,
-          .text-muted {
-            font-family: ${roboto.style.fontFamily};
-          }
-        `}
-      </style>
       <Head>
         <title>{`${title} - Zack Greenbauer`}</title>
         <meta
@@ -46,7 +27,6 @@ export default function Layout({ children, title = '' }: LayoutType) {
           <Container>{children}</Container>
         </div>
         <Footer />
-        <Background />
       </main>
     </>
   );
