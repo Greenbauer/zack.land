@@ -1,6 +1,6 @@
 import { Row } from 'react-bootstrap';
 
-import Card from '@/components/card/card';
+import Card from '@/components/card';
 import Layout from '@/components/layout';
 import { Content } from '@/types';
 import { get } from '@/utils/request';

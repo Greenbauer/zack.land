@@ -58,7 +58,7 @@ export default function Header({ title }: HeaderType) {
           </div>
         </Collapse>
         <MenuButton onClick={toggleMenu} isActive={isMenuActive} />
-        <h5 className={styles.headerTitle}>{title}</h5>
+        {!!title && <h5 className={styles.headerTitle}>{title}</h5>}
       </Container>
     </Navbar>
   );
