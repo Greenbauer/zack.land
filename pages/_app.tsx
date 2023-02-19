@@ -14,7 +14,7 @@ export default function App({ Component, pageProps }: AppProps) {
   const { height } = useWindowSize();
 
   return (
-    <div style={{ height, width: '100vw', overflow: 'hidden' }}>
+    <div style={{ height, width: '100%' }}>
       <style jsx global>
         {`
           main {
