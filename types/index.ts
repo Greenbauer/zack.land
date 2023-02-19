@@ -6,9 +6,10 @@ export type MediaSrc = {
 
 export type Content = {
   name: string;
-  url?: string;
+  siteUrl?: string;
+  galleryUrl?: string;
+  repoUrl?: string;
   src?: MediaSrc[];
   desc?: JSX.Element;
   tech?: string;
-  repo?: string;
 };

@@ -19,7 +19,7 @@ const Contents: Content[] = [
       </p>
     ),
     tech: 'Cinema 4D, Raspberry Pi, Robotics Engineering, Software Engineering, Woodworking',
-    repo: 'https://github.com/Greenbauer/smart_bed',
+    repoUrl: 'https://github.com/Greenbauer/smart_bed',
     src: [
       {
         key: '/miscellaneous/bed-1.jpg',
@@ -120,7 +120,7 @@ const Contents: Content[] = [
       </p>
     ),
     tech: '3D Printing, Arduino, AutoCAD, Mechanical Engineering, Robotics Engineering, SolidWorks',
-    repo: 'https://github.com/Greenbauer/night-shift-lens',
+    repoUrl: 'https://github.com/Greenbauer/night-shift-lens',
     src: [
       {
         key: '/miscellaneous/night-lens.gif',

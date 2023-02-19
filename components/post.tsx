@@ -10,7 +10,7 @@ import Media from './media';
 type PostType = { content: Content };
 
 export default function Post({ content }: PostType) {
-  const { name, url, src, desc, tech, repo } = content;
+  const { name, src, desc, tech, siteUrl, repoUrl } = content;
 
   return (
     <div className="section">
@@ -31,16 +31,16 @@ export default function Post({ content }: PostType) {
               </p>
             </Col>
           )}
-          {!!url && (
+          {!!siteUrl && (
             <Col sm={12}>
-              <Button href={url} target="_blank">
-                View Gallery
+              <Button href={siteUrl} target="_blank">
+                Visit Site
               </Button>
             </Col>
           )}
-          {!!repo && (
+          {!!repoUrl && (
             <Col sm={12}>
-              <Button href={repo} target="_blank">
+              <Button href={repoUrl} target="_blank">
                 View Code
               </Button>
             </Col>
