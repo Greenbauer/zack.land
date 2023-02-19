@@ -19,7 +19,7 @@ const Contents: Content[] = [
       </p>
     ),
     tech: 'jQuery, MySQL, PHP, three.js, webGL, WordPress, WooCommerce',
-    url: 'https://banner-eyewear.zack.land',
+    siteUrl: 'https://banner-eyewear.zack.land',
     src: [
       {
         key: '/web-apps/glasses-computer.jpg',
@@ -51,7 +51,7 @@ const Contents: Content[] = [
       </p>
     ),
     tech: 'jQuery, MySQL, PHP, WordPress',
-    url: 'http://www.perfsealers.com',
+    siteUrl: 'http://www.perfsealers.com',
     src: [
       {
         key: '/web-apps/balls-in-fluid.jpg',
@@ -71,7 +71,7 @@ const Contents: Content[] = [
       </p>
     ),
     tech: 'AWS, Serverless, Next.js, Node.js, React, Sass, three.js',
-    repo: 'https://github.com/Greenbauer/zack.land',
+    repoUrl: 'https://github.com/Greenbauer/zack.land',
   },
 ];
 

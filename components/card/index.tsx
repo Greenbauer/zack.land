@@ -9,16 +9,16 @@ import styles from './card.module.scss';
 type CardType = { content: Content };
 
 export default function Card({ content }: CardType) {
-  const { name, url, src } = content;
+  const { name, galleryUrl, src } = content;
 
   return (
     <BSCard className={styles.card}>
       {!!src && <Media sources={src} />}
       <BSCard.Body className={styles.cardBody}>
         <h2>{name}</h2>
-        {!!url && (
+        {!!galleryUrl && (
           <Col sm={12}>
-            <Button href={url} target="_blank">
+            <Button href={galleryUrl} target="_blank">
               View Gallery
             </Button>
           </Col>

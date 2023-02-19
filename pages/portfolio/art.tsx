@@ -7,15 +7,15 @@ import { get } from '@/utils/request';
 
 async function getArtContents() {
   const key = process.env.BEHANCE_API_KEY;
-  const url = `https://api.behance.net/v2/users/greenbauer/projects?client_id=${key}`;
-  const { projects } = await get(url);
+  const behanceUrl = `https://api.behance.net/v2/users/greenbauer/projects?client_id=${key}`;
+  const { projects } = await get(behanceUrl);
 
   return projects.map((project: any) => {
     const { name, url, covers } = project;
 
     const content: Content = {
       name,
-      url,
+      galleryUrl: url,
       src: [
         {
           key: covers.original,
