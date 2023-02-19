@@ -19,7 +19,7 @@ const Contents: Content[] = [
       </p>
     ),
     tech: 'jQuery, MySQL, PHP, three.js, webGL, WordPress, WooCommerce',
-    url: '/banner-eyewear',
+    url: 'https://banner-eyewear.zack.land',
     src: [
       {
         key: '/web-apps/glasses-computer.jpg',
