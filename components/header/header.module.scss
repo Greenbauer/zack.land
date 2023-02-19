@@ -127,13 +127,10 @@
       border-bottom: library.$border;
 
       @media (max-width: library.$md) {
-        display: flex;
-        visibility: hidden;
-        opacity: 0;
+        display: none;
 
         &[class~="active"] {
-          visibility: visible;
-          opacity: 1;
+          display: flex;
         }
       }
     }

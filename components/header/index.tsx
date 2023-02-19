@@ -38,15 +38,7 @@ export default function Header({ title }: HeaderType) {
   const [isMenuActive, setIsMenuActive] = useState(false);
   const [offsetLeft, setOffsetLeft] = useState(0);
 
-  const toggleMenu = () => {
-    // BUG FIX: when the menu closes, the page can rerender too fast
-    // causing a clicking event on the new page. so this delay was added
-    if (isMenuActive) {
-      setTimeout(() => {
-        setIsMenuActive(false);
-      }, 3000);
-    } else setIsMenuActive(true);
-  };
+  const toggleMenu = () => setIsMenuActive(!isMenuActive);
 
   useEffect(() => {
     setOffsetLeft(navRef.current?.offsetLeft || 0);
@@ -63,8 +55,8 @@ export default function Header({ title }: HeaderType) {
           <div className={styles.navContent}>
             <Nav activeKey={`/${router.pathname.split('/')[1]}`} id="navbar">
               {links.map(({ label, path }: LinkType) => (
-                <Nav.Item key={label} onClick={toggleMenu}>
-                  <Nav.Link as={Link} href={path}>
+                <Nav.Item key={label}>
+                  <Nav.Link as={Link} href={path} onClick={toggleMenu}>
                     {label}
                   </Nav.Link>
                 </Nav.Item>
