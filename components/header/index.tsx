@@ -38,7 +38,15 @@ export default function Header({ title }: HeaderType) {
   const [isMenuActive, setIsMenuActive] = useState(false);
   const [offsetLeft, setOffsetLeft] = useState(0);
 
-  const toggleMenu = () => setIsMenuActive(!isMenuActive);
+  const toggleMenu = () => {
+    // BUG FIX: when the menu closes, the page can rerender too fast
+    // causing a clicking event on the new page. so this delay was added
+    if (isMenuActive) {
+      setTimeout(() => {
+        setIsMenuActive(false);
+      }, 1000);
+    } else setIsMenuActive(true);
+  };
 
   useEffect(() => {
     setOffsetLeft(navRef.current?.offsetLeft || 0);
