@@ -18,67 +18,76 @@ export default function Custom404() {
   };
 
   return (
-    <Container onClick={handleTogglePlayVideo} style={{ cursor: 'pointer' }}>
-      <div
+    <>
+      <Container
+        onClick={handleTogglePlayVideo}
         style={{
-          position: 'fixed',
-          top: '0',
-          bottom: '0',
-          left: '0',
-          right: '0',
-          background: library.darkestColor,
-          zIndex: '-1',
-        }}
-      />
-      <Row
-        style={{
-          position: 'absolute',
-          width: 'calc(100% - 40px)',
-          top: '10px',
-          left: '30px',
-          zIndex: '99',
-        }}
-      >
-        <Col>
-          <Row
-            style={{
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '20px',
-              background: library.darkColor,
-            }}
-          >
-            <Col>
-              <h3>404 - Page not found</h3>
-            </Col>
-            <Col style={{ flex: '0 1' }}>
-              <a>
-                {isVideoPlaying ? <FaPause size={24} /> : <FaPlay size={24} />}
-              </a>
-            </Col>
-          </Row>
-        </Col>
-      </Row>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          overflow: 'hidden',
+          cursor: 'pointer',
           zIndex: '0',
+          overflow: 'hidden',
         }}
       >
+        <Row
+          style={{
+            width: '100%',
+            maxWidth: '600px',
+            margin: '10px 0',
+          }}
+        >
+          <Col>
+            <Row
+              style={{
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '20px',
+                background: library.darkColor,
+              }}
+            >
+              <Col>
+                <h3>404 - Page not found</h3>
+              </Col>
+              <Col style={{ flex: '0 1' }}>
+                <a>
+                  {isVideoPlaying ? (
+                    <FaPause size={24} />
+                  ) : (
+                    <FaPlay size={24} />
+                  )}
+                </a>
+              </Col>
+            </Row>
+          </Col>
+        </Row>
         <video
           ref={videoRef}
           loop
           style={{
-            height: '100vh',
+            height: '100%',
             width: 'auto',
+            objectFit: 'cover',
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translateX(-50%) translateY(-50%)',
+            zIndex: '-1',
           }}
         >
           <source src="/404/hello-is-it-me.mp4" type="video/mp4" />
         </video>
-      </div>
-    </Container>
+      </Container>
+      <div
+        style={{
+          position: 'fixed',
+          height: '100%',
+          width: '100%',
+          top: '50%',
+          left: '50%',
+          transform: 'translateX(-50%) translateY(-50%)',
+          cursor: 'pointer',
+          zIndex: '-2',
+          background: library.darkestColor,
+        }}
+      />
+    </>
   );
 }

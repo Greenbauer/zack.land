@@ -1,13 +1,5 @@
 @use 'library.module';
 
-#__next {
-  min-height: 100%;
-  min-height: 100vh;
-  min-width: 100%;
-  position: relative;
-  display: flex;
-}
-
 body {
   min-height: 100%;
   min-width: 100%;
@@ -181,12 +173,17 @@ img {
   width: 100%;
 }
 
+#__next {
+  width: 100%;
+}
+
 main {
   display: flex;
   flex-direction: column;
   width: 100%;
-  min-height: 100vh;
+  min-height: 100%;
   position: relative;
+  overflow-x: hidden;
 }
 
 footer {
