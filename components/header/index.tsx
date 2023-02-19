@@ -44,7 +44,7 @@ export default function Header({ title }: HeaderType) {
     if (isMenuActive) {
       setTimeout(() => {
         setIsMenuActive(false);
-      }, 1000);
+      }, 3000);
     } else setIsMenuActive(true);
   };
 
