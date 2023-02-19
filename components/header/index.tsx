@@ -55,8 +55,8 @@ export default function Header({ title }: HeaderType) {
           <div className={styles.navContent}>
             <Nav activeKey={`/${router.pathname.split('/')[1]}`} id="navbar">
               {links.map(({ label, path }: LinkType) => (
-                <Nav.Item key={label} onClick={toggleMenu}>
-                  <Nav.Link as={Link} href={path}>
+                <Nav.Item key={label}>
+                  <Nav.Link as={Link} href={path} onClick={toggleMenu}>
                     {label}
                   </Nav.Link>
                 </Nav.Item>
