@@ -2,9 +2,11 @@ import { useRef, useState } from 'react';
 import { Col, Container, Row } from 'react-bootstrap';
 import { FaPause, FaPlay } from 'react-icons/fa';
 
+import useWindowSize from '@/hooks/useWindowSize';
 import library from '@/styles/_library.module.scss';
 
 export default function Custom404() {
+  const { height } = useWindowSize();
   const videoRef = useRef<any>(null);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
@@ -25,6 +27,7 @@ export default function Custom404() {
           cursor: 'pointer',
           zIndex: '0',
           overflow: 'hidden',
+          height,
         }}
       >
         <Row
@@ -78,7 +81,7 @@ export default function Custom404() {
       <div
         style={{
           position: 'fixed',
-          height: '100%',
+          height,
           width: '100%',
           top: '50%',
           left: '50%',
