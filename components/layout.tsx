@@ -1,6 +1,8 @@
 import Head from 'next/head';
 import { Container } from 'react-bootstrap';
 
+import useWindowSize from '@/hooks/useWindowSize';
+
 import Footer from './footer';
 import Header from './header';
 
@@ -10,6 +12,8 @@ type LayoutType = {
 };
 
 export default function Layout({ children, title = '' }: LayoutType) {
+  const { height } = useWindowSize();
+
   return (
     <>
       <Head>
@@ -21,8 +25,8 @@ export default function Layout({ children, title = '' }: LayoutType) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <Header title={title} />
-      <main>
+      <main style={{ height }}>
+        <Header title={title} />
         <div className="app-body">
           <Container>{children}</Container>
         </div>
