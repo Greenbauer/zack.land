@@ -2,6 +2,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import '@/styles/globals.scss';
 
 import { Open_Sans, Roboto } from '@next/font/google';
+import { Analytics } from '@vercel/analytics/react';
 import type { AppProps } from 'next/app';
 
 import Background from '@/components/background';
@@ -28,6 +29,7 @@ export default function App({ Component, pageProps }: AppProps) {
       </style>
       <Component {...pageProps} />
       <Background />
+      <Analytics />
     </div>
   );
 }
