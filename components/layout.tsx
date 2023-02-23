@@ -17,7 +17,7 @@ export default function Layout({ children, title = '' }: LayoutType) {
   return (
     <>
       <Head>
-        <title>{`${title} - Zack Greenbauer`}</title>
+        <title>{`${!!title ? `${title} - ` : ''}Zack Greenbauer`}</title>
         <meta
           name="description"
           content="Zack Greenbauer's Portfolio and Sandbox"
@@ -25,7 +25,7 @@ export default function Layout({ children, title = '' }: LayoutType) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <main style={{ height }}>
+      <main style={{ height: height || '100vh' }}>
         <Header title={title} />
         <div className="app-body">
           <Container>{children}</Container>
