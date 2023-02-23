@@ -6,7 +6,7 @@ type UseScroll = {
 
 export default function useScroll(options?: UseScroll) {
   const { startLimit } = options || {};
-  const [isScrolling, setIsScrolling] = useState(false);
+  const [isScrolling, setIsScrolling] = useState<boolean>(false);
 
   useEffect(() => {
     const handleScrollEvent = () => {

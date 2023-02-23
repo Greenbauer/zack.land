@@ -5,22 +5,20 @@ import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
 
 import useMatcap from './useMatcap';
 
-export type Mouse = {
-  isMoving: boolean;
-  x: number;
-  y: number;
-};
+export type Point = { x: number; y: number };
 
-type MyHeadType = { mouse: Mouse };
+type MyHeadType = {
+  lookPositionStart: Point;
+};
 type MyHeadGeometry = { [key: string]: BufferGeometry };
-type Vector = { x: number; y: number };
 
 let frameCount: number = 0;
 let frameCountLimit: number = 300;
 let isFrameCounting: boolean = false;
-let randomPosition: Vector = { x: 0, y: 0 };
+let randomPosition: Point = { x: 0, y: 0 };
 
-export default function MyHead({ mouse }: MyHeadType) {
+export default function MyHead({ lookPositionStart }: MyHeadType) {
+  let isMouseMoving = true;
   const myHeadRef = useRef<Group>(null);
   const myHeadObj = useLoader(OBJLoader, '/background/geometry/myHead.obj');
   const mainMaterial = useMatcap('/background/images/mainMatcap.jpg');
@@ -37,7 +35,7 @@ export default function MyHead({ mouse }: MyHeadType) {
     return geometry;
   }, [myHeadObj]);
 
-  const pointInLimit = (point: number, min: number, max: number) => {
+  const lookPositionLimit = (point: number, min: number, max: number) => {
     if (point > max) return max;
     if (point < min) return min;
     return point;
@@ -45,7 +43,7 @@ export default function MyHead({ mouse }: MyHeadType) {
 
   const stopRandomRotation = () => {
     frameCount = 0;
-    mouse.isMoving = false;
+    isMouseMoving = false;
     isFrameCounting = false;
   };
 
@@ -65,15 +63,15 @@ export default function MyHead({ mouse }: MyHeadType) {
 
   const rotateMyHead = () => {
     const { rotation } = myHeadRef.current!;
-    let lookPosition: Vector = { x: mouse.x, y: mouse.y };
-    let speed: number = 0.05;
+    let lookPosition: Point = lookPositionStart;
+    let rotationSpeed: number = 0.05;
 
-    if (mouse.isMoving) {
+    if (isMouseMoving) {
       stopRandomRotation();
     } else {
       if (isFrameCounting) {
         lookPosition = randomPosition;
-        speed = 0.01;
+        rotationSpeed = 0.01;
       }
 
       frameCount += 1;
@@ -84,12 +82,12 @@ export default function MyHead({ mouse }: MyHeadType) {
     }
 
     lookPosition = {
-      x: pointInLimit(lookPosition.x * 0.001, -0.5, 0.3),
-      y: pointInLimit(lookPosition.y * 0.001, -0.15, 0.13),
+      x: lookPositionLimit(lookPosition.x * 0.001, -0.5, 0.3),
+      y: lookPositionLimit(lookPosition.y * 0.001, -0.15, 0.13),
     };
 
-    rotation.x += speed * (lookPosition.y - rotation.x);
-    rotation.y += speed * (lookPosition.x - rotation.y);
+    rotation.x += rotationSpeed * (lookPosition.y - rotation.x);
+    rotation.y += rotationSpeed * (lookPosition.x - rotation.y);
   };
 
   useFrame(() => {

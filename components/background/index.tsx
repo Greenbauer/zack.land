@@ -8,16 +8,15 @@ import useWindowSize from '@/hooks/useWindowSize';
 
 import Spinner from '../spinner';
 import styles from './background.module.scss';
-import MyHead, { Mouse } from './myHead';
+import MyHead, { Point } from './myHead';
 import RetroFrame from './retroFrame';
 
 export default function Background() {
   const mousePosition = useMousePosition();
   const { width, height } = useWindowSize();
 
-  const mouse: Mouse = {
-    isMoving: true,
-    x: (mousePosition.x - width / 2) * 0.7,
+  const lookPositionStart: Point = {
+    x: (mousePosition.x - width / 3) * 0.5,
     y: (mousePosition.y - height / 2) * 0.5,
   };
 
@@ -31,7 +30,7 @@ export default function Background() {
     <div className={styles.wrapper}>
       <Suspense fallback={<Spinner />}>
         <Canvas flat className={styles.canvas}>
-          <MyHead mouse={mouse} />
+          <MyHead lookPositionStart={lookPositionStart} />
           <RetroFrame />
           <PerspectiveCamera
             makeDefault
