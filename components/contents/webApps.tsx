@@ -32,7 +32,7 @@ const Contents: Content[] = [
         lives as a lambda function on AWS.
       </p>
     ),
-    tech: 'jQuery, PHP, three.js, WordPress, Serverless, AWS',
+    tech: 'AWS, Serverless, jQuery, PHP, three.js, WordPress',
     siteUrl: 'https://banner-eyewear.zack.land',
     src: [
       {
