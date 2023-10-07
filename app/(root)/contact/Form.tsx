@@ -76,12 +76,15 @@ export default function Form() {
       </div>
       <FormFields fields={fields2} register={register} errors={errors} />
       <div className="flex flex-col items-center gap-3">
-        <Button
-          type="submit"
-          disabled={!isDirty || !isValid || isSubmitting || isSubmitSuccessful}
-        >
-          Submit
-        </Button>
+        {!isSubmitSuccessful && (
+          <Button
+            type="submit"
+            disabled={!isDirty || !isValid}
+            showSpinner={isSubmitting}
+          >
+            Submit
+          </Button>
+        )}
         {isSubmitted && (
           <div className="flex w-full justify-center text-center">
             {isSubmitSuccessful ? (

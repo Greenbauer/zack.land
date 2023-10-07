@@ -129,18 +129,10 @@
   }
 
   .youtube {
-    position: relative;
-    padding-bottom: 56.25%;
-
-    /* is 16:9 */
-    height: 0;
+    @apply relative pb-[50%];
   }
 
   .youtube iframe {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: 100%;
+    @apply absolute top-0 left-0 w-full h-full;
   }
 }

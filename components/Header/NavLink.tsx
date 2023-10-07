@@ -39,7 +39,7 @@ function NavLink(
   ref: ForwardedRef<HTMLHeadingElement>,
 ) {
   return (
-    <h5 ref={ref}>
+    <h5 ref={ref} className="w-full">
       <Link href={path} className="flex w-full text-center">
         <div className={linkStyle({ isActive, isFirst, isScrolling })}>
           {label}

@@ -29,7 +29,13 @@ export default function Background() {
 
   return (
     <div className="fixed left-0 top-0 -z-50 flex h-full w-full overflow-hidden">
-      <Suspense fallback={<Spinner />}>
+      <Suspense
+        fallback={
+          <div className="fixed flex h-full w-full items-center justify-center">
+            <Spinner />
+          </div>
+        }
+      >
         <Canvas flat className="bg-black">
           <MyHead lookPositionStart={lookPositionStart} />
           <RetroFrame />

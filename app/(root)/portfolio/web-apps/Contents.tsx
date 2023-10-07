@@ -3,7 +3,7 @@ import { Content } from '@/types';
 const Contents: Content[] = [
   {
     name: 'This web site',
-    desc: (
+    description: (
       <p>
         The web site you are currently viewing, is for me to showcase my skills,
         experiment, and to master modern web design. I plan on adding many more
@@ -11,18 +11,19 @@ const Contents: Content[] = [
         Enjoy!
       </p>
     ),
-    tech: 'AWS, Serverless, Next.js, Node.js, React, Sass, three.js',
-    repoUrl: 'https://github.com/Greenbauer/zack.land',
+    technology:
+      'AWS, Serverless, Next.js, Node.js, React, Tailwind CSS, three.js',
+    repositoryUrl: 'https://github.com/Greenbauer/zack.land',
   },
   {
     name: 'Banner Eyewear',
-    desc: (
+    description: (
       <p>
         I developed Banner Eyewear so people could create and purchase 3D
         printed sunglasses. The create page has a user interface rendering a
         realistic 3D representation of the real product. Just type some text and
         see that text fit the sides of the sunglasses in 3D. You can also change
-        the font, ear tip icons, and colors.&nbsp;
+        the font, ear tip icons, and colors.{' '}
         <a href="http://www.shapeways.com" target="_blank" rel="noreferrer">
           Shapeways
         </a>
@@ -32,9 +33,9 @@ const Contents: Content[] = [
         lives as a lambda function on AWS.
       </p>
     ),
-    tech: 'AWS, Serverless, jQuery, PHP, three.js, WordPress',
+    technology: 'AWS, Serverless, jQuery, PHP, three.js, WordPress',
     siteUrl: 'https://banner-eyewear.zack.land',
-    src: [
+    mediaSources: [
       {
         key: '/web-apps/glasses-computer.jpg',
         alt: 'Banner Eyewear',
@@ -53,20 +54,44 @@ const Contents: Content[] = [
     ],
   },
   {
+    name: 'Passero',
+    description: (
+      <p>
+        <a href="http://www.travelpassero.com" target="_blank" rel="noreferrer">
+          Passero
+        </a>{' '}
+        is a travel planning technology startup, with an app to help people plan
+        for a trip with family and friends. I was a full time founding engineer
+        for a little over a year, responsible for building new full stack
+        features. I even helped design the logo during a rebranding. Currently,
+        I continue to help part time.
+      </p>
+    ),
+    technology:
+      'AWS, Serverless, DynamoDB, Node.js, React, Ant Design, Styled Components',
+    siteUrl: 'http://app.travelpassero.com',
+    mediaSources: [
+      {
+        key: '/web-apps/passero-app.jpg',
+        alt: 'Passero',
+        type: 'img',
+      },
+    ],
+  },
+  {
     name: 'Perf Sealers',
-    desc: (
+    description: (
       <p>
         <a href="http://www.perfsealers.com" target="_blank" rel="noreferrer">
           Perf Sealers
-        </a>
-        &nbsp;is an oil and gas company that sells dissolvable ball sealers. I
-        help with many projects, including building and maintaining their
-        website.
+        </a>{' '}
+        is an oil and gas company that sells dissolvable ball sealers. I help
+        with many projects, including building and maintaining their website.
       </p>
     ),
-    tech: 'jQuery, MySQL, PHP, WordPress',
+    technology: 'jQuery, MySQL, PHP, WordPress',
     siteUrl: 'http://www.perfsealers.com',
-    src: [
+    mediaSources: [
       {
         key: '/web-apps/balls-in-fluid.jpg',
         alt: 'Perf Sealers',

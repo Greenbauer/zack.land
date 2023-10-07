@@ -3,7 +3,7 @@ import { Content } from '@/types';
 const Contents: Content[] = [
   {
     name: 'Smart Bed',
-    desc: (
+    description: (
       <p>
         I designed and fabricated this king sized smart bed. It is mostly made
         from plywood with walnut veneer added on. I went with a modern floating
@@ -18,9 +18,10 @@ const Contents: Content[] = [
         system to control other automations throughout the house.
       </p>
     ),
-    tech: 'Cinema 4D, Raspberry Pi, Robotics Engineering, Software Engineering, Woodworking',
-    repoUrl: 'https://github.com/Greenbauer/smart_bed',
-    src: [
+    technology:
+      'Cinema 4D, Raspberry Pi, Robotics Engineering, Software Engineering, Woodworking',
+    repositoryUrl: 'https://github.com/Greenbauer/smart_bed',
+    mediaSources: [
       {
         key: '/miscellaneous/bed-1.jpg',
         alt: 'Smart Bed',
@@ -45,7 +46,7 @@ const Contents: Content[] = [
   },
   {
     name: 'Parametric Lounge Chair',
-    desc: (
+    description: (
       <p>
         I designed and fabricated this flat packed parametric lounge chair. It
         is sculpted from CNC cut pieces of plywood, which interlock to form a
@@ -54,8 +55,9 @@ const Contents: Content[] = [
         mathematically designed to be very comfortable.
       </p>
     ),
-    tech: 'Architecture, Cinema 4D, CNC, Illustrator, Laser Cutting, Woodworking',
-    src: [
+    technology:
+      'Architecture, Cinema 4D, CNC, Illustrator, Laser Cutting, Woodworking',
+    mediaSources: [
       {
         key: '/miscellaneous/parametric-chair-1.jpg',
         alt: 'Parametric Lounge Chair',
@@ -70,7 +72,7 @@ const Contents: Content[] = [
   },
   {
     name: 'Buoyancy Sorting Robot',
-    desc: (
+    description: (
       <p>
         This is a robot which I designed, programmed, and fabricated for&nbsp;
         <a href="http://www.perfsealers.com" target="_blank" rel="noreferrer">
@@ -87,8 +89,9 @@ const Contents: Content[] = [
         beautifuly.
       </p>
     ),
-    tech: '3D Printing, Arduino, AutoCAD, Laser Cutting, Mechanical Engineering, Robotics Engineering, SolidWorks',
-    src: [
+    technology:
+      '3D Printing, Arduino, AutoCAD, Laser Cutting, Mechanical Engineering, Robotics Engineering, SolidWorks',
+    mediaSources: [
       {
         key: 'CnYKbnzrn4k',
         alt: 'Buoyancy Robot',
@@ -108,7 +111,7 @@ const Contents: Content[] = [
   },
   {
     name: 'Night Shift Lens',
-    desc: (
+    description: (
       <p>
         As it’s known, orange tinted light at night is good for our circadian
         rhythm. I wanted my projector to have this feature, so I made this
@@ -119,9 +122,10 @@ const Contents: Content[] = [
         projector setups.
       </p>
     ),
-    tech: '3D Printing, Arduino, AutoCAD, Mechanical Engineering, Robotics Engineering, SolidWorks',
-    repoUrl: 'https://github.com/Greenbauer/night-shift-lens',
-    src: [
+    technology:
+      '3D Printing, Arduino, AutoCAD, Mechanical Engineering, Robotics Engineering, SolidWorks',
+    repositoryUrl: 'https://github.com/Greenbauer/night-shift-lens',
+    mediaSources: [
       {
         key: '/miscellaneous/night-lens.gif',
         alt: 'Night Shift Lens',
@@ -131,15 +135,15 @@ const Contents: Content[] = [
   },
   {
     name: 'Shofar Mount',
-    desc: (
+    description: (
       <p>
         This is a very simple custom mount to hold a Shofar upright on the wall.
         It’s made from matte black laser cut acrylic. It was a fun challenge
         figuring out how to design around the complex geometry of the shofar.
       </p>
     ),
-    tech: 'Cinema 4D, Illustrator, Laser Cutting, Photogrammetry',
-    src: [
+    technology: 'Cinema 4D, Illustrator, Laser Cutting, Photogrammetry',
+    mediaSources: [
       {
         key: '/miscellaneous/shofarA.jpg',
         alt: 'Shofar Mount',

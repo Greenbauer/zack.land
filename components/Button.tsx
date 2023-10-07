@@ -33,9 +33,15 @@ export default function Button({
   target,
   disabled,
   showSpinner = false,
+
   ...props
 }: ButtonProps) {
-  if (!showSpinner) return <Spinner />;
+  if (showSpinner)
+    return (
+      <div className="p-1.5">
+        <Spinner size="sm" />
+      </div>
+    );
 
   if (!!href) {
     return (
@@ -61,6 +67,7 @@ export default function Button({
         transition: 'transform 0.8s, color 0.3s, background-position-x 0.7s',
         transitionDelay: '0s, 0.2s, 0s',
       }}
+      disabled={disabled}
       {...props}
     >
       {children}

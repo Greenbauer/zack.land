@@ -11,7 +11,7 @@ import DesktopNav from './DesktopNav';
 import MobileNav from './MobileNav';
 
 const barStyle = cva(
-  'fixed inset-x-0 z-40 flex min-h-[70px] w-full items-center justify-center px-3',
+  'fixed inset-x-0 z-40 flex h-20 w-full items-center justify-center px-3',
   {
     variants: {
       isScrolling: {

@@ -2,20 +2,20 @@ import { cva } from 'class-variance-authority';
 import { ForwardedRef, forwardRef } from 'react';
 
 const lineStyle = cva(
-  'absolute block h-px w-full bg-white opacity-100 transition-all duration-200 ease-in-out',
+  'absolute block h-px w-full bg-white transition-all duration-200 ease-in-out',
   {
     variants: {
       isActive1: {
-        false: 'left-0 top-0',
-        true: 'top-3 rotate-[135deg]',
+        false: 'left-0 top-0 opacity-100 ',
+        true: 'top-3 rotate-[135deg] opacity-100 ',
       },
       isActive2: {
         false: 'left-0 top-3 opacity-100',
         true: '-left-16 top-3 opacity-0',
       },
       isActive3: {
-        false: 'left-0 top-6',
-        true: 'top-3 rotate-[-135deg]',
+        false: 'left-0 top-6 opacity-100 ',
+        true: 'top-3 rotate-[-135deg] opacity-100',
       },
     },
   },

@@ -11,21 +11,28 @@ import Media from './Media';
 type PostProps = { content: Content };
 
 export default function Post({ content }: PostProps) {
-  const { name, src, desc, tech, siteUrl, repoUrl } = content;
+  const {
+    name,
+    mediaSources,
+    description,
+    technology,
+    siteUrl,
+    repositoryUrl,
+  } = content;
 
   return (
     <section>
       <Element name={setMenuId(name)} className="scroll-element" />
       <div className="flex w-full flex-wrap">
-        {!!src && <Media sources={src} />}
+        {!!mediaSources && <Media mediaSources={mediaSources} />}
         <article className="flex flex-col gap-3 md:gap-6">
           <h2>{name}</h2>
-          {!!desc && <span>{desc}</span>}
-          {!!tech && (
+          {!!description && <span>{description}</span>}
+          {!!technology && (
             <p>
               Technology used:
               <br />
-              <small>{tech}</small>
+              <small>{technology}</small>
             </p>
           )}
           {!!siteUrl && (
@@ -33,8 +40,8 @@ export default function Post({ content }: PostProps) {
               Visit Site
             </Button>
           )}
-          {!!repoUrl && (
-            <Button href={repoUrl} target="_blank">
+          {!!repositoryUrl && (
+            <Button href={repositoryUrl} target="_blank">
               View Code
             </Button>
           )}

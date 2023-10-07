@@ -4,7 +4,7 @@ import { cva } from 'class-variance-authority';
 import Image from 'next/image';
 import YouTube from 'react-youtube';
 
-import { MediaSrc } from '@/types';
+import { MediaSource } from '@/types';
 
 const mediaWidthStyle = cva('', {
   variants: {
@@ -18,32 +18,28 @@ const mediaWidthStyle = cva('', {
   },
 });
 
-type MediaRendererProps = { source: MediaSrc };
+type MediaRendererProps = { mediaSource: MediaSource };
 
-const MediaRenderer = ({ source }: MediaRendererProps) => {
-  const { key, alt, type } = source;
+const MediaRenderer = ({ mediaSource }: MediaRendererProps) => {
+  const { key, alt, type } = mediaSource;
 
   switch (type) {
     case 'YouTube':
-      return (
-        <div className="youtube">
-          <YouTube videoId={key} />
-        </div>
-      );
+      return <YouTube videoId={key} className="youtube" />;
     default:
       return <Image src={key} alt={alt} width={800} height={800} priority />;
   }
 };
 
-type MediaProps = { sources: MediaSrc[] };
+type MediaProps = { mediaSources: MediaSource[] };
 
-export default function Media({ sources }: MediaProps) {
-  const isSourcesTotalOdd = sources.length % 2 !== 0;
+export default function Media({ mediaSources }: MediaProps) {
+  const isSourcesTotalOdd = mediaSources.length % 2 !== 0;
 
   return (
     <>
-      {sources.map((source, index) => {
-        const { key } = source;
+      {mediaSources.map((mediaSource, index) => {
+        const { key } = mediaSource;
 
         const isIndexOdd = index % 3 === 0;
 
@@ -54,7 +50,7 @@ export default function Media({ sources }: MediaProps) {
               width: isSourcesTotalOdd && isIndexOdd ? 'full' : '1/2',
             })}
           >
-            <MediaRenderer source={source} />
+            <MediaRenderer mediaSource={mediaSource} />
           </div>
         );
       })}
