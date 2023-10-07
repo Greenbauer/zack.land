@@ -21,7 +21,7 @@ async function getArtContents(): Promise<Content[]> {
       const content: Content = {
         name,
         galleryUrl: url,
-        src: [
+        mediaSources: [
           {
             key: covers.original,
             alt: name,
