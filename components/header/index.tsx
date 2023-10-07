@@ -1,21 +1,33 @@
-import Link from 'next/link';
-import { useRouter } from 'next/router';
+'use client';
+
+import { cva } from 'class-variance-authority';
+import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { Container, Nav, Navbar } from 'react-bootstrap';
 
 import useScroll from '@/hooks/useScroll';
 import useWindowSize from '@/hooks/useWindowSize';
 
-import Collapse from './collapse';
-import styles from './header.module.scss';
-import MobileNavButton from './mobileNavButton';
-import NavListBackground from './navListBackground';
+import DesktopNav from './DesktopNav';
+import MobileNav from './MobileNav';
 
-type HeaderType = { title: string };
+const barStyle = cva(
+  'fixed inset-x-0 z-40 flex min-h-[70px] w-full items-center justify-center px-3',
+  {
+    variants: {
+      isScrolling: {
+        true: 'bg-gray-darkest shadow-xl',
+        false: 'bg-black',
+      },
+    },
+    defaultVariants: {
+      isScrolling: false,
+    },
+  },
+);
 
-type LinkType = { label: string; path: string };
+export type Route = { label?: string; path: string; headerTitle?: string };
 
-const links: LinkType[] = [
+const routes: Route[] = [
   {
     label: 'Home',
     path: '/',
@@ -23,51 +35,60 @@ const links: LinkType[] = [
   {
     label: 'Portfolio',
     path: '/portfolio',
+    headerTitle: 'Portfolio',
   },
   {
     label: 'Contact',
     path: '/contact',
+    headerTitle: 'Contact Me',
+  },
+  {
+    path: '/portfolio/art',
+    headerTitle: 'Digital Art',
+  },
+  {
+    path: '/portfolio/miscellaneous',
+    headerTitle: 'Miscellaneous',
+  },
+  {
+    path: '/portfolio/web-apps',
+    headerTitle: 'Web Apps',
   },
 ];
 
-export default function Header({ title }: HeaderType) {
-  const router = useRouter();
-  const navRef = useRef<any>(null);
+export default function Header() {
+  const pathname = usePathname();
+  const navRef = useRef<HTMLDivElement | null>(null);
   const { isScrolling } = useScroll({ startLimit: 10 });
   const { width } = useWindowSize();
-  const [isMenuActive, setIsMenuActive] = useState(false);
-  const [offsetLeft, setOffsetLeft] = useState(0);
 
-  const toggleMenu = () => setIsMenuActive(!isMenuActive);
+  const [offsetLeft, setOffsetLeft] = useState<number>(0);
+
+  const { headerTitle } = routes.find(({ path }) => path === pathname) || {};
 
   useEffect(() => {
     setOffsetLeft(navRef.current?.offsetLeft || 0);
   }, [width]);
 
   return (
-    <Navbar
-      className={`${styles.navbar} navbar-toggleable-sm fixed-top ${
-        isScrolling && !isMenuActive ? 'scrolling' : ''
-      }`}
-    >
-      <Container ref={navRef}>
-        <Collapse isActive={isMenuActive}>
-          <div className={styles.navContent}>
-            <Nav activeKey={`/${router.pathname.split('/')[1]}`} id="navbar">
-              {links.map(({ label, path }: LinkType) => (
-                <Nav.Item key={label}>
-                  <Nav.Link as={Link} href={path} onClick={toggleMenu}>
-                    {label}
-                  </Nav.Link>
-                </Nav.Item>
-              ))}
-              <NavListBackground offsetLeft={offsetLeft} />
-            </Nav>
-          </div>
-        </Collapse>
-        <MobileNavButton onClick={toggleMenu} isActive={isMenuActive} />
-        {!!title && <h5 className={styles.headerTitle}>{title}</h5>}
-      </Container>
-    </Navbar>
+    <div className={barStyle({ isScrolling })}>
+      <div
+        ref={navRef}
+        className="container flex w-full items-center justify-between gap-3"
+      >
+        <DesktopNav
+          routes={routes}
+          pathname={pathname}
+          backgroundOffsetLeft={offsetLeft}
+          isScrolling={isScrolling}
+        />
+        <MobileNav
+          routes={routes}
+          pathname={pathname}
+          backgroundOffsetLeft={offsetLeft}
+        />
+        {!!headerTitle && <h4 className="text-right">{headerTitle}</h4>}
+      </div>
+    </div>
   );
 }

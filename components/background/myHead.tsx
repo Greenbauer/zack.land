@@ -7,17 +7,18 @@ import useMatcap from './useMatcap';
 
 export type Point = { x: number; y: number };
 
-type MyHeadType = {
+type MyHeadGeometry = { [key: string]: BufferGeometry };
+
+type MyHeadProps = {
   lookPositionStart: Point;
 };
-type MyHeadGeometry = { [key: string]: BufferGeometry };
 
 let frameCount: number = 0;
 let frameCountLimit: number = 300;
 let isFrameCounting: boolean = false;
 let randomPosition: Point = { x: 0, y: 0 };
 
-export default function MyHead({ lookPositionStart }: MyHeadType) {
+export default function MyHead({ lookPositionStart }: MyHeadProps) {
   let isMouseMoving = true;
   const myHeadRef = useRef<Group>(null);
   const myHeadObj = useLoader(OBJLoader, '/background/geometry/myHead.obj');
@@ -35,19 +36,23 @@ export default function MyHead({ lookPositionStart }: MyHeadType) {
     return geometry;
   }, [myHeadObj]);
 
-  const lookPositionLimit = (point: number, min: number, max: number) => {
-    if (point > max) return max;
-    if (point < min) return min;
-    return point;
+  const lookPositionLimit = (
+    coordinate: number,
+    min: number,
+    max: number,
+  ): number => {
+    if (coordinate > max) return max;
+    if (coordinate < min) return min;
+    return coordinate;
   };
 
-  const stopRandomRotation = () => {
+  const stopRandomRotation = (): void => {
     frameCount = 0;
     isMouseMoving = false;
     isFrameCounting = false;
   };
 
-  const startRandomRotation = () => {
+  const startRandomRotation = (): void => {
     const randomNumber = (min: number, max: number) => {
       return Math.floor(Math.random() * (max - min)) + min;
     };
@@ -61,7 +66,7 @@ export default function MyHead({ lookPositionStart }: MyHeadType) {
     };
   };
 
-  const rotateMyHead = () => {
+  const rotateMyHead = (): void => {
     const { rotation } = myHeadRef.current!;
     let lookPosition: Point = lookPositionStart;
     let rotationSpeed: number = 0.05;

@@ -1,10 +1,14 @@
 {
   "extends": [
-    "next/core-web-vitals",
     "next",
-    "plugin:prettier/recommended"
+    "plugin:prettier/recommended",
+    "plugin:tailwindcss/recommended"
   ],
-  "plugins": ["simple-import-sort", "unused-imports"],
+  "plugins": [
+    "tailwindcss",
+    "simple-import-sort",
+    "unused-imports"
+  ],
   "rules": {
     "prettier/prettier": [
       "error",
@@ -13,9 +17,40 @@
         "endOfLine": "auto"
       }
     ],
+    "tailwindcss/no-custom-classname": "off", // BUG: vscode wont find custom tailwind theme 
+    /* [
+     "warn",
+     {
+     config: './tailwind.config.ts',
+     "whitelist": [
+       // whitelist any classname which does NOT start with `bg-` and `text-`
+       "(?!(bg|text)\\-).*"
+     ]
+     }
+     ],
+     */
+    "no-unused-vars": [
+      "warn",
+      {
+        "argsIgnorePattern": "^_"
+      }
+    ],
     "react/jsx-curly-brace-presence": 2,
+    "no-console": [
+      "warn",
+      {
+        "allow": [
+          "error"
+        ]
+      }
+    ],
     "simple-import-sort/imports": "error",
     "simple-import-sort/exports": "error",
     "unused-imports/no-unused-imports": "error"
+  },
+  "settings": {
+    "tailwindcss": {
+      "config": "tailwind.config.ts"
+    }
   }
 }

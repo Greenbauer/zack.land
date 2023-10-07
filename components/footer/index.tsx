@@ -1,16 +1,18 @@
+'use client';
+
 import Link from 'next/link';
-import { useRouter } from 'next/router';
-import { Col, Container, Row } from 'react-bootstrap';
+import { usePathname } from 'next/navigation';
 
-import styles from './footer.module.scss';
-import SocialLinks from './socialLinks';
+import SocialLinks from './SocialLinks';
 
-function defaultText() {
+function DefaultText() {
   return (
     <h6>
-      I can make almost anything, and would love to help you develop your idea.
-      <br />
-      <Link className="underline" href="/contact">
+      I can make almost anything, and would love to help develop your idea.{' '}
+      <Link
+        className="underline decoration-pink underline-offset-4 hover:decoration-yellow"
+        href="/contact"
+      >
         Contact me
       </Link>
       .
@@ -18,31 +20,21 @@ function defaultText() {
   );
 }
 
-function contactPageText() {
-  return (
-    <h6>
-      Please fill out this form.
-      <br />
-      Ill will respond as soon as I can.
-    </h6>
-  );
+function ContactPageText() {
+  return <h6>Please fill out this form. Ill will respond as soon as I can.</h6>;
 }
 
 export default function Footer() {
-  const router = useRouter();
+  const pathname = usePathname();
 
   return (
-    <footer>
-      <Container>
-        <Row>
-          <Col md={6} className={styles.footerSocialLinks}>
-            <SocialLinks />
-          </Col>
-          <Col md={6} className={styles.footerText}>
-            {router.pathname === '/contact' ? contactPageText() : defaultText()}
-          </Col>
-        </Row>
-      </Container>
+    <footer className="flex w-full flex-col items-center gap-6 pb-6 md:flex-row md:items-end">
+      <div className="order-last flex-none md:order-first">
+        <SocialLinks />
+      </div>
+      <div className="order-first flex flex-1 justify-end text-center md:order-last md:text-right">
+        {pathname === '/contact' ? <ContactPageText /> : <DefaultText />}
+      </div>
     </footer>
   );
 }

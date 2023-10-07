@@ -1,40 +1,61 @@
+'use client';
+
+import { cva } from 'class-variance-authority';
 import Image from 'next/image';
-import { Col } from 'react-bootstrap';
 import YouTube from 'react-youtube';
 
 import { MediaSrc } from '@/types';
 
-type MediaType = { sources: MediaSrc[] };
+const mediaWidthStyle = cva('', {
+  variants: {
+    width: {
+      full: 'w-full',
+      '1/2': 'w-1/2',
+    },
+  },
+  defaultVariants: {
+    width: 'full',
+  },
+});
 
-export default function Media({ sources }: MediaType) {
+type MediaRendererProps = { source: MediaSrc };
+
+const MediaRenderer = ({ source }: MediaRendererProps) => {
+  const { key, alt, type } = source;
+
+  switch (type) {
+    case 'YouTube':
+      return (
+        <div className="youtube">
+          <YouTube videoId={key} />
+        </div>
+      );
+    default:
+      return <Image src={key} alt={alt} width={800} height={800} priority />;
+  }
+};
+
+type MediaProps = { sources: MediaSrc[] };
+
+export default function Media({ sources }: MediaProps) {
+  const isSourcesTotalOdd = sources.length % 2 !== 0;
+
   return (
     <>
-      {sources.map((src, index) => {
-        const { key, alt, type } = src;
-        let col = 6;
+      {sources.map((source, index) => {
+        const { key } = source;
 
-        // full width media on odd and every 3
-        if (sources.length % 2 !== 0 && index % 3 === 0) {
-          col = 12;
-        }
-
-        // define if the media is an image or video
-        let mediaType = (
-          <Image src={key} alt={alt} width={800} height={800} priority />
-        );
-
-        if (type === 'YouTube') {
-          mediaType = (
-            <div className="youtube">
-              <YouTube videoId={key} />
-            </div>
-          );
-        }
+        const isIndexOdd = index % 3 === 0;
 
         return (
-          <Col sm={col} key={key}>
-            {mediaType}
-          </Col>
+          <div
+            key={key}
+            className={mediaWidthStyle({
+              width: isSourcesTotalOdd && isIndexOdd ? 'full' : '1/2',
+            })}
+          >
+            <MediaRenderer source={source} />
+          </div>
         );
       })}
     </>

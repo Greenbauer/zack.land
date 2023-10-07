@@ -1,52 +1,45 @@
-import { Col, Row } from 'react-bootstrap';
+'use client';
+
 import { Element } from 'react-scroll';
 
-import Button from '@/components/button';
+import Button from '@/components/Button';
 import { Content } from '@/types';
-import { toMenuId } from '@/utils/menu';
+import { setMenuId } from '@/utils/menu';
 
-import Media from './media';
+import Media from './Media';
 
-type PostType = { content: Content };
+type PostProps = { content: Content };
 
-export default function Post({ content }: PostType) {
+export default function Post({ content }: PostProps) {
   const { name, src, desc, tech, siteUrl, repoUrl } = content;
 
   return (
-    <div className="section">
-      <Element name={toMenuId(name)} className="scroll-element" />
-      <Row className="g-0">
+    <section>
+      <Element name={setMenuId(name)} className="scroll-element" />
+      <div className="flex w-full flex-wrap">
         {!!src && <Media sources={src} />}
-        <div className="article">
-          <Col sm={12}>
-            <h2>{name}</h2>
-          </Col>
-          {!!desc && <Col sm={12}>{desc}</Col>}
+        <article className="flex flex-col gap-3 md:gap-6">
+          <h2>{name}</h2>
+          {!!desc && <span>{desc}</span>}
           {!!tech && (
-            <Col sm={12}>
-              <p>
-                Technology used:
-                <br />
-                <small>{tech}</small>
-              </p>
-            </Col>
+            <p>
+              Technology used:
+              <br />
+              <small>{tech}</small>
+            </p>
           )}
           {!!siteUrl && (
-            <Col sm={12}>
-              <Button href={siteUrl} target="_blank">
-                Visit Site
-              </Button>
-            </Col>
+            <Button href={siteUrl} target="_blank">
+              Visit Site
+            </Button>
           )}
           {!!repoUrl && (
-            <Col sm={12}>
-              <Button href={repoUrl} target="_blank">
-                View Code
-              </Button>
-            </Col>
+            <Button href={repoUrl} target="_blank">
+              View Code
+            </Button>
           )}
-        </div>
-      </Row>
-    </div>
+        </article>
+      </div>
+    </section>
   );
 }

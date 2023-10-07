@@ -1,9 +1,15 @@
-/* eslint-disable react/no-unknown-property */
 import { BufferGeometry, Shape, Vector3 } from 'three';
 
-import library from '@/styles/_library.module.scss';
+import tailwindConfig from '../../tailwind.config';
 
-const { borderColor, darkestColor } = library;
+const {
+  theme: {
+    colors: {
+      black,
+      gray: { dark: grayDark },
+    },
+  },
+} = tailwindConfig;
 
 export default function RetroFrame() {
   const hiddenShape = new Shape();
@@ -19,7 +25,7 @@ export default function RetroFrame() {
 
   const pointGeometry = (pointSets: [number, number, number][]) =>
     new BufferGeometry().setFromPoints(
-      pointSets.map((points) => new Vector3(...points))
+      pointSets.map((points) => new Vector3(...points)),
     );
 
   const frontLeftLineGeometry: BufferGeometry = pointGeometry([
@@ -41,19 +47,19 @@ export default function RetroFrame() {
     <group position={[-62, 45, 20]} scale={1.7}>
       {/* @ts-ignore */}
       <line geometry={frontLeftLineGeometry}>
-        <lineBasicMaterial color={borderColor} />
+        <lineBasicMaterial color={grayDark} />
       </line>
       {/* @ts-ignore */}
       <line geometry={frontRightLineGeometry}>
-        <lineBasicMaterial color={borderColor} />
+        <lineBasicMaterial color={grayDark} />
       </line>
       {/* @ts-ignore */}
       <line geometry={backLineGeometry} scale={1.23}>
-        <lineBasicMaterial color={borderColor} />
+        <lineBasicMaterial color={grayDark} />
       </line>
       <mesh>
         <extrudeGeometry attach="geometry" args={[hiddenShape]} />
-        <meshBasicMaterial color={darkestColor} />
+        <meshBasicMaterial color={black} />
       </mesh>
     </group>
   );

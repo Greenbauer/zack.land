@@ -1,4 +1,4 @@
-export async function get(url: string) {
+export async function get(url: string): Promise<any> {
   try {
     const res = await fetch(url);
     if (!res.ok) throw new Error();
@@ -9,7 +9,7 @@ export async function get(url: string) {
   }
 }
 
-export async function post(url: string, data: any) {
+export async function post(url: string, data: any): Promise<any> {
   try {
     const res = await fetch(url, {
       method: 'POST',

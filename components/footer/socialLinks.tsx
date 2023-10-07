@@ -1,9 +1,10 @@
-import { cloneElement } from 'react';
+import Link from 'next/link';
+import { cloneElement, ReactElement } from 'react';
 import { FaBehance, FaGithub, FaInstagram, FaLinkedin } from 'react-icons/fa';
 
-type SocialLinkType = { Icon: JSX.Element; url: string };
+type SocialRoute = { Icon: ReactElement; url: string };
 
-const socialLinks: SocialLinkType[] = [
+const socialRoutes: SocialRoute[] = [
   {
     Icon: <FaBehance />,
     url: 'https://www.behance.net/greenbauer',
@@ -24,11 +25,17 @@ const socialLinks: SocialLinkType[] = [
 
 export default function SocialLinks() {
   return (
-    <div className="align-text-bottom">
-      {socialLinks.map(({ Icon, url }: SocialLinkType) => (
-        <a key={url} target="_blank" href={url} rel="noreferrer">
+    <div className="flex flex-nowrap gap-6">
+      {socialRoutes.map(({ Icon, url }) => (
+        <Link
+          key={url}
+          className="text-gray-lightest hover:text-yellow active:text-gray"
+          target="_blank"
+          href={url}
+          rel="noreferrer"
+        >
           {cloneElement(Icon, { size: 34 })}
-        </a>
+        </Link>
       ))}
     </div>
   );
