@@ -1,7 +1,9 @@
-const withTM = require('next-transpile-modules')(['three']);
+// @ts-check
 
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+/**
+ * @type {import('next').NextConfig}
+ **/
+module.exports = {
   reactStrictMode: true,
   images: {
     remotePatterns: [
@@ -14,9 +16,3 @@ const nextConfig = {
     ],
   },
 };
-
-const plugins = [withTM];
-
-module.exports = plugins.reduce((acc, next) => next(acc), {
-  ...nextConfig,
-});

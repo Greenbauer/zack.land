@@ -1,0 +1,138 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --white: theme('colors.white');
+  --black: theme('colors.black');
+  --yellow: theme('colors.yellow');
+  --pink: theme('colors.pink');
+  --cyan: theme('colors.cyan');
+  --blue: theme('colors.blue');
+}
+
+@layer base {
+  h1 {
+    background: var(--black) linear-gradient(
+      80deg, 
+      var(--yellow) 4%, 
+      var(--pink) 8%, 
+      var(--cyan) 20%, 
+      var(--blue) 85%
+    );
+    
+    @apply font-medium tracking-wider uppercase bg-clip-text text-transparent font-sans;
+    @apply text-4xl md:text-7xl lg:text-5xl xl:text-6xl;
+  }
+
+  h2 {
+    @apply text-white tracking-wide uppercase font-thin font-display;
+    @apply text-2xl lg:text-4xl;
+  }
+
+  h3 {
+    @apply text-white tracking-wide uppercase font-sans font-normal;
+    @apply text-2xl xl:text-3xl;
+  }
+
+  h4 {
+    @apply text-gray-lightest tracking-wide uppercase font-sans font-normal;
+    @apply text-xl md:text-3xl;
+  }
+
+  h5 {
+    @apply text-gray-lightest tracking-wide uppercase font-sans font-normal;
+    @apply text-2xl md:text-lg;
+  }
+
+  h6 {
+    @apply text-white tracking-wide font-thin leading-8 font-display;
+    @apply text-xl md:text-2xl;
+  }
+
+  p, label {
+    @apply text-gray-lightest leading-6 font-sans font-normal;
+    @apply text-lg;
+  }
+
+  small {
+    @apply text-gray-light font-display font-normal tracking-wider;
+    @apply text-sm;
+  }
+
+  a {
+    @apply no-underline;
+    @apply text-cyan hover:text-pink active:text-gray focus:text-cyan;
+  }
+
+  button {
+    @apply font-sans font-normal tracking-wider uppercase;
+    @apply text-lg;
+  }
+
+  form {
+    @apply flex justify-start flex-col w-full;
+  }
+
+  input {
+    @apply text-lg font-sans font-normal; 
+    @apply outline-none;
+    @apply bg-black hover:bg-black focus:bg-black;
+    @apply text-gray-light hover:text-gray-light focus:text-gray-light placeholder-gray;
+    @apply px-3 py-2 shadow-none;
+  }
+
+  textarea {
+    @apply text-lg font-sans font-normal;
+    @apply outline-none;
+    @apply bg-black hover:bg-black focus:bg-black;
+    @apply text-gray-light hover:text-gray-light focus:text-gray-light placeholder-gray;
+    @apply px-3 py-2 shadow-none;
+  }
+
+  img {
+    @apply h-auto w-full bg-black;
+  }
+
+  section {
+    @apply bg-gray-darkest relative shadow-xl;
+    @apply flex w-full max-w-4xl self-start;      
+  }
+
+  article {
+    @apply p-6 md:p-12 w-full;
+  }
+
+  .bg-gradient {
+    background: var(--black) linear-gradient(60deg,
+    var(--yellow) 5%,
+    var(--pink),
+    var(--cyan) 30%,
+    var(--blue) 40%,
+    var(--black) 50%,
+    var(--blue) 60%,
+    var(--cyan) 70%,
+    var(--pink) 85%,
+    var(--yellow) 95%);
+  }
+
+  .bg-gradient-button {
+    background: var(--black) linear-gradient(60deg,
+    var(--white),
+    var(--white) 25%,
+    var(--yellow) 30%,
+    var(--pink) 45%,
+    var(--cyan) 60%,
+    var(--blue) 75%,
+    var(--black) 90%,
+    var(--black));
+  }
+
+  .youtube {
+    @apply relative pb-[50%];
+  }
+
+  .youtube iframe {
+    @apply absolute top-0 left-0 w-full h-full;
+  }
+}
