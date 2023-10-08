@@ -8,9 +8,9 @@ const buttonStyle = cva(
   {
     variants: {
       disabled: {
-        true: 'cursor-not-allowed bg-gray text-gray-light opacity-50',
+        true: 'bg-gray text-gray-light cursor-not-allowed opacity-50',
         false:
-          'bg-gradient-button hover:bg-right hover:text-white focus:text-black active:text-white',
+          'bg-gradient-button focus-within:text-white hover:bg-right hover:text-white focus:text-black active:text-white',
       },
     },
     defaultVariants: {

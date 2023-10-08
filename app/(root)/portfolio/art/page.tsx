@@ -44,7 +44,7 @@ export default async function Art() {
 
   return (
     <div className="flex">
-      <div className="card-columns">
+      <div className="columns-1 gap-3 sm:columns-2 md:gap-6 lg:columns-3 xl:columns-4">
         {contents.map((content) => (
           <Card key={content.name} content={content} />
         ))}
