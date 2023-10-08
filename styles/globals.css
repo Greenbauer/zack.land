@@ -27,7 +27,7 @@
 
   h2 {
     @apply text-white tracking-wide uppercase font-thin font-display;
-    @apply text-lg md:text-2xl lg:text-4xl;
+    @apply text-2xl lg:text-4xl;
   }
 
   h3 {

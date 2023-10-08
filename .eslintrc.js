@@ -13,8 +13,8 @@ module.exports = {
   },
   extends: [
     'next',
-    'plugin:prettier/recommended',
     'plugin:tailwindcss/recommended',
+    'plugin:prettier/recommended',
   ],
   plugins: ['simple-import-sort', 'unused-imports'],
   rules: {

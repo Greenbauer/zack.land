@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { ForwardedRef, forwardRef } from 'react';
 
 const linkStyle = cva(
-  'relative block w-full border-b border-gray-dark px-6 py-3 uppercase hover:bg-transparent hover:text-white focus:bg-transparent md:border-none md:py-2',
+  'border-gray-dark relative block w-full border-b px-6 py-3 uppercase hover:bg-transparent hover:text-white focus:bg-transparent md:border-none md:py-2',
   {
     variants: {
       isActive: {
@@ -32,15 +32,16 @@ type NavLinkProps = {
   isFirst?: boolean;
   isScrolling?: boolean;
   label: string;
+  onClick?: () => void;
 };
 
 function NavLink(
-  { path, isActive, isFirst, isScrolling, label }: NavLinkProps,
+  { path, isActive, isFirst, isScrolling, label, onClick }: NavLinkProps,
   ref: ForwardedRef<HTMLHeadingElement>,
 ) {
   return (
     <h5 ref={ref} className="w-full">
-      <Link href={path} className="flex w-full text-center">
+      <Link href={path} className="flex w-full text-center" onClick={onClick}>
         <div className={linkStyle({ isActive, isFirst, isScrolling })}>
           {label}
         </div>

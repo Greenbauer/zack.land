@@ -9,7 +9,7 @@ export default function Card({ content }: CardProps) {
   const { name, galleryUrl, mediaSources } = content;
 
   return (
-    <div className="bg-gray-darkest mb-3 inline-block w-full shadow-xl md:mb-6">
+    <div className="mb-3 inline-block w-full bg-gray-darkest shadow-xl md:mb-6">
       {!!mediaSources && <Media mediaSources={mediaSources} />}
       <div className="-mt-1 flex flex-col items-start gap-3 p-6 md:-mt-2 md:gap-6 lg:p-12">
         <h2>{name}</h2>

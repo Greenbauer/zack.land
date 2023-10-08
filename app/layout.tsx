@@ -24,7 +24,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en">
       <body
-        className={`${kanit.variable} ${roboto.variable} flex h-screen w-full justify-center bg-black`}
+        className={`${kanit.variable} ${roboto.variable} flex min-h-[100svh] w-full justify-center bg-black`}
       >
         {children}
         <Analytics />

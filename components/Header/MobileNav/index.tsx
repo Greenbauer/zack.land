@@ -50,14 +50,17 @@ export default function MobileNav({
 
                   return (
                     <Menu.Item key={label}>
-                      <div className="flex flex-nowrap">
-                        <NavLink
-                          path={path}
-                          isActive={isActive}
-                          isFirst={isFirst}
-                          label={label}
-                        />
-                      </div>
+                      {({ close }) => (
+                        <div className="flex flex-nowrap">
+                          <NavLink
+                            path={path}
+                            isActive={isActive}
+                            isFirst={isFirst}
+                            label={label}
+                            onClick={close}
+                          />
+                        </div>
+                      )}
                     </Menu.Item>
                   );
                 })}
