@@ -1,3 +1,3 @@
-export function toMenuId(name: string) {
+export function setMenuId(name: string): string {
   return name.replaceAll(' ', '-').toLowerCase();
 }
