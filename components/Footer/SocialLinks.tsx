@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { cloneElement, ReactElement } from 'react';
+import { IconBaseProps } from 'react-icons';
 import { FaBehance, FaGithub, FaInstagram, FaLinkedin } from 'react-icons/fa';
 
-type SocialRoute = { Icon: ReactElement; url: string };
+type SocialRoute = { Icon: ReactElement<IconBaseProps>; url: string };
 
 const socialRoutes: SocialRoute[] = [
   {

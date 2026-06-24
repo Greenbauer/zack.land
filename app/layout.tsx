@@ -2,7 +2,7 @@ import '@/styles/globals.css';
 
 import { Analytics } from '@vercel/analytics/react';
 import { Kanit, Roboto } from 'next/font/google';
-import { ReactElement } from 'react';
+import { ReactNode } from 'react';
 
 const kanit = Kanit({
   subsets: ['latin'],
@@ -17,7 +17,7 @@ const roboto = Roboto({
 });
 
 type RootLayoutProps = {
-  children: ReactElement;
+  children: ReactNode;
 };
 
 export default function RootLayout({ children }: RootLayoutProps) {
