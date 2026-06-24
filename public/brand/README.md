@@ -43,15 +43,21 @@ Icon (matcap head): `/tmp/brandkit/head.html` — Three.js r128 loading the repo
 `mainMatcap.jpg` with the site's matcap shader. Both rendered with headless Chrome at 2×
 (`--allow-file-access-from-files --use-angle=swiftshader` for the WebGL head) and downscaled with `sips`.
 
-## Optional: wire the OG image into the site
+## Link previews (wired in `app/layout.tsx`)
 
-In `app/layout.tsx` (or per-page `metadata`), add:
+The OG/Twitter metadata + icons are wired into the root layout's `metadata`
+export, so link-preview crawlers (iMessage, Slack, X, Facebook, LinkedIn)
+serve `og-image.png`:
 
 ```ts
-export const metadata = {
-  metadataBase: new URL('https://zack.land'),
-  openGraph: { images: ['/brand/og-image.png'] },
+export const metadata: Metadata = {
+  metadataBase: new URL('https://www.zack.land'),
+  openGraph: { /* title, description, url, siteName, type */
+    images: [{ url: '/brand/og-image.png', width: 1200, height: 630 }],
+  },
   twitter: { card: 'summary_large_image', images: ['/brand/og-image.png'] },
   icons: { icon: '/favicon.ico', apple: '/brand/apple-touch-icon.png' },
 };
 ```
+
+`favicon.ico` is intentionally the original (unchanged); only the apple-touch icon points at the kit.
