@@ -5,6 +5,10 @@ import { usePathname } from 'next/navigation';
 
 import SocialLinks from './SocialLinks';
 
+// Shown only when reCAPTCHA is active — required by Google's terms when the
+// badge is hidden (see styles/globals.css .grecaptcha-badge).
+const recaptchaEnabled = !!process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+
 function DefaultText() {
   return (
     <h6>
@@ -21,7 +25,32 @@ function DefaultText() {
 }
 
 function ContactPageText() {
-  return <h6>Please fill out this form. Ill will respond as soon as I can.</h6>;
+  return (
+    <>
+      <h6>Please fill out this form. Ill will respond as soon as I can.</h6>
+      {recaptchaEnabled && (
+        <small className="mt-4 block">
+          This site is protected by reCAPTCHA and the Google{' '}
+          <a
+            href="https://policies.google.com/privacy"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Privacy Policy
+          </a>{' '}
+          and{' '}
+          <a
+            href="https://policies.google.com/terms"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Terms of Service
+          </a>{' '}
+          apply.
+        </small>
+      )}
+    </>
+  );
 }
 
 export default function Footer() {
