@@ -136,3 +136,10 @@
     @apply absolute top-0 left-0 w-full h-full;
   }
 }
+
+/* reCAPTCHA v3 badge — hidden per Google's terms; the contact form shows the
+   required "protected by reCAPTCHA" disclosure instead. Also stops the badge
+   lingering across client-side navigation after the contact page loads it. */
+.grecaptcha-badge {
+  visibility: hidden;
+}
