@@ -1,4 +1,4 @@
-import { ReactElement } from 'react';
+import { ReactNode } from 'react';
 
 import Background from '@/components/Background';
 
@@ -6,7 +6,7 @@ import Footer from '../../components/Footer';
 import Header from '../../components/Header';
 
 type LayoutProps = {
-  children: ReactElement;
+  children: ReactNode;
 };
 
 export default function Layout({ children }: LayoutProps) {
