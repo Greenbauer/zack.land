@@ -1,5 +1,7 @@
 import { createTransport } from 'nodemailer';
 
+import { verifyRecaptcha } from '@/utils/recaptcha';
+
 import { ContactFormData } from '../../(root)/contact/Form';
 
 // nodemailer needs the Node.js runtime (not Edge).
@@ -38,7 +40,19 @@ export async function POST(request: Request): Promise<Response> {
     return json({ error: 'Email is not configured' }, 500);
   }
 
-  const { name, email, message }: ContactFormData = await request.json();
+  const { name, email, message, recaptchaToken } =
+    (await request.json()) as ContactFormData & { recaptchaToken?: string };
+
+  // Spam gate — no-op until RECAPTCHA_SECRET_KEY is configured (see utils/recaptcha).
+  const verdict = await verifyRecaptcha(recaptchaToken);
+  if (!verdict.ok) {
+    console.warn(
+      '[contact] reCAPTCHA blocked submission:',
+      verdict.reason,
+      verdict.score,
+    );
+    return json({ error: 'reCAPTCHA verification failed' }, 400);
+  }
 
   try {
     const info = await transporter.sendMail({
