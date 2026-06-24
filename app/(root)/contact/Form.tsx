@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 
 import Button from '@/components/Button';
 import FormFields, { Field } from '@/components/FormFields';
+import { getRecaptchaToken } from '@/utils/recaptcha-client';
 import { post } from '@/utils/request';
 
 export type ContactFormData = {
@@ -54,7 +55,8 @@ export default function Form() {
 
   const handleOnSubmit = async (data: ContactFormData) => {
     try {
-      const res = await post('/api/email', data);
+      const recaptchaToken = await getRecaptchaToken('contact');
+      const res = await post('/api/email', { ...data, recaptchaToken });
 
       if (!res) throw new Error();
     } catch (error) {
