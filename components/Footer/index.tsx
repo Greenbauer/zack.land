@@ -25,8 +25,11 @@ function DefaultText() {
 }
 
 function ContactPageText() {
+  // Wrapped in a single block so the disclosure stacks UNDER the heading and
+  // inherits its alignment — the footer's text container is a flex row, so a
+  // bare fragment would lay the two out side by side.
   return (
-    <>
+    <div>
       <h6>Please fill out this form. Ill will respond as soon as I can.</h6>
       {recaptchaEnabled && (
         <small className="mt-4 block">
@@ -49,7 +52,7 @@ function ContactPageText() {
           apply.
         </small>
       )}
-    </>
+    </div>
   );
 }
 
