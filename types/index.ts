@@ -1,3 +1,5 @@
+import { JSX } from 'react';
+
 export type MediaSource = {
   key: string;
   alt: string;
