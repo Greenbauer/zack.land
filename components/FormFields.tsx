@@ -14,12 +14,14 @@ type FormFieldsProps = {
   fields: Field[];
   register: UseFormRegister<any>;
   errors: FieldErrors;
+  touchedFields: Partial<Record<string, boolean>>;
 };
 
 export default function FormFields({
   fields,
   register,
   errors,
+  touchedFields,
 }: FormFieldsProps) {
   const validation: Validation = (type: string) => {
     if (type === 'email') {
@@ -56,8 +58,12 @@ export default function FormFields({
             )}
             <div className="flex h-6 w-full justify-end text-right">
               <small className="py-1 text-yellow">
-                {errors[name]?.type === 'required' && 'required'}
-                {errors[name]?.type === 'pattern' && 'invalid'}
+                {touchedFields[name] &&
+                  errors[name]?.type === 'required' &&
+                  'required'}
+                {touchedFields[name] &&
+                  errors[name]?.type === 'pattern' &&
+                  'invalid'}
               </small>
             </div>
           </div>

@@ -45,13 +45,17 @@ export default function Form() {
     trigger,
     formState: {
       errors,
+      touchedFields,
       isDirty,
       isValid,
       isSubmitting,
       isSubmitted,
       isSubmitSuccessful,
     },
-  } = useForm<ContactFormData>({ mode: 'onBlur' });
+    // onChange keeps isValid live so Submit enables as soon as the form is
+    // valid — without waiting for the last field to blur. Error text is still
+    // gated on touchedFields (see FormFields), so it only shows after blur.
+  } = useForm<ContactFormData>({ mode: 'onChange' });
 
   const handleOnSubmit = async (data: ContactFormData) => {
     try {
@@ -74,9 +78,19 @@ export default function Form() {
       onSubmit={handleSubmit(handleOnSubmit)}
     >
       <div className="flex flex-wrap gap-x-6">
-        <FormFields fields={fields1} register={register} errors={errors} />
+        <FormFields
+          fields={fields1}
+          register={register}
+          errors={errors}
+          touchedFields={touchedFields}
+        />
       </div>
-      <FormFields fields={fields2} register={register} errors={errors} />
+      <FormFields
+        fields={fields2}
+        register={register}
+        errors={errors}
+        touchedFields={touchedFields}
+      />
       <div className="flex flex-col items-center gap-3">
         {!isSubmitSuccessful && (
           <Button
