@@ -30,7 +30,7 @@ const Contents: Content[] = [
         , one of the world’s largest 3D printing companies, had Banner Eyewear
         featured on their website. Today, the WordPress e-commerce site is no
         longer active. You can still experience the create page however, which
-        lives as a lambda function on AWS.
+        lives as a static site on AWS.
       </p>
     ),
     technology: 'AWS, Serverless, jQuery, PHP, three.js, WordPress',
