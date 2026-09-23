@@ -40,3 +40,13 @@ When the secret is unset, submissions skip verification; when set, a submission 
 </dl>
 
 </div>
+
+## CI
+
+Every pull request runs the [Vibe Verifier](https://github.com/Greenbauer/vibe-verifier) gates listed
+in `.vibe-verifier` through `.github/workflows/vibe-verifier.yml`, pinned to a catalog commit: the
+`package.json` checks, `gitleaks` on the pull request's commits, `actionlint` and `zizmor` on changed
+workflows, and the `cognitive-complexity` and `max-file-lines` ratchets on changed files.
+`build-tools-in-devdependencies` runs in `--soak` (reported, not blocking) until the three `@types/*`
+packages move out of `dependencies`.
+
