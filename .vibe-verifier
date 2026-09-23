@@ -1,5 +1,5 @@
 no-duplicate-package-json-keys
-build-tools-in-devdependencies --soak
+build-tools-in-devdependencies
 gitleaks
 actionlint
 zizmor
