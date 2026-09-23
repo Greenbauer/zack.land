@@ -27,7 +27,7 @@ const MediaRenderer = ({ mediaSource }: MediaRendererProps) => {
     case 'YouTube':
       return <YouTube videoId={key} className="youtube" />;
     default:
-      return <Image src={key} alt={alt} width={800} height={800} priority />;
+      return <Image src={key} alt={alt} width={800} height={800} preload />;
   }
 };
 
