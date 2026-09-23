@@ -1,7 +1,7 @@
 import { useFrame, useLoader } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import { BufferGeometry, Group, Mesh } from 'three';
-import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
+import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 
 import useMatcap from './useMatcap';
 

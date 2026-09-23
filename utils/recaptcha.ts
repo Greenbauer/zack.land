@@ -44,7 +44,10 @@ export async function verifyRecaptcha(
   }
 
   if (!data.success) {
-    return { ok: false, reason: data['error-codes']?.join(',') || 'verify-failed' };
+    return {
+      ok: false,
+      reason: data['error-codes']?.join(',') || 'verify-failed',
+    };
   }
   if (data.action && data.action !== EXPECTED_ACTION) {
     return { ok: false, score: data.score, reason: 'action-mismatch' };

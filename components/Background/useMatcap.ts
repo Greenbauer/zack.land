@@ -1,6 +1,6 @@
 import { useLoader } from '@react-three/fiber';
 import { useMemo } from 'react';
-import { TextureLoader } from 'three/src/loaders/TextureLoader';
+import { TextureLoader } from 'three';
 
 const fragmentShader = `
   uniform sampler2D tMatCap;
