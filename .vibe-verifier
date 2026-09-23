@@ -1,0 +1,7 @@
+no-duplicate-package-json-keys
+build-tools-in-devdependencies --soak
+gitleaks
+actionlint
+zizmor
+cognitive-complexity
+max-file-lines
