@@ -55,3 +55,4 @@ step log and a screenshot per step, and two deterministic gates decide from the 
 request body needs that heading: a change that renders nothing declares `- None: <why>` under it.
 The Vercel analytics script is the one console and network error declared as environmental.
 
+
