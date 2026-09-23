@@ -48,3 +48,10 @@ in `.vibe-verifier` through `.github/workflows/vibe-verifier.yml`, pinned to a c
 `package.json` checks, `gitleaks` on the pull request's commits, `actionlint` and `zizmor` on changed
 workflows, and the `cognitive-complexity` and `max-file-lines` ratchets on changed files.
 
+Pull requests with a rendered change also run the Vibe Verifier QAE harness (`.github/workflows/qae-explore.yml`,
+gates in `.vibe-verifier-qae`): the site is built and started on the runner, a model with a real
+browser walks each item under a `## Acceptance criteria` heading in the pull request body and saves a
+step log and a screenshot per step, and two deterministic gates decide from the artifacts. Every pull
+request body needs that heading: a change that renders nothing declares `- None: <why>` under it.
+The Vercel analytics script is the one console and network error declared as environmental.
+
