@@ -57,7 +57,7 @@ jobs:
         # integrity fixed by tools/qae-browser/package-lock.json in the catalog. Nothing here is
         # resolved from the registry at run time: this job holds the account-level token.
         id: browser
-        uses: Greenbauer/vibe-verifier/actions/qae-browser@37c7261d2bcdaf6e59e4cb031c9a59d11cb8704a # main 2026-09-23
+        uses: Greenbauer/vibe-verifier/actions/qae-browser@3d1eab1f568168aa126abcb7d47361d7b47da624 # main 2026-09-24
       - name: Write the criteria input
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -72,7 +72,7 @@ jobs:
         # paid for a full explore of nothing, and on 2026-09-21 one of them turned the job red on
         # the account's usage cap for it.
         id: criteria
-        uses: Greenbauer/vibe-verifier/actions/criteria@37c7261d2bcdaf6e59e4cb031c9a59d11cb8704a # main 2026-09-23
+        uses: Greenbauer/vibe-verifier/actions/criteria@3d1eab1f568168aa126abcb7d47361d7b47da624 # main 2026-09-24
         with:
           path: qae-inputs/pr-body.md
       - name: Explore the acceptance criteria in a real browser
@@ -187,6 +187,6 @@ jobs:
           gh api "repos/${REPO}/issues/${PR_NUMBER}/comments?per_page=100" --paginate \
             --jq '[.[] | select(.user.login == "github-actions[bot]") | select(.body | contains("acceptance-check:"))] | last | .body // ""' > qae-inputs/verdict.md
           echo "verdict lines: $(grep -c 'acceptance-check:' qae-inputs/verdict.md || true)"
-      - uses: Greenbauer/vibe-verifier/actions/gates@37c7261d2bcdaf6e59e4cb031c9a59d11cb8704a # main 2026-09-23
+      - uses: Greenbauer/vibe-verifier/actions/gates@3d1eab1f568168aa126abcb7d47361d7b47da624 # main 2026-09-24
         with:
           manifest: .vibe-verifier-qae
