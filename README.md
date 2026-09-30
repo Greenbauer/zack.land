@@ -55,3 +55,10 @@ step log and a screenshot per step, and two deterministic gates decide from the 
 request body needs that heading: a change that renders nothing declares `- None: <why>` under it.
 The Vercel analytics script is the one console and network error declared as environmental.
 
+The QAE explorer also retains numeric token usage for 7 days in a dedicated
+`vv-usage-qae-explorer-<attempt>` artifact. It contains only `usage.json`, with run
+metadata and measured token counts, never prompts, model responses, or credentials.
+Missing or skipped usage is explicit, not zero. The deterministic verifier has no
+model token usage. Records begin with new runs after this workflow update and
+cannot backfill earlier runs. Token counts are separate from subscription quotas
+and do not change QAE verdicts.
