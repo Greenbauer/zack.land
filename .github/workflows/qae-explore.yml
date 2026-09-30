@@ -57,7 +57,7 @@ jobs:
         # integrity fixed by tools/qae-browser/package-lock.json in the catalog. Nothing here is
         # resolved from the registry at run time: this job holds the account-level token.
         id: browser
-        uses: Greenbauer/vibe-verifier/actions/qae-browser@c5f348b87d4906f0fe0156954d92c85be6c08b0e # main 2026-09-28
+        uses: Greenbauer/vibe-verifier/actions/qae-browser@a60c04e9c25117d36265e17db3cfeae39242657c # main 2026-09-28
       - name: Write the criteria input
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -72,10 +72,11 @@ jobs:
         # paid for a full explore of nothing, and on 2026-09-21 one of them turned the job red on
         # the account's usage cap for it.
         id: criteria
-        uses: Greenbauer/vibe-verifier/actions/criteria@c5f348b87d4906f0fe0156954d92c85be6c08b0e # main 2026-09-28
+        uses: Greenbauer/vibe-verifier/actions/criteria@a60c04e9c25117d36265e17db3cfeae39242657c # main 2026-09-28
         with:
           path: qae-inputs/pr-body.md
       - name: Explore the acceptance criteria in a real browser
+        id: explorer
         if: steps.criteria.outputs.count != '0'
         uses: anthropics/claude-code-action@e58dfa55559035499a4982426bb73605e8b5ad8e # v1.0.105
         with:
@@ -119,6 +120,22 @@ jobs:
             # can read its inputs and artifacts and write artifacts, and nothing else: not the runner's
             # environment, not the checkout. The PR body it reads is untrusted; without this a body
             # could ask it to read /proc/self/environ and post the tokens with the allowed gh pr comment.
+      - name: Collect numeric usage
+        if: always()
+        uses: Greenbauer/vibe-verifier/actions/usage@a60c04e9c25117d36265e17db3cfeae39242657c # numeric usage capture
+        with:
+          source-file: ${{ steps.explorer.outputs.execution_file }}
+          source-ran: ${{ steps.criteria.outputs.count != '0' }}
+          role: qae-explorer
+          job-key: explore
+      - name: Keep numeric usage
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: vv-usage-qae-explorer-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/vv-usage/usage.json
+          if-no-files-found: error
+          retention-days: 7
       - name: Enforce the write scope
         # The prompt says "write only under qae-artifacts/", and a prompt is a suggestion. Anything
         # else that changed on the runner, tracked or untracked, fails the job here so it can never
@@ -189,6 +206,6 @@ jobs:
           gh api "repos/${REPO}/issues/${PR_NUMBER}/comments?per_page=100" --paginate \
             | jq -r -s '[.[][] | select(.user.login == "github-actions[bot]") | select(.body | contains("acceptance-check:"))] | last | .body // ""' > qae-inputs/verdict.md
           echo "verdict lines: $(grep -c 'acceptance-check:' qae-inputs/verdict.md || true)"
-      - uses: Greenbauer/vibe-verifier/actions/gates@c5f348b87d4906f0fe0156954d92c85be6c08b0e # main 2026-09-28
+      - uses: Greenbauer/vibe-verifier/actions/gates@a60c04e9c25117d36265e17db3cfeae39242657c # main 2026-09-28
         with:
           manifest: .vibe-verifier-qae
