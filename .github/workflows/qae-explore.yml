@@ -54,7 +54,7 @@ jobs:
         # spends a model session: those steps run only when there is a criterion to walk. Decided by
         # the same code the verify job runs.
         id: criteria
-        uses: Greenbauer/vibe-verifier/actions/criteria@aa2a9dfc2714c99e161b15d20a2dcee0428a7be0 # main 2026-10-05
+        uses: Greenbauer/vibe-verifier/actions/criteria@a80194f4951d8b9b4b216688920a9d7f13f585c4 # main 2026-10-05
         with:
           path: qae-inputs/pr-body.md
           changed-files: qae-inputs/changed-files
@@ -84,7 +84,7 @@ jobs:
         # resolved from the registry at run time: this job holds the account-level token.
         id: browser
         if: steps.criteria.outputs.count != '0'
-        uses: Greenbauer/vibe-verifier/actions/qae-browser@aa2a9dfc2714c99e161b15d20a2dcee0428a7be0 # main 2026-10-05
+        uses: Greenbauer/vibe-verifier/actions/qae-browser@a80194f4951d8b9b4b216688920a9d7f13f585c4 # main 2026-10-05
       - name: Explore the acceptance criteria in a real browser
         id: explorer
         if: steps.criteria.outputs.count != '0'
@@ -132,7 +132,7 @@ jobs:
             # could ask it to read /proc/self/environ and post the tokens with the allowed gh pr comment.
       - name: Collect numeric usage
         if: always()
-        uses: Greenbauer/vibe-verifier/actions/usage@aa2a9dfc2714c99e161b15d20a2dcee0428a7be0 # main 2026-10-05
+        uses: Greenbauer/vibe-verifier/actions/usage@a80194f4951d8b9b4b216688920a9d7f13f585c4 # main 2026-10-05
         with:
           source-file: ${{ steps.explorer.outputs.execution_file }}
           source-ran: ${{ steps.criteria.outputs.count != '0' }}
@@ -217,7 +217,7 @@ jobs:
           echo "verdict lines: $(grep -c 'acceptance-check:' qae-inputs/verdict.md || true)"
       - name: Read the criteria
         id: criteria
-        uses: Greenbauer/vibe-verifier/actions/criteria@aa2a9dfc2714c99e161b15d20a2dcee0428a7be0 # main 2026-10-05
+        uses: Greenbauer/vibe-verifier/actions/criteria@a80194f4951d8b9b4b216688920a9d7f13f585c4 # main 2026-10-05
         with:
           path: qae-inputs/pr-body.md
           changed-files: qae-inputs/changed-files
@@ -229,14 +229,14 @@ jobs:
       - name: Run the QA gates
         id: gates
         if: steps.criteria.outputs.declared-none == ''
-        uses: Greenbauer/vibe-verifier/actions/gates@aa2a9dfc2714c99e161b15d20a2dcee0428a7be0 # main 2026-10-05
+        uses: Greenbauer/vibe-verifier/actions/gates@a80194f4951d8b9b4b216688920a9d7f13f585c4 # main 2026-10-05
         with:
           manifest: .vibe-verifier-qae
       - name: Post the QA review
         # One comment per pull request, edited in place on every run: passed, changes needed, not
         # required, or could not run, from what the jobs and gates concluded, never the explorer's prose.
         if: ${{ !cancelled() }}
-        uses: Greenbauer/vibe-verifier/actions/qa-review@aa2a9dfc2714c99e161b15d20a2dcee0428a7be0 # main 2026-10-05
+        uses: Greenbauer/vibe-verifier/actions/qa-review@a80194f4951d8b9b4b216688920a9d7f13f585c4 # main 2026-10-05
         with:
           criteria: qae-inputs/pr-body.md
           verdict: qae-inputs/verdict.md
