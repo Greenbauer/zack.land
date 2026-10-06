@@ -58,7 +58,7 @@ jobs:
         # in its own job, on any runner, since 2026-10-05: on the Codex lane the explore runner holds
         # the one login, and a 6-second skip queued up to 15 minutes behind real explorations for it.
         id: criteria
-        uses: Greenbauer/vibe-verifier/actions/criteria@de49536151ce5aa5b284513e8117ddc35825e531 # main 2026-10-06
+        uses: Greenbauer/vibe-verifier/actions/criteria@b79661093cced8e65c602b1fba15d9cf1805732c # main 2026-10-06
         with:
           path: qae-inputs/pr-body.md
           changed-files: qae-inputs/changed-files
@@ -104,7 +104,7 @@ jobs:
         # for the explorer to re-walk after the criteria: a path more than --shared-over features list
         # counts for none, and at most --max-features are picked. The verify job's gate makes the same
         # selection itself and requires one regression-check line per feature, so this step only informs.
-        uses: Greenbauer/vibe-verifier/actions/features@de49536151ce5aa5b284513e8117ddc35825e531 # main 2026-10-06
+        uses: Greenbauer/vibe-verifier/actions/features@b79661093cced8e65c602b1fba15d9cf1805732c # main 2026-10-06
         with:
           changed-files: qae-inputs/changed-files
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
@@ -135,20 +135,22 @@ jobs:
             sleep 2
           done
           echo "::error::site did not answer on http://localhost:3000 within 120s"; tail -50 qae-artifacts/server.log; exit 1
-      - name: Keep the design references with the evidence
+      - name: Prepare the explorer's references and widths
         # A criterion naming `[ref: <key>]` is compared with qae-inputs/references/<key>.png, which the site
         # step supplies (harnesses/qae/README.md). Each is copied into qae-artifacts/references/ before the
         # explorer runs, so the evidence holds what it was compared with, and listed with its width in
         # qae-inputs/references.md. Its digest goes out as the `references` output, so the verify job's gate
         # judges the image the workflow supplied, never one the explorer wrote. None supplied is none copied.
+        # The --widths of the manifest's qae-artifacts line (judged from the base) go to qae-inputs/widths,
+        # the viewport widths the explorer checks each criterion at and the gate requires; none, no file.
         id: references
-        uses: Greenbauer/vibe-verifier/actions/qae-inputs@de49536151ce5aa5b284513e8117ddc35825e531 # main 2026-10-06
+        uses: Greenbauer/vibe-verifier/actions/qae-inputs@b79661093cced8e65c602b1fba15d9cf1805732c # main 2026-10-06
       - name: Install the browser toolchain from the catalog's lockfile
         # playwright-mcp, the Playwright build it pins and that build's chromium, every tarball's
         # integrity fixed by tools/qae-browser/package-lock.json in the catalog. Nothing here is
         # resolved from the registry at run time: this job holds the account-level token.
         id: browser
-        uses: Greenbauer/vibe-verifier/actions/qae-browser@de49536151ce5aa5b284513e8117ddc35825e531 # main 2026-10-06
+        uses: Greenbauer/vibe-verifier/actions/qae-browser@b79661093cced8e65c602b1fba15d9cf1805732c # main 2026-10-06
       - name: Explore the acceptance criteria in a real browser
         id: explorer
         uses: anthropics/claude-code-action@e58dfa55559035499a4982426bb73605e8b5ad8e # v1.0.105
@@ -191,6 +193,19 @@ jobs:
                    - step k: as <role>: <what you did> -> <what you saw>
                  As each role, check that what the role may do works, that what it may not do is refused, and that
                  controls it must not use are not shown.
+               If qae-inputs/widths exists, it lists viewport widths in pixels, one per line, and a gate checks that
+               each criterion's step screenshots include one at each width: check every criterion's end state at
+               each of them, with the browser resized to that width, as a step with its own screenshot. If
+               qae-inputs/site.md says the site has more than one theme (light and dark), check each end state in
+               every theme as well.
+               Beyond what a criterion says, on the screen it is about: use every action control the criterion
+               touches through to its end state (a save that is saved, not a button that is only shown); after
+               saving anything, reload the page and check that the values you entered are still there; and try one
+               invalid input (an empty required field, a malformed value) and check that the site answers with a
+               handled error, not a crash or a blank page. Prefer an input the page refuses before sending
+               anything: a request the site answers with 400 or worse fails the run unless the criterion declares
+               it (expected-refusal: <status> <path>). Log each as a step of that criterion; any of them that fails
+               makes the criterion a FAIL.
                If the directory qae-inputs/features/ exists, each <id>.md in it describes a feature this pull
                request's changes touch. After the criteria, re-walk each one the same way: get there as its
                Reach section says, then check what its Verify section says a user would see (its numbered
@@ -225,7 +240,7 @@ jobs:
             # the Read rules never see that read, and any other path would post whatever file it names.
       - name: Collect numeric usage
         if: always()
-        uses: Greenbauer/vibe-verifier/actions/usage@de49536151ce5aa5b284513e8117ddc35825e531 # main 2026-10-06
+        uses: Greenbauer/vibe-verifier/actions/usage@b79661093cced8e65c602b1fba15d9cf1805732c # main 2026-10-06
         with:
           source-file: ${{ steps.explorer.outputs.execution_file }}
           source-ran: true
@@ -326,7 +341,7 @@ jobs:
           printf '%s\n' "$REFERENCES" > qae-inputs/references.json
       - name: Read the criteria
         id: criteria
-        uses: Greenbauer/vibe-verifier/actions/criteria@de49536151ce5aa5b284513e8117ddc35825e531 # main 2026-10-06
+        uses: Greenbauer/vibe-verifier/actions/criteria@b79661093cced8e65c602b1fba15d9cf1805732c # main 2026-10-06
         with:
           path: qae-inputs/pr-body.md
           changed-files: qae-inputs/changed-files
@@ -338,14 +353,14 @@ jobs:
       - name: Run the QA gates
         id: gates
         if: steps.criteria.outputs.declared-none == ''
-        uses: Greenbauer/vibe-verifier/actions/gates@de49536151ce5aa5b284513e8117ddc35825e531 # main 2026-10-06
+        uses: Greenbauer/vibe-verifier/actions/gates@b79661093cced8e65c602b1fba15d9cf1805732c # main 2026-10-06
         with:
           manifest: .vibe-verifier-qae
       - name: Post the QA review
         # One comment per pull request, edited in place on every run: passed, changes needed, not
         # required, or could not run, from what the jobs and gates concluded, never the explorer's prose.
         if: ${{ !cancelled() }}
-        uses: Greenbauer/vibe-verifier/actions/qa-review@de49536151ce5aa5b284513e8117ddc35825e531 # main 2026-10-06
+        uses: Greenbauer/vibe-verifier/actions/qa-review@b79661093cced8e65c602b1fba15d9cf1805732c # main 2026-10-06
         with:
           criteria: qae-inputs/pr-body.md
           verdict: qae-inputs/verdict.md
