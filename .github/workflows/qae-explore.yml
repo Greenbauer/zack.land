@@ -164,6 +164,8 @@ jobs:
           for path in $(git ls-tree --name-only "$base" .github/qae-references/ | grep '\.png$' || true); do
             git show "$base:$path" > "qae-inputs/references/${path##*/}"
           done
+          probe() { curl -sS -o /dev/null -m 60 -w "DIAG $1: %{speed_download} bytes/s over %{time_total}s\n" http://azure.archive.ubuntu.com/ubuntu/pool/main/f/fonts-freefont/fonts-freefont-ttf_20211204+svn4273-2_all.deb || true; }
+          probe "before the container"
           src="$RUNNER_TEMP/qae-site"
           mkdir -p "$src/tree"
           git archive HEAD | tar -x -C "$src/tree"
@@ -218,7 +220,8 @@ jobs:
           (docker logs --follow qae-site > qae-artifacts/server.log 2>&1 &)
           for i in $(seq 1 120); do
             if curl -fsS http://localhost:3000/ > /dev/null 2>&1; then
-              echo "site up after ${i} tries"; echo "url=http://localhost:3000" >> "$GITHUB_OUTPUT"; exit 0
+              echo "site up after ${i} tries"; echo "url=http://localhost:3000" >> "$GITHUB_OUTPUT"
+              probe "site up"; docker stats --no-stream; top -bn1 | head -15; sleep 30; probe "30s after site up"; docker stats --no-stream; top -bn1 | head -12; exit 0
             fi
             if [ "$(docker inspect --format '{{.State.Running}}' qae-site)" != true ]; then
               echo "::error::the site's container stopped before the site answered"; tail -50 qae-artifacts/server.log; exit 1
