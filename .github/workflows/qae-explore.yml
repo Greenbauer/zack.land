@@ -80,7 +80,7 @@ jobs:
         # in its own job, on any runner, since 2026-10-05: on the Codex lane the explore runner holds
         # the one login, and a 6-second skip queued up to 15 minutes behind real explorations for it.
         id: criteria
-        uses: Greenbauer/vibe-verifier/actions/criteria@bd7dda68bff55f6c97fc5a38f83769ec15565358 # main 2026-10-07
+        uses: Greenbauer/vibe-verifier/actions/criteria@f45d06ec837af5c6e594cb1eb7d7e63bd95acef0 # main 2026-10-07
         with:
           path: qae-inputs/pr-body.md
           changed-files: qae-inputs/changed-files
@@ -97,10 +97,13 @@ jobs:
       pull-requests: write
     # The URL under test, as the site step declared it, and the digest of each design reference it
     # supplied, for the verify job's gates. Step outputs: the explorer runs later and cannot change them,
-    # and nothing reads them from the pull request.
+    # and nothing reads them from the pull request. And the run attempt this job ran in, which names
+    # the evidence artifact: the verify job downloads that attempt's evidence, whichever attempt it is
+    # itself in.
     outputs:
       site-url: ${{ steps.site.outputs.url }}
       references: ${{ steps.references.outputs.references }}
+      attempt: ${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
@@ -132,7 +135,7 @@ jobs:
         # qae-inputs/features.md tells the explorer how many states of each to walk (--max-states, default 3)
         # and which changed paths selected it. The verify job's gate makes the same selection itself and
         # requires one regression-check line and one walked step per feature, so this step only informs.
-        uses: Greenbauer/vibe-verifier/actions/features@bd7dda68bff55f6c97fc5a38f83769ec15565358 # main 2026-10-07
+        uses: Greenbauer/vibe-verifier/actions/features@f45d06ec837af5c6e594cb1eb7d7e63bd95acef0 # main 2026-10-07
         with:
           changed-files: qae-inputs/changed-files
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
@@ -237,13 +240,13 @@ jobs:
         # Its `max-turns` output is the explorer's turn cap, sized to the criteria, roles, widths and
         # features it walks (harnesses/qae/README.md); the Claude lane passes it as --max-turns.
         id: references
-        uses: Greenbauer/vibe-verifier/actions/qae-inputs@bd7dda68bff55f6c97fc5a38f83769ec15565358 # main 2026-10-07
+        uses: Greenbauer/vibe-verifier/actions/qae-inputs@f45d06ec837af5c6e594cb1eb7d7e63bd95acef0 # main 2026-10-07
       - name: Install the browser toolchain from the catalog's lockfile
         # playwright-mcp, the Playwright build it pins and that build's chromium, every tarball's
         # integrity fixed by tools/qae-browser/package-lock.json in the catalog. Nothing here is
         # resolved from the registry at run time: this job holds the account-level token.
         id: browser
-        uses: Greenbauer/vibe-verifier/actions/qae-browser@bd7dda68bff55f6c97fc5a38f83769ec15565358 # main 2026-10-07
+        uses: Greenbauer/vibe-verifier/actions/qae-browser@f45d06ec837af5c6e594cb1eb7d7e63bd95acef0 # main 2026-10-07
       - name: Explore the acceptance criteria in a real browser
         # --max-turns is the turn cap the references step sized to this run's walks: a fixed 80 cut off
         # a correct run of two criteria at two widths (harnesses/qae/README.md, "The turn cap").
@@ -364,7 +367,7 @@ jobs:
             # the Read rules never see that read, and any other path would post whatever file it names.
       - name: Collect numeric usage
         if: always()
-        uses: Greenbauer/vibe-verifier/actions/usage@bd7dda68bff55f6c97fc5a38f83769ec15565358 # main 2026-10-07
+        uses: Greenbauer/vibe-verifier/actions/usage@f45d06ec837af5c6e594cb1eb7d7e63bd95acef0 # main 2026-10-07
         with:
           source-file: ${{ steps.explorer.outputs.execution_file }}
           source-ran: true
@@ -407,10 +410,14 @@ jobs:
           fi
           echo "write scope held"
       - name: Keep the evidence
+        # Named for the run attempt: this step runs always, so a failed or cancelled attempt uploads
+        # too, and under one name for every attempt a re-run's verify job was handed an earlier
+        # attempt's evidence (a consumer's third attempt, 2026-10-07: the explorer passed and both
+        # gates read the cancelled second attempt's artifact).
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: qae-artifacts
+          name: qae-artifacts-${{ github.run_attempt }}
           path: qae-artifacts
           if-no-files-found: warn
 
@@ -468,27 +475,30 @@ jobs:
           printf '%s' "$TICKET" > qae-inputs/ticket.md
       - name: Read the criteria
         id: criteria
-        uses: Greenbauer/vibe-verifier/actions/criteria@bd7dda68bff55f6c97fc5a38f83769ec15565358 # main 2026-10-07
+        uses: Greenbauer/vibe-verifier/actions/criteria@f45d06ec837af5c6e594cb1eb7d7e63bd95acef0 # main 2026-10-07
         with:
           path: qae-inputs/pr-body.md
           changed-files: qae-inputs/changed-files
           ticket: qae-inputs/ticket.md
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         if: steps.criteria.outputs.count != '0'
+        # The evidence of the attempt the explore job ran in, by that job's own output: this attempt's
+        # on a full re-run, and an earlier one's when only this job is re-run. An explore job that
+        # never reported an attempt leaves a name no artifact has, and the step fails.
         with:
-          name: qae-artifacts
+          name: qae-artifacts-${{ needs.explore.outputs.attempt }}
           path: qae-artifacts
       - name: Run the QA gates
         id: gates
         if: steps.criteria.outputs.declared-none == ''
-        uses: Greenbauer/vibe-verifier/actions/gates@bd7dda68bff55f6c97fc5a38f83769ec15565358 # main 2026-10-07
+        uses: Greenbauer/vibe-verifier/actions/gates@f45d06ec837af5c6e594cb1eb7d7e63bd95acef0 # main 2026-10-07
         with:
           manifest: .vibe-verifier-qae
       - name: Post the QA review
         # One comment per pull request, edited in place on every run: passed, changes needed, not
         # required, or could not run, from what the jobs and gates concluded, never the explorer's prose.
         if: ${{ !cancelled() }}
-        uses: Greenbauer/vibe-verifier/actions/qa-review@bd7dda68bff55f6c97fc5a38f83769ec15565358 # main 2026-10-07
+        uses: Greenbauer/vibe-verifier/actions/qa-review@f45d06ec837af5c6e594cb1eb7d7e63bd95acef0 # main 2026-10-07
         with:
           criteria: qae-inputs/pr-body.md
           verdict: qae-inputs/verdict.md
