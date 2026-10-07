@@ -49,11 +49,25 @@ in `.vibe-verifier` through `.github/workflows/vibe-verifier.yml`, pinned to a c
 workflows, and the `cognitive-complexity` and `max-file-lines` ratchets on changed files.
 
 Pull requests with a rendered change also run the Vibe Verifier QAE harness (`.github/workflows/qae-explore.yml`,
-gates in `.vibe-verifier-qae`): the site is built and started on the runner, a model with a real
-browser walks each item under a `## Acceptance criteria` heading in the pull request body and saves a
-step log and a screenshot per step, and two deterministic gates decide from the artifacts. Every pull
-request body needs that heading: a change that renders nothing declares `- None: <why>` under it.
-The Vercel analytics script is the one console and network error declared as environmental.
+gates in `.vibe-verifier-qae`): the site is built and started in a container on the runner, a model
+with a real browser walks each item under a `## Acceptance criteria` heading in the pull request body
+and saves a step log and a screenshot per step, and two deterministic gates decide from the artifacts.
+A pull request body needs that heading (a change that renders nothing declares `- None: <why>` under
+it), with one exception: a pull request that changes only `package.json` and `package-lock.json` is
+held to `.github/qae-dependency-criteria.md`, read from the base branch, in addition to any criteria
+of its own. The Vercel analytics script is the one console and network error declared as environmental.
+
+Dependabot opens security updates only, grouped into one pull request (`.github/dependabot.yml`), and
+each is walked like any other pull request, against that criteria file. Three things make that possible:
+
+- The workflow names Dependabot as the one bot allowed to start the explorer.
+- The install, the build and the server run in a container that is given the tracked files and no
+  secret. The job that walks the site holds the model token, and a dependency update is code nobody
+  here has read. The same container runs a mail sink that accepts every message and keeps none, so
+  the contact form's send is checked without real mail.
+- A run Dependabot starts reads the repository's Dependabot secrets, never its Actions secrets, so
+  `CLAUDE_CODE_OAUTH_TOKEN` has to be set there too (`gh secret set CLAUDE_CODE_OAUTH_TOKEN --app dependabot`).
+  Without it the explorer fails on a Dependabot pull request; nothing is skipped.
 
 The QAE explorer also retains numeric token usage for 7 days in a dedicated
 `vv-usage-qae-explorer-<attempt>` artifact. It contains only `usage.json`, with run
