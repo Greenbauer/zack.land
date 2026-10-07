@@ -7,7 +7,11 @@ updates:
     directory: /
     schedule:
       interval: weekly
-    open-pull-requests-limit: 0
+    # TEMPORARY, for one live proof that a Dependabot pull request goes green: one version update,
+    # of one package. The next change puts the limit back to 0 and drops `allow`.
+    open-pull-requests-limit: 1
+    allow:
+      - dependency-name: react-hook-form
     groups:
       security:
         applies-to: security-updates
