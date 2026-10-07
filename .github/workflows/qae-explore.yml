@@ -65,7 +65,7 @@ jobs:
         # in its own job, on any runner, since 2026-10-05: on the Codex lane the explore runner holds
         # the one login, and a 6-second skip queued up to 15 minutes behind real explorations for it.
         id: criteria
-        uses: Greenbauer/vibe-verifier/actions/criteria@8df96562a7b096fdef96caac115e86a6b5ea9e7a # main 2026-10-07
+        uses: Greenbauer/vibe-verifier/actions/criteria@56274c629b34dce4dc66f89a00da8915857e2707 # fix/qae-ref-gaps head (live check)
         with:
           path: qae-inputs/pr-body.md
           changed-files: qae-inputs/changed-files
@@ -115,7 +115,7 @@ jobs:
         # for the explorer to re-walk after the criteria: a path more than --shared-over features list
         # counts for none, and at most --max-features are picked. The verify job's gate makes the same
         # selection itself and requires one regression-check line per feature, so this step only informs.
-        uses: Greenbauer/vibe-verifier/actions/features@8df96562a7b096fdef96caac115e86a6b5ea9e7a # main 2026-10-07
+        uses: Greenbauer/vibe-verifier/actions/features@56274c629b34dce4dc66f89a00da8915857e2707 # fix/qae-ref-gaps head (live check)
         with:
           changed-files: qae-inputs/changed-files
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
@@ -130,8 +130,53 @@ jobs:
         id: site
         env:
           NEXT_TELEMETRY_DISABLED: '1'
+          # Live check only (throwaway pull request, never merged): the contact route sends to the mail sink below.
+          EMAIL_HOST: 127.0.0.1
+          EMAIL_USER: qae
+          EMAIL_PASS: qae
+          FROM_EMAIL: qae@example.com
+          TO_EMAIL: qae@example.com
         run: |
           set -euo pipefail
+          # A mail sink on the runner (port 587, nodemailer's default): it accepts every message and keeps none,
+          # so the contact form's send succeeds without real mail.
+          cat > "$RUNNER_TEMP/mail-sink.py" <<'PY'
+          import socketserver
+
+
+          class Session(socketserver.StreamRequestHandler):
+              def handle(self):
+                  def say(text):
+                      self.wfile.write((text + "\r\n").encode())
+                  say("220 qae mail sink")
+                  in_data = False
+                  for raw in self.rfile:
+                      line = raw.decode("utf-8", "replace").rstrip("\r\n")
+                      if in_data:
+                          if line == ".":
+                              in_data = False
+                              say("250 queued")
+                          continue
+                      verb = line.split(" ", 1)[0].upper()
+                      if verb == "EHLO":
+                          say("250-qae mail sink")
+                          say("250 AUTH PLAIN")
+                      elif verb == "AUTH":
+                          say("235 accepted")
+                      elif verb == "DATA":
+                          in_data = True
+                          say("354 end with a dot")
+                      elif verb == "QUIT":
+                          say("221 bye")
+                          return
+                      else:
+                          say("250 ok")
+
+
+          socketserver.ThreadingTCPServer.allow_reuse_address = True
+          socketserver.ThreadingTCPServer(("127.0.0.1", 587), Session).serve_forever()
+          PY
+          sudo -n -b python3 "$RUNNER_TEMP/mail-sink.py"
           npm run build
           mkdir -p qae-artifacts/qae qae-inputs/references
           # Design references for criteria that name [ref: <key>], read from the base branch so a pull
@@ -154,15 +199,19 @@ jobs:
         # judges the image the workflow supplied, never one the explorer wrote. None supplied is none copied.
         # The --widths of the manifest's qae-artifacts line (judged from the base) go to qae-inputs/widths,
         # the viewport widths the explorer checks each criterion at and the gate requires; none, no file.
+        # Its `max-turns` output is the explorer's turn cap, sized to the criteria, roles, widths and
+        # features it walks (harnesses/qae/README.md); the Claude lane passes it as --max-turns.
         id: references
-        uses: Greenbauer/vibe-verifier/actions/qae-inputs@8df96562a7b096fdef96caac115e86a6b5ea9e7a # main 2026-10-07
+        uses: Greenbauer/vibe-verifier/actions/qae-inputs@56274c629b34dce4dc66f89a00da8915857e2707 # fix/qae-ref-gaps head (live check)
       - name: Install the browser toolchain from the catalog's lockfile
         # playwright-mcp, the Playwright build it pins and that build's chromium, every tarball's
         # integrity fixed by tools/qae-browser/package-lock.json in the catalog. Nothing here is
         # resolved from the registry at run time: this job holds the account-level token.
         id: browser
-        uses: Greenbauer/vibe-verifier/actions/qae-browser@8df96562a7b096fdef96caac115e86a6b5ea9e7a # main 2026-10-07
+        uses: Greenbauer/vibe-verifier/actions/qae-browser@56274c629b34dce4dc66f89a00da8915857e2707 # fix/qae-ref-gaps head (live check)
       - name: Explore the acceptance criteria in a real browser
+        # --max-turns is the turn cap the references step sized to this run's walks: a fixed 80 cut off
+        # a correct run of two criteria at two widths (harnesses/qae/README.md, "The turn cap").
         id: explorer
         uses: anthropics/claude-code-action@e58dfa55559035499a4982426bb73605e8b5ad8e # v1.0.105
         with:
@@ -195,10 +244,13 @@ jobs:
                browser_console_messages once more, so the record of what the site did is saved with the run.
                A criterion may carry annotations in square brackets, and a gate checks its step log for them:
                - [ref: <key>] names a design reference, qae-inputs/references/<key>.png, which this repository's
-                 workflow supplied; qae-inputs/references.md lists each with its width. Open the image, reach the
-                 same screen and state with the browser resized to that width, save the screenshot, and compare the
-                 two by looking. Log the comparison as a step that names the reference:
+                 workflow supplied; qae-inputs/references.md lists each with its width. Open the image and reach the
+                 same screen and state with the browser resized to that width. The comparison is a step of its own:
+                 first save its screenshot to qae-artifacts/qae/ACn-step-k.png with the browser still at the
+                 reference's width, then compare the two by looking and log that step, naming the reference:
                    - step k: compared with reference <key> -> <what matches and what differs>
+                 A gate fails the run when that step has no screenshot, or one not as wide as the reference, so
+                 name the reference in that step only.
                  A control present in one image and not the other is a difference, never a match. FAIL the criterion
                  on a structural difference (a missing or extra control, a different layout, a different state),
                  never on pixel noise (anti-aliasing, font rendering, real data in place of sample data). If the
@@ -216,12 +268,14 @@ jobs:
                every theme as well.
                Beyond what a criterion says, on the screen it is about: use every action control the criterion
                touches through to its end state (a save that is saved, not a button that is only shown); after
-               saving anything, reload the page and check that the values you entered are still there; and try one
-               invalid input (an empty required field, a malformed value) and check that the site answers with a
-               handled error, not a crash or a blank page. Prefer an input the page refuses before sending
-               anything: a request the site answers with 400 or worse fails the run unless the criterion declares
-               it (expected-refusal: <status> <path>). Log each as a step of that criterion; any of them that fails
-               makes the criterion a FAIL.
+               saving anything, reload the page and check that the values you entered are still there; and, only
+               when that screen has a form or another input, try one invalid input in it (an empty required field,
+               a malformed value) and check that the site answers with a handled error, not a crash or a blank page.
+               Never navigate to a URL that neither the criterion names nor the site links to: an invented page is
+               not an input, and its 404 fails the run. Prefer an input the page refuses before sending anything: a
+               request the site answers with 400 or worse fails the run unless the criterion's own text declares it
+               (expected-refusal: <status> <path>), and writing that in a step line declares nothing. Log each as a
+               step of that criterion; any of them that fails makes the criterion a FAIL.
                If the directory qae-inputs/features/ exists, each <id>.md in it describes a feature this pull
                request's changes touch. After the criteria, re-walk each one the same way: get there as its
                Reach section says, then check what its Verify section says a user would see (its numbered
@@ -244,7 +298,7 @@ jobs:
             Write only under qae-artifacts/. Do not change any other file.
           claude_args: >-
             --model claude-opus-4-7
-            --max-turns 80
+            --max-turns ${{ steps.references.outputs.max-turns }}
             --mcp-config '{"mcpServers":{"playwright":{"command":"node","args":["${{ steps.browser.outputs.mcp }}","--browser","chromium","--headless","--isolated","--output-dir","qae-artifacts","--save-session","--viewport-size","1280x800"]}}}'
             --allowed-tools "mcp__playwright,Read(qae-inputs/**),Read(qae-artifacts/**),Edit(qae-artifacts/**),Bash(mkdir:*),Bash(gh pr comment ${{ github.event.pull_request.number }} --body-file qae-artifacts/verdict.md)"
             # Read and Edit rules are the only file rules Claude Code consults (a Write(path) rule is
@@ -256,7 +310,7 @@ jobs:
             # the Read rules never see that read, and any other path would post whatever file it names.
       - name: Collect numeric usage
         if: always()
-        uses: Greenbauer/vibe-verifier/actions/usage@8df96562a7b096fdef96caac115e86a6b5ea9e7a # main 2026-10-07
+        uses: Greenbauer/vibe-verifier/actions/usage@56274c629b34dce4dc66f89a00da8915857e2707 # fix/qae-ref-gaps head (live check)
         with:
           source-file: ${{ steps.explorer.outputs.execution_file }}
           source-ran: true
@@ -360,7 +414,7 @@ jobs:
           printf '%s' "$TICKET" > qae-inputs/ticket.md
       - name: Read the criteria
         id: criteria
-        uses: Greenbauer/vibe-verifier/actions/criteria@8df96562a7b096fdef96caac115e86a6b5ea9e7a # main 2026-10-07
+        uses: Greenbauer/vibe-verifier/actions/criteria@56274c629b34dce4dc66f89a00da8915857e2707 # fix/qae-ref-gaps head (live check)
         with:
           path: qae-inputs/pr-body.md
           changed-files: qae-inputs/changed-files
@@ -373,14 +427,14 @@ jobs:
       - name: Run the QA gates
         id: gates
         if: steps.criteria.outputs.declared-none == ''
-        uses: Greenbauer/vibe-verifier/actions/gates@8df96562a7b096fdef96caac115e86a6b5ea9e7a # main 2026-10-07
+        uses: Greenbauer/vibe-verifier/actions/gates@56274c629b34dce4dc66f89a00da8915857e2707 # fix/qae-ref-gaps head (live check)
         with:
           manifest: .vibe-verifier-qae
       - name: Post the QA review
         # One comment per pull request, edited in place on every run: passed, changes needed, not
         # required, or could not run, from what the jobs and gates concluded, never the explorer's prose.
         if: ${{ !cancelled() }}
-        uses: Greenbauer/vibe-verifier/actions/qa-review@8df96562a7b096fdef96caac115e86a6b5ea9e7a # main 2026-10-07
+        uses: Greenbauer/vibe-verifier/actions/qa-review@56274c629b34dce4dc66f89a00da8915857e2707 # fix/qae-ref-gaps head (live check)
         with:
           criteria: qae-inputs/pr-body.md
           verdict: qae-inputs/verdict.md
