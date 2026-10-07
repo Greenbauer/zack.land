@@ -1,0 +1,14 @@
+# Security updates only, grouped into one pull request. Each Dependabot pull request gets a full QA
+# walk (.github/workflows/qae-explore.yml), so four advisories are one walk, not four. The limit of
+# 0 keeps version updates off; security updates are not subject to it.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+    groups:
+      security:
+        applies-to: security-updates
+        patterns: ['*']
