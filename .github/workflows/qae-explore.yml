@@ -5,7 +5,7 @@ name: QAE explore
 # built and started (or a reachable preview URL passed in instead), the action pins. Three jobs:
 #   criteria: on any runner, reads the PR body and changed paths and decides whether there is a
 #            criterion to walk. Nothing else starts without one.
-#   explore:  builds and starts this PR's site on the runner (or resolves its preview), then an LLM
+#   explore:  builds and starts this PR's site in a container on the runner, then an LLM
 #            with a real browser (playwright-mcp) walks the PR's acceptance criteria, writes one step
 #            log per criterion plus screenshots into qae-artifacts/, and posts a verdict comment in
 #            the acceptance-check grammar.
@@ -49,12 +49,27 @@ jobs:
           gh pr view "$PR_NUMBER" --repo "$REPO" --json body --jq .body > qae-inputs/pr-body.md
           gh api "repos/$REPO/pulls/$PR_NUMBER/files?per_page=100" --paginate \
             --jq '.[] | .filename, (.previous_filename // empty)' > qae-inputs/changed-files
-      - name: Write the ticket's criteria   # CONSUMER: opt-in; this default links no ticket
-        # The acceptance criteria of the ticket this pull request implements, from your tracker, as a
-        # `## Acceptance criteria` list (harnesses/qae/README.md). The explorer walks them and the gates
-        # require them in addition to the pull request's own, so a pull request cannot drop one. Fetched
-        # here, before any model runs, and passed on as this job's `ticket` output. An empty file links no ticket.
-        run: ': > qae-inputs/ticket.md'
+      - name: Write the ticket's criteria   # CONSUMER: the criteria every dependency update is held to
+        # A pull request that changes only package.json and package-lock.json (a Dependabot update, or
+        # the same change made by hand) says nothing a browser can check, so it is held to
+        # .github/qae-dependency-criteria.md, read from the base branch so that it cannot rewrite what
+        # it is judged against. The explorer walks them and the gates require them (as TC1, TC2, ...) in
+        # addition to any the pull request lists. Any other pull request links no ticket: an empty file.
+        # A lookup that fails, or finds an empty file, fails the step, so it never reads as "no ticket".
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          : > qae-inputs/ticket.md
+          other=$(grep -cvxE 'package(-lock)?\.json' qae-inputs/changed-files || true)
+          if [ -s qae-inputs/changed-files ] && [ "$other" = 0 ]; then
+            gh api "repos/$REPO/contents/.github/qae-dependency-criteria.md?ref=$BASE_SHA" \
+              -H 'Accept: application/vnd.github.raw' > qae-inputs/ticket.md
+            if [ ! -s qae-inputs/ticket.md ]; then echo "::error::.github/qae-dependency-criteria.md is empty at $BASE_SHA"; exit 1; fi
+            echo "dependency-only pull request: held to .github/qae-dependency-criteria.md"
+          fi
       - name: Read the criteria
         # A PR that declares `- None: <why>`, or lists no criteria and changes only CI configuration or
         # documentation no site renders, needs no browser check; one that lists no criteria and changes
@@ -65,7 +80,7 @@ jobs:
         # in its own job, on any runner, since 2026-10-05: on the Codex lane the explore runner holds
         # the one login, and a 6-second skip queued up to 15 minutes behind real explorations for it.
         id: criteria
-        uses: Greenbauer/vibe-verifier/actions/criteria@faea64ae20d8008dd81f43bfbe00806c3ee00db6 # main 2026-10-07
+        uses: Greenbauer/vibe-verifier/actions/criteria@def477723beeaeaa6738d731a30f31c3dcb6fbda # fix/qae-dependency-prs head (live check; moves to main before merge)
         with:
           path: qae-inputs/pr-body.md
           changed-files: qae-inputs/changed-files
@@ -117,24 +132,31 @@ jobs:
         # qae-inputs/features.md tells the explorer how many states of each to walk (--max-states, default 3)
         # and which changed paths selected it. The verify job's gate makes the same selection itself and
         # requires one regression-check line and one walked step per feature, so this step only informs.
-        uses: Greenbauer/vibe-verifier/actions/features@faea64ae20d8008dd81f43bfbe00806c3ee00db6 # main 2026-10-07
+        uses: Greenbauer/vibe-verifier/actions/features@def477723beeaeaa6738d731a30f31c3dcb6fbda # fix/qae-dependency-prs head (live check; moves to main before merge)
         with:
           changed-files: qae-inputs/changed-files
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        # For the browser toolchain only. Nothing of this pull request is installed or run on the runner.
         with:
           node-version: '22'
-          cache: npm
-      - run: npm ci
       - name: Build and start the site under test   # CONSUMER: your build and start; leave the URL answering
         # Ends by declaring the URL under test as this step's `url` output: the explorer's prompt names
-        # it and the verify job's gate judges requests to it. A repository with a reachable preview
-        # builds nothing here and resolves that preview's URL instead (harnesses/qae/README.md).
+        # it and the verify job's gate judges requests to it.
+        # The install, the build and the server run in a container, never on the runner: they execute
+        # this pull request's whole dependency tree, and this job goes on to hold the account-level
+        # model token. The container gets the tracked files read-only, no secret and no token, runs as
+        # an unprivileged user with no capabilities, and shares only port 3000 with the runner, so a
+        # dependency cannot read what the explorer step is given. That is the condition for walking a
+        # Dependabot pull request, whose runs read the token from the Dependabot secret store
+        # (README.md, "CI").
+        # A mail sink in the same container answers the contact route's SMTP send on port 587: it
+        # accepts every message and keeps none, so the form's send is checked without real mail. The
+        # five mail settings below point the route at it and are not credentials.
         id: site
         env:
-          NEXT_TELEMETRY_DISABLED: '1'
+          IMAGE: node:22-bookworm-slim@sha256:c3de60bf2f9dd0ac6370e6117950ff62d6e339527e7472301c9c78a017978392
         run: |
           set -euo pipefail
-          npm run build
           mkdir -p qae-artifacts/qae qae-inputs/references
           # Design references for criteria that name [ref: <key>], read from the base branch so a pull
           # request cannot supply the image it is judged against. Each is a 1x screenshot of the design.
@@ -142,12 +164,68 @@ jobs:
           for path in $(git ls-tree --name-only "$base" .github/qae-references/ | grep '\.png$' || true); do
             git show "$base:$path" > "qae-inputs/references/${path##*/}"
           done
-          (npm start > qae-artifacts/server.log 2>&1 &)
-          for i in $(seq 1 60); do
-            curl -fsS http://localhost:3000/ > /dev/null 2>&1 && { echo "site up after ${i} tries"; echo "url=http://localhost:3000" >> "$GITHUB_OUTPUT"; exit 0; }
-            sleep 2
+          src="$RUNNER_TEMP/qae-site"
+          mkdir -p "$src/tree"
+          git archive HEAD | tar -x -C "$src/tree"
+          cat > "$src/mail-sink.js" <<'JS'
+          const net = require('node:net');
+
+          net
+            .createServer((socket) => {
+              const say = (text) => socket.write(`${text}\r\n`);
+              let pending = '';
+              let inMessage = false;
+              socket.on('error', () => {});
+              socket.on('data', (chunk) => {
+                pending += chunk;
+                const lines = pending.split('\n');
+                pending = lines.pop();
+                for (const raw of lines) {
+                  const line = raw.replace(/\r$/, '');
+                  const verb = line.split(' ', 1)[0].toUpperCase();
+                  if (inMessage) {
+                    if (line === '.') {
+                      inMessage = false;
+                      say('250 queued');
+                    }
+                  } else if (verb === 'EHLO') {
+                    say('250-qae mail sink');
+                    say('250 AUTH PLAIN');
+                  } else if (verb === 'AUTH') {
+                    say('235 accepted');
+                  } else if (verb === 'DATA') {
+                    inMessage = true;
+                    say('354 end with a dot');
+                  } else if (verb === 'QUIT') {
+                    socket.end('221 bye\r\n');
+                  } else {
+                    say('250 ok');
+                  }
+                }
+              });
+              say('220 qae mail sink');
+            })
+            .listen(587, '127.0.0.1');
+          JS
+          # An unprivileged user may bind port 587 inside this container's own network namespace only.
+          docker run --detach --name qae-site --user node --cap-drop ALL --security-opt no-new-privileges \
+            --sysctl net.ipv4.ip_unprivileged_port_start=0 --publish 3000:3000 \
+            --volume "$src/tree:/src:ro" --volume "$src/mail-sink.js:/mail-sink.js:ro" \
+            --env NEXT_TELEMETRY_DISABLED=1 --env HUSKY=0 \
+            --env EMAIL_HOST=127.0.0.1 --env EMAIL_USER=qae --env EMAIL_PASS=qae \
+            --env FROM_EMAIL=qae@example.com --env TO_EMAIL=qae@example.com \
+            "$IMAGE" sh -ec 'node /mail-sink.js & cp -R /src /home/node/site && cd /home/node/site && npm ci && npm run build && exec npm start -- --hostname 0.0.0.0'
+          (docker logs --follow qae-site > qae-artifacts/server.log 2>&1 &)
+          for i in $(seq 1 120); do
+            if curl -fsS http://localhost:3000/ > /dev/null 2>&1; then
+              echo "site up after ${i} tries"; echo "url=http://localhost:3000" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+            if [ "$(docker inspect --format '{{.State.Running}}' qae-site)" != true ]; then
+              echo "::error::the site's container stopped before the site answered"; tail -50 qae-artifacts/server.log; exit 1
+            fi
+            sleep 5
           done
-          echo "::error::site did not answer on http://localhost:3000 within 120s"; tail -50 qae-artifacts/server.log; exit 1
+          echo "::error::site did not answer on http://localhost:3000 within 10 minutes"; tail -50 qae-artifacts/server.log; exit 1
       - name: Prepare the explorer's references and widths
         # A criterion naming `[ref: <key>]` is compared with qae-inputs/references/<key>.png, which the site
         # step supplies (harnesses/qae/README.md). Each is copied into qae-artifacts/references/ before the
@@ -159,13 +237,13 @@ jobs:
         # Its `max-turns` output is the explorer's turn cap, sized to the criteria, roles, widths and
         # features it walks (harnesses/qae/README.md); the Claude lane passes it as --max-turns.
         id: references
-        uses: Greenbauer/vibe-verifier/actions/qae-inputs@faea64ae20d8008dd81f43bfbe00806c3ee00db6 # main 2026-10-07
+        uses: Greenbauer/vibe-verifier/actions/qae-inputs@def477723beeaeaa6738d731a30f31c3dcb6fbda # fix/qae-dependency-prs head (live check; moves to main before merge)
       - name: Install the browser toolchain from the catalog's lockfile
         # playwright-mcp, the Playwright build it pins and that build's chromium, every tarball's
         # integrity fixed by tools/qae-browser/package-lock.json in the catalog. Nothing here is
         # resolved from the registry at run time: this job holds the account-level token.
         id: browser
-        uses: Greenbauer/vibe-verifier/actions/qae-browser@faea64ae20d8008dd81f43bfbe00806c3ee00db6 # main 2026-10-07
+        uses: Greenbauer/vibe-verifier/actions/qae-browser@def477723beeaeaa6738d731a30f31c3dcb6fbda # fix/qae-dependency-prs head (live check; moves to main before merge)
       - name: Explore the acceptance criteria in a real browser
         # --max-turns is the turn cap the references step sized to this run's walks: a fixed 80 cut off
         # a correct run of two criteria at two widths (harnesses/qae/README.md, "The turn cap").
@@ -174,6 +252,11 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          # The action refuses a run a bot started unless the bot is named here. Dependabot is the one
+          # bot whose pull requests are walked; never '*', which lets any App that can open one start
+          # the explorer. A Dependabot run reads the Dependabot secret store, not the Actions one, so
+          # the token above is empty there until it is added to that store too.
+          allowed_bots: dependabot[bot]
           prompt: |
             You are the QAE for pull request #${{ github.event.pull_request.number }} of ${{ github.repository }}.
             The site built from this PR is running at ${{ steps.site.outputs.url }}.
@@ -281,7 +364,7 @@ jobs:
             # the Read rules never see that read, and any other path would post whatever file it names.
       - name: Collect numeric usage
         if: always()
-        uses: Greenbauer/vibe-verifier/actions/usage@faea64ae20d8008dd81f43bfbe00806c3ee00db6 # main 2026-10-07
+        uses: Greenbauer/vibe-verifier/actions/usage@def477723beeaeaa6738d731a30f31c3dcb6fbda # fix/qae-dependency-prs head (live check; moves to main before merge)
         with:
           source-file: ${{ steps.explorer.outputs.execution_file }}
           source-ran: true
@@ -385,7 +468,7 @@ jobs:
           printf '%s' "$TICKET" > qae-inputs/ticket.md
       - name: Read the criteria
         id: criteria
-        uses: Greenbauer/vibe-verifier/actions/criteria@faea64ae20d8008dd81f43bfbe00806c3ee00db6 # main 2026-10-07
+        uses: Greenbauer/vibe-verifier/actions/criteria@def477723beeaeaa6738d731a30f31c3dcb6fbda # fix/qae-dependency-prs head (live check; moves to main before merge)
         with:
           path: qae-inputs/pr-body.md
           changed-files: qae-inputs/changed-files
@@ -398,14 +481,14 @@ jobs:
       - name: Run the QA gates
         id: gates
         if: steps.criteria.outputs.declared-none == ''
-        uses: Greenbauer/vibe-verifier/actions/gates@faea64ae20d8008dd81f43bfbe00806c3ee00db6 # main 2026-10-07
+        uses: Greenbauer/vibe-verifier/actions/gates@def477723beeaeaa6738d731a30f31c3dcb6fbda # fix/qae-dependency-prs head (live check; moves to main before merge)
         with:
           manifest: .vibe-verifier-qae
       - name: Post the QA review
         # One comment per pull request, edited in place on every run: passed, changes needed, not
         # required, or could not run, from what the jobs and gates concluded, never the explorer's prose.
         if: ${{ !cancelled() }}
-        uses: Greenbauer/vibe-verifier/actions/qa-review@faea64ae20d8008dd81f43bfbe00806c3ee00db6 # main 2026-10-07
+        uses: Greenbauer/vibe-verifier/actions/qa-review@def477723beeaeaa6738d731a30f31c3dcb6fbda # fix/qae-dependency-prs head (live check; moves to main before merge)
         with:
           criteria: qae-inputs/pr-body.md
           verdict: qae-inputs/verdict.md
