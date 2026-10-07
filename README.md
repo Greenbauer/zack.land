@@ -62,3 +62,5 @@ Missing or skipped usage is explicit, not zero. The deterministic verifier has n
 model token usage. Records begin with new runs after this workflow update and
 cannot backfill earlier runs. Token counts are separate from subscription quotas
 and do not change QAE verdicts.
+
+<!-- throwaway line for a live QAE check; this pull request is closed without merging -->
