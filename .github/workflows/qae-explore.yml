@@ -259,7 +259,8 @@ jobs:
           # bot whose pull requests are walked; never '*', which lets any App that can open one start
           # the explorer. A Dependabot run reads the Dependabot secret store, not the Actions one, so
           # the token above is empty there until it is added to that store too.
-          allowed_bots: dependabot[bot]
+          # And the pull sync's bot, whose update of a branch makes it the actor of this run (PULL_SYNC_BOT).
+          allowed_bots: ${{ vars.PULL_SYNC_BOT && format('dependabot[bot],{0}', vars.PULL_SYNC_BOT) || 'dependabot[bot]' }}
           prompt: |
             You are the QAE for pull request #${{ github.event.pull_request.number }} of ${{ github.repository }}.
             The site built from this PR is running at ${{ steps.site.outputs.url }}.
