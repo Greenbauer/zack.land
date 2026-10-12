@@ -5,3 +5,6 @@ actionlint
 zizmor
 cognitive-complexity
 max-file-lines
+# feature-map: every page and route handler under app/ belongs to a feature in docs/features/, and every
+# surface, source glob and test anchor the map lists still resolves (docs/features/README.md).
+feature-map --surface page 'app/**/page.tsx' --surface route 'app/**/route.ts'

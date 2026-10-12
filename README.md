@@ -46,7 +46,9 @@ When the secret is unset, submissions skip verification; when set, a submission 
 Every pull request runs the [Vibe Verifier](https://github.com/Greenbauer/vibe-verifier) gates listed
 in `.vibe-verifier` through `.github/workflows/vibe-verifier.yml`, pinned to a catalog commit: the
 `package.json` checks, `gitleaks` on the pull request's commits, `actionlint` and `zizmor` on changed
-workflows, and the `cognitive-complexity` and `max-file-lines` ratchets on changed files.
+workflows, the `cognitive-complexity` and `max-file-lines` ratchets on changed files, and `feature-map`,
+which keeps the feature map in [`docs/features/`](docs/features/README.md) true against the site's pages
+and route handlers.
 
 Pull requests with a rendered change also run the Vibe Verifier QAE harness (`.github/workflows/qae-explore.yml`,
 gates in `.vibe-verifier-qae`): the site is built and started in a container on the runner, a model
