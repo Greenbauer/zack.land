@@ -58,11 +58,14 @@ A pull request body needs that heading (a change that renders nothing declares `
 it), with one exception: a pull request that changes only `package.json` and `package-lock.json` is
 held to `.github/qae-dependency-criteria.md`, read from the base branch, in addition to any criteria
 of its own. The Vercel analytics script is the one console and network error declared as environmental.
+A new head that changes only files no page renders since a passing walk (a merge of `master` into the
+branch, say) is not walked again: the QA review says it passed on an earlier head and names that run.
 
 Dependabot opens security updates only, grouped into one pull request (`.github/dependabot.yml`), and
 each is walked like any other pull request, against that criteria file. Three things make that possible:
 
-- The workflow names Dependabot as the one bot allowed to start the explorer.
+- The workflow names Dependabot as a bot allowed to start the explorer (the other is the pull sync's
+  bot, named in the `PULL_SYNC_BOT` variable, whose update of a branch makes it the actor of the run).
 - The install, the build and the server run in a container that is given the tracked files and no
   secret. The job that walks the site holds the model token, and a dependency update is code nobody
   here has read. The same container runs a mail sink that accepts every message and keeps none, so
