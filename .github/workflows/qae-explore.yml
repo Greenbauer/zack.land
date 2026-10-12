@@ -4,13 +4,15 @@ name: QAE explore
 # copied to .vibe-verifier-qae. Consumer-owned parts, marked CONSUMER below: runs-on, how the site is
 # built and started (or a reachable preview URL passed in instead), the action pins. Three jobs:
 #   criteria: on any runner, reads the PR body and changed paths and decides whether there is a
-#            criterion to walk. Nothing else starts without one.
+#            criterion to walk. Nothing else starts without one. It also decides how many explorers
+#            walk them: one, unless the consumer lets a large pull request be split across more.
 #   explore:  builds and starts this PR's site in a container on the runner, then an LLM
 #            with a real browser (playwright-mcp) walks the PR's acceptance criteria, writes one step
-#            log per criterion plus screenshots into qae-artifacts/, and posts a verdict comment in
-#            the acceptance-check grammar.
-#   verify:  deterministic. Feeds the PR body, the newest verdict comment and the artifacts to the
-#            acceptance-verdict gate, which refuses any PASS not anchored to a step line that exists.
+#            log per criterion plus screenshots into qae-artifacts/, and a verdict in the
+#            acceptance-check grammar, which it also posts as a comment for people to read.
+#   verify:  deterministic. Feeds the PR body, the verdict file from the run's own evidence and the
+#            artifacts to the acceptance-verdict gate, which refuses any PASS not anchored to a step
+#            line that exists.
 # The LLM explores and produces artifacts; the gate decides. Its prose is never the verdict.
 
 on:
@@ -32,23 +34,32 @@ jobs:
     permissions:
       contents: read
       pull-requests: read
+      actions: read   # the runs and artifacts of the last walk, to carry its verdict (actions/criteria)
     outputs:
       count: ${{ steps.criteria.outputs.count }}
       ticket: ${{ steps.criteria.outputs.ticket }}
+      shards: ${{ steps.criteria.outputs.shards }}
+      carry: ${{ steps.criteria.outputs.carry }}
     steps:
       - name: Write the criteria inputs
         # The PR body and its changed paths. A rename lists both names: moving a page into docs/ still
-        # takes it off the site.
+        # takes it off the site. And the QAE manifest as the base has it, or as this pull request has it
+        # where the base has none (a first subscription): the widths on its qae-artifacts line count
+        # toward the walks the explorers are sized to.
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REPO: ${{ github.repository }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
           mkdir -p qae-inputs
           gh pr view "$PR_NUMBER" --repo "$REPO" --json body --jq .body > qae-inputs/pr-body.md
           gh api "repos/$REPO/pulls/$PR_NUMBER/files?per_page=100" --paginate \
             --jq '.[] | .filename, (.previous_filename // empty)' > qae-inputs/changed-files
+          gh api "repos/$REPO/contents/.vibe-verifier-qae?ref=$BASE_SHA" -H 'Accept: application/vnd.github.raw' > qae-inputs/manifest \
+            || gh api "repos/$REPO/contents/.vibe-verifier-qae?ref=$HEAD_SHA" -H 'Accept: application/vnd.github.raw' > qae-inputs/manifest
       - name: Write the ticket's criteria   # CONSUMER: the criteria every dependency update is held to
         # A pull request that changes only package.json and package-lock.json (a Dependabot update, or
         # the same change made by hand) says nothing a browser can check, so it is held to
@@ -79,29 +90,48 @@ jobs:
         # and on 2026-09-21 one of them turned the job red on the account's usage cap for it. Decided
         # in its own job, on any runner, since 2026-10-05: on the Codex lane the explore runner holds
         # the one login, and a 6-second skip queued up to 15 minutes behind real explorations for it.
+        # Its `shards` output is the explore job's matrix: one explorer, unless max-shards allows more
+        # and the criteria are more walks than one is sized for (harnesses/qae/README.md).
         id: criteria
-        uses: Greenbauer/vibe-verifier/actions/criteria@f45d06ec837af5c6e594cb1eb7d7e63bd95acef0 # main 2026-10-07
+        uses: Greenbauer/vibe-verifier/actions/criteria@0fb90dee4f0cc606e164fa977c1b10f49cf03cbf # main 2026-10-12
         with:
           path: qae-inputs/pr-body.md
           changed-files: qae-inputs/changed-files
           ticket: qae-inputs/ticket.md
+          manifest: qae-inputs/manifest
+          max-shards: 1   # CONSUMER: the most explorers one pull request's criteria are split across
+          token: ${{ secrets.GITHUB_TOKEN }}   # carries a passing walk's verdict across an update no browser can see
 
   explore:
     name: qae-explore
     needs: criteria
     if: needs.criteria.outputs.count != '0'
+    # One job per explorer. A pull request whose criteria are more walks than one explorer is sized
+    # for is split across several, when the criteria job's max-shards allows it: each walks its own
+    # share in parallel, on a runner of its own, and with fewer runners free they queue. The matrix's
+    # first value is blank and stands for 1, so that job keeps the name qae-explore (GitHub leaves a
+    # blank value out of a job's name; measured 2026-10-08) and the others are qae-explore (2),
+    # qae-explore (3), ... A step reads its explorer's number as `matrix.shard || 1`.
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.criteria.outputs.shards) }}
     runs-on: ubuntu-latest   # CONSUMER
     timeout-minutes: 30
     permissions:
       contents: read
       pull-requests: write
-    # The URL under test, as the site step declared it, and the digest of each design reference it
+    # The URL under test and any further origin the site is served from, as the site step declared
+    # them, and the digest of each design reference it
     # supplied, for the verify job's gates. Step outputs: the explorer runs later and cannot change them,
     # and nothing reads them from the pull request. And the run attempt this job ran in, which names
-    # the evidence artifact: the verify job downloads that attempt's evidence, whichever attempt it is
-    # itself in.
+    # the evidence artifact. A job output of several explorers is whichever explorer's GitHub keeps:
+    # each resolves the same site and is supplied the same references, so that is the value either
+    # way, and `attempt` is then an attempt one of them ran in (the one that ran again, on a re-run of
+    # one explorer, 2026-10-08), which the verify job uses only to refuse an attempt with no evidence.
     outputs:
       site-url: ${{ steps.site.outputs.url }}
+      site-origins: ${{ steps.site.outputs.origins }}
       references: ${{ steps.references.outputs.references }}
       attempt: ${{ github.run_attempt }}
     steps:
@@ -135,7 +165,10 @@ jobs:
         # qae-inputs/features.md tells the explorer how many states of each to walk (--max-states, default 3)
         # and which changed paths selected it. The verify job's gate makes the same selection itself and
         # requires one regression-check line and one walked step per feature, so this step only informs.
-        uses: Greenbauer/vibe-verifier/actions/features@f45d06ec837af5c6e594cb1eb7d7e63bd95acef0 # main 2026-10-07
+        # Of several explorers only the first re-walks. Every one runs this step all the same: each
+        # counts the selection, so that they share the criteria out alike, and the references step
+        # below then takes qae-inputs/features away from every explorer but the first.
+        uses: Greenbauer/vibe-verifier/actions/features@0fb90dee4f0cc606e164fa977c1b10f49cf03cbf # main 2026-10-12
         with:
           changed-files: qae-inputs/changed-files
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
@@ -239,14 +272,22 @@ jobs:
         # the viewport widths the explorer checks each criterion at and the gate requires; none, no file.
         # Its `max-turns` output is the explorer's turn cap, sized to the criteria, roles, widths and
         # features it walks (harnesses/qae/README.md); the Claude lane passes it as --max-turns.
+        # Its `share` output is the sentence that names this explorer's share of the criteria, for the
+        # prompt: empty for one explorer. For one of several the criteria are shared out here, by code,
+        # the same way in every explore job, so the model never works its share out. The first
+        # explorer's load starts at the feature re-walk's walks, so it takes fewer criteria and reaches
+        # the re-walk in its time: a selected feature with no walked step fails the gate.
         id: references
-        uses: Greenbauer/vibe-verifier/actions/qae-inputs@f45d06ec837af5c6e594cb1eb7d7e63bd95acef0 # main 2026-10-07
+        uses: Greenbauer/vibe-verifier/actions/qae-inputs@0fb90dee4f0cc606e164fa977c1b10f49cf03cbf # main 2026-10-12
+        with:
+          shard: ${{ matrix.shard || 1 }}
+          shards: ${{ strategy.job-total }}
       - name: Install the browser toolchain from the catalog's lockfile
         # playwright-mcp, the Playwright build it pins and that build's chromium, every tarball's
         # integrity fixed by tools/qae-browser/package-lock.json in the catalog. Nothing here is
         # resolved from the registry at run time: this job holds the account-level token.
         id: browser
-        uses: Greenbauer/vibe-verifier/actions/qae-browser@f45d06ec837af5c6e594cb1eb7d7e63bd95acef0 # main 2026-10-07
+        uses: Greenbauer/vibe-verifier/actions/qae-browser@0fb90dee4f0cc606e164fa977c1b10f49cf03cbf # main 2026-10-12
       - name: Explore the acceptance criteria in a real browser
         # --max-turns is the turn cap the references step sized to this run's walks: a fixed 80 cut off
         # a correct run of two criteria at two widths (harnesses/qae/README.md, "The turn cap").
@@ -258,8 +299,10 @@ jobs:
           # The action refuses a run a bot started unless the bot is named here. Dependabot is the one
           # bot whose pull requests are walked; never '*', which lets any App that can open one start
           # the explorer. A Dependabot run reads the Dependabot secret store, not the Actions one, so
-          # the token above is empty there until it is added to that store too.
-          # And the pull sync's bot, whose update of a branch makes it the actor of this run (PULL_SYNC_BOT).
+          # the token above is empty there until the repository adds it to that store, which it does
+          # only once the site runs in a container (harnesses/qae/README.md, "Dependency updates").
+          # And the pull sync's bot, whose update of a branch makes it the actor of this run: a repository
+          # that runs actions/pull-sync names it in the PULL_SYNC_BOT variable (`<app>[bot]`).
           allowed_bots: ${{ vars.PULL_SYNC_BOT && format('dependabot[bot],{0}', vars.PULL_SYNC_BOT) || 'dependabot[bot]' }}
           prompt: |
             You are the QAE for pull request #${{ github.event.pull_request.number }} of ${{ github.repository }}.
@@ -276,6 +319,7 @@ jobs:
                verdict line acceptance-check: TCn). If the pull request's only item reads "None: <reason>"
                and the ticket lists no criteria, there is nothing for a browser to check: write nothing,
                post nothing, and stop.
+               ${{ steps.references.outputs.share }}
             2. For each criterion, use the playwright browser tools to do what a user would do to check
                it: navigate, click, read the page. A step is one action that changes what is on screen.
                For every step, first save a screenshot to qae-artifacts/qae/ACn-step-k.png, then append
@@ -357,7 +401,7 @@ jobs:
           claude_args: >-
             --model claude-opus-4-7
             --max-turns ${{ steps.references.outputs.max-turns }}
-            --mcp-config '{"mcpServers":{"playwright":{"command":"node","args":["${{ steps.browser.outputs.mcp }}","--browser","chromium","--headless","--isolated","--output-dir","qae-artifacts","--save-session","--viewport-size","1280x800"]}}}'
+            --mcp-config '{"mcpServers":{"playwright":{"command":"node","args":["${{ steps.browser.outputs.mcp }}","--browser","chromium","--headless","--isolated","--output-dir","qae-artifacts","--save-session","--viewport-size","1280x800","--init-page","${{ steps.browser.outputs.console-pages }}"]}}}'
             --allowed-tools "mcp__playwright,Read(qae-inputs/**),Read(qae-artifacts/**),Edit(qae-artifacts/**),Bash(mkdir:*),Bash(gh pr comment ${{ github.event.pull_request.number }} --body-file qae-artifacts/verdict.md)"
             # Read and Edit rules are the only file rules Claude Code consults (a Write(path) rule is
             # accepted and ignored), and an allow rule anchors at the working directory, so the model
@@ -368,7 +412,7 @@ jobs:
             # the Read rules never see that read, and any other path would post whatever file it names.
       - name: Collect numeric usage
         if: always()
-        uses: Greenbauer/vibe-verifier/actions/usage@f45d06ec837af5c6e594cb1eb7d7e63bd95acef0 # main 2026-10-07
+        uses: Greenbauer/vibe-verifier/actions/usage@0fb90dee4f0cc606e164fa977c1b10f49cf03cbf # main 2026-10-12
         with:
           source-file: ${{ steps.explorer.outputs.execution_file }}
           source-ran: true
@@ -378,7 +422,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: vv-usage-qae-explorer-${{ github.run_attempt }}
+          name: vv-usage-qae-explorer-${{ github.run_attempt }}${{ matrix.shard && format('-{0}', matrix.shard) || '' }}
           path: ${{ runner.temp }}/vv-usage/usage.json
           if-no-files-found: error
           retention-days: 7
@@ -410,15 +454,73 @@ jobs:
             echo "::error::the explorer wrote outside qae-artifacts/:"; printf '%s' "$out"; exit 1
           fi
           echo "write scope held"
+      - name: Keep the verdict with the evidence
+        # The verify job reads the verdict from this run's evidence, never from a pull request comment:
+        # the file the explorer wrote is copied to verdicts/<explorer>.md, by the workflow, after the
+        # explorer. Then, for one of several explorers, everything it left gets its number in its name,
+        # so the verify job can merge every explorer's evidence into one directory: session-*/,
+        # console-*.log and network-*.log, which the gates read by those names, become session-<n>-*/
+        # and so on, and every other file that is not a criterion's own goes under shard-<n>/. The
+        # session log names files by their paths, so those paths are renamed in it as well. The page
+        # record (console-pages.jsonl) keeps its name: the verify job appends each explorer's to one
+        # file. The one explorer of an unsplit run keeps every name it wrote.
+        if: always()
+        env:
+          SHARD: ${{ matrix.shard || 1 }}
+          SHARDS: ${{ strategy.job-total }}
+        run: |
+          python3 - <<'PY'
+          import glob, os, re, shutil
+          root, shard, moved = "qae-artifacts", os.environ["SHARD"], {}
+          own = "shard-" + shard
+
+          def rename(old, new):
+              os.makedirs(os.path.dirname(os.path.join(root, new)), exist_ok=True)
+              os.rename(os.path.join(root, old), os.path.join(root, new))
+              moved[old] = new
+
+          def entries(*folder):
+              path = os.path.join(root, *folder)
+              return sorted(os.listdir(path)) if os.path.isdir(path) else []
+
+          # verdicts/ holds what this step copies and nothing the explorer put there.
+          shutil.rmtree(os.path.join(root, "verdicts"), ignore_errors=True)
+          verdict = os.path.join(root, "verdict.md")
+          if os.path.isfile(verdict) and os.path.getsize(verdict):
+              os.makedirs(os.path.join(root, "verdicts"))
+              shutil.copyfile(verdict, os.path.join(root, "verdicts", shard + ".md"))
+          if os.environ["SHARDS"] != "1":
+              for name in entries():
+                  globbed = re.match(r"(session|console|network)-", name)
+                  if name in ("qae", "references", "verdicts", "console-pages.jsonl", own):
+                      continue
+                  if globbed and (globbed.group(1) == "session" or name.endswith(".log")):
+                      rename(name, "%s-%s-%s" % (globbed.group(1), shard, name[globbed.end():]))
+                  else:
+                      rename(name, own + "/" + name)
+              for name in entries("qae"):
+                  if name != "features" and not re.match(r"(AC|TC)[0-9]", name):
+                      rename("qae/" + name, own + "/qae/" + name)
+          for log in glob.glob(os.path.join(root, "session-*", "session.md")):
+              with open(log, encoding="utf-8", errors="surrogateescape") as handle:
+                  text = was = handle.read()
+              if moved:  # one pass, longest name first, so no renamed path is renamed twice
+                  names = "|".join(re.escape(old) for old in sorted(moved, key=len, reverse=True))
+                  text = re.sub(re.escape(root + "/") + "(" + names + r")(?![\w.-])", lambda found: root + "/" + moved[found.group(1)], text)
+              if text != was:
+                  with open(log, "w", encoding="utf-8", errors="surrogateescape") as handle:
+                      handle.write(text)
+          print("explorer %s: %s, %d renamed" % (shard, "a verdict" if entries("verdicts") else "no verdict", len(moved)))
+          PY
       - name: Keep the evidence
         # Named for the run attempt: this step runs always, so a failed or cancelled attempt uploads
         # too, and under one name for every attempt a re-run's verify job was handed an earlier
         # attempt's evidence (a consumer's third attempt, 2026-10-07: the explorer passed and both
-        # gates read the cancelled second attempt's artifact).
+        # gates read the cancelled second attempt's artifact). And for the explorer, past the first.
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: qae-artifacts-${{ github.run_attempt }}
+          name: qae-artifacts-${{ github.run_attempt }}${{ matrix.shard && format('-{0}', matrix.shard) || '' }}
           path: qae-artifacts
           if-no-files-found: warn
 
@@ -449,57 +551,131 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REPO: ${{ github.repository }}
           SITE_URL: ${{ needs.explore.outputs.site-url }}
+          SITE_ORIGINS: ${{ needs.explore.outputs.site-origins }}
           REFERENCES: ${{ needs.explore.outputs.references }}
           TICKET: ${{ needs.criteria.outputs.ticket }}
+          CARRY: ${{ needs.criteria.outputs.carry }}
         run: |
           set -euo pipefail
           mkdir -p qae-inputs
           gh pr view "$PR_NUMBER" --repo "$REPO" --json body --jq .body > qae-inputs/pr-body.md
           gh api "repos/$REPO/pulls/$PR_NUMBER/files?per_page=100" --paginate \
             --jq '.[] | .filename, (.previous_filename // empty)' > qae-inputs/changed-files
-          # Only the identity the explore job posts as may supply a verdict. Without this filter any
-          # commenter could paste a PASS anchored to a real step line and the gate would accept it.
-          # Slurped, not filtered per page: with --paginate, --jq runs on each page and would emit one
-          # "last" per page once the pull request passes 100 comments, so a verdict from an earlier push
-          # could win (found by review on a wrapper's copy, 2026-09-24). The QA review comment is posted by
-          # the same identity and can quote a criterion, so a comment that starts with its marker is skipped.
-          gh api "repos/${REPO}/issues/${PR_NUMBER}/comments?per_page=100" --paginate \
-            | jq -r -s '[.[][] | select(.user.login == "github-actions[bot]") | select(.body | startswith("<!-- vibe-verifier:qa-review -->") | not) | select(.body | contains("acceptance-check:"))] | last | .body // ""' > qae-inputs/verdict.md
-          echo "verdict lines: $(grep -c 'acceptance-check:' qae-inputs/verdict.md || true)"
+          # The verdict comes from this run's evidence, in the step after the download below. Empty until
+          # then, and for a pull request with nothing to walk: the gate is given a file either way.
+          : > qae-inputs/verdict.md
           # The URL the explore job's site step declared, for the gate's --site-file. Empty when that
-          # step never declared one, and the gate refuses an empty file.
+          # step never declared one, and the gate refuses an empty file. Further origins the step
+          # declared follow the site, which stays first: the gate reads the first URL as the site.
           printf '%s\n' "$SITE_URL" > qae-inputs/site-url
+          if [ -n "$SITE_URL" ] && [ -n "$SITE_ORIGINS" ]; then printf '%s\n' "$SITE_ORIGINS" >> qae-inputs/site-url; fi
           # The digest of each design reference the explore job's workflow supplied, for the gate's
           # --references. Empty when that job never got that far, which the gate reads as none supplied.
           printf '%s\n' "$REFERENCES" > qae-inputs/references.json
           # The ticket's criteria as the criteria job read them (empty: no ticket), for the gates' --ticket.
           printf '%s' "$TICKET" > qae-inputs/ticket.md
+          # The facts the criteria job decided a carry on (empty: none read), so this job decides alike.
+          printf '%s' "$CARRY" > qae-inputs/carry.json
       - name: Read the criteria
         id: criteria
-        uses: Greenbauer/vibe-verifier/actions/criteria@f45d06ec837af5c6e594cb1eb7d7e63bd95acef0 # main 2026-10-07
+        uses: Greenbauer/vibe-verifier/actions/criteria@0fb90dee4f0cc606e164fa977c1b10f49cf03cbf # main 2026-10-12
         with:
           path: qae-inputs/pr-body.md
           changed-files: qae-inputs/changed-files
           ticket: qae-inputs/ticket.md
+          carry: qae-inputs/carry.json   # the criteria job's facts, so both jobs decide a carry alike
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         if: steps.criteria.outputs.count != '0'
-        # The evidence of the attempt the explore job ran in, by that job's own output: this attempt's
-        # on a full re-run, and an earlier one's when only this job is re-run. An explore job that
-        # never reported an attempt leaves a name no artifact has, and the step fails.
+        # Every explorer's evidence, of every attempt of this run, each in a directory named for its
+        # artifact: qae-evidence/qae-artifacts-<attempt>[-<explorer>]/. The next step picks among them.
         with:
-          name: qae-artifacts-${{ needs.explore.outputs.attempt }}
-          path: qae-artifacts
+          pattern: qae-artifacts-*
+          path: qae-evidence
+      - name: Merge the evidence and read the verdict
+        # qae-artifacts/ becomes the evidence of each explorer the criteria job planned, from the newest
+        # attempt that explorer left any in: this attempt's on a full re-run, an earlier one's for an
+        # explorer that was not run again. Two explorers that left the same path with different content
+        # fail the step (nothing is overwritten), and so does an explore job that reported an attempt
+        # newer than any evidence, or none: that attempt left nothing to judge. An explorer that left
+        # no evidence is named and its criteria then have no verdict, which the gate refuses. The page
+        # record, console-pages.jsonl, is one line per console error or uncaught exception, and the gate
+        # reads it under that one name: every explorer's lines are appended to it.
+        # qae-inputs/verdict.md is the explorers' verdicts/<explorer>.md, in order: the files the
+        # workflow copied in this run. No pull request comment is read, so nobody can paste a verdict,
+        # and a run never takes another run's verdict (a carried walk runs no explorer and no gate).
+        if: steps.criteria.outputs.count != '0'
+        env:
+          SHARDS: ${{ needs.criteria.outputs.shards }}
+          EXPLORE_ATTEMPT: ${{ needs.explore.outputs.attempt }}
+        run: |
+          python3 - <<'PY'
+          import filecmp, json, os, re, shutil, sys
+
+          def stop(message):
+              print("::error::" + message)
+              sys.exit(1)
+
+          wanted = [number or 1 for number in json.loads(os.environ["SHARDS"])]
+          newest = {}
+          for name in sorted(os.listdir("qae-evidence")) if os.path.isdir("qae-evidence") else []:
+              named = re.fullmatch(r"qae-artifacts-([1-9][0-9]*)(?:-([1-9][0-9]*))?", name)
+              if named and int(named.group(2) or 1) in wanted:
+                  shard, found = int(named.group(2) or 1), (int(named.group(1)), os.path.join("qae-evidence", name))
+                  newest[shard] = max(newest.get(shard, found), found)
+          reported = os.environ["EXPLORE_ATTEMPT"]
+          if not reported.isdigit() or max([attempt for attempt, _ in newest.values()], default=0) < int(reported):
+              stop("the explore job reported attempt %r and left no evidence in it" % reported)
+          owner, clashes = {}, []
+          for shard in wanted:
+              if shard not in newest:
+                  print("::warning::explorer %d left no evidence, so its criteria have no verdict" % shard)
+                  continue
+              print("explorer %d: %s" % (shard, os.path.basename(newest[shard][1])))
+              for folder, _, files in os.walk(newest[shard][1]):
+                  for name in files:
+                      source = os.path.join(folder, name)
+                      path = os.path.relpath(source, newest[shard][1])
+                      target = os.path.join("qae-artifacts", path)
+                      os.makedirs(os.path.dirname(target), exist_ok=True)
+                      if path == "console-pages.jsonl":
+                          with open(source, "rb") as part, open(target, "ab") as whole:
+                              whole.write(part.read().rstrip(b"\n") + b"\n")
+                      elif path not in owner:
+                          owner[path] = shard
+                          shutil.copyfile(source, target)
+                      elif not filecmp.cmp(source, target, shallow=False):
+                          clashes.append("explorers %d and %d both left %s" % (owner[path], shard, path))
+          if clashes:
+              stop("the evidence cannot be merged: " + "; ".join(clashes[:20]))
+          with open("qae-inputs/verdict.md", "w", encoding="utf-8") as verdict:
+              for shard in wanted:
+                  path = os.path.join("qae-artifacts", "verdicts", "%d.md" % shard)
+                  if os.path.isfile(path):
+                      with open(path, encoding="utf-8", errors="replace") as handle:
+                          verdict.write(handle.read().rstrip("\n") + "\n")
+          PY
+          echo "verdict lines: $(grep -c 'acceptance-check:' qae-inputs/verdict.md || true)"
       - name: Run the QA gates
         id: gates
         if: steps.criteria.outputs.declared-none == ''
-        uses: Greenbauer/vibe-verifier/actions/gates@f45d06ec837af5c6e594cb1eb7d7e63bd95acef0 # main 2026-10-07
+        uses: Greenbauer/vibe-verifier/actions/gates@0fb90dee4f0cc606e164fa977c1b10f49cf03cbf # main 2026-10-12
         with:
           manifest: .vibe-verifier-qae
+      - name: Require every explorer of a split run
+        # The first explorer's job is named qae-explore whatever the split, so a branch rule can require
+        # it. The others (qae-explore (2), ...) exist only on a large pull request, and no rule can
+        # name them. So on a split run this job fails unless every explorer's job succeeded, after the
+        # gates have said what they found. A run with one explorer is not touched.
+        if: ${{ !cancelled() && needs.criteria.outputs.shards != '[""]' && needs.explore.result != 'success' && needs.explore.result != 'skipped' }}
+        env:
+          EXPLORE_RESULT: ${{ needs.explore.result }}
+        run: |
+          echo "::error::an explorer's job did not succeed (the explore job ended $EXPLORE_RESULT): run the failed explorer again"; exit 1
       - name: Post the QA review
         # One comment per pull request, edited in place on every run: passed, changes needed, not
         # required, or could not run, from what the jobs and gates concluded, never the explorer's prose.
         if: ${{ !cancelled() }}
-        uses: Greenbauer/vibe-verifier/actions/qa-review@f45d06ec837af5c6e594cb1eb7d7e63bd95acef0 # main 2026-10-07
+        uses: Greenbauer/vibe-verifier/actions/qa-review@0fb90dee4f0cc606e164fa977c1b10f49cf03cbf # main 2026-10-12
         with:
           criteria: qae-inputs/pr-body.md
           verdict: qae-inputs/verdict.md
@@ -507,4 +683,5 @@ jobs:
           explore-result: ${{ needs.explore.result }}
           gates-outcome: ${{ steps.gates.outcome }}
           not-required: ${{ steps.criteria.outputs.declared-none }}
+          carried-from: ${{ steps.criteria.outputs.carried-from }}
           token: ${{ secrets.GITHUB_TOKEN }}
