@@ -1,0 +1,41 @@
+name: Tests
+
+# Runs the unit tests (npm test: Vitest over every *.test.ts file) on every pull request and on every
+# push to master. Target: GitHub's ubuntu-latest, with the Node version .nvmrc names.
+#
+# The Cypress specs in cypress/e2e are not run here: they need the site built and started.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Keep this workflow free of `paths:` filters and this job free of `if:` conditions. GitHub reports
+  # a job that did not run as skipped, and counts a skipped required check as satisfied.
+  tests:
+    name: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version-file: .nvmrc
+      - name: Install dependencies
+        run: npm ci
+        env:
+          # The unit tests never open a browser, so the Cypress download is skipped.
+          CYPRESS_INSTALL_BINARY: '0'
+      - name: Unit tests
+        run: npm test
