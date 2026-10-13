@@ -1,6 +1,12 @@
 import { Fragment } from 'react';
 import { FieldErrors, UseFormRegister } from 'react-hook-form';
 
+import {
+  EMAIL_PATTERN,
+  INPUT_MAX_LENGTH,
+  TEXTAREA_MAX_LENGTH,
+} from '@/utils/contact-fields';
+
 export type Field = {
   label: string;
   name: string;
@@ -25,7 +31,7 @@ export default function FormFields({
 }: FormFieldsProps) {
   const validation: Validation = (type: string) => {
     if (type === 'email') {
-      return /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i;
+      return EMAIL_PATTERN;
     }
 
     return undefined;
@@ -44,14 +50,17 @@ export default function FormFields({
             {type === 'textarea' ? (
               <textarea
                 rows={6}
-                {...register(name, { required: isRequired, maxLength: 1000 })}
+                {...register(name, {
+                  required: isRequired,
+                  maxLength: TEXTAREA_MAX_LENGTH,
+                })}
               />
             ) : (
               <input
                 {...register(name, {
                   required: isRequired,
                   pattern: validation(type),
-                  maxLength: 100,
+                  maxLength: INPUT_MAX_LENGTH,
                 })}
                 size={10}
               />
