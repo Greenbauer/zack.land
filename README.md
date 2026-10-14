@@ -66,8 +66,6 @@ of its own. The Vercel analytics script is the one console and network error dec
 A new head that changes only files no page renders since a passing walk (a merge of `master` into the
 branch, say) is not walked again: the QA review says it passed on an earlier head and names that run.
 
-How to write criteria QAE can check: [`.claude/skills/write-acceptance-criteria`](.claude/skills/write-acceptance-criteria/SKILL.md).
-
 Dependabot opens security updates only, grouped into one pull request (`.github/dependabot.yml`), and
 each is walked like any other pull request, against that criteria file. Three things make that possible:
 
