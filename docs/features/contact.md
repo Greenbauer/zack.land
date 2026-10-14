@@ -26,7 +26,7 @@ Contact in the header, or Contact me in the footer, opens `/contact`. Submit sta
 Roles: none; the page is public. Mail: the QAE container points the five SMTP variables at a local sink that accepts every message and keeps none. On a laptop, point them at a sink too, or Submit sends real mail.
 
 1. Open `/contact`: Name, Email and Message, Submit disabled, and the footer reads "Please fill out this form".
-2. Type a name, a valid email and a message without leaving the message box: Submit enables.
+2. Type a name, a valid email and a message without leaving the message box: Submit enables. An address whose top-level domain is longer than four letters, such as `ada@example.online`, counts as valid: Submit enables and no "invalid" shows under Email.
 3. Type `not-an-email` in Email and leave the field: "invalid" shows under it only once the field is left.
 4. With the SMTP variables pointing at a sink, fill the three fields and press Submit: "Your message has been sent" replaces Submit.
 5. With no SMTP variables set, fill the three fields and press Submit: "An error has occurred" shows and the server logs the missing variables.
@@ -35,6 +35,7 @@ Roles: none; the page is public. Mail: the QAE container points the five SMTP va
 - `cypress/e2e/contact-form.cy.ts::enables Submit once valid, without blurring the last field`
 - `cypress/e2e/contact-form.cy.ts::shows a field error only after blur, not while typing`
 - `app/api/email/route.test.ts::mails a valid submission`
+- `app/api/email/route.test.ts::mails a submission from %s, whose top-level domain is over four letters`
 - `app/api/email/route.test.ts::escapes markup typed into the name and message`
 - `app/api/email/route.test.ts::rejects %s with a 400 and sends nothing`
 - `app/api/email/route.test.ts::checks the SMTP server's certificate`
