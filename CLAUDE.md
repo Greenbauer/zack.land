@@ -1,7 +1,6 @@
 ## Pull requests and tests (shared across all repositories)
 
-These come from the Vibe Verifier catalog and are the same in every repository; this repository's
-own rules above add to them.
+These come from the Vibe Verifier catalog and are the same in every repository.
 
 - Before opening a pull request or editing its description, follow `.claude/skills/write-acceptance-criteria`:
   QAE checks only what `## Acceptance criteria` says, on the preview. Check the description before pushing:
