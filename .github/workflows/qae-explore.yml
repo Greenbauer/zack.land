@@ -93,7 +93,7 @@ jobs:
         # Its `shards` output is the explore job's matrix: one explorer, unless max-shards allows more
         # and the criteria are more walks than one is sized for (harnesses/qae/README.md).
         id: criteria
-        uses: Greenbauer/vibe-verifier/actions/criteria@3741ba8fcb5a89208a53e39d324f1e7ecc40c221 # main 2026-10-19
+        uses: Greenbauer/vibe-verifier/actions/criteria@fce8d6d9b9834b764c1793f708baf954d982a522 # main 2026-10-19
         with:
           path: qae-inputs/pr-body.md
           changed-files: qae-inputs/changed-files
@@ -168,7 +168,7 @@ jobs:
         # Of several explorers only the first re-walks. Every one runs this step all the same: each
         # counts the selection, so that they share the criteria out alike, and the references step
         # below then takes qae-inputs/features away from every explorer but the first.
-        uses: Greenbauer/vibe-verifier/actions/features@3741ba8fcb5a89208a53e39d324f1e7ecc40c221 # main 2026-10-19
+        uses: Greenbauer/vibe-verifier/actions/features@fce8d6d9b9834b764c1793f708baf954d982a522 # main 2026-10-19
         with:
           changed-files: qae-inputs/changed-files
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
@@ -278,7 +278,7 @@ jobs:
         # explorer's load starts at the feature re-walk's walks, so it takes fewer criteria and reaches
         # the re-walk in its time: a selected feature with no walked step fails the gate.
         id: references
-        uses: Greenbauer/vibe-verifier/actions/qae-inputs@3741ba8fcb5a89208a53e39d324f1e7ecc40c221 # main 2026-10-19
+        uses: Greenbauer/vibe-verifier/actions/qae-inputs@fce8d6d9b9834b764c1793f708baf954d982a522 # main 2026-10-19
         with:
           shard: ${{ matrix.shard || 1 }}
           shards: ${{ strategy.job-total }}
@@ -287,7 +287,7 @@ jobs:
         # integrity fixed by tools/qae-browser/package-lock.json in the catalog. Nothing here is
         # resolved from the registry at run time: this job holds the account-level token.
         id: browser
-        uses: Greenbauer/vibe-verifier/actions/qae-browser@3741ba8fcb5a89208a53e39d324f1e7ecc40c221 # main 2026-10-19
+        uses: Greenbauer/vibe-verifier/actions/qae-browser@fce8d6d9b9834b764c1793f708baf954d982a522 # main 2026-10-19
       - name: Explore the acceptance criteria in a real browser
         # --max-turns is the turn cap the references step sized to this run's walks: a fixed 80 cut off
         # a correct run of two criteria at two widths (harnesses/qae/README.md, "The turn cap").
@@ -412,7 +412,7 @@ jobs:
             # the Read rules never see that read, and any other path would post whatever file it names.
       - name: Collect numeric usage
         if: always()
-        uses: Greenbauer/vibe-verifier/actions/usage@3741ba8fcb5a89208a53e39d324f1e7ecc40c221 # main 2026-10-19
+        uses: Greenbauer/vibe-verifier/actions/usage@fce8d6d9b9834b764c1793f708baf954d982a522 # main 2026-10-19
         with:
           source-file: ${{ steps.explorer.outputs.execution_file }}
           source-ran: true
@@ -578,7 +578,7 @@ jobs:
           printf '%s' "$CARRY" > qae-inputs/carry.json
       - name: Read the criteria
         id: criteria
-        uses: Greenbauer/vibe-verifier/actions/criteria@3741ba8fcb5a89208a53e39d324f1e7ecc40c221 # main 2026-10-19
+        uses: Greenbauer/vibe-verifier/actions/criteria@fce8d6d9b9834b764c1793f708baf954d982a522 # main 2026-10-19
         with:
           path: qae-inputs/pr-body.md
           changed-files: qae-inputs/changed-files
@@ -658,7 +658,7 @@ jobs:
       - name: Run the QA gates
         id: gates
         if: steps.criteria.outputs.declared-none == ''
-        uses: Greenbauer/vibe-verifier/actions/gates@3741ba8fcb5a89208a53e39d324f1e7ecc40c221 # main 2026-10-19
+        uses: Greenbauer/vibe-verifier/actions/gates@fce8d6d9b9834b764c1793f708baf954d982a522 # main 2026-10-19
         with:
           manifest: .vibe-verifier-qae
       - name: Require every explorer of a split run
@@ -675,7 +675,7 @@ jobs:
         # One comment per pull request, edited in place on every run: passed, changes needed, not
         # required, or could not run, from what the jobs and gates concluded, never the explorer's prose.
         if: ${{ !cancelled() }}
-        uses: Greenbauer/vibe-verifier/actions/qa-review@3741ba8fcb5a89208a53e39d324f1e7ecc40c221 # main 2026-10-19
+        uses: Greenbauer/vibe-verifier/actions/qa-review@fce8d6d9b9834b764c1793f708baf954d982a522 # main 2026-10-19
         with:
           criteria: qae-inputs/pr-body.md
           verdict: qae-inputs/verdict.md
