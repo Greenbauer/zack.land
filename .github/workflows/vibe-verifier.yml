@@ -25,4 +25,4 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: Greenbauer/vibe-verifier/actions/gates@3741ba8fcb5a89208a53e39d324f1e7ecc40c221 # main 2026-10-19
+      - uses: Greenbauer/vibe-verifier/actions/gates@cb73bda11dc1946c849de2484c26da5e4a53609b # main 2026-10-19
