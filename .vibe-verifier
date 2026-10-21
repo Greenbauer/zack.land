@@ -12,3 +12,7 @@ feature-map --surface page 'app/**/page.tsx' --surface route 'app/**/route.ts'
 # @ts-nocheck, bare eslint-disable or silenced React hooks rule (blocking) and an unchecked cast of
 # outside data (advisory). It ratchets per rule and file, so what main already has never blocks.
 repo-rules --pack typescript
+# prose: an em dash, or an en dash used as an aside, on a Markdown line a pull request adds blocks (house
+# style); a curly quote and the pull request description are advisory. Only added lines count, so the
+# docs as they stand never block.
+prose
