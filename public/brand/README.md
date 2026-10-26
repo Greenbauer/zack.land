@@ -19,7 +19,7 @@ design tokens (`tailwind.config.js` + `styles/globals.css`) so they match the li
 - **Signature gradient** (the H1 mark): `#111 linear-gradient(80deg, yellow 4%, pink 8%, cyan 20%, blue 85%)` — colors at **75% alpha over #111**, clipped to text. Identical to `globals.css` `h1`. Warm flash (yellow/pink) at the far left, fading through cyan to navy.
 - **Domain is always written `www.zack.land`.**
 - **No vibrant/rainbow elements** — the muted gradient on near-black is the whole look.
-- **Icon = the site's matcap 3D head** (`public/background/geometry/myHead.obj` + `public/background/images/mainMatcap.jpg`), rendered with the exact custom matcap shader from `components/Background/useMatcap.ts`. NOT a letter/monogram.
+- **Icon = the site's matcap 3D head** (`public/background/geometry/myHead.obj` + `public/background/images/mainMatcap.jpg`), rendered with the custom matcap shader the site background used until the dawn look replaced it (`components/Background/useMatcap.ts` at commit `6b5a5c0`). NOT a letter/monogram.
 
 ## Assets
 
