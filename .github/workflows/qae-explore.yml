@@ -1,4 +1,4 @@
-name: QAE explore
+name: QA
 
 # Vibe Verifier QAE harness: copy to .github/workflows/qae-explore.yml, with harnesses/qae/manifest
 # copied to .vibe-verifier-qae. Consumer-owned parts, marked CONSUMER below: runs-on, how the site is
@@ -28,7 +28,7 @@ concurrency:
 
 jobs:
   criteria:
-    name: qae-criteria
+    name: "Acceptance criteria: read"
     runs-on: ubuntu-latest   # CONSUMER: any runner. It holds no model login and builds nothing.
     timeout-minutes: 5
     permissions:
@@ -46,6 +46,8 @@ jobs:
         # takes it off the site. And the QAE manifest as the base has it, or as this pull request has it
         # where the base has none (a first subscription): the widths on its qae-artifacts line count
         # toward the walks the explorers are sized to.
+        # A qae-inputs/ the checkout already has came from the pull request (Git makes no empty directory),
+        # so the step stops before it puts anything there: a link could send these files anywhere on the runner.
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -54,6 +56,7 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
+          if [ -e qae-inputs ] || [ -L qae-inputs ]; then echo "::error::the pull request commits qae-inputs/, where this job puts its inputs: remove it from the branch"; exit 1; fi
           mkdir -p qae-inputs
           gh pr view "$PR_NUMBER" --repo "$REPO" --json body --jq .body > qae-inputs/pr-body.md
           gh api "repos/$REPO/pulls/$PR_NUMBER/files?per_page=100" --paginate \
@@ -93,7 +96,7 @@ jobs:
         # Its `shards` output is the explore job's matrix: one explorer, unless max-shards allows more
         # and the criteria are more walks than one is sized for (harnesses/qae/README.md).
         id: criteria
-        uses: Greenbauer/vibe-verifier/actions/criteria@0fb90dee4f0cc606e164fa977c1b10f49cf03cbf # main 2026-10-12
+        uses: Greenbauer/vibe-verifier/actions/criteria@48bd2a31ea0bdb1bed947244fbcc2ab55cc560b3 # main 2026-10-21
         with:
           path: qae-inputs/pr-body.md
           changed-files: qae-inputs/changed-files
@@ -103,15 +106,15 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}   # carries a passing walk's verdict across an update no browser can see
 
   explore:
-    name: qae-explore
+    name: "Acceptance criteria: walk"
     needs: criteria
     if: needs.criteria.outputs.count != '0'
     # One job per explorer. A pull request whose criteria are more walks than one explorer is sized
     # for is split across several, when the criteria job's max-shards allows it: each walks its own
     # share in parallel, on a runner of its own, and with fewer runners free they queue. The matrix's
-    # first value is blank and stands for 1, so that job keeps the name qae-explore (GitHub leaves a
-    # blank value out of a job's name; measured 2026-10-08) and the others are qae-explore (2),
-    # qae-explore (3), ... A step reads its explorer's number as `matrix.shard || 1`.
+    # first value is blank and stands for 1, so that job keeps the plain name (GitHub leaves a blank
+    # value out of a job's name; measured 2026-10-08) and the others add (2), (3), ... to it. A step
+    # reads its explorer's number as `matrix.shard || 1`.
     strategy:
       fail-fast: false
       matrix:
@@ -145,6 +148,8 @@ jobs:
         # The PR body the prompt points the explorer at (the criteria job already found a criterion in
         # it, or in its ticket), the ticket's criteria as the criteria job read them, and the changed
         # paths the feature selection reads.
+        # It stops on a qae-inputs/ the checkout already has, as the criteria job does: a file there
+        # would read as one this workflow wrote (site.md, features/), and a link would move the writes.
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -152,6 +157,7 @@ jobs:
           TICKET: ${{ needs.criteria.outputs.ticket }}
         run: |
           set -euo pipefail
+          if [ -e qae-inputs ] || [ -L qae-inputs ]; then echo "::error::the pull request commits qae-inputs/, where this job puts its inputs: remove it from the branch"; exit 1; fi
           mkdir -p qae-artifacts/qae qae-inputs
           gh pr view "$PR_NUMBER" --repo "$REPO" --json body --jq .body > qae-inputs/pr-body.md
           printf '%s' "$TICKET" > qae-inputs/ticket.md
@@ -168,7 +174,7 @@ jobs:
         # Of several explorers only the first re-walks. Every one runs this step all the same: each
         # counts the selection, so that they share the criteria out alike, and the references step
         # below then takes qae-inputs/features away from every explorer but the first.
-        uses: Greenbauer/vibe-verifier/actions/features@0fb90dee4f0cc606e164fa977c1b10f49cf03cbf # main 2026-10-12
+        uses: Greenbauer/vibe-verifier/actions/features@48bd2a31ea0bdb1bed947244fbcc2ab55cc560b3 # main 2026-10-21
         with:
           changed-files: qae-inputs/changed-files
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
@@ -278,7 +284,7 @@ jobs:
         # explorer's load starts at the feature re-walk's walks, so it takes fewer criteria and reaches
         # the re-walk in its time: a selected feature with no walked step fails the gate.
         id: references
-        uses: Greenbauer/vibe-verifier/actions/qae-inputs@0fb90dee4f0cc606e164fa977c1b10f49cf03cbf # main 2026-10-12
+        uses: Greenbauer/vibe-verifier/actions/qae-inputs@48bd2a31ea0bdb1bed947244fbcc2ab55cc560b3 # main 2026-10-21
         with:
           shard: ${{ matrix.shard || 1 }}
           shards: ${{ strategy.job-total }}
@@ -287,7 +293,7 @@ jobs:
         # integrity fixed by tools/qae-browser/package-lock.json in the catalog. Nothing here is
         # resolved from the registry at run time: this job holds the account-level token.
         id: browser
-        uses: Greenbauer/vibe-verifier/actions/qae-browser@0fb90dee4f0cc606e164fa977c1b10f49cf03cbf # main 2026-10-12
+        uses: Greenbauer/vibe-verifier/actions/qae-browser@48bd2a31ea0bdb1bed947244fbcc2ab55cc560b3 # main 2026-10-21
       - name: Explore the acceptance criteria in a real browser
         # --max-turns is the turn cap the references step sized to this run's walks: a fixed 80 cut off
         # a correct run of two criteria at two widths (harnesses/qae/README.md, "The turn cap").
@@ -412,7 +418,7 @@ jobs:
             # the Read rules never see that read, and any other path would post whatever file it names.
       - name: Collect numeric usage
         if: always()
-        uses: Greenbauer/vibe-verifier/actions/usage@0fb90dee4f0cc606e164fa977c1b10f49cf03cbf # main 2026-10-12
+        uses: Greenbauer/vibe-verifier/actions/usage@48bd2a31ea0bdb1bed947244fbcc2ab55cc560b3 # main 2026-10-21
         with:
           source-file: ${{ steps.explorer.outputs.execution_file }}
           source-ran: true
@@ -525,7 +531,7 @@ jobs:
           if-no-files-found: warn
 
   verify:
-    name: qae-verify
+    name: Acceptance criteria
     needs: [criteria, explore]
     if: always()
     runs-on: ubuntu-latest
@@ -546,6 +552,9 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Write the declared inputs
+        # These files are the gates' inputs, rewritten here whatever the branch has. A qae-inputs/ the checkout
+        # already has came from the pull request (Git makes no empty directory), so the step stops before
+        # writing: a link there could send them anywhere on the runner.
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -557,6 +566,7 @@ jobs:
           CARRY: ${{ needs.criteria.outputs.carry }}
         run: |
           set -euo pipefail
+          if [ -e qae-inputs ] || [ -L qae-inputs ]; then echo "::error::the pull request commits qae-inputs/, where this job puts its inputs: remove it from the branch"; exit 1; fi
           mkdir -p qae-inputs
           gh pr view "$PR_NUMBER" --repo "$REPO" --json body --jq .body > qae-inputs/pr-body.md
           gh api "repos/$REPO/pulls/$PR_NUMBER/files?per_page=100" --paginate \
@@ -578,7 +588,7 @@ jobs:
           printf '%s' "$CARRY" > qae-inputs/carry.json
       - name: Read the criteria
         id: criteria
-        uses: Greenbauer/vibe-verifier/actions/criteria@0fb90dee4f0cc606e164fa977c1b10f49cf03cbf # main 2026-10-12
+        uses: Greenbauer/vibe-verifier/actions/criteria@48bd2a31ea0bdb1bed947244fbcc2ab55cc560b3 # main 2026-10-21
         with:
           path: qae-inputs/pr-body.md
           changed-files: qae-inputs/changed-files
@@ -587,10 +597,12 @@ jobs:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         if: steps.criteria.outputs.count != '0'
         # Every explorer's evidence, of every attempt of this run, each in a directory named for its
-        # artifact: qae-evidence/qae-artifacts-<attempt>[-<explorer>]/. The next step picks among them.
+        # artifact: qae-evidence/qae-artifacts-<attempt>[-<explorer>]/ in the runner's temporary directory,
+        # outside the checkout, so a directory the pull request commits is never one of them. The next
+        # step picks among them.
         with:
           pattern: qae-artifacts-*
-          path: qae-evidence
+          path: ${{ runner.temp }}/qae-evidence
       - name: Merge the evidence and read the verdict
         # qae-artifacts/ becomes the evidence of each explorer the criteria job planned, from the newest
         # attempt that explorer left any in: this attempt's on a full re-run, an earlier one's for an
@@ -603,10 +615,14 @@ jobs:
         # qae-inputs/verdict.md is the explorers' verdicts/<explorer>.md, in order: the files the
         # workflow copied in this run. No pull request comment is read, so nobody can paste a verdict,
         # and a run never takes another run's verdict (a carried walk runs no explorer and no gate).
+        # A qae-artifacts/ the checkout already has came from the pull request (Git makes no empty
+        # directory), so the step stops before writing anything: a link there could send the copies
+        # anywhere on the runner. The gates refuse such evidence too (gates/_contract.py, planted).
         if: steps.criteria.outputs.count != '0'
         env:
           SHARDS: ${{ needs.criteria.outputs.shards }}
           EXPLORE_ATTEMPT: ${{ needs.explore.outputs.attempt }}
+          EVIDENCE: ${{ runner.temp }}/qae-evidence
         run: |
           python3 - <<'PY'
           import filecmp, json, os, re, shutil, sys
@@ -615,12 +631,14 @@ jobs:
               print("::error::" + message)
               sys.exit(1)
 
+          if os.path.lexists("qae-artifacts"):
+              stop("the pull request commits qae-artifacts/, where this run's evidence goes: remove it from the branch")
           wanted = [number or 1 for number in json.loads(os.environ["SHARDS"])]
-          newest = {}
-          for name in sorted(os.listdir("qae-evidence")) if os.path.isdir("qae-evidence") else []:
+          newest, evidence = {}, os.environ["EVIDENCE"]
+          for name in sorted(os.listdir(evidence)) if os.path.isdir(evidence) else []:
               named = re.fullmatch(r"qae-artifacts-([1-9][0-9]*)(?:-([1-9][0-9]*))?", name)
               if named and int(named.group(2) or 1) in wanted:
-                  shard, found = int(named.group(2) or 1), (int(named.group(1)), os.path.join("qae-evidence", name))
+                  shard, found = int(named.group(2) or 1), (int(named.group(1)), os.path.join(evidence, name))
                   newest[shard] = max(newest.get(shard, found), found)
           reported = os.environ["EXPLORE_ATTEMPT"]
           if not reported.isdigit() or max([attempt for attempt, _ in newest.values()], default=0) < int(reported):
@@ -658,14 +676,14 @@ jobs:
       - name: Run the QA gates
         id: gates
         if: steps.criteria.outputs.declared-none == ''
-        uses: Greenbauer/vibe-verifier/actions/gates@0fb90dee4f0cc606e164fa977c1b10f49cf03cbf # main 2026-10-12
+        uses: Greenbauer/vibe-verifier/actions/gates@48bd2a31ea0bdb1bed947244fbcc2ab55cc560b3 # main 2026-10-21
         with:
           manifest: .vibe-verifier-qae
       - name: Require every explorer of a split run
-        # The first explorer's job is named qae-explore whatever the split, so a branch rule can require
-        # it. The others (qae-explore (2), ...) exist only on a large pull request, and no rule can
-        # name them. So on a split run this job fails unless every explorer's job succeeded, after the
-        # gates have said what they found. A run with one explorer is not touched.
+        # The first explorer's job has the explore job's plain name whatever the split, so a branch rule
+        # can require it. The others, that name with (2), (3), ..., exist only on a large pull request,
+        # and no rule can name them. So on a split run this job fails unless every explorer's job
+        # succeeded, after the gates have said what they found. A run with one explorer is not touched.
         if: ${{ !cancelled() && needs.criteria.outputs.shards != '[""]' && needs.explore.result != 'success' && needs.explore.result != 'skipped' }}
         env:
           EXPLORE_RESULT: ${{ needs.explore.result }}
@@ -675,7 +693,7 @@ jobs:
         # One comment per pull request, edited in place on every run: passed, changes needed, not
         # required, or could not run, from what the jobs and gates concluded, never the explorer's prose.
         if: ${{ !cancelled() }}
-        uses: Greenbauer/vibe-verifier/actions/qa-review@0fb90dee4f0cc606e164fa977c1b10f49cf03cbf # main 2026-10-12
+        uses: Greenbauer/vibe-verifier/actions/qa-review@48bd2a31ea0bdb1bed947244fbcc2ab55cc560b3 # main 2026-10-21
         with:
           criteria: qae-inputs/pr-body.md
           verdict: qae-inputs/verdict.md
