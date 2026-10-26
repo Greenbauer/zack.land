@@ -3,14 +3,24 @@ import { useMemo, useRef } from 'react';
 import { BufferGeometry, Group, Mesh } from 'three';
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 
-import useMatcap from './useMatcap';
-
 export type Point = { x: number; y: number };
 
 type MyHeadGeometry = { [key: string]: BufferGeometry };
 
 type MyHeadProps = {
   lookPositionStart: Point;
+};
+
+// The look of pmndrs' "Color grading" sandbox (codesandbox.io/p/sandbox/wvgxp):
+// its terrazzo sphere's black base without the flakes, and eyes in its
+// lightest flake color.
+const SKIN_COLOR = '#000000';
+const EYE_COLOR = '#aca8a3';
+const GLOSS = {
+  clearcoat: 1,
+  clearcoatRoughness: 0,
+  roughness: 0,
+  metalness: 0.5,
 };
 
 let frameCount: number = 0;
@@ -22,8 +32,6 @@ export default function MyHead({ lookPositionStart }: MyHeadProps) {
   let isMouseMoving = true;
   const myHeadRef = useRef<Group>(null);
   const myHeadObj = useLoader(OBJLoader, '/background/geometry/myHead.obj');
-  const mainMaterial = useMatcap('/background/images/mainMatcap.jpg');
-  const whiteMaterial = useMatcap('/background/images/whiteMatcap.jpg');
 
   const myHeadGeometry: MyHeadGeometry = useMemo(() => {
     const geometry: MyHeadGeometry = {};
@@ -102,13 +110,13 @@ export default function MyHead({ lookPositionStart }: MyHeadProps) {
   return (
     <group position={[0, 5, 0]} ref={myHeadRef}>
       <mesh geometry={myHeadGeometry.skin}>
-        <shaderMaterial attach="material" {...mainMaterial} />
+        <meshPhysicalMaterial color={SKIN_COLOR} {...GLOSS} />
       </mesh>
       <mesh geometry={myHeadGeometry.rightEye}>
-        <shaderMaterial attach="material" {...whiteMaterial} />
+        <meshPhysicalMaterial color={EYE_COLOR} {...GLOSS} />
       </mesh>
       <mesh geometry={myHeadGeometry.leftEye}>
-        <shaderMaterial attach="material" {...whiteMaterial} />
+        <meshPhysicalMaterial color={EYE_COLOR} {...GLOSS} />
       </mesh>
     </group>
   );

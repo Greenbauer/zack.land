@@ -42,4 +42,5 @@ No test that runs covers it: `cypress/e2e/navigation.cy.ts` walks these pages, b
 - The header's titles come from the `routes` list in `components/Header/index.tsx`, and the sitemap from the list in `app/sitemap.ts`. Both are kept by hand: a new page needs an entry in each.
 - The site URL `https://www.zack.land` is written in `app/layout.tsx`, `app/robots.ts` and `app/sitemap.ts`.
 - The background is three.js (`@react-three/fiber`); it renders on every page, so a change to it is a change to all of them.
+- The background's look is pmndrs' "Color grading" sandbox (codesandbox.io/p/sandbox/wvgxp): a glossy black head with eyes in `#aca8a3`, the blurred dawn HDR as the sky, and the `cubicle-99` LUT on top (`components/Background/Grading.tsx`). Both files are served from `public/background/environment/`, not drei's CDN.
 - Vercel Analytics loads on every page; the QAE gates declare its script as the one expected console and network error.
