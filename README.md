@@ -43,7 +43,7 @@ When the secret is unset, submissions skip verification; when set, a submission 
 ## CI
 
 Every pull request and every push to `master` runs the unit tests (`npm test`: Vitest over every
-`*.test.ts` file) through `.github/workflows/tests.yml`, as the check `tests`. The workflow has no
+`*.test.ts` file) through `.github/workflows/tests.yml`, as the check `Unit tests` (shown as `Code / Unit tests`). The workflow has no
 path filter and the job no condition, so the check always reports. The Cypress specs in
 `cypress/e2e` need the site built and started and are not part of it.
 
