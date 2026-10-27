@@ -60,6 +60,22 @@ export function edgeFade({ clear, solid, pageTop }: Fade) {
   };
 }
 
+// The mask's opacity `y` pixels down a window `height` tall whose footer is
+// `footer` tall: how much of what scrolls there shows. For what is drawn
+// behind the page rather than in it (the cards' frosting, in the 3D scene:
+// components/Background/glass.ts), to fade the same way.
+export function fadeAt(
+  y: number,
+  height: number,
+  footer: number,
+  { clear, solid }: Fade,
+) {
+  const eased = (reach: number) =>
+    smootherstep(Math.min(Math.max((reach - clear) / (solid - clear), 0), 1));
+  const insideFooter = HEADER_TEXT_END - clear;
+  return Math.min(eased(y), eased(height - footer + insideFooter + clear - y));
+}
+
 // The fade as CSS variables on the scroller, for it and the page inside:
 // --page-top, --page-bottom, --post-height and --post-gap.
 export function edgeFadeCss(selector: string) {
@@ -77,5 +93,6 @@ export function edgeFadeCss(selector: string) {
   return `${selector} { ${rules(NARROW)} } @media (min-width: ${WIDE_FROM}px) { ${selector} { ${rules(WIDE)} } }`;
 }
 
-// The id react-scroll's menu links scroll (they need the box, not the window).
+// The scroller's id, for what finds it from outside (the pager, the scroll
+// arrows, the glass).
 export const PAGE_SCROLLER_ID = 'page';

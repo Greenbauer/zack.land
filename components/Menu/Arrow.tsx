@@ -9,18 +9,24 @@ const arrowStyle = cva('absolute left-0 top-1/2 opacity-0 ease-in-out', {
   },
 });
 
-const arrowLineStyle = cva('absolute -top-6 left-1 block h-12 w-px bg-white', {
-  variants: {
-    intent: {
-      top: 'origin-top translate-y-[-32.5%] rotate-[35deg] transform',
-      bottom: 'origin-bottom translate-y-[32.5%] rotate-[-35deg] transform',
+const arrowLineStyle = cva(
+  'absolute -top-6 left-1 block h-12 w-px bg-[color:var(--sky-text)]',
+  {
+    variants: {
+      intent: {
+        top: 'origin-top translate-y-[-32.5%] rotate-[35deg] transform',
+        bottom: 'origin-bottom translate-y-[32.5%] rotate-[-35deg] transform',
+      },
     },
   },
-});
+);
 
-export default function Arrow() {
+// Two chevrons pointing left, each fading in and sliding left in turn, over
+// and over. Turned, they point (and slide) any way: ScrollArrows turns them
+// up and down.
+export function Chevrons() {
   return (
-    <div className="absolute -right-24 top-0 hidden h-full items-center justify-center md:flex">
+    <>
       <div className={arrowStyle({ intent: 'first' })}>
         <div className={arrowLineStyle({ intent: 'top' })} />
         <div className={arrowLineStyle({ intent: 'bottom' })} />
@@ -32,6 +38,15 @@ export default function Arrow() {
         <div className={arrowLineStyle({ intent: 'top' })} />
         <div className={arrowLineStyle({ intent: 'bottom' })} />
       </div>
+    </>
+  );
+}
+
+// The portfolio menu's arrow, pointing at the menu from its right.
+export default function Arrow() {
+  return (
+    <div className="absolute -right-24 top-0 hidden h-full items-center justify-center md:flex">
+      <Chevrons />
     </div>
   );
 }

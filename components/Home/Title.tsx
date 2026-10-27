@@ -27,7 +27,7 @@ const SUBTITLE_RATIO = 4.5;
 // The canvas's colour before the sky loads (#6864a8, Background/index.tsx).
 const LOADING_SKY = 0.148;
 
-function NameWord({ text, index }: { text: string; index: number }) {
+export function NameWord({ text, index }: { text: string; index: number }) {
   const word = useRef<HTMLSpanElement>(null);
   const baseline = useRef<HTMLSpanElement>(null);
   useEffect(() => {

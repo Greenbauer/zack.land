@@ -66,7 +66,7 @@ export default function FormFields({
               />
             )}
             <div className="flex h-6 w-full justify-end text-right">
-              <small className="py-1 text-yellow">
+              <small className="py-1 text-status-error">
                 {touchedFields[name] &&
                   errors[name]?.type === 'required' &&
                   'required'}

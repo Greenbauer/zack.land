@@ -2,7 +2,9 @@ import { cva } from 'class-variance-authority';
 import { ForwardedRef, forwardRef } from 'react';
 
 const lineStyle = cva(
-  'absolute block h-px w-full bg-white transition-all duration-200 ease-in-out',
+  // The lines take the sky's text colour, open or closed: the open menu's
+  // glass matches the sky around it.
+  'absolute block h-px w-full bg-[color:var(--sky-text)] transition-all duration-200 ease-in-out',
   {
     variants: {
       isActive1: {

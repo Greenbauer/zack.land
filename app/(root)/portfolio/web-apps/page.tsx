@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 
-import Menu from '@/components/Menu';
+import ScrollArrows from '@/components/PageScroller/ScrollArrows';
 import SnapPager from '@/components/PageScroller/SnapPager';
 import Post from '@/components/Post';
 
@@ -14,8 +14,8 @@ export const metadata: Metadata = {
 export default function WebApps() {
   return (
     <div className="flex w-full justify-between gap-9 xl:gap-12">
-      <div className="hidden shrink grow-0 md:flex">
-        <Menu items={Contents.map((content) => ({ name: content.name }))} />
+      <div className="hidden shrink-0 md:flex">
+        <ScrollArrows />
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-[var(--post-gap)]">
         <SnapPager />

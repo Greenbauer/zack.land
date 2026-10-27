@@ -72,8 +72,11 @@ export default function Form() {
     trigger();
   };
 
+  // While any field has focus, the scene behind the form blurs
+  // (components/Background/focusBlur.ts); the form itself stays sharp.
   return (
     <form
+      data-focus-blur
       className="-mt-2 flex gap-1 md:gap-3"
       onSubmit={handleSubmit(handleOnSubmit)}
     >
@@ -104,9 +107,13 @@ export default function Form() {
         {isSubmitted && (
           <div className="flex w-full justify-center text-center">
             {isSubmitSuccessful ? (
-              <small className="text-cyan">Your message has been sent</small>
+              <small className="text-status-success">
+                Your message has been sent
+              </small>
             ) : (
-              <small className="text-yellow">An error has occurred </small>
+              <small className="text-status-error">
+                An error has occurred{' '}
+              </small>
             )}
           </div>
         )}

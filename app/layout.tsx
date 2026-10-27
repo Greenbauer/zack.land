@@ -89,7 +89,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en">
       <body
-        className={`${kanit.variable} ${roboto.variable} flex min-h-svh w-full justify-center bg-black`}
+        className={`${kanit.variable} ${roboto.variable} flex min-h-svh w-full justify-center bg-head-dark`}
       >
         <script
           type="application/ld+json"

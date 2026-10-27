@@ -86,7 +86,8 @@ export function decodeHead(buffer: ArrayBuffer): Head {
 }
 
 // The file, fetched (through three's loader, so the page's loading spinner
-// counts it) and unzipped, once.
+// counts it) and unzipped, once. A failed load is not kept, so the next call
+// tries again.
 let loading: Promise<ArrayBuffer> | undefined;
 export function loadHead(): Promise<ArrayBuffer> {
   loading ??= new FileLoader()
@@ -98,6 +99,10 @@ export function loadHead(): Promise<ArrayBuffer> {
           .stream()
           .pipeThrough(new DecompressionStream('gzip')),
       ).arrayBuffer(),
-    );
+    )
+    .catch((error) => {
+      loading = undefined;
+      throw error;
+    });
   return loading;
 }

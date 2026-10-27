@@ -7,7 +7,7 @@ import { MediaSource } from '@/types';
 
 // One image or video, filling its box (an image is cropped to cover it).
 export default function Media({ mediaSource }: { mediaSource: MediaSource }) {
-  const { key, alt, type } = mediaSource;
+  const { key, alt, type, width = 800, height = 800 } = mediaSource;
 
   switch (type) {
     case 'YouTube':
@@ -23,8 +23,8 @@ export default function Media({ mediaSource }: { mediaSource: MediaSource }) {
         <Image
           src={key}
           alt={alt}
-          width={800}
-          height={800}
+          width={width}
+          height={height}
           className="size-full object-cover"
           preload
         />
