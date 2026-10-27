@@ -9,6 +9,14 @@
   --pink: theme('colors.pink');
   --cyan: theme('colors.cyan');
   --blue: theme('colors.blue');
+  --head-light: theme('colors.head.light');
+  --head-peach: theme('colors.head.peach');
+  --head-rose: theme('colors.head.rose');
+  --head-purple: theme('colors.head.purple');
+  --head-blue: theme('colors.head.blue');
+  --head-indigo: theme('colors.head.indigo');
+  --head-navy: theme('colors.head.navy');
+  --head-dark: theme('colors.head.dark');
 }
 
 @layer base {
@@ -116,24 +124,24 @@
     var(--yellow) 95%);
   }
 
+  /* The theme's colours (the head's, tailwind.config.js): its brightest
+     highlight at rest and its near-black navy on hover, each with the other
+     as its text.
+     As on the head, the light falls off fast: peach, rose, dusky purple and
+     deep blue are packed close together, so the hover is one sudden sweep
+     from the lightest colour to the darkest. */
   .bg-gradient-button {
-    background: var(--black) linear-gradient(60deg,
-    var(--white),
-    var(--white) 25%,
-    var(--yellow) 30%,
-    var(--pink) 45%,
-    var(--cyan) 60%,
-    var(--blue) 75%,
-    var(--black) 90%,
-    var(--black));
-  }
-
-  .youtube {
-    @apply relative pb-[50%];
-  }
-
-  .youtube iframe {
-    @apply absolute top-0 left-0 w-full h-full;
+    background: var(--head-dark) linear-gradient(60deg,
+    var(--head-light),
+    var(--head-light) 22%,
+    var(--head-peach) 28%,
+    var(--head-rose) 36%,
+    var(--head-purple) 46%,
+    var(--head-blue) 58%,
+    var(--head-indigo) 66%,
+    var(--head-navy) 74%,
+    var(--head-dark) 80%,
+    var(--head-dark));
   }
 }
 

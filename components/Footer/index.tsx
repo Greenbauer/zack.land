@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect, useRef } from 'react';
 
 import SocialLinks from './SocialLinks';
 
@@ -58,9 +59,29 @@ function ContactPageText() {
 
 export default function Footer() {
   const pathname = usePathname();
+  const ref = useRef<HTMLElement | null>(null);
+
+  // The page's bottom fade sits on the footer's top edge (see
+  // components/PageScroller/edgeFade.ts), so it follows the footer's height.
+  useEffect(() => {
+    const footer = ref.current;
+    if (!footer) return;
+    const measure = () =>
+      document.documentElement.style.setProperty(
+        '--footer-height',
+        `${footer.offsetHeight}px`,
+      );
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(footer);
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <footer className="flex w-full flex-col items-center gap-6 pb-6 md:flex-row md:items-end">
+    <footer
+      ref={ref}
+      className="flex w-full flex-col items-center gap-6 pb-6 md:flex-row md:items-end [&_a]:pointer-events-auto"
+    >
       <div className="order-last flex-none md:order-first">
         <SocialLinks />
       </div>

@@ -4,6 +4,7 @@ import { cva } from 'class-variance-authority';
 import Link from 'next/link';
 import { Link as RSLink } from 'react-scroll';
 
+import { PAGE_SCROLLER_ID, WIDE } from '@/components/PageScroller/edgeFade';
 import { setMenuId } from '@/utils/menu';
 
 import Arrow from './Arrow';
@@ -31,7 +32,7 @@ type MenuProps = {
 
 export default function Menu({ items = [], useArrow = false }: MenuProps) {
   return (
-    <div className="sticky top-36 w-full self-start md:w-auto">
+    <div className="sticky top-[var(--page-top)] w-full self-start md:w-auto">
       <div className="left-0 flex border-gray-dark py-3 md:border-r">
         <ul className="flex w-full flex-col md:mr-6 md:w-auto md:gap-3 xl:mr-9 xl:gap-6">
           {items.map((item, index) => {
@@ -50,8 +51,9 @@ export default function Menu({ items = [], useArrow = false }: MenuProps) {
                       className={linkStyle({ isLast })}
                       activeClass="text-yellow"
                       to={setMenuId(name)}
+                      containerId={PAGE_SCROLLER_ID}
                       delay={0}
-                      offset={-100}
+                      offset={-WIDE.pageTop}
                       spy
                       hashSpy
                     >

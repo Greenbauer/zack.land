@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 
 import Menu from '@/components/Menu';
+import SnapPager from '@/components/PageScroller/SnapPager';
 import Post from '@/components/Post';
 
 import Contents from './Contents';
@@ -16,7 +17,8 @@ export default function Miscellaneous() {
       <div className="hidden shrink grow-0 md:flex">
         <Menu items={Contents.map((content) => ({ name: content.name }))} />
       </div>
-      <div className="flex shrink grow-0 flex-col gap-3 md:gap-6 xl:gap-12">
+      <div className="flex min-w-0 flex-1 flex-col gap-[var(--post-gap)]">
+        <SnapPager />
         {Contents.map((content) => (
           <Post key={content.name} content={content} />
         ))}

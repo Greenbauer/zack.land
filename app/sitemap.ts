@@ -6,7 +6,6 @@ const routes = [
   '',
   '/portfolio',
   '/portfolio/web-apps',
-  '/portfolio/art',
   '/portfolio/miscellaneous',
   '/contact',
 ];

@@ -1,22 +1,19 @@
 import Link from 'next/link';
 import { cloneElement, ReactElement } from 'react';
 import { IconBaseProps } from 'react-icons';
-import { FaBehance, FaGithub, FaInstagram, FaLinkedin } from 'react-icons/fa';
+import { FaGithub, FaLinkedin } from 'react-icons/fa';
+import { FaXTwitter } from 'react-icons/fa6';
 
 type SocialRoute = { Icon: ReactElement<IconBaseProps>; url: string };
 
 const socialRoutes: SocialRoute[] = [
   {
-    Icon: <FaBehance />,
-    url: 'https://www.behance.net/greenbauer',
-  },
-  {
     Icon: <FaGithub />,
     url: 'https://github.com/Greenbauer',
   },
   {
-    Icon: <FaInstagram />,
-    url: 'https://www.instagram.com/zgreenbauer',
+    Icon: <FaXTwitter />,
+    url: 'https://x.com/greenbauer',
   },
   {
     Icon: <FaLinkedin />,

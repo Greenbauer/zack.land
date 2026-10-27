@@ -3,7 +3,7 @@ import { cva } from 'class-variance-authority';
 
 import { Route } from '..';
 import NavLink from '../NavLink';
-import NavListBackground from '../NavListBackground';
+import useGradientShift from '../useGradientShift';
 import MobileNavButton from './MobileNavButton';
 
 const mobileNavBackgroundStyle = cva(
@@ -32,14 +32,19 @@ export default function MobileNav({
   backgroundOffsetLeft,
   routes,
 }: MobileNavProps) {
+  const listRef = useGradientShift(backgroundOffsetLeft);
+
   return (
-    <div className="flex md:hidden">
+    <div className="pointer-events-auto flex md:hidden">
       <Menu>
         {({ open: isOpen }: { open: boolean }) => (
           <div className="flex items-center">
             <Menu.Button as={MobileNavButton} isActive={isOpen} />
             <div className={mobileNavBackgroundStyle({ isOpen })}>
-              <Menu.Items className="relative flex w-auto flex-col focus:outline-none">
+              <Menu.Items
+                ref={listRef}
+                className="relative flex w-auto flex-col focus:outline-none"
+              >
                 {routes.map(({ label, path }, index) => {
                   const isFirst = index === 0;
                   const isActive = pathname === path;
@@ -64,7 +69,6 @@ export default function MobileNav({
                     </Menu.Item>
                   );
                 })}
-                <NavListBackground offsetLeft={backgroundOffsetLeft} />
               </Menu.Items>
             </div>
           </div>
