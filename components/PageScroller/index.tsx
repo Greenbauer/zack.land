@@ -1,0 +1,21 @@
+import { ReactNode } from 'react';
+
+import { edgeFadeCss, PAGE_SCROLLER_ID } from './edgeFade';
+
+// The page scrolls in this fixed, full-window box rather than the window, so
+// its fade under the header and the footer (edgeFade.ts) stays put without
+// any script running as it scrolls. It snaps to whatever marks itself a snap
+// point (the portfolio's posts); pages without any scroll freely.
+export default function PageScroller({ children }: { children: ReactNode }) {
+  return (
+    <div
+      id={PAGE_SCROLLER_ID}
+      className="fixed inset-0 z-0 snap-y snap-mandatory overflow-y-auto"
+    >
+      <style>{edgeFadeCss(`#${PAGE_SCROLLER_ID}`)}</style>
+      <div className="flex min-h-full w-full justify-center pb-[var(--page-bottom)]">
+        {children}
+      </div>
+    </div>
+  );
+}

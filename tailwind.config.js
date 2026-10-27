@@ -25,6 +25,20 @@ module.exports = {
         darkest: '#171717',
       },
       black: '#111111',
+      // The site's theme: the head's colours as rendered, from its brightest
+      // point (the whitest of its eyes and its skin's reflections) through
+      // the colours its light falls off through, to its darkest skin. Light
+      // and dark are each the text colour on the other.
+      head: {
+        light: '#ede4e3',
+        peach: '#d3aba0',
+        rose: '#a57374',
+        purple: '#594d69',
+        blue: '#1c265b',
+        indigo: '#0b1953',
+        navy: '#040227',
+        dark: '#010018',
+      },
     },
     extend: {
       keyframes: {

@@ -13,10 +13,6 @@ const items: MenuItem[] = [
     path: '/portfolio/web-apps',
   },
   {
-    name: 'Digital Art',
-    path: '/portfolio/art',
-  },
-  {
     name: 'Miscellaneous',
     path: '/portfolio/miscellaneous',
   },
@@ -24,7 +20,7 @@ const items: MenuItem[] = [
 
 export default function Portfolio() {
   return (
-    <div className="relative flex h-full w-full justify-start">
+    <div className="relative flex size-full justify-start">
       <Menu items={items} useArrow />
     </div>
   );

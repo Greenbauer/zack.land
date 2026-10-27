@@ -4,6 +4,7 @@ import Background from '@/components/Background';
 
 import Footer from '../../components/Footer';
 import Header from '../../components/Header';
+import PageScroller from '../../components/PageScroller';
 
 type LayoutProps = {
   children: ReactNode;
@@ -14,13 +15,19 @@ export default function Layout({ children }: LayoutProps) {
     <>
       <Background />
       <Header />
-      <div className="container z-0 mx-3 flex flex-col">
-        <main className="flex flex-1">
-          <div className="relative flex flex-1 pb-6 pt-24 md:pb-12">
-            {children}
-          </div>
-        </main>
-        <Footer />
+      <PageScroller>
+        <div className="container mx-3 flex flex-col">
+          <main className="flex flex-1">
+            <div className="relative flex flex-1 pt-[var(--page-top)]">
+              {children}
+            </div>
+          </main>
+        </div>
+      </PageScroller>
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center">
+        <div className="container mx-3">
+          <Footer />
+        </div>
       </div>
     </>
   );

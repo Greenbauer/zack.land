@@ -4,13 +4,13 @@ import { ButtonHTMLAttributes, ReactElement } from 'react';
 import Spinner from './Spinner';
 
 const buttonStyle = cva(
-  'max-w-fit bg-[length:500%_100%] bg-left px-6 py-2 font-sans text-lg font-normal uppercase tracking-wider text-black',
+  'max-w-fit rounded-md bg-[length:500%_100%] bg-left px-6 py-2 font-sans text-lg font-normal uppercase tracking-wider text-head-dark',
   {
     variants: {
       disabled: {
         true: 'cursor-not-allowed bg-gray text-gray-light opacity-50',
         false:
-          'bg-gradient-button focus-within:text-white hover:bg-right hover:text-white focus:text-black active:text-white',
+          'bg-gradient-button focus-within:text-head-light hover:bg-right hover:text-head-light focus:text-head-dark active:text-head-light',
       },
     },
     defaultVariants: {
@@ -51,7 +51,7 @@ export default function Button({
         target={target}
         rel={target === '_blank' ? 'noreferrer' : undefined}
         style={{
-          transition: 'transform 0.8s, color 0.3s, background-position-x 0.7s',
+          transition: 'transform 0.8s, color 0.3s, background-position-x 1.1s',
           transitionDelay: '0s, 0.2s, 0s',
         }}
       >
@@ -64,7 +64,7 @@ export default function Button({
     <button
       className={buttonStyle({ disabled })}
       style={{
-        transition: 'transform 0.8s, color 0.3s, background-position-x 0.7s',
+        transition: 'transform 0.8s, color 0.3s, background-position-x 1.1s',
         transitionDelay: '0s, 0.2s, 0s',
       }}
       disabled={disabled}

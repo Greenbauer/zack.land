@@ -1,29 +1,12 @@
 'use client';
 
-import { cva } from 'class-variance-authority';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
-import useScroll from '@/hooks/useScroll';
 import useWindowSize from '@/hooks/useWindowSize';
 
 import DesktopNav from './DesktopNav';
 import MobileNav from './MobileNav';
-
-const barStyle = cva(
-  'fixed inset-x-0 z-40 flex h-20 w-full items-center justify-center px-3',
-  {
-    variants: {
-      isScrolling: {
-        true: 'bg-gray-darkest shadow-xl',
-        false: 'bg-black',
-      },
-    },
-    defaultVariants: {
-      isScrolling: false,
-    },
-  },
-);
 
 export type Route = { label?: string; path: string; headerTitle?: string };
 
@@ -43,10 +26,6 @@ const routes: Route[] = [
     headerTitle: 'Contact Me',
   },
   {
-    path: '/portfolio/art',
-    headerTitle: 'Digital Art',
-  },
-  {
     path: '/portfolio/miscellaneous',
     headerTitle: 'Miscellaneous',
   },
@@ -59,7 +38,6 @@ const routes: Route[] = [
 export default function Header() {
   const pathname = usePathname();
   const navRef = useRef<HTMLDivElement | null>(null);
-  const { isScrolling } = useScroll({ startLimit: 10 });
   const { width } = useWindowSize();
 
   const [offsetLeft, setOffsetLeft] = useState<number>(0);
@@ -71,7 +49,7 @@ export default function Header() {
   }, [width]);
 
   return (
-    <div className={barStyle({ isScrolling })}>
+    <div className="pointer-events-none fixed inset-x-0 z-40 flex h-20 w-full items-center justify-center px-3">
       <div
         ref={navRef}
         className="container flex w-full items-center justify-between gap-3"
@@ -80,7 +58,6 @@ export default function Header() {
           routes={routes}
           pathname={pathname}
           backgroundOffsetLeft={offsetLeft}
-          isScrolling={isScrolling}
         />
         <MobileNav
           routes={routes}

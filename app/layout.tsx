@@ -11,8 +11,7 @@ const SITE_DESCRIPTION = "Zack Greenbauer's Portfolio and Sandbox";
 const SOCIAL_LINKS = [
   'https://github.com/Greenbauer',
   'https://www.linkedin.com/in/greenbauer',
-  'https://www.instagram.com/zgreenbauer',
-  'https://www.behance.net/greenbauer',
+  'https://x.com/greenbauer',
 ];
 
 const personJsonLd = {
@@ -31,7 +30,6 @@ export const metadata: Metadata = {
     'Zack Greenbauer',
     'portfolio',
     'web apps',
-    'digital art',
     '3D',
     'three.js',
     'creative developer',
@@ -60,6 +58,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
+    creator: '@greenbauer',
     title: 'Zack Greenbauer',
     description: SITE_DESCRIPTION,
     images: ['/brand/og-image.png'],
@@ -90,7 +89,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en">
       <body
-        className={`${kanit.variable} ${roboto.variable} flex min-h-[100svh] w-full justify-center bg-black`}
+        className={`${kanit.variable} ${roboto.variable} flex min-h-svh w-full justify-center bg-black`}
       >
         <script
           type="application/ld+json"

@@ -9,7 +9,6 @@ export type MediaSource = {
 export type Content = {
   name: string;
   siteUrl?: string;
-  galleryUrl?: string;
   repositoryUrl?: string;
   mediaSources?: MediaSource[];
   description?: JSX.Element;

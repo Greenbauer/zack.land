@@ -5,8 +5,8 @@ const spinnerStyle = cva(
   {
     variants: {
       size: {
-        sm: 'h-8 w-8',
-        xl: 'h-60 w-60',
+        sm: 'size-8',
+        xl: 'size-60',
       },
     },
     defaultVariants: {
