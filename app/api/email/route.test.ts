@@ -59,6 +59,16 @@ describe('POST /api/email', () => {
     expect(sendMail).toHaveBeenCalledTimes(1);
   });
 
+  it.each(['ada@example.online', 'ada@studio.email', 'ada@firm.company'])(
+    'mails a submission from %s, whose top-level domain is over four letters',
+    async (email) => {
+      const res = await post({ ...valid, email });
+
+      expect(res.status).toBe(200);
+      expect(sendMail).toHaveBeenCalledTimes(1);
+    },
+  );
+
   it('escapes markup typed into the name and message', async () => {
     const res = await post({
       ...valid,
@@ -86,6 +96,11 @@ describe('POST /api/email', () => {
     ['a blank name', { ...valid, name: '   ' }],
     ['a missing email', { name: valid.name, message: valid.message }],
     ['a malformed email', { ...valid, email: 'not-an-email' }],
+    ['an email with no top-level domain', { ...valid, email: 'ada@example' }],
+    [
+      'an email with a one-letter top-level domain',
+      { ...valid, email: 'ada@example.c' },
+    ],
     [
       'an email over 100 characters',
       { ...valid, email: `${'a'.repeat(95)}@example.com` },
