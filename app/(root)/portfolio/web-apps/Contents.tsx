@@ -3,6 +3,7 @@ import { Content } from '@/types';
 const Contents: Content[] = [
   {
     name: 'This web site',
+    coded: 'vibe',
     description: (
       <p>
         The web site you are currently viewing, is for me to showcase my skills,
@@ -17,6 +18,7 @@ const Contents: Content[] = [
   },
   {
     name: 'Banner Eyewear',
+    coded: 'hand',
     description: (
       <p>
         I developed Banner Eyewear so people could create and purchase 3D
@@ -40,21 +42,28 @@ const Contents: Content[] = [
         key: '/web-apps/glasses-computer.jpg',
         alt: 'Banner Eyewear',
         type: 'img',
+        width: 960,
+        height: 540,
       },
       {
         key: '/web-apps/create-your-own-square.gif',
         alt: 'Banner Eyewear',
         type: 'img',
+        width: 428,
+        height: 428,
       },
       {
         key: '/web-apps/selfie-ig.jpg',
         alt: 'Banner Eyewear',
         type: 'img',
+        width: 569,
+        height: 569,
       },
     ],
   },
   {
     name: 'Passero',
+    coded: 'vibe',
     description: (
       <p>
         <a href="http://www.travelpassero.com" target="_blank" rel="noreferrer">
@@ -75,11 +84,14 @@ const Contents: Content[] = [
         key: '/web-apps/passero-app.jpg',
         alt: 'Passero',
         type: 'img',
+        width: 2048,
+        height: 1205,
       },
     ],
   },
   {
     name: 'Perf Sealers',
+    coded: 'vibe',
     description: (
       <p>
         <a href="http://www.perfsealers.com" target="_blank" rel="noreferrer">
@@ -96,6 +108,8 @@ const Contents: Content[] = [
         key: '/web-apps/balls-in-fluid.jpg',
         alt: 'Perf Sealers',
         type: 'img',
+        width: 960,
+        height: 768,
       },
     ],
   },

@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 
+import useSkyColours from '@/components/SkyText/useSkyColours';
+
 import SocialLinks from './SocialLinks';
 
 // Shown only when reCAPTCHA is active — required by Google's terms when the
@@ -15,7 +17,7 @@ function DefaultText() {
     <h6>
       I can make almost anything, and would love to help develop your idea.{' '}
       <Link
-        className="underline decoration-pink underline-offset-4 hover:decoration-yellow"
+        className="text-[color:var(--sky-accent)] underline decoration-[color:var(--sky-underline)] underline-offset-4 hover:decoration-[color:var(--sky-accent)]"
         href="/contact"
       >
         Contact me
@@ -33,7 +35,7 @@ function ContactPageText() {
     <div>
       <h6>Please fill out this form. Ill will respond as soon as I can.</h6>
       {recaptchaEnabled && (
-        <small className="mt-4 block">
+        <small className="mt-4 block text-[color:var(--sky-muted)]">
           This site is protected by reCAPTCHA and the Google{' '}
           <a
             href="https://policies.google.com/privacy"
@@ -60,6 +62,11 @@ function ContactPageText() {
 export default function Footer() {
   const pathname = usePathname();
   const ref = useRef<HTMLElement | null>(null);
+  // The icons and the text each take their colours from the sky behind them.
+  const iconsRef = useRef<HTMLDivElement | null>(null);
+  const textRef = useRef<HTMLDivElement | null>(null);
+  useSkyColours(iconsRef);
+  useSkyColours(textRef);
 
   // The page's bottom fade sits on the footer's top edge (see
   // components/PageScroller/edgeFade.ts), so it follows the footer's height.
@@ -82,10 +89,13 @@ export default function Footer() {
       ref={ref}
       className="flex w-full flex-col items-center gap-6 pb-6 md:flex-row md:items-end [&_a]:pointer-events-auto"
     >
-      <div className="order-last flex-none md:order-first">
+      <div ref={iconsRef} className="order-last flex-none md:order-first">
         <SocialLinks />
       </div>
-      <div className="order-first flex flex-1 justify-end text-center md:order-last md:text-right">
+      <div
+        ref={textRef}
+        className="order-first flex flex-1 justify-end text-center md:order-last md:text-right [&_h6]:text-[color:var(--sky-text)]"
+      >
         {pathname === '/contact' ? <ContactPageText /> : <DefaultText />}
       </div>
     </footer>

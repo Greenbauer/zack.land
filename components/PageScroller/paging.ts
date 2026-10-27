@@ -1,9 +1,10 @@
 // Paging the portfolio's posts: one wheel turn, swipe or key press moves
 // straight to the next post (or back) in a short, quick glide, instead of
 // the browser's own snapping, which waits for the scroll to settle first.
+// Quick pushes chain: each one adds a post to where the glide is headed.
 
 // How long the glide to the next post takes, in milliseconds.
-export const GLIDE_MS = 350;
+export const GLIDE_MS = 300;
 
 // Fast out, gentle stop.
 export const easeOutCubic = (t: number) => 1 - (1 - t) ** 3;
@@ -23,24 +24,62 @@ export function nextPost(
   return Math.min(Math.max(nearest + direction, 0), positions.length - 1);
 }
 
-// Turns a stream of wheel events into page turns: once the scroll in one
-// direction adds up to `threshold` pixels it turns a page, then ignores the
-// rest of that gesture (a trackpad's glide keeps sending events for a second
-// or so) until the wheel has been quiet for `quietMs`.
-export function wheelPager({ threshold = 40, quietMs = 180 } = {}) {
+// Turns a stream of wheel events into page turns. Once the scroll in one
+// direction adds up to `threshold` pixels it turns a page; it turns another
+// as soon as the wheel is pushed afresh, with no wait for the glide: a new
+// swipe (once the last push has peaked, its deltas grow again, `rising`
+// times running) or
+// another notch of a mouse wheel (large and even, `notchGapMs` after the
+// last turn). The coast a trackpad keeps sending for a second or so after a
+// swipe only shrinks, so it never turns another page. A quiet wheel
+// (`quietMs`) starts over.
+export function wheelPager({
+  threshold = 40,
+  quietMs = 180,
+  notch = 50,
+  notchGapMs = 120,
+  rising = 2,
+} = {}) {
   let sum = 0;
   let lastAt = -Infinity;
+  let turnedAt = -Infinity;
   let spent = false;
+  // The last delta's size, how many deltas running have grown, and whether
+  // they have fallen since the last turn (its push has peaked).
+  let previous = 0;
+  let growing = 0;
+  let fallen = false;
+  // The recent deltas' sizes, to tell a mouse notch from a coast.
+  let recent: { at: number; size: number }[] = [];
   return (deltaY: number, now: number): 1 | -1 | 0 => {
     if (now - lastAt > quietMs) {
       spent = false;
       sum = 0;
+      recent = [];
+      previous = 0;
     }
     lastAt = now;
-    if (spent) return 0;
+    const size = Math.abs(deltaY);
+    recent = recent.filter(({ at }) => now - at < 120);
+    const largest = Math.max(0, ...recent.map((r) => r.size));
+    recent.push({ at: now, size });
+    growing = size > previous ? growing + 1 : 0;
+    if (size < previous) fallen = true;
+    previous = size;
+    if (spent) {
+      const swipe = fallen && growing >= rising;
+      const notched =
+        size >= notch && size >= largest && now - turnedAt >= notchGapMs;
+      if (!swipe && !notched) return 0;
+      spent = false;
+      sum = 0;
+    }
     sum += deltaY;
     if (Math.abs(sum) < threshold) return 0;
     spent = true;
+    growing = 0;
+    fallen = false;
+    turnedAt = now;
     const direction = sum > 0 ? 1 : -1;
     sum = 0;
     return direction;

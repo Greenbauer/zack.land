@@ -5,6 +5,7 @@ import {
   Camera,
   Euler,
   Group,
+  Mesh,
   MeshPhysicalMaterial,
   Plane,
   ShapeGeometry,
@@ -14,6 +15,7 @@ import {
   WebGLProgramParametersWithUniforms,
 } from 'three';
 
+import { TITLE_LAYER } from './focusBlur';
 import { GLOSS, heading, SKIN_COLOR } from './MyHead';
 import { skyAhead, skyRate } from './Sky';
 import {
@@ -204,6 +206,10 @@ const letterShapes = (font: ReturnType<typeof useFont>, text: string) =>
   font.generateShapes(text, EM, { letterSpacing: TRACKING });
 
 // One word, laid over its word on the page, at its size.
+// Puts a title's letters on the titles' layer, drawn over the focus blur
+// (focusBlur.ts).
+const onTitleLayer = (mesh: Mesh | null) => mesh?.layers.set(TITLE_LAYER);
+
 function Word({
   entry,
   material,
@@ -237,7 +243,7 @@ function Word({
 
   return (
     <group ref={group}>
-      <mesh geometry={geometry} material={material} />
+      <mesh ref={onTitleLayer} geometry={geometry} material={material} />
     </group>
   );
 }
@@ -275,6 +281,9 @@ export default function TitleName() {
   const gap = new Vector4();
 
   useEffect(() => {
+    // The scene's lights light the titles' layer too.
+    for (const light of AimProbe.lightsOf(scene))
+      light.layers.enable(TITLE_LAYER);
     const made = new AimProbe(material, SWEEP, AimProbe.lightsOf(scene));
     probe.current = made;
     return () => made.dispose();

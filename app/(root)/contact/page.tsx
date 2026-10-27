@@ -1,6 +1,8 @@
 import { Metadata } from 'next';
 import Script from 'next/script';
 
+import EdgeCard from '@/components/EdgeCard';
+
 import Form from './Form';
 
 export const metadata: Metadata = {
@@ -19,11 +21,13 @@ export default function Contact() {
           strategy="afterInteractive"
         />
       )}
-      <section>
+      {/* Its glass runs out past the window's right side (and a phone's
+          left), like the portfolio's cards. */}
+      <EdgeCard>
         <article>
           <Form />
         </article>
-      </section>
+      </EdgeCard>
     </div>
   );
 }

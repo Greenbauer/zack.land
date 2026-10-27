@@ -4,6 +4,7 @@ import {
   edgeFade,
   edgeFadeCss,
   Fade,
+  fadeAt,
   NARROW,
   WIDE,
   WIDE_FROM,
@@ -86,6 +87,17 @@ describe.each([
         short.map(([alpha]) => alpha),
       );
       tall.forEach(([, px], k) => expect(px - short[k]![1]).toBe(108));
+    });
+
+    it('gives the same opacity as the mask, for what is drawn behind the page', () => {
+      // A window 900 tall with a 100 pixel footer.
+      const [height, footer] = [900, 100];
+      for (const [alpha, px] of topStops(fade))
+        expect(fadeAt(px, height, footer, fade)).toBeCloseTo(alpha, 2);
+      for (const [alpha, up] of bottomStops(fade, footer))
+        expect(fadeAt(height - up, height, footer, fade)).toBeCloseTo(alpha, 2);
+      expect(fadeAt(height / 2, height, footer, fade)).toBe(1);
+      expect(fadeAt(0, height, footer, fade)).toBe(0);
     });
 
     it('ends the page where the bottom fade is as far along as the top at pageTop', () => {

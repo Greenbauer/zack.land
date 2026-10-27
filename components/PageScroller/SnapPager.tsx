@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 
 import { PAGE_SCROLLER_ID } from './edgeFade';
+import { GLIDE_EVENT, postPositions } from './pageGlide';
 import {
   easeOutCubic,
   GLIDE_MS,
@@ -11,9 +12,10 @@ import {
   wheelPager,
 } from './paging';
 
-// Pages the scroller between its posts (paging.ts) on the wheel and the
-// keyboard. A phone's swipe keeps the browser's own snapping, which already
-// moves a post at a time. Renders nothing.
+// Pages the scroller between its posts (paging.ts) on the wheel, the
+// keyboard and the scroll arrows (pageGlide.ts). A phone's swipe keeps the
+// browser's own snapping, which already moves a post at a time. Renders
+// nothing.
 export default function SnapPager() {
   useEffect(() => {
     const scroller = document.getElementById(PAGE_SCROLLER_ID);
@@ -22,24 +24,21 @@ export default function SnapPager() {
     const still = matchMedia('(prefers-reduced-motion: reduce)');
     let frame = 0;
 
-    // Each post's scroll position: its top at the top of the page's content.
-    const positions = () => {
-      const pageTop = parseFloat(
-        getComputedStyle(scroller).getPropertyValue('--page-top'),
-      );
-      return [...scroller.querySelectorAll('section.snap-start')].map(
-        (post) =>
-          scroller.scrollTop + post.getBoundingClientRect().top - pageTop,
-      );
-    };
+    const positions = () => postPositions(scroller);
+
+    // Where a glide under way is headed, so a quick push adds a post to it
+    // rather than to wherever the glide has got to.
+    let headedTo: number | null = null;
 
     const glide = (direction: 1 | -1) => {
       const at = positions();
       if (!at.length) return;
-      const to = at[nextPost(at, scroller.scrollTop, direction)]!;
+      const to = at[nextPost(at, headedTo ?? scroller.scrollTop, direction)]!;
+      headedTo = to;
       cancelAnimationFrame(frame);
       if (still.matches) {
         scroller.scrollTop = to;
+        headedTo = null;
         return;
       }
       // The browser's snapping would pull each step back, so it is off
@@ -51,7 +50,10 @@ export default function SnapPager() {
         const t = Math.min((now - start) / GLIDE_MS, 1);
         scroller.scrollTop = from + (to - from) * easeOutCubic(t);
         if (t < 1) frame = requestAnimationFrame(step);
-        else scroller.style.scrollSnapType = '';
+        else {
+          scroller.style.scrollSnapType = '';
+          headedTo = null;
+        }
       };
       frame = requestAnimationFrame(step);
     };
@@ -94,13 +96,18 @@ export default function SnapPager() {
       glide(direction);
     };
 
+    const onRequest = (event: Event) =>
+      glide((event as CustomEvent<1 | -1>).detail);
+
     scroller.addEventListener('wheel', onWheel, { passive: false });
     window.addEventListener('keydown', onKey);
+    window.addEventListener(GLIDE_EVENT, onRequest);
     return () => {
       cancelAnimationFrame(frame);
       scroller.style.scrollSnapType = '';
       scroller.removeEventListener('wheel', onWheel);
       window.removeEventListener('keydown', onKey);
+      window.removeEventListener(GLIDE_EVENT, onRequest);
     };
   }, []);
 

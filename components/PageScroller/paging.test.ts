@@ -46,12 +46,57 @@ describe('turning pages with the wheel', () => {
     expect(turn(-15, 32)).toBe(-1);
   });
 
-  it('turns only one page for a whole gesture, its glide included', () => {
+  // A trackpad swipe: deltas growing for a moment, then its coast, shrinking
+  // a little with each event, every 16 ms from `start`.
+  const swipe = (start: number, direction = 1) => {
+    const events: [number, number][] = [];
+    let at = start;
+    for (let k = 0; k < 6; k++, at += 16)
+      events.push([direction * (20 + k * 15), at]);
+    for (let size = 100; size > 2; size *= 0.95, at += 16)
+      events.push([direction * size, at]);
+    return events;
+  };
+
+  it('turns only one page for a whole swipe, its coast included', () => {
+    const turn = wheelPager();
+    const turns = swipe(0).map(([delta, at]) => turn(delta, at));
+    expect(turns.filter((t) => t !== 0)).toEqual([1]);
+  });
+
+  it('turns again for a second swipe made while the first still coasts', () => {
+    const turn = wheelPager();
+    const first = swipe(0);
+    // The second swipe starts half a second in, mid-coast.
+    const second = swipe(500);
+    const events = [...first.filter(([, at]) => at < 500), ...second];
+    const turns = events.map(([delta, at]) => turn(delta, at));
+    expect(turns.filter((t) => t !== 0)).toEqual([1, 1]);
+  });
+
+  it('turns a page for every quick swipe, without waiting for the glide', () => {
+    const turn = wheelPager();
+    // Three swipes 200 ms apart, each cutting the last one's coast short.
+    const events = [0, 200, 400].flatMap((start, k, starts) =>
+      swipe(start).filter(([, at]) => k === 2 || at < starts[k + 1]!),
+    );
+    const turns = events.map(([delta, at]) => turn(delta, at));
+    expect(turns.filter((t) => t !== 0)).toEqual([1, 1, 1]);
+  });
+
+  it('keeps turning pages while a mouse wheel spins', () => {
     const turn = wheelPager();
     const turns = [];
-    // A swipe and its glide: events every 16 ms for a second.
-    for (let at = 0; at < 1000; at += 16) turns.push(turn(60, at));
-    expect(turns.filter((t) => t !== 0)).toEqual([1]);
+    // Notches every 60 ms for half a second: a page every other notch.
+    for (let at = 0; at < 500; at += 60) turns.push(turn(100, at));
+    expect(turns.filter((t) => t !== 0)).toHaveLength(5);
+  });
+
+  it('does not count one notch twice', () => {
+    const turn = wheelPager();
+    expect(turn(100, 0)).toBe(1);
+    expect(turn(100, 60)).toBe(0);
+    expect(turn(100, 120)).toBe(1);
   });
 
   it('turns again once the wheel has been quiet', () => {

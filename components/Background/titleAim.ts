@@ -241,10 +241,10 @@ class Grader {
 // ahead (`views`), and how the page shows them (`calibration`).
 //
 // While every checked point keeps `target` contrast now and ahead, with
-// room to spare (KEEP), the name stays as it is, unless a
-// readable aim is clearly more colourful (RICHER). Otherwise it moves to an aim that does now, near, with a margin, and
-// readable ahead (TURN_COST, AHEAD_WEIGHT), on the same side (lighter or
-// darker than what is behind it). Only if none on that side does, its own
+// room to spare (KEEP), the name stays as it is, unless a readable aim is
+// clearly more colourful (RICHER). Otherwise it moves to an aim that does
+// now, near, with a margin, and readable ahead (TURN_COST, AHEAD_WEIGHT), on
+// the same side (lighter or darker than what is behind it). Only if none on that side does, its own
 // side's best is well short (FLIP_BELOW) or short and `patient`, and one on
 // the other side does, it flips to the best of those (`flip`), when
 // `mayFlip`. Failing that, it takes its own side's best.
@@ -260,42 +260,7 @@ export function chooseAim(
   const grader = new Grader(views, checks, calibration);
   const now = grader.grade(NOW);
   const readable = now.worst >= target * KEEP && now.ahead >= target * KEEP;
-  const goal = target * HEADROOM;
-  const same = { aim: current, score: -Infinity, worst: 0, colour: 0 };
-  const other = { aim: current, score: -Infinity, worst: 0, colour: 0 };
-  const richest = { aim: current, score: -Infinity, worst: 0, colour: 0 };
-  const best = { aim: current, worst: now.worst };
-  for (let row = 0; row < AIMS; row++) {
-    const { worst, ahead, colour, lighter } = grader.grade(row);
-    const aim = aimAt(row);
-    if (lighter === now.lighter && worst > best.worst)
-      Object.assign(best, { aim, worst });
-    // A move on the same side keeps headroom; a flip takes any aim that
-    // reads, as staying put does not.
-    const side = lighter === now.lighter ? same : other;
-    if (worst < (side === same ? goal : target)) continue;
-    const score =
-      Math.min(worst, CONTRAST_CAP * target) +
-      AHEAD_WEIGHT * Math.min(ahead, CONTRAST_CAP * target) +
-      COLOUR_WEIGHT * colour -
-      TURN_COST *
-        Math.hypot(
-          aim.x - current.x,
-          aim.y - current.y,
-          SWEEP_COST * (aim.sweepX - current.sweepX),
-          SWEEP_COST * (aim.sweepY - current.sweepY),
-        );
-    if (score > side.score) Object.assign(side, { aim, score, worst, colour });
-    const near =
-      Math.hypot(
-        aim.x - current.x,
-        aim.y - current.y,
-        aim.sweepX - current.sweepX,
-        aim.sweepY - current.sweepY,
-      ) <= STEP;
-    if (near && worst >= goal && ahead >= goal && colour > richest.colour)
-      Object.assign(richest, { aim, score, worst, colour });
-  }
+  const { same, other, richest, best } = survey(grader, now, current, target);
   // Readable, the name drifts toward a clearly more colourful readable aim,
   // lighter or darker than the sky or both: past the floor, the palette
   // matters most.
@@ -306,11 +271,84 @@ export function chooseAim(
       : { aim: current, worst: now.worst, flip: false };
   if (same.score > -Infinity)
     return { aim: same.aim, worst: same.worst, flip: false };
-  if (
-    mayFlip &&
-    other.score > -Infinity &&
-    best.worst < (patient ? 1 : FLIP_BELOW) * target
-  )
+  const short = best.worst < (patient ? 1 : FLIP_BELOW) * target;
+  if (mayFlip && other.score > -Infinity && short)
     return { aim: other.aim, worst: other.worst, flip: true };
   return { aim: best.aim, worst: best.worst, flip: false };
+}
+
+// One candidate aim, and how it did.
+type Pick = { aim: Aim; score: number; worst: number; colour: number };
+const unpicked = (aim: Aim): Pick => ({
+  aim,
+  score: -Infinity,
+  worst: 0,
+  colour: 0,
+});
+
+// How far the sheet turns from one aim to another, a change of sweep
+// direction counted `sweepCost` times over.
+const turn = (a: Aim, b: Aim, sweepCost: number) =>
+  Math.hypot(
+    a.x - b.x,
+    a.y - b.y,
+    sweepCost * (a.sweepX - b.sweepX),
+    sweepCost * (a.sweepY - b.sweepY),
+  );
+
+// Whether an aim is a step from `current` that reads, with headroom, now and
+// where the sky is turning.
+const isStep = (
+  graded: ReturnType<Grader['grade']>,
+  aim: Aim,
+  current: Aim,
+  goal: number,
+) =>
+  turn(aim, current, 1) <= STEP && graded.worst >= goal && graded.ahead >= goal;
+
+// The grid's best aims for chooseAim: the best-scoring that read on the
+// name's own side (`same`, with headroom) and on the other (`other`), the most
+// colourful a step away that reads now and ahead (`richest`), and the own
+// side's most readable, read or not (`best`).
+function survey(
+  grader: Grader,
+  now: ReturnType<Grader['grade']>,
+  current: Aim,
+  target: number,
+) {
+  const goal = target * HEADROOM;
+  const picks = {
+    same: unpicked(current),
+    other: unpicked(current),
+    richest: unpicked(current),
+    best: { aim: current, worst: now.worst },
+  };
+  for (let row = 0; row < AIMS; row++) {
+    const graded = grader.grade(row);
+    const aim = aimAt(row);
+    const ownSide = graded.lighter === now.lighter;
+    if (ownSide && graded.worst > picks.best.worst)
+      picks.best = { aim, worst: graded.worst };
+    // A move on the same side keeps headroom; a flip takes any aim that
+    // reads, as staying put does not.
+    if (graded.worst < (ownSide ? goal : target)) continue;
+    const pick: Pick = {
+      aim,
+      worst: graded.worst,
+      colour: graded.colour,
+      score:
+        Math.min(graded.worst, CONTRAST_CAP * target) +
+        AHEAD_WEIGHT * Math.min(graded.ahead, CONTRAST_CAP * target) +
+        COLOUR_WEIGHT * graded.colour -
+        TURN_COST * turn(aim, current, SWEEP_COST),
+    };
+    const side = ownSide ? 'same' : 'other';
+    if (pick.score > picks[side].score) picks[side] = pick;
+    if (
+      isStep(graded, aim, current, goal) &&
+      pick.colour > picks.richest.colour
+    )
+      picks.richest = pick;
+  }
+  return picks;
 }

@@ -6,6 +6,7 @@ The contact page and the route that mails each message: Name, Email and Message,
 
 - page: `app/(root)/contact/page.tsx`
 - route: `app/api/email/route.ts`
+- source: `components/EdgeCard.tsx`
 - source: `app/(root)/contact/**`
 - source: `app/api/email/**`
 - source: `components/FormFields.tsx`
@@ -19,7 +20,7 @@ The contact page and the route that mails each message: Name, Email and Message,
 
 ## Reach
 
-Contact in the header, or Contact me in the footer, opens `/contact`. Submit stays disabled until all three fields are valid, then posts to `/api/email`; the reply replaces Submit with "Your message has been sent" or shows "An error has occurred".
+Contact in the header, or Contact me in the footer, opens `/contact`. The form sits on a frosted-glass card whose glass runs flat past the window's right side, and on a phone past both sides, so it meets the edge square and only fades out at its top and bottom (`components/EdgeCard.tsx`). Submit stays disabled until all three fields are valid, then posts to `/api/email`; the reply replaces Submit with "Your message has been sent" or shows "An error has occurred". The messages are in the card's text colour (`status` in `tailwind.config.js`), their words telling an error from success, at 4.5:1 or better over the glass. While any field has focus, the 3D scene behind the form softly blurs (over 0.3 seconds) while the form, the header, its page title and the footer stay sharp: the blur is drawn in the scene itself, with the 3D titles drawn over it (`components/Background/focusBlur.ts`, `Grading.tsx`), and the form opts in with `data-focus-blur`.
 
 ## Verify
 
@@ -28,9 +29,10 @@ Roles: none; the page is public. Mail: the QAE container points the five SMTP va
 1. Open `/contact`: Name, Email and Message, Submit disabled, and the footer reads "Please fill out this form".
 2. Type a name, a valid email and a message without leaving the message box: Submit enables.
 3. Type `not-an-email` in Email and leave the field: "invalid" shows under it only once the field is left.
-4. With the SMTP variables pointing at a sink, fill the three fields and press Submit: "Your message has been sent" replaces Submit.
-5. With no SMTP variables set, fill the three fields and press Submit: "An error has occurred" shows and the server logs the missing variables.
-6. Post to `/api/email` directly with the email `not-an-email`, or with no message: the route answers 400 and sends nothing.
+4. Click into any field: the head and sky behind the form blur, while the form, the header links, CONTACT ME and the footer stay sharp; click outside the form and the blur clears.
+5. With the SMTP variables pointing at a sink, fill the three fields and press Submit: "Your message has been sent" replaces Submit.
+6. With no SMTP variables set, fill the three fields and press Submit: "An error has occurred" shows and the server logs the missing variables.
+7. Post to `/api/email` directly with the email `not-an-email`, or with no message: the route answers 400 and sends nothing.
 
 - `cypress/e2e/contact-form.cy.ts::enables Submit once valid, without blurring the last field`
 - `cypress/e2e/contact-form.cy.ts::shows a field error only after blur, not while typing`
