@@ -26,17 +26,40 @@ describe('the sky for each view of the site', () => {
     }
   });
 
-  it('chooses afresh on each load, keeping a view’s sky for the visit', () => {
-    const views = [
-      '/',
-      '/contact',
-      '/portfolio/web-apps#0',
-      '/portfolio/web-apps#1',
-    ];
+  it('moves the sky on every change of view, pages included', () => {
+    const random = seeded(7);
+    const pages = ['/', '/contact', '/portfolio/web-apps#0', '/no-such-page'];
+    for (let seed = 1; seed < 30; seed++) {
+      const stationFor = planSkies(seeded(seed));
+      let lastView = '/';
+      let last = stationFor(lastView);
+      for (let k = 0; k < 40; k++) {
+        const view = pages[Math.floor(random() * pages.length)]!;
+        const station = stationFor(view);
+        // The same view, still on screen, keeps its sky; a new view never
+        // lands on the sky it is leaving.
+        if (view === lastView) expect(station).toBe(last);
+        else expect(which(station)).not.toBe(which(last));
+        [lastView, last] = [view, station];
+      }
+    }
+  });
+
+  it('keeps a view’s sky while it is on screen, and picks afresh on a later visit', () => {
+    const stationFor = planSkies(seeded(3));
+    const first = stationFor('/');
+    expect(stationFor('/')).toBe(first);
+    const visits = Array.from({ length: 20 }, () => {
+      stationFor('/contact');
+      return which(stationFor('/'));
+    });
+    expect(new Set(visits).size).toBeGreaterThan(1);
+  });
+
+  it('chooses afresh on each load', () => {
+    const views = ['/', '/contact', '/portfolio/web-apps#0'];
     const loads = Array.from({ length: 12 }, (_, seed) => {
       const stationFor = planSkies(seeded(seed + 1));
-      // The same view asked twice in one load gets the same sky.
-      for (const view of views) expect(stationFor(view)).toBe(stationFor(view));
       return views.map((view) => which(stationFor(view))).join();
     });
     expect(new Set(loads).size).toBeGreaterThan(6);

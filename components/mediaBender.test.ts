@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { shownPart } from './mediaBender';
+import { shownPart, uploadsAgain } from './mediaBender';
 
 describe('the part of a picture its box shows', () => {
   it('shows all of a picture drawn to fill its box', () => {
@@ -32,5 +32,17 @@ describe('the part of a picture its box shows', () => {
     expect(
       shownPart({ width: 100, height: 50 }, { width: 0, height: 0 }, 'cover'),
     ).toEqual([0, 0, 1, 1]);
+  });
+});
+
+describe('when a picture is uploaded again', () => {
+  it('keeps a still image, and refreshes a video or an animated GIF', () => {
+    const still = '/_next/image?url=%2Fweb-apps%2Fselfie-ig.jpg&w=1080&q=75';
+    const gif = '/_next/image?url=%2Fmiscellaneous%2Fgears.gif&w=1080&q=75';
+    expect(uploadsAgain(still, still, false)).toBe(false);
+    expect(uploadsAgain('', still, false)).toBe(true);
+    expect(uploadsAgain(gif, gif, false)).toBe(true);
+    expect(uploadsAgain('/gears.gif', '/gears.gif', false)).toBe(true);
+    expect(uploadsAgain('/v.mp4', '/v.mp4', true)).toBe(true);
   });
 });

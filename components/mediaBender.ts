@@ -32,6 +32,12 @@ export function shownPart(
   return [(1 - width) / 2, (1 - height) / 2, width, height];
 }
 
+// Whether a picture's texture is uploaded again: when its source changes,
+// and every frame for a video or an animated GIF, so they keep moving under
+// the bend.
+export const uploadsAgain = (was: string, src: string, isVideo: boolean) =>
+  was !== src || isVideo || /\.gif\b/i.test(src);
+
 const VERTEX = `
   attribute vec2 position;
   varying vec2 vUv;
@@ -140,8 +146,7 @@ export class MediaBender {
     gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
   }
 
-  // The picture's texture, uploaded once for an image and every frame for a
-  // playing video.
+  // The picture's texture (uploadsAgain says when it is uploaded).
   private texture(media: HTMLImageElement | HTMLVideoElement) {
     const { gl } = this;
     const src = media.currentSrc;
@@ -156,7 +161,7 @@ export class MediaBender {
       this.textures.set(media, held);
     }
     gl.bindTexture(gl.TEXTURE_2D, held.texture);
-    if (held.src !== src || media instanceof HTMLVideoElement) {
+    if (uploadsAgain(held.src, src, media instanceof HTMLVideoElement)) {
       gl.texImage2D(
         gl.TEXTURE_2D,
         0,

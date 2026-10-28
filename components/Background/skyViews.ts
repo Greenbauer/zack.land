@@ -54,40 +54,34 @@ export function currentView(): string {
   return `${page}#${nearest}`;
 }
 
-const shuffled = <T>(list: T[], random: () => number) => {
-  const out = [...list];
-  for (let k = out.length - 1; k > 0; k--) {
-    const j = Math.floor(random() * (k + 1));
-    [out[k], out[j]] = [out[j]!, out[k]!];
-  }
-  return out;
-};
-
-// A fresh choice of skies for every view, made with `random`: each page
-// starts on a light or a dark sky at random, and its posts take light and
-// dark skies in turn, each family in its own random order, so the skies
-// differ on every load and two posts in a row never share one.
+// A fresh sky for every view of the site, picked with `random`: each time
+// the view changes (another page, or another post of a portfolio page) the
+// sky moves to a station picked at random, never the one it is leaving.
+// Between the posts of one page light and dark skies take turns; a page
+// starts on either. A view asked again while it is on screen keeps its sky,
+// and a view come back to later gets a new one, so the skies differ on every
+// load and on every visit.
 export function planSkies(random: () => number = Math.random) {
-  const pages = new Map<string, Station[]>();
-  return (view: string): Station => {
-    const [page = '/', post = '0'] = view.split('#');
-    let skies = pages.get(page);
-    if (!skies) {
-      const light = shuffled(LIGHT_SKIES, random);
-      const dark = shuffled(DARK_SKIES, random);
-      const darkFirst = random() < 0.5;
-      skies = Array.from(
-        { length: 2 * Math.max(light.length, dark.length) },
-        (_, k) =>
-          (k % 2 === 0) === darkFirst
-            ? dark[Math.floor(k / 2) % dark.length]!
-            : light[Math.floor(k / 2) % light.length]!,
-      );
-      pages.set(page, skies);
-    }
-    return skies[Number(post) % skies.length]!;
+  let view: string | null = null;
+  let station: Station | null = null;
+  return (next: string): Station => {
+    if (next === view && station) return station;
+    const samePage = view !== null && view.split('#')[0] === next.split('#')[0];
+    const wasLight = station !== null && LIGHT_SKIES.includes(station);
+    const family =
+      samePage && station
+        ? wasLight
+          ? DARK_SKIES
+          : LIGHT_SKIES
+        : random() < 0.5
+          ? LIGHT_SKIES
+          : DARK_SKIES;
+    const choices = family.filter((s) => s !== station);
+    station = choices[Math.floor(random() * choices.length)]!;
+    view = next;
+    return station;
   };
 }
 
-// This load's skies (chosen once, as the page opens).
+// The skies for this visit to the site.
 export const stationFor = planSkies();
