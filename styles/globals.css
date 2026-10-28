@@ -269,7 +269,8 @@
 }
 
 .collage[data-shown] .collage-tile {
-  visibility: visible;
+  /* Shown as the page is (hidden with it under the open phone menu). */
+  visibility: inherit;
   transform: rotate(var(--tilt));
   transition:
     transform 0.9s cubic-bezier(0.22, 1, 0.36, 1) var(--wait, 0s),
@@ -314,4 +315,10 @@
 body:has(.mobile-menu.fixed) #page,
 body:has(.mobile-menu.fixed) [data-scroll-arrows] {
   visibility: hidden;
+}
+/* At once: a shown image tile would otherwise take its own wait to hide
+   (.collage-tile's visibility transition). */
+body:has(.mobile-menu.fixed) .collage-tile {
+  visibility: hidden;
+  transition: none;
 }
