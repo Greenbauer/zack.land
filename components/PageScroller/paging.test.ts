@@ -114,6 +114,25 @@ describe('turning pages with the wheel', () => {
     expect(turns.filter((t) => t !== 0)).toEqual([1]);
   });
 
+  // One swipe as a trackpad really sends it: its push rising unevenly and
+  // its coast wavering, a delta every 16 ms.
+  const turnsFor = (deltas: number[]) => {
+    const turn = wheelPager();
+    return deltas.map((delta, k) => turn(delta, k * 16)).filter((t) => t);
+  };
+
+  it('turns only one page for a swipe whose push rises unevenly', () => {
+    expect(
+      turnsFor([10, 25, 22, 40, 60, 55, 80, 95, 90, 70, 50, 30, 15, 5]),
+    ).toEqual([1]);
+  });
+
+  it('turns only one page for a swipe whose coast wavers', () => {
+    expect(
+      turnsFor([20, 50, 90, 80, 70, 60, 61, 62, 55, 50, 51, 53, 45, 30, 10]),
+    ).toEqual([1]);
+  });
+
   it('turns again for a second swipe made while the first still coasts', () => {
     const turn = wheelPager();
     const first = swipe(0);

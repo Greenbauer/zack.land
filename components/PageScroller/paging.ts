@@ -121,7 +121,8 @@ export function turnTo(
 // direction adds up to `threshold` pixels it turns a page; it turns another
 // as soon as the wheel is pushed afresh, with no wait for the glide: a new
 // swipe (once the last push has peaked, its deltas grow again, `rising`
-// times running) or
+// times running, to at least `afresh` times the lowest they fell to, so the
+// jitter in one swipe's push or coast is not taken for another) or
 // another notch of a mouse wheel (large and even, `notchGapMs` after the
 // last turn). The coast a trackpad keeps sending for a second or so after a
 // swipe only shrinks, so it never turns another page. A quiet wheel
@@ -132,16 +133,18 @@ export function wheelPager({
   notch = 50,
   notchGapMs = 120,
   rising = 2,
+  afresh = 2,
 } = {}) {
   let sum = 0;
   let lastAt = -Infinity;
   let turnedAt = -Infinity;
   let spent = false;
-  // The last delta's size, how many deltas running have grown, and whether
-  // they have fallen since the last turn (its push has peaked).
+  // The last delta's size, how many deltas running have grown, and the
+  // lowest they have fallen to since the last turn's push peaked (Infinity
+  // until they fall).
   let previous = 0;
   let growing = 0;
-  let fallen = false;
+  let trough = Infinity;
   // The recent deltas' sizes, to tell a mouse notch from a coast.
   let recent: { at: number; size: number }[] = [];
   return (deltaY: number, now: number): 1 | -1 | 0 => {
@@ -157,10 +160,10 @@ export function wheelPager({
     const largest = Math.max(0, ...recent.map((r) => r.size));
     recent.push({ at: now, size });
     growing = size > previous ? growing + 1 : 0;
-    if (size < previous) fallen = true;
+    if (size < previous) trough = Math.min(trough, size);
     previous = size;
     if (spent) {
-      const swipe = fallen && growing >= rising;
+      const swipe = growing >= rising && size >= afresh * trough;
       const notched =
         size >= notch && size >= largest && now - turnedAt >= notchGapMs;
       if (!swipe && !notched) return 0;
@@ -171,7 +174,7 @@ export function wheelPager({
     if (Math.abs(sum) < threshold) return 0;
     spent = true;
     growing = 0;
-    fallen = false;
+    trough = Infinity;
     turnedAt = now;
     const direction = sum > 0 ? 1 : -1;
     sum = 0;
