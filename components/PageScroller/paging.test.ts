@@ -120,48 +120,57 @@ describe('turning pages with the keyboard', () => {
   });
 });
 
-describe('holding page turns while one plays', () => {
+describe('spacing page turns out', () => {
+  const options = { holdMs: 1400, quickMs: 700 };
+
   it('turns at once when nothing is playing', () => {
-    const gate = turnGate(2000);
-    expect(gate.ask(1, 0)).toBe(1);
-    expect(gate.ask(1, 2000)).toBe(1);
+    const gate = turnGate(options);
+    expect(gate.ask(1, 0)).toEqual({ direction: 1, quick: false });
+    expect(gate.ask(1, 1400)).toEqual({ direction: 1, quick: false });
   });
 
-  it('holds a push back the other way until the turn has played', () => {
-    const gate = turnGate(2000);
+  it('holds a turn the same way until the next card is most of the way in', () => {
+    const gate = turnGate(options);
     gate.ask(1, 0);
-    expect(gate.ask(-1, 500)).toBe(0);
-    expect(gate.due(1999)).toBe(0);
+    expect(gate.ask(1, 300)).toBeNull();
+    expect(gate.due(1399)).toBeNull();
     // Still waiting, for a timer that came a moment early to look again.
-    expect(gate.waiting).toBe(-1);
-    expect(gate.due(2000)).toBe(-1);
+    expect(gate.waiting).toBe(1);
+    expect(gate.due(1400)).toEqual({ direction: 1, quick: false });
     expect(gate.waiting).toBe(0);
-    // That turn plays in full too.
-    expect(gate.freeAt).toBe(4000);
-    expect(gate.due(4000)).toBe(0);
+    expect(gate.freeAt).toBe(2800);
   });
 
-  it('keeps only the latest push from a burst', () => {
-    const gate = turnGate(2000);
+  it('turns back at once, quick only before the next card sets off', () => {
+    const quick = turnGate(options);
+    quick.ask(1, 0);
+    expect(quick.ask(-1, 300)).toEqual({ direction: -1, quick: true });
+    const midway = turnGate(options);
+    midway.ask(1, 0);
+    expect(midway.ask(-1, 1000)).toEqual({ direction: -1, quick: false });
+  });
+
+  it('keeps only the latest of a burst the same way', () => {
+    const gate = turnGate(options);
     gate.ask(1, 0);
     gate.ask(1, 100);
     gate.ask(1, 200);
-    gate.ask(-1, 300);
-    expect(gate.due(2000)).toBe(-1);
-    expect(gate.due(4000)).toBe(0);
+    expect(gate.due(1400)).toEqual({ direction: 1, quick: false });
+    expect(gate.due(2800)).toBeNull();
+  });
+
+  it('drops a waiting turn when one back goes instead', () => {
+    const gate = turnGate(options);
+    gate.ask(1, 0);
+    gate.ask(1, 100);
+    gate.ask(-1, 200);
+    expect(gate.waiting).toBe(0);
+    expect(gate.due(1600)).toBeNull();
   });
 
   it('can start as if a turn is already playing', () => {
-    const gate = turnGate(2000, 100);
-    expect(gate.ask(1, 500)).toBe(0);
-    expect(gate.due(2100)).toBe(1);
-  });
-
-  it('lets a turn asked once free go at once, dropping nothing stale', () => {
-    const gate = turnGate(2000);
-    gate.ask(1, 0);
-    gate.ask(-1, 100);
-    expect(gate.ask(1, 2500)).toBe(1);
-    expect(gate.due(4500)).toBe(0);
+    const gate = turnGate({ ...options, playingFrom: 100 });
+    expect(gate.ask(1, 500)).toBeNull();
+    expect(gate.due(1500)).toEqual({ direction: 1, quick: false });
   });
 });

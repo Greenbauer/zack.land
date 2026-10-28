@@ -9,7 +9,6 @@ import {
   GLIDE_MS,
   keyDirection,
   nextPost,
-  TURN_MS,
   turnGate,
   wheelPager,
 } from './paging';
@@ -19,25 +18,28 @@ import {
 const SWIPE_PX = 40;
 
 // Pages the scroller between its posts (paging.ts) on the wheel, a swipe,
-// the keyboard and the scroll arrows (pageGlide.ts). Each turn plays its
-// cards' whole change before the next (turnGate): a push meanwhile waits,
-// and only the latest. Renders nothing.
+// the keyboard and the scroll arrows (pageGlide.ts). A turn the same way
+// waits for the last turn's next card to come most of the way in, a turn
+// back goes at once (turnGate). Renders nothing.
 export default function SnapPager() {
   useEffect(() => {
     const scroller = document.getElementById(PAGE_SCROLLER_ID);
     if (!scroller) return;
     const turn = wheelPager();
     // The first card is arriving as the page loads.
-    const gate = turnGate(TURN_MS, performance.now());
+    const gate = turnGate({ playingFrom: performance.now() });
     const still = matchMedia('(prefers-reduced-motion: reduce)');
     let frame = 0;
     let wait = 0;
 
     const positions = () => postPositions(scroller);
 
-    const move = (direction: 1 | -1) => {
+    const move = (direction: 1 | -1, quick: boolean) => {
       const at = positions();
       if (!at.length) return;
+      // A quick turn back brings its card straight back (Post.tsx): the card
+      // it turns away from never set off.
+      scroller.style.setProperty('--turn-delay', quick ? '0s' : '');
       const to = at[nextPost(at, scroller.scrollTop, direction)]!;
       cancelAnimationFrame(frame);
       if (still.matches) {
@@ -58,22 +60,20 @@ export default function SnapPager() {
       frame = requestAnimationFrame(step);
     };
 
-    // A turn goes now, or waits for the one playing to finish. (A timer can
-    // fire a moment early, so it looks again until the wait is over.)
+    // A turn goes now, or waits for the last turn's next card to come in.
+    // (A timer can fire a moment early, so it looks again until it may.)
     const play = () => {
-      const due = gate.due(performance.now());
-      if (due) move(due);
+      const next = gate.due(performance.now());
+      if (next) move(next.direction, next.quick);
       else if (gate.waiting)
         wait = window.setTimeout(play, gate.freeAt - performance.now());
     };
     const glide = (direction: 1 | -1) => {
       const now = performance.now();
-      if (gate.ask(direction, now)) {
-        move(direction);
-        return;
-      }
+      const next = gate.ask(direction, now);
       clearTimeout(wait);
-      wait = window.setTimeout(play, gate.freeAt - now);
+      if (next) move(next.direction, next.quick);
+      else wait = window.setTimeout(play, gate.freeAt - now);
     };
 
     // Whether something inside a post (its text, opened on a phone) can
@@ -154,6 +154,7 @@ export default function SnapPager() {
       cancelAnimationFrame(frame);
       clearTimeout(wait);
       scroller.style.scrollSnapType = '';
+      scroller.style.removeProperty('--turn-delay');
       scroller.removeEventListener('wheel', onWheel);
       scroller.removeEventListener('touchstart', onTouchStart);
       scroller.removeEventListener('touchmove', onTouchMove);

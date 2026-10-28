@@ -9,25 +9,37 @@ import { Content } from '@/types';
 import EdgeCard from './EdgeCard';
 import PostCollage from './PostCollage';
 import useHeadClear from './useHeadClear';
-import useHeldCard from './useHeldCard';
+import useHeldCard, { PostPlace } from './useHeldCard';
 
 type PostProps = { content: Content };
 
-// A post's card leaving carries on off the window's right side, its glass
-// whole, while what is on it fades out (animate-card-out, animate-content-out:
-// 0.8 seconds). Arriving, after a 0.7-second pause, it slides in from the
-// window's left edge while what is on it fades in (animate-card-in,
-// animate-content-in: 1.4 seconds; all in tailwind.config.js). A card that
-// has never shown just stays hidden. With reduced motion the card just shows
-// or hides, and what is on it fades.
-const CARD_IN =
-  'motion-safe:animate-card-in motion-safe:[animation-delay:0.7s] motion-reduce:[transition:visibility_0s_0.7s]';
-const CARD_HIDDEN =
-  'pointer-events-none invisible motion-reduce:[transition:visibility_0s_0.4s]';
+// Where a post's card waits, by where its post is (PostPlace): in place for
+// the post in view, off the window's right side for posts above it and off
+// its left side for posts below. Paging down, a card slides out to the right
+// and the next comes in from the left; paging up, the other way. They are
+// transitions, so a card turned back part way reverses from where it is.
+// Leaving, it gathers speed off the window's edge (0.8 seconds) and then
+// hides; arriving, after a pause for the last to leave (--turn-delay, 0.7
+// seconds unless a quick turn back sets it to 0, SnapPager.tsx), it slows
+// gently into place (1.4 seconds). Its glass stays whole; only what is on it
+// fades, in from a quarter of a second into the slide and out by the time it
+// leaves. With reduced motion the card just shows or hides, and what is on it
+// fades.
+// Arriving slows gently to a stop, cubic-bezier(0.22,1,0.36,1); leaving
+// gathers speed, cubic-bezier(0.32,0,0.67,0). (Written out whole, as
+// Tailwind only finds class names it can read in full.)
+const LEAVING =
+  'pointer-events-none invisible motion-safe:[transition:translate_0.8s_cubic-bezier(0.32,0,0.67,0),visibility_0s_0.8s] motion-reduce:[transition:visibility_0s_0.4s]';
+const CARD: Record<PostPlace, string> = {
+  current:
+    'motion-safe:[transition:translate_1.4s_cubic-bezier(0.22,1,0.36,1)_var(--turn-delay,0.7s),visibility_0s] motion-reduce:[transition:visibility_0s_0.7s]',
+  before: `motion-safe:[translate:100vw_0] ${LEAVING}`,
+  after: `motion-safe:[translate:-100vw_0] ${LEAVING}`,
+};
 const CONTENT_IN =
-  'motion-safe:animate-content-in motion-safe:[animation-delay:0.7s] motion-reduce:[transition:opacity_1.2s_ease-out_0.7s]';
-const CONTENT_HIDDEN =
-  'opacity-0 motion-reduce:[transition:opacity_0.4s_ease-in]';
+  'motion-safe:[transition:opacity_1.2s_cubic-bezier(0.22,1,0.36,1)_calc(var(--turn-delay,0.7s)+0.25s)] motion-reduce:[transition:opacity_1.2s_ease-out_0.7s]';
+const CONTENT_OUT =
+  'opacity-0 [transition:opacity_0.65s_cubic-bezier(0.32,0,0.67,0)] motion-reduce:[transition:opacity_0.4s_ease-in]';
 
 export default function Post({ content }: PostProps) {
   const {
@@ -47,9 +59,8 @@ export default function Post({ content }: PostProps) {
   const isClamped = hasMedia && !isExpanded;
   const postRef = useRef<HTMLDivElement | null>(null);
   useHeadClear(postRef);
-  const isCurrent = useHeldCard(postRef);
-  const [hasShown, setHasShown] = useState(false);
-  if (isCurrent && !hasShown) setHasShown(true);
+  const place = useHeldCard(postRef);
+  const isCurrent = place === 'current';
 
   // Each post fills the space between the page's fades (--post-height, from
   // PageScroller), and the page snaps from post to post (data-post, found by
@@ -63,9 +74,9 @@ export default function Post({ content }: PostProps) {
   //
   // The card doesn't scroll: it is fixed where it rests, at the bottom of the
   // space between the fades (the post keeps room for it, --card-height), and
-  // only the card of the post in view shows. Paging, one card slides off to
-  // the right, there is a pause, and the next slides in from the left, each
-  // card's text fading as it goes, while the images move with their posts.
+  // only the card of the post in view shows. Paging, one card slides off
+  // and, after a pause, the next slides in (CARD), each card's text fading
+  // as it goes, while the images move with their posts.
   // The images lie behind the card, never over its text. On a wide screen
   // the card takes at most 55% of the post's height (longer text scrolls
   // inside it), so the images always keep the rest.
@@ -96,19 +107,13 @@ export default function Post({ content }: PostProps) {
           maxHeight: 'var(--card-max, var(--post-height))',
         }}
         className={`z-20 w-auto max-w-none flex-col md:[--card-max:calc(var(--post-height)*0.55)] ${
-          isCurrent
-            ? CARD_IN
-            : `${CARD_HIDDEN} ${hasShown ? 'motion-safe:animate-card-out' : ''}`
+          CARD[place]
         }`}
       >
         <article
           className={`flex min-h-0 flex-col gap-3 overflow-y-auto p-5 md:flex-row md:gap-8 md:p-8 [&_p]:text-base [&_p]:leading-6 lg:[&_p]:text-lg lg:[&_p]:leading-7 [@media(max-height:800px)]:md:p-6 [@media(max-height:800px)]:[&_h2]:text-3xl [@media(max-height:800px)]:[&_p]:text-base [@media(max-height:800px)]:[&_p]:leading-6 ${
             isExpanded ? 'flex-1' : ''
-          } ${
-            isCurrent
-              ? CONTENT_IN
-              : `${CONTENT_HIDDEN} ${hasShown ? 'motion-safe:animate-content-out' : ''}`
-          }`}
+          } ${isCurrent ? CONTENT_IN : CONTENT_OUT}`}
         >
           <div className="flex min-w-0 flex-col gap-3 md:flex-1 md:gap-4">
             <h2>{name}</h2>
