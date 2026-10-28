@@ -57,6 +57,12 @@ export const easeToward = (
   rate = EASE_RATE,
 ) => current + (target - current) * (1 - Math.exp(-rate * seconds));
 
+// The share of a gap to close over `seconds` for an ease that closes `share`
+// of it each 60th of a second, so it takes as long at any frame rate (on a
+// slow GPU, or software rendering, frames come far less often).
+export const shareOver = (share: number, seconds: number) =>
+  1 - (1 - share) ** (seconds * 60);
+
 // The smile's target from the head's turn (radians: x tips, y turns, both 0
 // facing the camera).
 export const facingSmile = ({ x, y }: Point) =>

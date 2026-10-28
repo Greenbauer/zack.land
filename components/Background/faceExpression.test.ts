@@ -5,6 +5,7 @@ import {
   FACING_SMILE,
   facingSmile,
   pointerExpressions,
+  shareOver,
   SQUINT_MAX,
 } from './faceExpression';
 
@@ -59,5 +60,19 @@ describe('expressions from where the head is looking', () => {
     expect(facingSmile({ x: 0.02, y: 0.03 })).toBe(FACING_SMILE);
     expect(facingSmile({ x: 0, y: -0.3 })).toBe(0);
     expect(facingSmile({ x: -0.15, y: 0 })).toBe(0);
+  });
+});
+
+describe('a per-frame ease at any frame rate', () => {
+  it('closes its share in one 60th of a second', () => {
+    expect(shareOver(0.05, 1 / 60)).toBeCloseTo(0.05);
+  });
+
+  it('closes as much in one slow frame as in the fast frames it stands for', () => {
+    // A second at 2 frames a second against a second at 60.
+    const slow = 1 - (1 - shareOver(0.05, 0.5)) ** 2;
+    const fast = 1 - (1 - shareOver(0.05, 1 / 60)) ** 60;
+    expect(slow).toBeCloseTo(fast);
+    expect(slow).toBeGreaterThan(0.9);
   });
 });

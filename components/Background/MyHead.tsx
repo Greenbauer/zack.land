@@ -9,7 +9,12 @@ import {
   Vector3,
 } from 'three';
 
-import { easeToward, facingSmile, pointerExpressions } from './faceExpression';
+import {
+  easeToward,
+  facingSmile,
+  pointerExpressions,
+  shareOver,
+} from './faceExpression';
 import { decodeHead, HeadMesh, loadHead } from './headGeometry';
 import { headTurn, turnHead } from './headTurn';
 import {
@@ -168,7 +173,7 @@ export default function MyHead({ lookPositionStart }: MyHeadProps) {
     };
   };
 
-  const rotateMyHead = (time: number): void => {
+  const rotateMyHead = (time: number, seconds: number): void => {
     const { rotation } = myHeadRef.current!;
     const turn = look.current;
     let lookPosition: Point = lookPositionStart;
@@ -209,8 +214,9 @@ export default function MyHead({ lookPositionStart }: MyHeadProps) {
       y: lookPositionLimit(lookPosition.y * 0.001, -0.15, 0.13),
     };
 
-    turn.x += rotationSpeed * (lookPosition.y - turn.x);
-    turn.y += rotationSpeed * (lookPosition.x - turn.y);
+    const share = shareOver(rotationSpeed, seconds);
+    turn.x += share * (lookPosition.y - turn.x);
+    turn.y += share * (lookPosition.x - turn.y);
     const { body, head } = splitLook(turn);
     rotation.set(body.x, body.y, 0);
     headTurn.value.set(head.x, head.y);
@@ -218,7 +224,7 @@ export default function MyHead({ lookPositionStart }: MyHeadProps) {
 
   useFrame(({ clock, camera, size }, delta) => {
     fadeTime.value = clock.elapsedTime;
-    rotateMyHead(clock.elapsedTime);
+    rotateMyHead(clock.elapsedTime, delta);
     // Where the head is looking, back in screen pixels (index.tsx measures
     // the look from a third of the way across and halfway down), against
     // where the eyes are on screen.
