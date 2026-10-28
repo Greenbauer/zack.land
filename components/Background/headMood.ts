@@ -4,9 +4,6 @@
 // turns it on while it shows.
 export const headMood = { worried: false };
 
-// Worried, from the head's expressions: brows lifted, lips pressed forward,
-// eyes left as they are.
-export const WORRIED: Record<string, number> = {
-  browsUp: 0.7,
-  pout: 0.4,
-};
+// Worried: the head's own worried expression (scripts/head/expressions.mjs:
+// inner brows drawn up and together, lips pressed, mouth corners down).
+export const WORRIED: Record<string, number> = { worried: 1 };
