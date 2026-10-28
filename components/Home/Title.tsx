@@ -21,7 +21,11 @@ import { titleWords } from '@/components/Background/titleWords';
 // sky behind it a few times a second.
 //
 // Below lg both sit at the top of the screen, above the head
-// (app/(root)/page.tsx), the name set smaller so it fits on one line.
+// (app/(root)/page.tsx). On a phone the name fills the window's width on one
+// line: its width is 10.34 times its font size (its letter spacing is in
+// em, so it scales too), so the font is the width between the page's 0.75rem
+// margins over that, a little under so it never wraps; the subtitle keeps
+// its size to the name's (18px to 27.2px).
 
 const NAME = ['Zack', "Greenbauer's"];
 const SUBTITLE_LIGHT: [number, number, number] = [255, 255, 255];
@@ -76,7 +80,7 @@ export default function Title() {
 
   return (
     <>
-      <h1 className="!bg-transparent !bg-none !text-transparent max-sm:text-[1.7rem] sm:max-lg:text-5xl">
+      <h1 className="!bg-transparent !bg-none !text-transparent max-md:text-[length:calc((100vw_-_1.5rem)/10.34*0.97)] md:max-lg:text-5xl">
         {NAME.map((text, index) => (
           <span key={text}>
             {index > 0 && ' '}
@@ -86,7 +90,7 @@ export default function Title() {
       </h1>
       <h2
         ref={subtitle}
-        className="transition-colors duration-300 max-sm:text-lg"
+        className="transition-colors duration-300 max-md:text-[length:calc((100vw_-_1.5rem)/10.34*0.97*0.662)]"
         style={{ color: `rgb(${subtitleColour.join(' ')})` }}
       >
         Portfolio and Sandbox

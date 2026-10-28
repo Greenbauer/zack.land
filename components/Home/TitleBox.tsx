@@ -78,7 +78,7 @@ export default function TitleBox({ children }: { children: ReactNode }) {
     <div
       ref={box}
       data-head-avoid
-      className="flex w-full flex-col text-center motion-safe:animate-from-right md:gap-6 lg:max-w-lg lg:text-left"
+      className="flex w-full flex-col text-center motion-safe:animate-from-right max-md:relative max-md:top-[calc(40px_+_10dvh_-_var(--page-top))] max-md:-translate-y-1/2 md:gap-6 lg:max-w-lg lg:text-left"
     >
       {children}
     </div>
