@@ -173,26 +173,20 @@
 
   /* Over the photos under a card, the glass is a backdrop-filter on a layer
      behind the card's text (components/Background/photoLens.ts sets
-     --photo-lens while a photo is within its reach). The layer reaches as
-     far past the card as the scene's glass does (--glass-reach) and fades
-     as it does, eased, from nothing at its outer edge to whole --glass-fade
-     in. */
+     --photo-lens while a photo is within its reach, and --glass-reach, how
+     far past the card the layer reaches). The filter itself fades the glass
+     out toward the layer's edge. */
   :where(section, [data-glass]) {
     isolation: isolate;
   }
 
   :where(section, [data-glass])::before {
-    --edge: var(--glass-fade, 0px);
     content: '';
     position: absolute;
     inset: calc(-1 * var(--glass-reach, 0px));
     z-index: -1;
     pointer-events: none;
     backdrop-filter: var(--photo-lens, none);
-    mask-image:
-      linear-gradient(to right, transparent, rgb(0 0 0 / 0.16) calc(var(--edge) * 0.25), rgb(0 0 0 / 0.5) calc(var(--edge) * 0.5), rgb(0 0 0 / 0.84) calc(var(--edge) * 0.75), black var(--edge), black calc(100% - var(--edge)), rgb(0 0 0 / 0.84) calc(100% - var(--edge) * 0.75), rgb(0 0 0 / 0.5) calc(100% - var(--edge) * 0.5), rgb(0 0 0 / 0.16) calc(100% - var(--edge) * 0.25), transparent),
-      linear-gradient(to bottom, transparent, rgb(0 0 0 / 0.16) calc(var(--edge) * 0.25), rgb(0 0 0 / 0.5) calc(var(--edge) * 0.5), rgb(0 0 0 / 0.84) calc(var(--edge) * 0.75), black var(--edge), black calc(100% - var(--edge)), rgb(0 0 0 / 0.84) calc(100% - var(--edge) * 0.75), rgb(0 0 0 / 0.5) calc(100% - var(--edge) * 0.5), rgb(0 0 0 / 0.16) calc(100% - var(--edge) * 0.25), transparent);
-    mask-composite: intersect;
   }
 
   /* Text and fields on a glass card take the card's text colour (above), at
