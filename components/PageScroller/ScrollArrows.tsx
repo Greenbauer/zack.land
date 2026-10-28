@@ -52,12 +52,13 @@ const DOWN_TOP = `min(calc(${FOOTER_TOP} - 0.25rem - ${ARROW_HEIGHT}), max(calc(
 // pointing up, with the word Scroll under them, just under the header and
 // centred over the 3D head, and Scroll over chevrons pointing down, just
 // over the footer and centred under it. On a phone, only the down arrow, in
-// the header, midway between the menu button and the page's title.
-// Each glides to the post before or after, and shows only while there is a
-// post that way. Each is coloured from the sky behind it. They sit on the
-// body, outside the page's scroller, so its fade under the header doesn't
-// hide them, and hide with the page while the phone menu is open
-// (data-scroll-arrows, styles/globals.css).
+// the footer, at the right of its text (data-footer-arrow, Footer) and in
+// the footer's colours. Each glides to the post before or after, and shows
+// only while there is a post that way. On a wide screen each is coloured
+// from the sky behind it, and they sit on the body, outside the page's
+// scroller, so its fade under the header doesn't hide them. They hide with
+// the page while the phone menu is open (data-scroll-arrows,
+// styles/globals.css).
 export default function ScrollArrows() {
   const [canGo, setCanGo] = useState({ up: false, down: false });
   // The body to portal to, once on the client.
@@ -66,25 +67,24 @@ export default function ScrollArrows() {
     () => document.body,
     () => null,
   );
+  // On a phone, the footer's place for the down arrow.
+  const footerSlot = useSyncExternalStore(
+    watchPhone,
+    () =>
+      innerWidth < WIDE_FROM
+        ? document.querySelector<HTMLElement>('[data-footer-arrow]')
+        : null,
+    () => null,
+  );
   const groupRef = useRef<HTMLDivElement | null>(null);
 
-  // Where across the arrows go, as --arrows-x: under and over the head as
-  // HeadFraming glides it, or on a phone, midway between the header's menu
-  // button and its title (whose length varies from page to page).
+  // Where across the arrows go on a wide screen, as --arrows-x: under and
+  // over the head as HeadFraming glides it.
   useEffect(() => {
     let frame = 0;
     let last = '';
     const follow = () => {
-      const links = document.querySelector('[data-header-links]');
-      const title = document.querySelector('[data-header-title]');
-      const x =
-        innerWidth < WIDE_FROM && links && title
-          ? (links.getBoundingClientRect().right +
-              title.getBoundingClientRect().left) /
-            2
-          : Number.isNaN(framedHead.x)
-            ? innerWidth / 2
-            : framedHead.x;
+      const x = Number.isNaN(framedHead.x) ? innerWidth / 2 : framedHead.x;
       const value = `${Math.round(x)}px`;
       if (value !== last && groupRef.current) {
         groupRef.current.style.setProperty('--arrows-x', value);
@@ -118,6 +118,13 @@ export default function ScrollArrows() {
     };
   }, []);
 
+  if (footerSlot)
+    return createPortal(
+      <div data-scroll-arrows>
+        <ScrollArrow direction={1} isShown={canGo.down} inFooter />
+      </div>,
+      footerSlot,
+    );
   if (!body) return null;
   return createPortal(
     <div ref={groupRef} data-scroll-arrows>
@@ -129,34 +136,52 @@ export default function ScrollArrows() {
 }
 
 const noChange = () => () => {};
+// Calls `change` as the window crosses into or out of a phone's width.
+const watchPhone = (change: () => void) => {
+  const phone = matchMedia(`(max-width: ${WIDE_FROM - 0.02}px)`);
+  phone.addEventListener('change', change);
+  return () => phone.removeEventListener('change', change);
+};
 
 function ScrollArrow({
   direction,
   isShown,
+  inFooter = false,
 }: {
   direction: 1 | -1;
   isShown: boolean;
+  inFooter?: boolean;
 }) {
-  const ref = useRef<HTMLButtonElement | null>(null);
-  useSkyColours(ref);
+  // Over the sky it reads the sky behind it; in the footer it takes the
+  // footer's colours (and its ref is never set, so this does nothing).
+  const skyRef = useRef<HTMLButtonElement | null>(null);
+  useSkyColours(skyRef);
   const isUp = direction < 0;
 
   return (
     <button
-      ref={ref}
+      ref={inFooter ? undefined : skyRef}
       type="button"
       aria-label={isUp ? 'Scroll up' : 'Scroll down'}
       disabled={!isShown}
       onClick={() => requestGlide(direction)}
-      style={{ '--arrow-top': isUp ? UP_TOP : DOWN_TOP } as CSSProperties}
-      className={`fixed left-[var(--arrows-x,50%)] top-[var(--arrow-top)] z-30 flex -translate-x-1/2 items-center gap-1 transition-opacity duration-500 [--arrow-h:4.5rem] max-md:top-3.5 [@media(max-height:700px)]:[--arrow-h:3.25rem] ${
-        isUp ? 'flex-col max-md:hidden' : 'flex-col-reverse'
-      } ${isShown ? 'opacity-100' : 'invisible opacity-0'}`}
+      style={
+        inFooter
+          ? undefined
+          : ({ '--arrow-top': isUp ? UP_TOP : DOWN_TOP } as CSSProperties)
+      }
+      className={`flex items-center gap-1 transition-opacity duration-500 ${
+        inFooter
+          ? 'pointer-events-auto'
+          : 'fixed left-[var(--arrows-x,50%)] top-[var(--arrow-top)] z-30 -translate-x-1/2 [--arrow-h:4.5rem] [@media(max-height:700px)]:[--arrow-h:3.25rem]'
+      } ${isUp ? 'flex-col' : 'flex-col-reverse'} ${
+        isShown ? 'opacity-100' : 'invisible opacity-0'
+      }`}
     >
       {/* The chevrons point left; turned a quarter, up or down. Shrunk, so
           their slide (the arrow-l keyframes) fits the box, ending at its far
           edge, and never reaches the header. On a short window, where the
-          space over the head is tight, and in a phone's header, they and the
+          space over the head is tight, and in a phone's footer, they and the
           word are smaller still. */}
       <span
         aria-hidden

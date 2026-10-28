@@ -60,7 +60,7 @@ export default function Header() {
       className="pointer-events-none fixed inset-x-0 z-40 flex h-20 w-full items-center justify-center px-3"
     >
       <div className="container flex w-full items-center justify-between gap-3">
-        <div ref={linksRef} data-header-links className="flex">
+        <div ref={linksRef} className="flex">
           <DesktopNav routes={routes} pathname={pathname} />
           <MobileNav routes={routes} pathname={pathname} />
         </div>
