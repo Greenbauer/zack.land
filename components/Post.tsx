@@ -178,12 +178,11 @@ export default function Post({ content }: PostProps) {
               </p>
             )}
             {(hasMedia || hasMore) && (
-              <button
-                type="button"
-                className={`self-start ${isClamped ? 'max-md:self-center' : ''} text-sm uppercase tracking-wider text-[color:var(--card-ink)] underline decoration-[color:var(--card-underline)] underline-offset-4 transition-[text-decoration-color] hover:decoration-[color:var(--card-accent)] ${
-                  hasMore ? '' : 'md:hidden'
-                }`}
-                onClick={() => {
+              <MoreButton
+                isExpanded={isExpanded}
+                isInRow={isClamped}
+                isWideToo={hasMore}
+                onToggle={() => {
                   setIsExpanded(!isExpanded);
                   // Closing a post the page has scrolled down through goes
                   // back to its top.
@@ -192,10 +191,7 @@ export default function Post({ content }: PostProps) {
                       postRef.current?.scrollIntoView({ block: 'start' }),
                     );
                 }}
-                aria-expanded={isExpanded}
-              >
-                {isExpanded ? 'Less' : 'More'}
-              </button>
+              />
             )}
             {!!siteUrl && (
               <Button href={siteUrl} target="_blank">
@@ -211,6 +207,34 @@ export default function Post({ content }: PostProps) {
         </article>
       </EdgeCard>
     </div>
+  );
+}
+
+// More, or Less once the card is open. On a wide screen it shows only when
+// the text is cut short or open (`isWideToo`); in a phone's row of badge,
+// More and links (`isInRow`) it sits centred on the row.
+function MoreButton({
+  isExpanded,
+  isInRow,
+  isWideToo,
+  onToggle,
+}: {
+  isExpanded: boolean;
+  isInRow: boolean;
+  isWideToo: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className={`self-start ${isInRow ? 'max-md:self-center' : ''} text-sm uppercase tracking-wider text-[color:var(--card-ink)] underline decoration-[color:var(--card-underline)] underline-offset-4 transition-[text-decoration-color] hover:decoration-[color:var(--card-accent)] ${
+        isWideToo ? '' : 'md:hidden'
+      }`}
+      onClick={onToggle}
+      aria-expanded={isExpanded}
+    >
+      {isExpanded ? 'Less' : 'More'}
+    </button>
   );
 }
 
