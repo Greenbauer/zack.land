@@ -19,6 +19,7 @@ import {
   LIGHT_TINT_LUMINANCE,
   TINT_LUMINANCE,
 } from './glassTint';
+import { isSmall } from './smallScreen';
 
 // The cards (every `section`, and anything marked `data-glass`) are frosted
 // glass: the 3D scene behind each is drawn blurred and tinted, inside the
@@ -50,8 +51,6 @@ export const FEATHER_TO = 160;
 // the bounds need.
 const TINT_STRENGTH = 0;
 const SMALL_STRENGTH = 0.75;
-const SMALL_WIDTH = 768;
-const SMALL_HEIGHT = 600;
 // The glass is pressed into small square lenses, like lenslet glass: each
 // about CELL_PX across (sized so whole lenses fit the card), and each, as a
 // lens does, showing the scene behind it upside down and shrunk: the view
@@ -67,11 +66,9 @@ export const FIELD_FROST_PX = 11;
 export const FIELD_LENS = 0.4;
 const FIELD_FEATHER_PX = 1.5;
 
-// Whether a window `width` by `height` CSS pixels is small: a phone, or too
-// short for much text. There the glass is less clear: tinted more strongly,
-// and the whole card as calm as a form field.
-export const isSmall = (width: number, height: number) =>
-  width < SMALL_WIDTH || height < SMALL_HEIGHT;
+// On a small window (smallScreen.ts) the glass is less clear: tinted more
+// strongly, and the whole card as calm as a form field.
+export { isSmall };
 
 // How strongly the glass is tinted on a window `width` by `height`.
 export const tintStrength = (width: number, height: number) =>
@@ -99,7 +96,7 @@ const tint = `
           gl_FragColor = scene;
           return;
         }
-        vec3 sky = skyAround(box);
+        vec3 sky = uShare > 0.5 ? skyAround(uShared, true) : skyAround(box, false);
         vec3 tintColour = cardTint(sky, lightness);
         // First uStrength of the way to the sky's own colour (none on a
         // large screen), then as far toward the tint as the glass must go to
@@ -135,6 +132,8 @@ const composite = (mode: 'frost' | 'tint') =>
         value: Array.from({ length: CARDS }, () => new Vector2(0, 1)),
       },
       uStrength: { value: TINT_STRENGTH },
+      uShare: { value: 0 },
+      uShared: { value: new Vector4() },
       uRadius: { value: Array<number>(CARDS).fill(0) },
       uFaded: { value: Array<number>(CARDS).fill(0) },
       uOpacity: { value: Array<number>(CARDS).fill(1) },
@@ -165,6 +164,10 @@ const composite = (mode: 'frost' | 'tint') =>
       uniform vec2 uBounds[${CARDS}];
       uniform float uAround;
       uniform float uStrength;
+      // On a small screen every card takes the sky around all of them
+      // together (uShared), so the panes stacked down a phone match.
+      uniform float uShare;
+      uniform vec4 uShared;
       uniform float uRadius[${CARDS}];
       uniform float uFaded[${CARDS}];
       uniform float uOpacity[${CARDS}];
@@ -191,9 +194,15 @@ const composite = (mode: 'frost' | 'tint') =>
       float luma(vec3 c) {
         return dot(c, vec3(0.2126, 0.7152, 0.0722));
       }
-      vec3 skyAround(vec4 box) {
+      // A ring past the screen's edge is drawn in to it when inside is set, so a
+      // box filling the screen still finds the sky.
+      vec3 skyAround(vec4 box, bool inside) {
         vec2 low = box.xy - uAround;
         vec2 high = box.zw + uAround;
+        if (inside) {
+          low = max(low, vec2(0.5));
+          high = min(high, uSize - 0.5);
+        }
         vec3 seen[16];
         float total = 0.0;
         float count = 0.0;
@@ -444,6 +453,21 @@ export class GlassTintPass extends Pass {
     });
     material.uniforms.uAround!.value = AROUND_PX * dpr;
     material.uniforms.uStrength!.value = this.strength;
+    // On a small screen (the canvas fills the window), one sky for all.
+    const { clientWidth, clientHeight } = renderer.domElement;
+    const share = isSmall(clientWidth, clientHeight);
+    material.uniforms.uShare!.value = share ? 1 : 0;
+    if (share) {
+      const all = material.uniforms.uShared!.value as Vector4;
+      all.set(Infinity, Infinity, -Infinity, -Infinity);
+      for (const { box } of cards)
+        all.set(
+          Math.min(all.x, box.x),
+          Math.min(all.y, box.y),
+          Math.max(all.z, box.z),
+          Math.max(all.w, box.w),
+        );
+    }
     renderer.setRenderTarget(this.renderToScreen ? null : writeBuffer);
     this.tint.render(renderer);
   }
