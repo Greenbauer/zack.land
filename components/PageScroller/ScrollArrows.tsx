@@ -2,14 +2,14 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { Chevrons } from '@/components/Menu/Arrow';
 import useSkyColours from '@/components/SkyText/useSkyColours';
 
+import { Chevrons } from './Chevrons';
 import { PAGE_SCROLLER_ID } from './edgeFade';
 import { postPositions, requestGlide } from './pageGlide';
 
 // Beside the portfolio's posts on a wide screen: the word Scroll, with the
-// portfolio menu's sliding chevrons above it pointing up and below it
+// sliding chevrons (Chevrons.tsx) above it pointing up and below it
 // pointing down. Each glides to the post before or after; each shows only
 // while there is a post that way. Coloured from the sky behind them.
 export default function ScrollArrows() {

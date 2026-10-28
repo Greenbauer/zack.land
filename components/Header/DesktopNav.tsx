@@ -1,5 +1,6 @@
 import { Route } from '.';
-import NavLink from './NavLink';
+import NavDropdown from './NavDropdown';
+import NavLink, { isRouteActive } from './NavLink';
 
 type DesktopNavProps = {
   pathname: string;
@@ -10,13 +11,19 @@ export default function DesktopNav({ pathname, routes }: DesktopNavProps) {
   return (
     <div className="pointer-events-auto hidden md:flex">
       <div className="relative m-3 flex w-auto flex-row focus:outline-none">
-        {routes.map(({ label, path }) => {
-          const isActive = pathname === path;
-          const showLink = !!label;
+        {routes.map(({ label, path, children }) => {
+          if (!label) return null;
+          const isActive = isRouteActive(path, pathname);
 
-          if (!showLink) return null;
-
-          return (
+          return children ? (
+            <NavDropdown
+              key={label}
+              label={label}
+              isActive={isActive}
+              pathname={pathname}
+              items={children}
+            />
+          ) : (
             <NavLink
               key={label}
               path={path}

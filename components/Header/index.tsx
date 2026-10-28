@@ -9,7 +9,13 @@ import DesktopNav from './DesktopNav';
 import HeaderTitle from './HeaderTitle';
 import MobileNav from './MobileNav';
 
-export type Route = { label?: string; path: string; headerTitle?: string };
+export type Route = {
+  label?: string;
+  path: string;
+  headerTitle?: string;
+  // Pages under it, offered in a dropdown (Portfolio's two).
+  children?: { label: string; path: string }[];
+};
 
 const routes: Route[] = [
   {
@@ -19,7 +25,10 @@ const routes: Route[] = [
   {
     label: 'Portfolio',
     path: '/portfolio',
-    headerTitle: 'Portfolio',
+    children: [
+      { label: 'Web Apps', path: '/portfolio/web-apps' },
+      { label: 'Miscellaneous', path: '/portfolio/miscellaneous' },
+    ],
   },
   {
     label: 'Contact',
