@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { EASE_RATE, easeToward } from './faceExpression';
 import {
+  faceSeen,
   FACING_CLOSE,
   GREETING_EASE_RATE,
   greetingExpressions,
@@ -97,5 +98,27 @@ describe('the head greeting before it wanders', () => {
     expect(easeToward(1, 0, 0.2, GREETING_EASE_RATE)).toBeLessThan(0.1);
     // Faster than the face's reactions to the pointer.
     expect(GREETING_EASE_RATE).toBeGreaterThan(EASE_RATE * 2);
+  });
+});
+
+describe('faceSeen', () => {
+  const seen = { visible: true, focused: true, headX: 300, covered: false };
+
+  it('lets the greeting run with the page in front and the face in view', () => {
+    expect(faceSeen(seen)).toBe(true);
+  });
+
+  it('holds it while the tab is hidden or another window has focus', () => {
+    expect(faceSeen({ ...seen, visible: false })).toBe(false);
+    expect(faceSeen({ ...seen, focused: false })).toBe(false);
+  });
+
+  it('holds it while the face is off the frame, or not yet placed', () => {
+    expect(faceSeen({ ...seen, headX: -120 })).toBe(false);
+    expect(faceSeen({ ...seen, headX: Number.NaN })).toBe(false);
+  });
+
+  it('holds it while something blurs or covers the face', () => {
+    expect(faceSeen({ ...seen, covered: true })).toBe(false);
   });
 });

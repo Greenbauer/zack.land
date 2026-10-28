@@ -21,9 +21,10 @@ import {
   pointerExpressions,
   shareOver,
 } from './faceExpression';
+import { formFocused, menuOpen } from './focusBlur';
 import { decodeHead, HeadMesh, loadHead } from './headGeometry';
 import { headMood, WORRIED } from './headMood';
-import { lookOrigin } from './headPlace';
+import { framedHead, lookOrigin } from './headPlace';
 import {
   HeadTaps,
   stepTaps,
@@ -35,6 +36,7 @@ import {
 } from './headTaps';
 import { headTurn, turnHead } from './headTurn';
 import {
+  faceSeen,
   Greeting,
   GREETING_EASE_RATE,
   greetingExpressions,
@@ -144,14 +146,29 @@ let greeting: Greeting = idle;
 // Below this every expression counts as eased out: a neutral face.
 const NEUTRAL = 0.02;
 // How long the page has to be left alone (no pointer move, scroll, press or
-// key: useMousePosition) before the head greets and then looks around on its
-// own, in seconds: somewhere in this range, picked afresh each time.
+// key: useMousePosition), with the face in view (faceInView), before the
+// head greets and then looks around on its own, in seconds: somewhere in
+// this range, picked afresh each time.
 const IDLE_SECONDS = [10, 15] as const;
 const idleWait = () =>
   IDLE_SECONDS[0] + Math.random() * (IDLE_SECONDS[1] - IDLE_SECONDS[0]);
 // How quickly the sky follows the head while it looks around on its own: a
 // share each frame, so it trails behind the head's glances.
 const WANDER_SKY_SPEED = 0.01;
+// Whether the face can be seen clearly (faceSeen): the page in front of the
+// person, the face in the frame (headPlace.ts) and nothing blurring or
+// covering it: a focused contact field or a playing video (focusBlur.ts),
+// the open Portfolio dropdown, or the phone menu's pane.
+const faceInView = () =>
+  faceSeen({
+    visible: document.visibilityState === 'visible',
+    focused: document.hasFocus(),
+    headX: framedHead.x,
+    covered:
+      formFocused() ||
+      menuOpen() ||
+      !!document.querySelector('[data-nav-dropdown][aria-expanded="true"]'),
+  });
 // A tap on any of these is meant for the page, not the head.
 const PAGE_TARGETS =
   'a, button, input, textarea, select, label, section, header, footer, [data-glass]';
@@ -218,6 +235,14 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
     pointer.moved = false;
   };
 
+  // While the face can't be seen clearly there is no greeting, and its clock
+  // only counts the time it can.
+  const holdWhileUnseen = (time: number): void => {
+    if (isTouch || faceInView()) return;
+    idleSince.current = time;
+    if (greetingOn(greeting)) greeting = idle;
+  };
+
   const startWandering = (time: number): void => {
     wandering.current = startWander(look.current, time);
   };
@@ -245,6 +270,7 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
     let rotationSpeed: number = 0.05;
     let skySpeed: number | undefined;
 
+    holdWhileUnseen(time);
     if (stepTouch(time)) {
       lookPosition = { x: 0, y: 0 };
       rotationSpeed = TAP_TURN_SPEED;
