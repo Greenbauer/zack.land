@@ -52,6 +52,12 @@ module.exports = {
         },
         // What is on a card arriving: it starts fading in a fifth of the way
         // through the card's slide (card-in, the same length).
+        // The footer's scroll arrow, after its text has faded out
+        // (Footer/arrowSwap.ts).
+        'fade-in': {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
         'content-in': {
           '0%': { opacity: '0' },
           '20%': { opacity: '0' },
@@ -73,6 +79,7 @@ module.exports = {
       animation: {
         'arrow-l': 'arrow-l 2.5s ease-in-out infinite',
         'card-in': 'card-in 1.4s cubic-bezier(0.22, 1, 0.36, 1) both',
+        'fade-in': 'fade-in 0.4s ease-out both',
         'content-in': 'content-in 1.4s cubic-bezier(0.22, 1, 0.36, 1) both',
         'from-right': 'from-right 1.4s cubic-bezier(0.22, 1, 0.36, 1) both',
         'menu-in': 'menu-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) both',
