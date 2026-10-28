@@ -26,7 +26,7 @@ import {
 } from './titleLetters';
 import { COLUMNS, letterMask, Mask, readWord, wordBlock } from './titleMask';
 import { AimProbe, POINTS } from './titleProbe';
-import { TitleWord, titleWords } from './titleWords';
+import { isCurrent, TitleWord, titleWords } from './titleWords';
 import usePixelReader from './usePixelReader';
 
 // The home page's name drawn in the 3D scene, as flat letters in the head's
@@ -148,8 +148,7 @@ export default function TitleName() {
   }, [material, scene]);
 
   useFrame(() => {
-    if (titleWords.size !== entries.length)
-      setEntries([...titleWords.values()]);
+    if (!isCurrent(entries)) setEntries([...titleWords.values()]);
     // The sky, as the letters' own reflection map so its strength (REFLECT)
     // applies, turned with the scene's.
     if (material.envMap !== scene.environment)
