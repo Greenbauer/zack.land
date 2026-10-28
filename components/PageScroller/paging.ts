@@ -20,10 +20,15 @@ export const QUICK_MS = 700;
 // the whole window only to be sent straight back out, and a long or uneven
 // swipe, or a mouse wheel spun on, turns one page, not two.
 export const HOLD_MS = 1400;
+// And for as long as pushes the same way keep coming, until they pause this
+// long, in milliseconds: one scroll, however long or uneven, turns one page.
+export const GESTURE_GAP_MS = 300;
 
 // Spaces page turns out: a push the same way as the last turn, inside
-// `holdMs` of it, is let go rather than kept for later (kept, it turned a
-// second page as the first card landed, so a post flashed past). A turn
+// `holdMs` of it, or within `gapMs` of the last such push (a wheel spun on,
+// a swipe still going), is let go rather than kept for later (kept, it
+// turned a second page as the first card landed, so a post flashed past). A
+// turn
 // back the other way goes at once, its cards reversing from wherever they
 // are, and is `quick` inside `quickMs`: the card it turns away from has not
 // set off, so the card it brings back need not wait for it. `ask` says
@@ -32,9 +37,11 @@ export const HOLD_MS = 1400;
 export function turnGate({
   holdMs = HOLD_MS,
   quickMs = QUICK_MS,
+  gapMs = GESTURE_GAP_MS,
   playingFrom = -Infinity,
 } = {}) {
   let turnedAt = playingFrom;
+  let askedAt = -Infinity;
   let last: 1 | -1 | 0 = 0;
   const go = (direction: 1 | -1, now: number, quick: boolean) => {
     last = direction;
@@ -43,10 +50,12 @@ export function turnGate({
   };
   return {
     ask(direction: 1 | -1, now: number) {
+      const lastAsked = askedAt;
+      askedAt = now;
       if (last && direction !== last)
         return go(direction, now, now - turnedAt < quickMs);
-      if (now - turnedAt >= holdMs) return go(direction, now, false);
-      return null;
+      if (now - turnedAt < holdMs || now - lastAsked < gapMs) return null;
+      return go(direction, now, false);
     },
   };
 }
@@ -112,8 +121,10 @@ export function turnTo(
 // jitter in one swipe's push or coast is not taken for another) or
 // another notch of a mouse wheel (large and even, `notchGapMs` after the
 // last turn). The coast a trackpad keeps sending for a second or so after a
-// swipe only shrinks, so it never turns another page. A quiet wheel
-// (`quietMs`) starts over.
+// swipe only shrinks, so it never turns another page. A push the other way
+// is never held back as part of the last turn: it adds up toward its own
+// turn at once, so a notch back right after a burst turns back. A quiet
+// wheel (`quietMs`) starts over.
 export function wheelPager({
   threshold = 40,
   quietMs = 180,
@@ -126,6 +137,8 @@ export function wheelPager({
   let lastAt = -Infinity;
   let turnedAt = -Infinity;
   let spent = false;
+  // The way the last turn went.
+  let lastTurn: 1 | -1 | 0 = 0;
   // The last delta's size, how many deltas running have grown, and the
   // lowest they have fallen to since the last turn's push peaked (Infinity
   // until they fall).
@@ -149,7 +162,7 @@ export function wheelPager({
     growing = size > previous ? growing + 1 : 0;
     if (size < previous) trough = Math.min(trough, size);
     previous = size;
-    if (spent) {
+    if (spent && Math.sign(deltaY) === lastTurn) {
       const swipe = growing >= rising && size >= afresh * trough;
       const notched =
         size >= notch && size >= largest && now - turnedAt >= notchGapMs;
@@ -164,6 +177,7 @@ export function wheelPager({
     trough = Infinity;
     turnedAt = now;
     const direction = sum > 0 ? 1 : -1;
+    lastTurn = direction;
     sum = 0;
     return direction;
   };
