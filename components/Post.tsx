@@ -14,6 +14,7 @@ import useClipped from './useClipped';
 import useHeadClear from './useHeadClear';
 import useHeldCard, { PostPlace } from './useHeldCard';
 import useMoreMotion from './useMoreMotion';
+import usePhoneWhole from './usePhoneWhole';
 
 type PostProps = { content: Content };
 
@@ -69,7 +70,10 @@ export default function Post({ content }: PostProps) {
   // short screen) and hides the rest behind More, which gives the whole post
   // to the text; its badge, More and links share a row, so its images keep
   // room.
-  const isClamped = hasMedia && !isExpanded;
+  // Where its images are held by the phone's width, so the card's room
+  // costs them nothing, it shows whole instead (usePhoneWhole).
+  const isWhole = usePhoneWhole(postRef, mediaSources, hasMedia);
+  const isClamped = hasMedia && !isExpanded && !isWhole;
   // The card never scrolls inside: on any screen, text that doesn't fit is
   // cut after its last whole line, with an ellipsis (FitText), and More
   // shows under it.
@@ -188,7 +192,7 @@ export default function Post({ content }: PostProps) {
                 <small>{technology}</small>
               </p>
             )}
-            {(hasMedia || hasMore) && (
+            {(isClamped || hasMore) && (
               <MoreButton
                 isExpanded={isExpanded}
                 onToggle={toggle}

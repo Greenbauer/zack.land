@@ -109,16 +109,7 @@ export default function PostCollage({
     box.toggleAttribute('data-shown', isShown);
   }, [isLaidOut, isShown]);
 
-  // A video goes first, laid out as the main, largest tile; with none, an
-  // image marked `main` does.
-  const sources = [...mediaSources].sort((a, b) => leads(b) - leads(a));
-  const tiles = collage(
-    sources.map(cropFor),
-    sources.map(({ key }) => key),
-    size.width,
-    size.height,
-    sources[0] && leads(sources[0]) ? 0 : undefined,
-  );
+  const { sources, tiles } = layOut(mediaSources, size.width, size.height);
 
   return (
     <div
@@ -167,6 +158,26 @@ export default function PostCollage({
       })}
     </div>
   );
+}
+
+// A post's media in their order and their tiles in a box `width` by
+// `height`: a video goes first, laid out as the main, largest tile; with
+// none, an image marked `main` does. (Post.tsx asks it too, to see whether
+// a phone's card can show whole: usePhoneWhole.ts.)
+export function layOut(
+  mediaSources: readonly MediaSource[],
+  width: number,
+  height: number,
+) {
+  const sources = [...mediaSources].sort((a, b) => leads(b) - leads(a));
+  const tiles = collage(
+    sources.map(cropFor),
+    sources.map(({ key }) => key),
+    width,
+    height,
+    sources[0] && leads(sources[0]) ? 0 : undefined,
+  );
+  return { sources, tiles };
 }
 
 // How strongly a source claims the main tile: a video most, then an image
