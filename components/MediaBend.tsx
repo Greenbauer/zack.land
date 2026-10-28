@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 
-import { Box, MediaBender, shownPart } from './mediaBender';
+import { bendable, Box, MediaBender, shownPart } from './mediaBender';
 import {
   addMark,
   inkLeft,
@@ -20,7 +20,8 @@ import {
 // the picture, such as a play button, stays over it), drawing the bent
 // picture only where the ink is; it hides again once the trail has gone.
 // Only pictures from this site can be read back to draw: another site's,
-// such as a YouTube embed, stays as it is.
+// such as a YouTube embed, stays as it is, and so does an animated GIF
+// (bendable), whose frames cannot be read.
 
 // Marks the canvas laid over a picture.
 const OVERLAY = 'data-media-bend';
@@ -108,6 +109,7 @@ export default function MediaBend() {
       const touched = new Set<HTMLCanvasElement>();
       for (const media of document.querySelectorAll<Picture>('img, video')) {
         if (!ready(media) || !fromThisSite(media)) continue;
+        if (!bendable(media.currentSrc)) continue;
         if (!inkReaches(path, media.getBoundingClientRect(), t)) continue;
         const overlay = overlayFor(media);
         if (!overlay) continue;

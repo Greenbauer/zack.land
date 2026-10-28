@@ -33,10 +33,15 @@ export function shownPart(
 }
 
 // Whether a picture's texture is uploaded again: when its source changes,
-// and every frame for a video or an animated GIF, so they keep moving under
-// the bend.
+// and every frame for a video, so it keeps playing under the bend.
 export const uploadsAgain = (was: string, src: string, isVideo: boolean) =>
-  was !== src || isVideo || /\.gif\b/i.test(src);
+  was !== src || isVideo;
+
+// Whether a picture can be bent. Not an animated GIF: a page reading an
+// animated image (WebGL's texImage2D, as a canvas's drawImage) only ever gets
+// its first frame (the HTML standard's rule for animated images), so under
+// the bend it would freeze; left alone it keeps moving.
+export const bendable = (src: string) => !/\.gif\b/i.test(src);
 
 const VERTEX = `
   attribute vec2 position;
