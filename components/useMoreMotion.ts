@@ -131,17 +131,24 @@ export default function useMoreMotion(
     };
   }, [phase, postRef]);
 
-  // Closes, at once, an opened post the page has moved on from.
+  // Closes, at once, an opened post the page has moved on from: a moment
+  // after it leaves, or, if the page comes back to it sooner, as it
+  // arrives, so it is always closed when the page comes back (closeOnReturn).
+  const hasLeft = useRef(false);
   useEffect(() => {
-    if (isCurrent || phase === 'closed') return;
-    const timer = setTimeout(() => {
+    const close = () => {
       const post = postRef.current;
       if (post) {
         const box = post.getBoundingClientRect();
         away.current = { height: box.height, above: box.bottom <= 0 };
       }
       setPhase('closed');
-    }, CLOSE_AWAY_MS);
+    };
+    const now = closeOnReturn(phase !== 'closed', isCurrent, hasLeft.current);
+    hasLeft.current = now.hasLeft;
+    if (now.close) return close();
+    if (!now.wait) return;
+    const timer = setTimeout(close, CLOSE_AWAY_MS);
     return () => clearTimeout(timer);
   }, [isCurrent, phase, postRef]);
 
@@ -163,6 +170,19 @@ export default function useMoreMotion(
     isOpen: phase === 'open',
     toggle,
   };
+}
+
+// What an opened post (`isOpen`) does as the page moves: when it is not the
+// one in view it waits CLOSE_AWAY_MS and closes (`wait`), and if it is in
+// view again, having left (`hasLeft`), before that, it closes now (`close`).
+export function closeOnReturn(
+  isOpen: boolean,
+  isCurrent: boolean,
+  hasLeft: boolean,
+) {
+  if (!isOpen) return { hasLeft: false, close: false, wait: false };
+  if (isCurrent) return { hasLeft: false, close: hasLeft, wait: false };
+  return { hasLeft: true, close: false, wait: true };
 }
 
 // A post's card and its images.
