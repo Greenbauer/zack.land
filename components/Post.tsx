@@ -220,8 +220,8 @@ export default function Post({ content }: PostProps) {
 
 // More, or Less once the card is open. On a wide screen it shows only when
 // the text is cut short or open (`isWideToo`); in a phone's row of More and
-// links (`isInRow`), set to the right under the end of the text, it sits
-// centred on the row.
+// links (`isInRow`) it sits centred on the row at its left, the links at its
+// right under the end of the text.
 function MoreButton({
   isExpanded,
   isInRow,
@@ -236,7 +236,7 @@ function MoreButton({
   return (
     <button
       type="button"
-      className={`self-start ${isInRow ? 'max-md:self-center' : ''} text-sm uppercase tracking-wider text-[color:var(--card-ink)] underline decoration-[color:var(--card-underline)] underline-offset-4 transition-[text-decoration-color] hover:decoration-[color:var(--card-accent)] ${
+      className={`self-start ${isInRow ? 'max-md:mr-auto max-md:self-center' : ''} text-sm uppercase tracking-wider text-[color:var(--card-ink)] underline decoration-[color:var(--card-underline)] underline-offset-4 transition-[text-decoration-color] hover:decoration-[color:var(--card-accent)] ${
         isWideToo ? '' : 'md:hidden'
       }`}
       onClick={onToggle}
