@@ -130,7 +130,7 @@ export default function Post({ content }: PostProps) {
                 maxHeight: 'var(--card-max, var(--post-height))',
               }
         }
-        className={`z-20 flex w-auto max-w-none flex-col md:[--card-max:calc(var(--post-height)*0.55)] ${
+        className={`post-card z-20 flex w-auto max-w-none flex-col md:[--card-max:calc(var(--post-height)*0.55)] ${
           isExpanded ? 'flex-1' : ''
         } ${CARD[place]}`}
       >
