@@ -25,7 +25,8 @@ import { titleWords } from '@/components/Background/titleWords';
 // line: its width is 10.34 times its font size (its letter spacing is in
 // em, so it scales too), so the font is the width between the page's 0.75rem
 // margins over that, a little under so it never wraps; the subtitle keeps
-// its size to the name's (18px to 27.2px).
+// its size to the name's (18px to 27.2px). Their line heights are in em too,
+// so the gap between the lines stays in proportion at every width.
 
 const NAME = ['Zack', "Greenbauer's"];
 const SUBTITLE_LIGHT: [number, number, number] = [255, 255, 255];
@@ -80,7 +81,7 @@ export default function Title() {
 
   return (
     <>
-      <h1 className="!bg-transparent !bg-none !text-transparent max-md:text-[length:calc((100vw_-_1.5rem)/10.34*0.97)] md:max-lg:text-5xl">
+      <h1 className="!bg-transparent !bg-none !text-transparent max-md:text-[length:calc((100vw_-_1.5rem)/10.34*0.97)] max-md:leading-[1.15] md:max-lg:text-5xl">
         {NAME.map((text, index) => (
           <span key={text}>
             {index > 0 && ' '}
@@ -90,7 +91,7 @@ export default function Title() {
       </h1>
       <h2
         ref={subtitle}
-        className="transition-colors duration-300 max-md:text-[length:calc((100vw_-_1.5rem)/10.34*0.97*0.662)]"
+        className="transition-colors duration-300 max-md:text-[length:calc((100vw_-_1.5rem)/10.34*0.97*0.662)] max-md:leading-[1.2]"
         style={{ color: `rgb(${subtitleColour.join(' ')})` }}
       >
         Portfolio and Sandbox
