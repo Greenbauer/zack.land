@@ -337,6 +337,15 @@ body[data-leaving] [data-scroll-arrows] button {
   opacity: 0;
 }
 
+/* The page's scroll arrows (components/PageScroller/ScrollArrows.tsx, on the
+   body) fade in whenever they appear, as when the head comes back and the
+   down arrow leaves the footer, rather than popping in. */
+@starting-style {
+  body > [data-scroll-arrows] button {
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .collage-tile {
     transform: rotate(var(--tilt));
