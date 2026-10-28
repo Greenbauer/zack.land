@@ -9,6 +9,7 @@ import { Content } from '@/types';
 import EdgeCard from './EdgeCard';
 import PostCollage from './PostCollage';
 import useClipped from './useClipped';
+import useFitLines from './useFitLines';
 import useHeadClear from './useHeadClear';
 import useHeldCard, { PostPlace } from './useHeldCard';
 import useMoreMotion from './useMoreMotion';
@@ -69,7 +70,8 @@ export default function Post({ content }: PostProps) {
   // room.
   const isClamped = hasMedia && !isExpanded;
   // The card never scrolls inside: on any screen, text that doesn't fit is
-  // cut short (faded out at the bottom on a wide screen) and More shows.
+  // cut after its last whole line, with an ellipsis (useFitLines), and More
+  // shows under it.
   // Opened, the card takes the whole post in place of its images, and if
   // that is still too short the post grows and the page scrolls through it
   // (SnapPager.tsx).
@@ -77,6 +79,7 @@ export default function Post({ content }: PostProps) {
   const descriptionRef = useRef<HTMLDivElement | null>(null);
   const isArticleCut = useClipped(articleRef);
   const isDescriptionCut = useClipped(descriptionRef);
+  useFitLines(descriptionRef, !isExpanded);
   const isCut = !isExpanded && (isArticleCut || isDescriptionCut);
   const hasMore = isExpanded || isCut;
   useHeadClear(postRef);
@@ -163,14 +166,18 @@ export default function Post({ content }: PostProps) {
                   isClamped
                     ? 'line-clamp-4 md:line-clamp-none max-md:[@media(max-height:700px)]:line-clamp-2'
                     : ''
-                } ${
-                  isCut
-                    ? 'md:[mask-image:linear-gradient(to_bottom,black_calc(100%-2rem),transparent)]'
-                    : ''
                 }`}
               >
                 {description}
               </div>
+            )}
+            {/* On a wide screen More (or Less) sits under the text. */}
+            {hasMore && (
+              <MoreButton
+                isExpanded={isExpanded}
+                onToggle={toggle}
+                className="max-md:hidden"
+              />
             )}
           </div>
           <div
@@ -191,9 +198,10 @@ export default function Post({ content }: PostProps) {
             {(hasMedia || hasMore) && (
               <MoreButton
                 isExpanded={isExpanded}
-                isInRow={isClamped}
-                isWideToo={hasMore}
                 onToggle={toggle}
+                className={`md:hidden ${
+                  isClamped ? 'max-md:mr-auto max-md:self-center' : ''
+                }`}
               />
             )}
             {!!siteUrl && (
@@ -213,27 +221,24 @@ export default function Post({ content }: PostProps) {
   );
 }
 
-// More, or Less once the card is open. On a wide screen it shows only when
-// the text is cut short or open (`isWideToo`); in a phone's row of More and
-// links (`isInRow`) it sits centred on the row at its left, the links at its
-// right under the end of the text.
+// More, or Less once the card is open. On a wide screen it sits under the
+// text, and shows only when the text is cut short or open; on a phone it
+// heads the column of links, and in a phone's row of More and links it sits
+// centred on the row at its left, the links at its right under the end of
+// the text.
 function MoreButton({
   isExpanded,
-  isInRow,
-  isWideToo,
   onToggle,
+  className,
 }: {
   isExpanded: boolean;
-  isInRow: boolean;
-  isWideToo: boolean;
   onToggle: () => void;
+  className: string;
 }) {
   return (
     <button
       type="button"
-      className={`self-start ${isInRow ? 'max-md:mr-auto max-md:self-center' : ''} text-sm uppercase tracking-wider text-[color:var(--card-ink)] underline decoration-[color:var(--card-underline)] underline-offset-4 transition-[text-decoration-color] hover:decoration-[color:var(--card-accent)] ${
-        isWideToo ? '' : 'md:hidden'
-      }`}
+      className={`shrink-0 self-start ${className} text-sm uppercase tracking-wider text-[color:var(--card-ink)] underline decoration-[color:var(--card-underline)] underline-offset-4 transition-[text-decoration-color] hover:decoration-[color:var(--card-accent)]`}
       onClick={onToggle}
       aria-expanded={isExpanded}
     >
