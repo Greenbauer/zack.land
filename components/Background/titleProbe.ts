@@ -15,6 +15,7 @@ import {
   WebGLRenderTarget,
 } from 'three';
 
+import type { PixelReader } from './pixelReader';
 import { Aim, AIM_REACH, AIM_STEPS, AIMS, SWEEPS } from './titleAim';
 
 // What the name's letters would show, facing each possible aim
@@ -147,9 +148,8 @@ export class AimProbe {
 
   // Measures each point (world position on the letters' plane, and how far
   // across the sheet it sits) at every aim and at `now`, with the sky turned
-  // to `rotation` and drawn behind as `sky` says; `light(row, point)` reads
-  // the result (row NOW is `now`) in luminance, `colour(row, point)` in red,
-  // green and blue, and `behind(point)` the sky behind it, in luminance.
+  // to `rotation` and drawn behind as `sky` says, into `reader`'s batch
+  // (pixelReader.ts): AimProbe.view reads what arrives.
   measure(
     gl: WebGLRenderer,
     camera: Camera,
@@ -158,6 +158,7 @@ export class AimProbe {
     now: Aim,
     rotation: Euler,
     sky: { blurriness: number; intensity: number },
+    reader: PixelReader,
   ) {
     const material = this.material;
     if (material.envMap !== skin.envMap) {
@@ -175,9 +176,14 @@ export class AimProbe {
     const previous = gl.getRenderTarget();
     gl.setRenderTarget(this.target);
     gl.render(this.scene, camera);
+    reader.read({ x: 0, y: 0, width: POINTS, height: ROWS }, true);
     gl.setRenderTarget(previous);
-    const pixels = new Float32Array(POINTS * ROWS * 4);
-    gl.readRenderTargetPixels(this.target, 0, 0, POINTS, ROWS, pixels);
+  }
+
+  // A measurement as it arrives: `light(row, point)` in luminance (row NOW
+  // is the sheet's aim at the time), `colour(row, point)` in red, green and
+  // blue, and `behind(point)` the sky behind it, in luminance.
+  static view(pixels: Float32Array) {
     const light = (row: number, point: number) => {
       const i = (row * POINTS + point) * 4;
       return (

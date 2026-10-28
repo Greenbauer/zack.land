@@ -1,22 +1,10 @@
 import { useFont } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Camera,
-  Euler,
-  Group,
-  Mesh,
-  MeshPhysicalMaterial,
-  Plane,
-  ShapeGeometry,
-  Vector2,
-  Vector3,
-  Vector4,
-  WebGLProgramParametersWithUniforms,
-} from 'three';
+import { useEffect, useRef, useState } from 'react';
+import { Euler, Vector2, Vector3, Vector4 } from 'three';
 
 import { TITLE_LAYER } from './focusBlur';
-import { GLOSS, heading, SKIN_COLOR } from './MyHead';
+import { heading } from './MyHead';
 import { skyAhead, skyRate } from './Sky';
 import {
   Aim,
@@ -27,9 +15,19 @@ import {
   shownAs,
   untoneMap,
 } from './titleAim';
-import { COLUMNS, letterMask, Mask, readWord } from './titleMask';
-import { AimProbe, bendSheet, POINTS } from './titleProbe';
+import {
+  FONT,
+  letterShapes,
+  makeSkin,
+  onPlane,
+  Sheet,
+  SWEEP,
+  Word,
+} from './titleLetters';
+import { COLUMNS, letterMask, Mask, readWord, wordBlock } from './titleMask';
+import { AimProbe, POINTS } from './titleProbe';
 import { TitleWord, titleWords } from './titleWords';
+import usePixelReader from './usePixelReader';
 
 // The home page's name drawn in the 3D scene, as flat letters in the head's
 // skin: the same glossy black, reflecting the same turning sky. The page
@@ -56,25 +54,6 @@ import { TitleWord, titleWords } from './titleWords';
 // drawn, are read from the frame itself. The sheet turns calmly, at the
 // world's pace, and keeps to a target a while rather than hunting.
 
-// The title font (scripts/build-title-font.mjs).
-const FONT = '/background/fonts/kanit.json';
-// three's TTFLoader stores glyphs at 100000 / 72 units to the em against a
-// resolution of 1000, so shapes of size 1 are 1.39 em: this size makes them
-// one em.
-const EM = (1000 * 72) / 100000;
-// The heading's letter spacing (tracking-wider, 0.05em), in font units.
-const TRACKING = 0.05;
-// The letters sit on this plane, between the camera (at 250) and the head,
-// well clear of the nose (57) as the head turns.
-const PLANE_Z = 110;
-// How far the sheet's normal tips at its left and right ends, as the tangent
-// of the angle. A reflection turns twice as far as its surface, so 0.9 sweeps
-// the reflection through about 85° each way.
-const SWEEP = 0.9;
-// The letters' reflections, this much brighter than a plain skin's: black
-// glass facing you returns only a few percent of the sky, too little to show
-// its colours.
-const REFLECT = 6;
 // The contrast each part of the name keeps with what is behind it. The
 // name favours the sky's whole palette over WCAG's 3:1 for large text: over
 // the mid-toned sky, 3:1 leaves only near white and near black, as the
@@ -124,130 +103,6 @@ const RECHOOSE = 500;
 // Reading the frame: after the colour grading draws it (priority 1).
 const READ_PRIORITY = 2;
 
-const plane = new Plane(new Vector3(0, 0, 1), -PLANE_Z);
-
-// Where a point on the page lands on the letters' plane.
-function onPlane(
-  x: number,
-  y: number,
-  camera: Camera,
-  canvas: HTMLCanvasElement,
-  target: Vector3,
-) {
-  const bounds = canvas.getBoundingClientRect();
-  const ray = new Vector3(
-    ((x - bounds.left) / bounds.width) * 2 - 1,
-    -((y - bounds.top) / bounds.height) * 2 + 1,
-    0.5,
-  )
-    .unproject(camera)
-    .sub(camera.position)
-    .normalize();
-  const t =
-    -(camera.position.dot(plane.normal) + plane.constant) /
-    ray.dot(plane.normal);
-  return target.copy(camera.position).addScaledVector(ray, t);
-}
-
-// The name's sheet: its left and right ends on the letters' plane (x), and
-// its facing (x, y: a tilt of the whole sheet; z: how far and which way its
-// curve sweeps across).
-type Sheet = {
-  span: { value: Vector2 };
-  aim: { value: Vector4 };
-};
-
-// The skin, its normals bent as the sheet's (in view space, whose axes the
-// camera keeps lined up with the world's), by where each point sits on it.
-function makeSkin(sheet: Sheet) {
-  const skin = new MeshPhysicalMaterial({
-    color: SKIN_COLOR,
-    ...GLOSS,
-    envMapIntensity: REFLECT,
-  });
-  skin.onBeforeCompile = (shader: WebGLProgramParametersWithUniforms) => {
-    shader.uniforms.uSheetSpan = sheet.span;
-    shader.uniforms.uSheetAim = sheet.aim;
-    shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying float vSheetX;')
-      .replace(
-        '#include <project_vertex>',
-        '#include <project_vertex>\nvSheetX = (modelMatrix * vec4(transformed, 1.0)).x;',
-      );
-    shader.fragmentShader = shader.fragmentShader
-      .replace(
-        '#include <common>',
-        `#include <common>
-        varying float vSheetX;
-        uniform vec2 uSheetSpan;
-        uniform vec4 uSheetAim;
-        ${bendSheet(SWEEP)}`,
-      )
-      .replace(
-        '#include <normal_fragment_maps>',
-        `#include <normal_fragment_maps>
-        float sheetAcross = clamp(
-          (2.0 * vSheetX - uSheetSpan.x - uSheetSpan.y) / (uSheetSpan.y - uSheetSpan.x),
-          -1.0, 1.0);
-        normal = sheetBend(normal, sheetAcross, uSheetAim);`,
-      )
-      .replace(
-        '#include <clearcoat_normal_fragment_maps>',
-        `#include <clearcoat_normal_fragment_maps>
-        clearcoatNormal = sheetBend(clearcoatNormal, sheetAcross, uSheetAim);`,
-      );
-  };
-  return skin;
-}
-
-// A word's letters, in ems from the left end of its baseline: drawn by
-// Word, and read by the page's mask (titleMask.ts), so both match.
-const letterShapes = (font: ReturnType<typeof useFont>, text: string) =>
-  font.generateShapes(text, EM, { letterSpacing: TRACKING });
-
-// One word, laid over its word on the page, at its size.
-// Puts a title's letters on the titles' layer, drawn over the focus blur
-// (focusBlur.ts).
-const onTitleLayer = (mesh: Mesh | null) => mesh?.layers.set(TITLE_LAYER);
-
-function Word({
-  entry,
-  material,
-}: {
-  entry: TitleWord;
-  material: MeshPhysicalMaterial;
-}) {
-  const group = useRef<Group>(null);
-  const { camera, gl } = useThree();
-  const font = useFont(FONT);
-  // Flat: the letters' outlines, filled, facing the camera.
-  const geometry = useMemo(
-    () => new ShapeGeometry(letterShapes(font, entry.text), 8),
-    [font, entry.text],
-  );
-  useEffect(() => () => geometry.dispose(), [geometry]);
-  const origin = new Vector3();
-  const across = new Vector3();
-
-  useFrame(() => {
-    const node = group.current;
-    if (!node) return;
-    const word = entry.word.getBoundingClientRect();
-    const baseline = entry.baseline.getBoundingClientRect().top;
-    const fontSize = parseFloat(getComputedStyle(entry.word).fontSize);
-    onPlane(word.left, baseline, camera, gl.domElement, origin);
-    onPlane(word.left + fontSize, baseline, camera, gl.domElement, across);
-    node.position.copy(origin);
-    node.scale.setScalar(across.distanceTo(origin));
-  });
-
-  return (
-    <group ref={group}>
-      <mesh ref={onTitleLayer} geometry={geometry} material={material} />
-    </group>
-  );
-}
-
 export default function TitleName() {
   const { camera, gl, scene } = useThree();
   // The words register from outside the canvas; look for them each frame
@@ -260,6 +115,9 @@ export default function TitleName() {
   const [material] = useState(() => makeSkin(sheet));
   const font = useFont(FONT);
   const probe = useRef<AimProbe | null>(null);
+  // The letters read back from the frame, and the probe's measurements.
+  const words = usePixelReader();
+  const measured = usePixelReader();
   // Where each word's letters are, redrawn when its size changes.
   const masks = useRef(new Map<string, { key: string; mask: Mask }>());
   // How the page shows what the probe measures (titleAim.ts), learnt from
@@ -341,84 +199,15 @@ export default function TitleName() {
     sheet.aim.value.add(gap);
   });
 
-  // Every few frames, once the frame is drawn: read the letters and what is
-  // behind them, calibrate the probe on the letters, and choose where the
-  // sheet faces.
-  useFrame(() => {
-    frame.current = (frame.current + 1) % EVERY;
-    if (frame.current || !entries.length || !probe.current) return;
-    const canvas = gl.domElement;
-    const boxes = entries.map(({ word }) => word.getBoundingClientRect());
-    const span = sheet.span.value;
-    const letters: number[] = [];
-    const checks: Check[] = [];
-    const points: { position: Vector3; across: number }[] = [];
-    entries.forEach((entry, k) => {
-      const box = boxes[k]!;
-      // A word the page is not laying out (hidden, or not yet sized) has
-      // nothing to read.
-      if (box.width < 1 || box.height < 1) return;
-      const key = `${box.width}x${box.height}`;
-      let mask = masks.current.get(entry.text);
-      if (mask?.key !== key) {
-        mask = {
-          key,
-          mask: letterMask(
-            letterShapes(font, entry.text),
-            box.width,
-            box.height,
-            entry.baseline.getBoundingClientRect().top - box.top,
-            parseFloat(getComputedStyle(entry.word).fontSize),
-          ),
-        };
-        masks.current.set(entry.text, mask);
-      }
-      const read = readWord(
-        gl.getContext(),
-        canvas,
-        box,
-        mask.mask,
-        boxes.filter((_, j) => j !== k),
-      );
-      read.letters.forEach((letter, column) => {
-        const behind = [read.above[column]!, read.below[column]!].filter(
-          (l) => !Number.isNaN(l),
-        );
-        if (Number.isNaN(letter) || !behind.length || points.length >= POINTS)
-          return;
-        const position = onPlane(
-          box.left + ((column + 0.5) / COLUMNS) * box.width,
-          (box.top + box.bottom) / 2,
-          camera,
-          canvas,
-          new Vector3(),
-        );
-        checks.push({ point: points.length, shown: letter, behind });
-        letters.push(letter);
-        points.push({
-          position,
-          across: (2 * position.x - span.x - span.y) / (span.y - span.x),
-        });
-      });
-    });
-    if (!points.length) return;
-    const now = {
-      x: sheet.aim.value.x,
-      y: sheet.aim.value.y,
-      sweepX: sheet.aim.value.z,
-      sweepY: sheet.aim.value.w,
-    };
-    // The probe's view now, and where the sky is turning.
-    const sky = {
-      blurriness: scene.backgroundBlurriness,
-      intensity: scene.backgroundIntensity,
-    };
-    const views = [
-      scene.environmentRotation,
-      ...AHEAD.map((frames) => skyAhead(frames, new Euler())),
-    ].map((rotation) =>
-      probe.current!.measure(gl, camera, material, points, now, rotation, sky),
-    );
+  // Calibrates the probe on the letters as drawn, from its `views` (now, and
+  // where the sky is turning) of `letters` with the sheet aimed at `now`, and
+  // chooses where the sheet faces, by `checks`.
+  const aimFrom = (
+    views: ReturnType<typeof AimProbe.view>[],
+    letters: number[],
+    checks: Check[],
+    now: Aim,
+  ) => {
     const { light } = views[0]!;
     // Learn the calibration: the gain from the dark and middle tones, the
     // ceiling from the bright ones, each from its median miss.
@@ -478,6 +267,119 @@ export default function TitleName() {
       flipping.current = true;
       lastFlip.current = time;
     }
+  };
+
+  // Every few frames, once the frame is drawn: read the letters and what is
+  // behind them, then (once that arrives, pixelReader.ts) measure the probe
+  // at those points, then (once that arrives) calibrate it and aim.
+  useFrame(() => {
+    frame.current = (frame.current + 1) % EVERY;
+    if (frame.current || !entries.length || !probe.current) return;
+    if (words.busy || measured.busy) return;
+    const canvas = gl.domElement;
+    const boxes = entries.map(({ word }) => word.getBoundingClientRect());
+    // The sheet as the frame drew it.
+    const span = sheet.span.value.clone();
+    const now = {
+      x: sheet.aim.value.x,
+      y: sheet.aim.value.y,
+      sweepX: sheet.aim.value.z,
+      sweepY: sheet.aim.value.w,
+    };
+    const reads = entries.flatMap((entry, k) => {
+      const box = boxes[k]!;
+      // A word the page is not laying out (hidden, or not yet sized) has
+      // nothing to read.
+      if (box.width < 1 || box.height < 1) return [];
+      const key = `${box.width}x${box.height}`;
+      let mask = masks.current.get(entry.text);
+      if (mask?.key !== key) {
+        mask = {
+          key,
+          mask: letterMask(
+            letterShapes(font, entry.text),
+            box.width,
+            box.height,
+            entry.baseline.getBoundingClientRect().top - box.top,
+            parseFloat(getComputedStyle(entry.word).fontSize),
+          ),
+        };
+        masks.current.set(entry.text, mask);
+      }
+      const block = wordBlock(canvas, box);
+      if (!block) return [];
+      words.read(block);
+      return [
+        {
+          box,
+          block,
+          mask: mask.mask,
+          others: boxes.filter((_, j) => j !== k),
+        },
+      ];
+    });
+    words.send((pixels) => {
+      const letters: number[] = [];
+      const checks: Check[] = [];
+      const points: { position: Vector3; across: number }[] = [];
+      reads.forEach(({ box, block, mask, others }, k) => {
+        const read = readWord(
+          pixels[k] as Uint8Array,
+          block,
+          box,
+          mask,
+          others,
+        );
+        read.letters.forEach((letter, column) => {
+          const behind = [read.above[column]!, read.below[column]!].filter(
+            (l) => !Number.isNaN(l),
+          );
+          if (Number.isNaN(letter) || !behind.length || points.length >= POINTS)
+            return;
+          const position = onPlane(
+            box.left + ((column + 0.5) / COLUMNS) * box.width,
+            (box.top + box.bottom) / 2,
+            camera,
+            canvas,
+            new Vector3(),
+          );
+          checks.push({ point: points.length, shown: letter, behind });
+          letters.push(letter);
+          points.push({
+            position,
+            across: (2 * position.x - span.x - span.y) / (span.y - span.x),
+          });
+        });
+      });
+      if (!points.length || !probe.current) return;
+      // The probe's view now, and where the sky is turning.
+      const sky = {
+        blurriness: scene.backgroundBlurriness,
+        intensity: scene.backgroundIntensity,
+      };
+      for (const rotation of [
+        scene.environmentRotation,
+        ...AHEAD.map((frames) => skyAhead(frames, new Euler())),
+      ])
+        probe.current.measure(
+          gl,
+          camera,
+          material,
+          points,
+          now,
+          rotation,
+          sky,
+          measured,
+        );
+      measured.send((views) =>
+        aimFrom(
+          views.map((view) => AimProbe.view(view as Float32Array)),
+          letters,
+          checks,
+          now,
+        ),
+      );
+    });
   }, READ_PRIORITY);
 
   return entries.map((entry) => (

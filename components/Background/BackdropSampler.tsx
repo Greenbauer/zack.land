@@ -1,58 +1,75 @@
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { useRef } from 'react';
 
-import { backdropWatchers, relativeLuminance } from './backdrop';
+import { backdropWatchers, relativeLuminance, type Watcher } from './backdrop';
+import usePixelReader from './usePixelReader';
 
-// Every this many frames, reads back the rendered pixels behind each watched
+// A few times a second, reads back the rendered pixels behind each watched
 // element (backdrop.ts) and reports their luminance: a grid of samples across
-// it.
+// it, each row of the grid read as one strip of the frame (pixelReader.ts),
+// reported when the strips arrive.
 const EVERY = 6;
 const GRID = 12;
+const ROWS = GRID / 3;
 
 // Runs after the colour grading draws the frame (priority 1), so it reads
 // the final picture, before the browser shows it.
 const PRIORITY = 2;
 
 export default function BackdropSampler() {
+  const gl = useThree((state) => state.gl);
+  const reader = usePixelReader();
   const frame = useRef(0);
 
-  useFrame(({ gl }) => {
+  useFrame(() => {
     frame.current = (frame.current + 1) % EVERY;
-    if (frame.current || backdropWatchers().size === 0) return;
+    if (frame.current || reader.busy || backdropWatchers().size === 0) return;
     const canvas = gl.domElement;
     const bounds = canvas.getBoundingClientRect();
     const scale = canvas.width / bounds.width;
-    const context = gl.getContext();
-    const pixel = new Uint8Array(4);
-    const sample = (x: number, y: number) => {
-      const px = Math.round((x - bounds.left) * scale);
-      const py = Math.round((bounds.bottom - y) * scale);
-      if (px < 0 || py < 0 || px >= canvas.width || py >= canvas.height)
-        return null;
-      context.readPixels(
-        px,
-        py,
-        1,
-        1,
-        context.RGBA,
-        context.UNSIGNED_BYTE,
-        pixel,
-      );
-      return relativeLuminance(pixel[0]!, pixel[1]!, pixel[2]!);
-    };
-    for (const { element, onLuminance } of backdropWatchers()) {
-      const box = element.getBoundingClientRect();
-      const samples: number[] = [];
-      for (let i = 0; i < GRID; i++)
-        for (let j = 0; j < GRID / 3; j++) {
-          const l = sample(
-            box.left + ((i + 0.5) / GRID) * box.width,
-            box.top + ((j + 0.5) / (GRID / 3)) * box.height,
-          );
-          if (l !== null) samples.push(l);
-        }
-      if (samples.length) onLuminance(samples);
+    // Each watcher read, with its samples' columns (device pixels into its
+    // strips) and how many strips it has.
+    const reads: { watcher: Watcher; columns: number[]; rows: number }[] = [];
+    for (const watcher of backdropWatchers()) {
+      const box = watcher.element.getBoundingClientRect();
+      const xs = Array.from({ length: GRID }, (_, i) =>
+        Math.round(
+          (box.left - bounds.left + ((i + 0.5) / GRID) * box.width) * scale,
+        ),
+      ).filter((px) => px >= 0 && px < canvas.width);
+      const rows = Array.from({ length: ROWS }, (_, j) =>
+        Math.round(
+          (bounds.bottom - (box.top + ((j + 0.5) / ROWS) * box.height)) * scale,
+        ),
+      ).filter((py) => py >= 0 && py < canvas.height);
+      if (!xs.length || !rows.length) continue;
+      const left = xs[0]!;
+      const width = xs[xs.length - 1]! - left + 1;
+      for (const py of rows) reader.read({ x: left, y: py, width, height: 1 });
+      reads.push({
+        watcher,
+        columns: xs.map((px) => px - left),
+        rows: rows.length,
+      });
     }
+    reader.send((strips) => {
+      let at = 0;
+      for (const { watcher, columns, rows } of reads) {
+        const samples = strips
+          .slice(at, (at += rows))
+          .flatMap((strip) =>
+            columns.map((x) =>
+              relativeLuminance(
+                strip[x * 4]!,
+                strip[x * 4 + 1]!,
+                strip[x * 4 + 2]!,
+              ),
+            ),
+          );
+        // An element gone since it was read takes no report.
+        if (backdropWatchers().has(watcher)) watcher.onLuminance(samples);
+      }
+    });
   }, PRIORITY);
 
   return null;

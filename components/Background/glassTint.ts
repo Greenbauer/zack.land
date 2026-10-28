@@ -105,40 +105,30 @@ export function skyOf(samples: Rgb[]): Rgb {
   return sum.map((c) => toSrgb(c / sky.length)) as Rgb;
 }
 
-// The sky's colour around `card` (skyOf), read back from the frame on
-// `canvas` at points around its edge; null if none is on the canvas.
-export function skyAround(
-  context: WebGLRenderingContext | WebGL2RenderingContext,
+// Where to read the sky around `card` (skyOf takes what is read there):
+// points around its edge, AROUND_PX out, as device pixels from the bottom
+// left of `canvas`; only those on it.
+export function skyPoints(
   canvas: HTMLCanvasElement,
   card: Element,
-): Rgb | null {
+): { x: number; y: number }[] {
   const bounds = canvas.getBoundingClientRect();
   const scale = canvas.width / bounds.width;
   const box = card.getBoundingClientRect();
   const [left, right] = [box.left - AROUND_PX, box.right + AROUND_PX];
   const [top, bottom] = [box.top - AROUND_PX, box.bottom + AROUND_PX];
-  const points = [0, 0.25, 0.5, 0.75, 1].flatMap((t) => [
-    [left + t * (right - left), top],
-    [left + t * (right - left), bottom],
-    [left, top + t * (bottom - top)],
-    [right, top + t * (bottom - top)],
-  ]);
-  const pixel = new Uint8Array(4);
-  const samples: Rgb[] = [];
-  for (const [x, y] of points) {
-    const px = Math.round((x! - bounds.left) * scale);
-    const py = Math.round((bounds.bottom - y!) * scale);
-    if (px < 0 || py < 0 || px >= canvas.width || py >= canvas.height) continue;
-    context.readPixels(
-      px,
-      py,
-      1,
-      1,
-      context.RGBA,
-      context.UNSIGNED_BYTE,
-      pixel,
+  return [0, 0.25, 0.5, 0.75, 1]
+    .flatMap((t) => [
+      [left + t * (right - left), top],
+      [left + t * (right - left), bottom],
+      [left, top + t * (bottom - top)],
+      [right, top + t * (bottom - top)],
+    ])
+    .map(([x, y]) => ({
+      x: Math.round((x! - bounds.left) * scale),
+      y: Math.round((bounds.bottom - y!) * scale),
+    }))
+    .filter(
+      ({ x, y }) => x >= 0 && y >= 0 && x < canvas.width && y < canvas.height,
     );
-    samples.push([pixel[0]!, pixel[1]!, pixel[2]!]);
-  }
-  return samples.length ? skyOf(samples) : null;
 }

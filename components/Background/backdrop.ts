@@ -5,7 +5,7 @@
 
 type OnLuminance = (..._samples: [number[]]) => void;
 
-type Watcher = { element: HTMLElement; onLuminance: OnLuminance };
+export type Watcher = { element: HTMLElement; onLuminance: OnLuminance };
 
 const watchers = new Set<Watcher>();
 

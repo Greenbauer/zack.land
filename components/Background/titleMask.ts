@@ -1,6 +1,7 @@
 import { Shape } from 'three';
 
 import { relativeLuminance } from './backdrop';
+import type { Region } from './pixelReader';
 
 // Where a word's letters are on the page, to read exactly their pixels in
 // the rendered frame (TitleName.tsx): the word's own 3D letter shapes drawn
@@ -82,21 +83,26 @@ export function letterMask(
   };
 }
 
-// Reads, from the frame just drawn, each column's letters (the average of its
-// mask points) and what is just above and below the word: luminances, NaN
-// where a column has no letter or the band is off the canvas or falls on one
-// of the `others` (the name's other words).
-export function readWord(
-  gl: WebGL2RenderingContext | WebGLRenderingContext,
+// The block of the frame readWord needs for `word` (its letters and the
+// bands just above and below it), in device pixels from the canvas's bottom
+// left, with the canvas's place on the page as it was and the block's bottom
+// edge in device pixels from the canvas's top; null if none of it is on the
+// canvas.
+export type WordBlock = Region & {
+  bounds: DOMRect;
+  scale: number;
+  bottom: number;
+};
+
+const bandOf = (word: DOMRect) => word.height * 0.12;
+
+export function wordBlock(
   canvas: HTMLCanvasElement,
   word: DOMRect,
-  mask: Mask,
-  others: DOMRect[] = [],
-): { letters: number[]; above: number[]; below: number[] } {
+): WordBlock | null {
   const bounds = canvas.getBoundingClientRect();
   const scale = canvas.width / bounds.width;
-  const band = word.height * 0.12;
-  // One read covering the word and the bands, in device pixels.
+  const band = bandOf(word);
   const left = Math.max(Math.floor((word.left - bounds.left) * scale), 0);
   const right = Math.min(
     Math.ceil((word.right - bounds.left) * scale),
@@ -112,19 +118,31 @@ export function readWord(
   );
   const width = right - left;
   const height = bottom - top;
-  const empty = Array(COLUMNS).fill(NaN);
-  if (width <= 0 || height <= 0)
-    return { letters: empty, above: empty, below: empty };
-  const pixels = new Uint8Array(width * height * 4);
-  gl.readPixels(
-    left,
-    canvas.height - bottom,
+  if (width <= 0 || height <= 0) return null;
+  return {
+    x: left,
+    y: canvas.height - bottom,
     width,
     height,
-    gl.RGBA,
-    gl.UNSIGNED_BYTE,
-    pixels,
-  );
+    bounds,
+    scale,
+    bottom,
+  };
+}
+
+// From `pixels`, the frame's `block` (wordBlock) as read back, each column's
+// letters (the average of its mask points) and what is just above and below
+// the word: luminances, NaN where a column has no letter or the band is off
+// the canvas or falls on one of the `others` (the name's other words).
+export function readWord(
+  pixels: Uint8Array,
+  block: WordBlock,
+  word: DOMRect,
+  mask: Mask,
+  others: DOMRect[] = [],
+): { letters: number[]; above: number[]; below: number[] } {
+  const { bounds, scale, x: left, width, height, bottom } = block;
+  const band = bandOf(word);
   // A CSS point on the page to its luminance in the read block (rows count
   // up from the block's bottom).
   const at = (x: number, y: number) => {
