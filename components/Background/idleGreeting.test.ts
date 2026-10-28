@@ -4,9 +4,11 @@ import { EASE_RATE, easeToward } from './faceExpression';
 import {
   faceSeen,
   FACING_CLOSE,
+  FRAME_GAP,
   GREETING_EASE_RATE,
   greetingExpressions,
   idle,
+  idleStart,
   SMILE_SECONDS,
   stepGreeting,
   SURPRISE_SECONDS,
@@ -120,5 +122,23 @@ describe('faceSeen', () => {
 
   it('holds it while something blurs or covers the face', () => {
     expect(faceSeen({ ...seen, covered: true })).toBe(false);
+  });
+});
+
+describe('idleStart', () => {
+  it('keeps counting while the face is seen, frame after frame', () => {
+    expect(idleStart(2, { time: 9, lastFrame: 8.98, seen: true })).toBe(2);
+  });
+
+  it('starts over on a frame the face is not seen', () => {
+    expect(idleStart(2, { time: 9, lastFrame: 8.98, seen: false })).toBe(9);
+  });
+
+  it('starts over after a gap with no frames, as when the tab was hidden', () => {
+    // Back after a minute away: the clock ran on, but none of it counts.
+    expect(idleStart(2, { time: 70, lastFrame: 9, seen: true })).toBe(70);
+    expect(
+      idleStart(2, { time: 9 + FRAME_GAP / 2, lastFrame: 9, seen: true }),
+    ).toBe(2);
   });
 });
