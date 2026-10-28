@@ -32,16 +32,16 @@ describe("whether a phone's card can show whole", () => {
 });
 
 describe("when a phone's card is tried again", () => {
-  const frame = { width: 366, height: 844, windowHeight: 844 };
+  const frame = { width: 366, height: 610 };
 
   it('is tried the first time', () => {
     expect(frameChanged(null, frame)).toBe(true);
   });
 
-  it('is not tried again when only the post grows or shrinks', () => {
-    // Showing the card whole changes the post's own height and nothing
-    // else; re-trying on that flipped the card short and whole forever.
-    expect(frameChanged(frame, { ...frame, height: 1032 })).toBe(false);
+  it("is not tried again when only the post's padding changes", () => {
+    // Showing the card whole changes the post's bottom padding (the card's
+    // height) and not its whole box; re-trying on that flipped the card
+    // short and whole forever.
     expect(frameChanged(frame, { ...frame })).toBe(false);
   });
 
@@ -49,7 +49,9 @@ describe("when a phone's card is tried again", () => {
     expect(frameChanged(frame, { ...frame, width: 390 })).toBe(true);
   });
 
-  it('is tried again when the window grows or shrinks in height', () => {
-    expect(frameChanged(frame, { ...frame, windowHeight: 700 })).toBe(true);
+  it('is tried again when the post grows or shrinks in height', () => {
+    // The window's height changing, or the footer shrinking to its scroll
+    // arrow alone, changes --post-height.
+    expect(frameChanged(frame, { ...frame, height: 680 })).toBe(true);
   });
 });
