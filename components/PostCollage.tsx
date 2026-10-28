@@ -8,10 +8,10 @@ import { collage, cropFor } from './collageLayout';
 import Media from './Media';
 
 // A post's images as separate tiles above its card (laid out by
-// collageLayout.ts). When the post comes into view each tile bounces in from its
-// own random side after its own random wait, then drifts gently on its own
-// beat; when the post leaves, each falls away the same way. The motion is in
-// .collage in styles/globals.css.
+// collageLayout.ts). When the post comes into view each tile slides in from
+// off the window's right side after its own random wait, then drifts gently
+// on its own beat; when the post leaves, each slides back off to the right.
+// The motion is in .collage in styles/globals.css.
 
 export default function PostCollage({
   mediaSources,
@@ -37,20 +37,17 @@ export default function PostCollage({
   }, []);
 
   // Watched once the tiles are there (after the box is measured), so the
-  // first time in view bounces them in too.
+  // first time in view slides them in too.
   const isLaidOut = size.width > 0 && size.height > 0;
   useEffect(() => {
     const box = boxRef.current;
     if (!box || !isLaidOut) return;
     // Each time the post comes into view or leaves, every tile gets a new
-    // side to come from (or fall to) and a new wait.
+    // wait.
     const view = new IntersectionObserver(
       ([entry]) => {
         const shown = entry!.isIntersecting;
         for (const tile of box.querySelectorAll<HTMLElement>('.collage-tile')) {
-          const angle = Math.random() * 2 * Math.PI;
-          tile.style.setProperty('--from-x', `${Math.cos(angle) * 90}px`);
-          tile.style.setProperty('--from-y', `${Math.sin(angle) * 90}px`);
           tile.style.setProperty(
             '--wait',
             `${Math.random() * (shown ? 0.6 : 0.25)}s`,
@@ -60,7 +57,7 @@ export default function PostCollage({
       },
       // In view: half its tiles' space clear of the page's top and bottom
       // fades, so the next post's tiles, peeking under the footer's fade, wait
-      // to bounce in until it is paged to.
+      // to slide in until it is paged to.
       { threshold: 0.5, rootMargin: '-20% 0px -20% 0px' },
     );
     view.observe(box);

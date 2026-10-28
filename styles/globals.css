@@ -251,28 +251,29 @@
 .grecaptcha-badge {
   visibility: hidden;
 }
-/* A post's image tiles (components/PostCollage.tsx). Out of view a tile is
-   shrunk, turned and moved off toward its side (--from-x, --from-y, set at
-   random each time); in view it springs into place with an overshoot after
-   its own wait (--wait), then drifts on its own beat (--drift). Leaving, it
-   pulls back a touch and falls away. The springing is `transform`, the drift
+/* A post's image tiles (components/PostCollage.tsx). Out of view a tile waits
+   hidden, wholly off the window's right side (past the 15rem a card's glass
+   reaches beyond it, and the 64px of photo glass past that, so a waiting
+   tile never counts as under a card: photoLens.ts); in view it slides in
+   from there after its own wait (--wait), slowing gently into place, then
+   drifts on its own beat (--drift). Leaving, it gathers speed back off to the right and
+   hides. No bounce, spin or fade. The slide is `transform`, the drift
    `translate` and the hover `scale`, so none of them stops another. */
 .collage-tile {
-  opacity: 0;
-  transform: translate(var(--from-x, 0px), var(--from-y, 90px)) scale(0.4)
-    rotate(calc(var(--tilt) * -4));
+  visibility: hidden;
+  transform: translateX(calc(100vw + 20rem)) rotate(var(--tilt));
   transition:
-    transform 0.45s cubic-bezier(0.36, 0, 0.66, -0.56) var(--wait, 0s),
-    opacity 0.2s ease-in calc(var(--wait, 0s) + 0.25s),
+    transform 0.6s cubic-bezier(0.32, 0, 0.67, 0) var(--wait, 0s),
+    visibility 0s calc(var(--wait, 0s) + 0.6s),
     scale 0.3s ease-out;
 }
 
 .collage[data-shown] .collage-tile {
-  opacity: 1;
+  visibility: visible;
   transform: rotate(var(--tilt));
   transition:
-    transform 0.75s cubic-bezier(0.34, 1.56, 0.64, 1) var(--wait, 0s),
-    opacity 0.2s ease-out var(--wait, 0s),
+    transform 0.9s cubic-bezier(0.22, 1, 0.36, 1) var(--wait, 0s),
+    visibility 0s var(--wait, 0s),
     scale 0.3s ease-out;
   animation: collage-drift var(--drift, 6s) ease-in-out var(--drift-at, 0s)
     infinite;
@@ -289,10 +290,20 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .collage-tile,
+  .collage-tile {
+    transform: rotate(var(--tilt));
+    opacity: 0;
+    transition:
+      opacity 0.3s,
+      visibility 0s 0.3s;
+    animation: none;
+  }
   .collage[data-shown] .collage-tile {
     transform: rotate(var(--tilt));
-    transition: opacity 0.3s;
+    opacity: 1;
+    transition:
+      opacity 0.3s,
+      visibility 0s;
     animation: none;
   }
 }
