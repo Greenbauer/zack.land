@@ -2,12 +2,12 @@ import { Content } from '@/types';
 
 const Contents: Content[] = [
   {
-    name: 'This web site',
+    name: 'This website',
     coded: 'vibe',
     description: (
       <p>
-        The web site you are currently viewing, is for me to showcase my skills,
-        experiment, and to master modern web design. I plan on adding many more
+        The website you are currently viewing is for me to showcase my skills,
+        experiment, and master modern web design. I plan on adding many more
         features to it and will build more useful applications to showcase.
         Enjoy!
       </p>
@@ -21,18 +21,18 @@ const Contents: Content[] = [
     coded: 'hand',
     description: (
       <p>
-        I developed Banner Eyewear so people could create and purchase 3D
-        printed sunglasses. The create page has a user interface rendering a
+        I developed Banner Eyewear so people could create and purchase
+        3D-printed sunglasses. The create page has a user interface rendering a
         realistic 3D representation of the real product. Just type some text and
         see that text fit the sides of the sunglasses in 3D. You can also change
         the font, ear tip icons, and colors.{' '}
         <a href="http://www.shapeways.com" target="_blank" rel="noreferrer">
           Shapeways
         </a>
-        , one of the world’s largest 3D printing companies, had Banner Eyewear
-        featured on their website. Today, the WordPress e-commerce site is no
-        longer active. You can still experience the create page however, which
-        lives as a static site on AWS.
+        , one of the world’s largest 3D printing companies, featured Banner
+        Eyewear on its website. Today, the WordPress e-commerce site is no
+        longer active. You can still try the create page, which now lives as a
+        static site on AWS.
       </p>
     ),
     technology: 'AWS, Serverless, jQuery, PHP, three.js, WordPress',
@@ -69,10 +69,10 @@ const Contents: Content[] = [
           Passero
         </a>{' '}
         is a travel planning technology startup, with an app to help people plan
-        for a trip with family and friends. I was a full time founding engineer
-        for a little over a year, responsible for building new full stack
-        features. I even helped design the logo during a rebranding. Currently,
-        I continue to help part time.
+        for a trip with family and friends. I was a full-time founding engineer
+        for a little over a year, responsible for building new full-stack
+        features. I even helped design the logo during a rebranding. I still
+        help part-time.
       </p>
     ),
     technology:
