@@ -16,7 +16,10 @@ export default function PageScroller({ children }: { children: ReactNode }) {
     >
       <style>{edgeFadeCss(`#${PAGE_SCROLLER_ID}`)}</style>
       <ScrollbarWidth />
-      <div className="flex min-h-full w-full justify-center pb-[var(--page-bottom)]">
+      {/* Clipped to its own box, which ends where the scrollbar begins: the
+          cards' glass and the photo glass beside them run past the window's
+          right side, and would cover the scrollbar. */}
+      <div className="flex min-h-full w-full justify-center pb-[var(--page-bottom)] [clip-path:inset(0)]">
         {children}
       </div>
     </div>
