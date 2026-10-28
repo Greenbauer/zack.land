@@ -58,8 +58,9 @@ const DOWN_TOP = `min(calc(${FOOTER_TOP} - 0.25rem - ${ARROW_HEIGHT}), max(calc(
 // over the footer and centred under it. Over the sky each is a pane of the
 // cards' frosted glass (data-glass, drawn in the 3D scene by
 // Background/glass.ts) that keeps close around it (data-glass-near), padded
-// a little past the arrow, its top pulled up as far so the arrow keeps its
-// place, and in white while the head or a dark sky is behind it, read from
+// well past the arrow at its sides and on the side toward the header or
+// footer but only a little toward the head, its top pulled up as far as its
+// top padding so the arrow keeps its place, and in white while the head or a dark sky is behind it, read from
 // the frame (arrowInk.ts), else in the cards' text colour, which the glass
 // keeps readable (--card-ink, styles/globals.css). On a phone, or
 // wherever the head has stepped off the screen to leave a card the room
@@ -207,10 +208,10 @@ function ScrollArrow({
       className={`flex items-center gap-1 transition-opacity duration-500 ${
         inFooter
           ? 'pointer-events-auto'
-          : 'fixed left-[var(--arrows-x,50%)] top-[var(--arrow-top)] z-30 -mt-2 -translate-x-1/2 rounded-3xl px-4 py-2 [--arrow-h:4.5rem] [--sky-text:var(--card-ink)] [@media(max-height:700px)]:[--arrow-h:3.25rem]'
+          : 'fixed left-[var(--arrows-x,50%)] top-[var(--arrow-top)] z-30 -translate-x-1/2 rounded-3xl px-10 [--arrow-h:4.5rem] [--sky-text:var(--card-ink)] [@media(max-height:700px)]:[--arrow-h:3.25rem]'
       } ${isUp ? 'flex-col' : 'flex-col-reverse'} ${
-        isShown ? 'opacity-100' : 'invisible opacity-0'
-      }`}
+        inFooter ? '' : isUp ? '-mt-5 pb-2 pt-5' : '-mt-2 pb-5 pt-2'
+      } ${isShown ? 'opacity-100' : 'invisible opacity-0'}`}
     >
       {/* The chevrons point left; turned a quarter, up or down. Shrunk, so
           their slide (the arrow-l keyframes) fits the box, ending at its far
