@@ -122,4 +122,17 @@ describe('the fade on each screen', () => {
     expect(wide).toContain(edgeFade(WIDE).mask);
     expect(WIDE_FROM).toBe(768);
   });
+
+  it("leaves the scroller's scrollbar out of the fade", () => {
+    const css = edgeFadeCss('#page');
+    for (const prefix of ['', '-webkit-']) {
+      expect(css).toContain(
+        `${prefix}mask-image: ${edgeFade(NARROW).mask}, linear-gradient(#000, #000)`,
+      );
+      expect(css).toContain(
+        `${prefix}mask-size: 100% 100%, var(--scrollbar-width, 0px) 100%`,
+      );
+      expect(css).toContain(`${prefix}mask-position: 0 0, 100% 0`);
+    }
+  });
 });

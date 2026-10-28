@@ -76,18 +76,31 @@ export function fadeAt(
   return Math.min(eased(y), eased(height - footer + insideFooter + clear - y));
 }
 
+// What of the mask the scroller's own scrollbar takes, along its right side:
+// the mask would fade it too, so a strip as wide as the scrollbar
+// (--scrollbar-width, which ScrollbarWidth.tsx keeps up to date; none where
+// the scrollbar floats over the page) is left whole.
+const SCROLLBAR_STRIP = [
+  'mask-size: 100% 100%, var(--scrollbar-width, 0px) 100%',
+  'mask-position: 0 0, 100% 0',
+  'mask-repeat: no-repeat',
+];
+
 // The fade as CSS variables on the scroller, for it and the page inside:
 // --page-top, --page-bottom, --post-height and --post-gap.
 export function edgeFadeCss(selector: string) {
   const rules = (fade: Fade) => {
     const { mask, pageBottom, postGap } = edgeFade(fade);
+    const layers = `${mask}, linear-gradient(#000, #000)`;
     return [
       `--page-top: ${fade.pageTop}px`,
       `--page-bottom: ${pageBottom}`,
       '--post-height: calc(100dvh - var(--page-top) - var(--page-bottom))',
       `--post-gap: ${postGap}px`,
-      `mask-image: ${mask}`,
-      `-webkit-mask-image: ${mask}`,
+      `mask-image: ${layers}`,
+      `-webkit-mask-image: ${layers}`,
+      ...SCROLLBAR_STRIP,
+      ...SCROLLBAR_STRIP.map((rule) => `-webkit-${rule}`),
     ].join('; ');
   };
   return `${selector} { ${rules(NARROW)} } @media (min-width: ${WIDE_FROM}px) { ${selector} { ${rules(WIDE)} } }`;
