@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { linesThatFit } from './useFitLines';
+import { linesThatFit } from './FitText';
 
 describe('linesThatFit', () => {
   it('leaves text that fits whole', () => {

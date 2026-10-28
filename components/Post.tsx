@@ -7,10 +7,10 @@ import Button from '@/components/Button';
 import { Content } from '@/types';
 
 import EdgeCard from './EdgeCard';
+import FitText from './FitText';
 import PostCollage from './PostCollage';
 import useCardOnTop from './useCardOnTop';
 import useClipped from './useClipped';
-import useFitLines from './useFitLines';
 import useHeadClear from './useHeadClear';
 import useHeldCard, { PostPlace } from './useHeldCard';
 import useMoreMotion from './useMoreMotion';
@@ -71,16 +71,15 @@ export default function Post({ content }: PostProps) {
   // room.
   const isClamped = hasMedia && !isExpanded;
   // The card never scrolls inside: on any screen, text that doesn't fit is
-  // cut after its last whole line, with an ellipsis (useFitLines), and More
+  // cut after its last whole line, with an ellipsis (FitText), and More
   // shows under it.
   // Opened, the card takes the whole post in place of its images, and if
   // that is still too short the post grows and the page scrolls through it
   // (SnapPager.tsx).
   const articleRef = useRef<HTMLElement | null>(null);
   const descriptionRef = useRef<HTMLDivElement | null>(null);
-  const isArticleCut = useClipped(articleRef);
-  const isDescriptionCut = useClipped(descriptionRef);
-  useFitLines(descriptionRef, !isExpanded);
+  const isArticleCut = useClipped(articleRef, !isExpanded);
+  const isDescriptionCut = useClipped(descriptionRef, !isExpanded);
   const isCut = !isExpanded && (isArticleCut || isDescriptionCut);
   const hasMore = isExpanded || isCut;
   useHeadClear(postRef);
@@ -153,8 +152,9 @@ export default function Post({ content }: PostProps) {
               )}
             </div>
             {!!description && (
-              <div
+              <FitText
                 ref={descriptionRef}
+                isOn={!isExpanded}
                 className={`min-h-0 overflow-hidden ${
                   isClamped
                     ? 'line-clamp-4 md:line-clamp-none max-md:[@media(max-height:700px)]:line-clamp-2'
@@ -162,7 +162,7 @@ export default function Post({ content }: PostProps) {
                 }`}
               >
                 {description}
-              </div>
+              </FitText>
             )}
             {/* On a wide screen More (or Less) sits under the text. */}
             {hasMore && (
