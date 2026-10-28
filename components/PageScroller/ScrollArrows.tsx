@@ -54,9 +54,10 @@ const DOWN_TOP = `min(calc(${FOOTER_TOP} - 0.25rem - ${ARROW_HEIGHT}), max(calc(
 // On the portfolio's pages on a wide screen: sliding chevrons (Chevrons.tsx)
 // pointing up, with the word Scroll under them, just under the header and
 // centred over the 3D head, and Scroll over chevrons pointing down, just
-// over the footer and centred under it. On a phone, only the down arrow, in
-// the footer, at the left of its text (data-footer-arrow, Footer) and in
-// the footer's colours. Each glides to the post before or after, and shows
+// over the footer and centred under it. On a phone, or wherever the head has
+// stepped off the screen to leave a card the room (framedHead.x below 0,
+// headPlace.ts), only the down arrow, in the footer, at the left of its text
+// (data-footer-arrow, Footer) and in the footer's colours. Each glides to the post before or after, and shows
 // only while there is a post that way. On a wide screen each is coloured
 // from the sky behind it, and they sit on the body, outside the page's
 // scroller, so its fade under the header doesn't hide them. They hide with
@@ -70,23 +71,28 @@ export default function ScrollArrows() {
     () => document.body,
     () => null,
   );
-  // On a phone, the footer's place for the down arrow.
-  const footerSlot = useSyncExternalStore(
+  const isPhone = useSyncExternalStore(
     watchPhone,
-    () =>
-      innerWidth < WIDE_FROM
-        ? document.querySelector<HTMLElement>('[data-footer-arrow]')
-        : null,
+    () => innerWidth < WIDE_FROM,
+    () => false,
+  );
+  // The footer's place for the down arrow.
+  const footerSlot = useSyncExternalStore(
+    noChange,
+    () => document.querySelector<HTMLElement>('[data-footer-arrow]'),
     () => null,
   );
+  const [isHeadAway, setIsHeadAway] = useState(false);
   const groupRef = useRef<HTMLDivElement | null>(null);
 
   // Where across the arrows go on a wide screen, as --arrows-x: under and
-  // over the head as HeadFraming glides it.
+  // over the head as HeadFraming glides it; and whether it has stepped off
+  // the screen.
   useEffect(() => {
     let frame = 0;
     let last = '';
     const follow = () => {
+      setIsHeadAway(framedHead.x < 0);
       const x = Number.isNaN(framedHead.x) ? innerWidth / 2 : framedHead.x;
       const value = `${Math.round(x)}px`;
       if (value !== last && groupRef.current) {
@@ -121,7 +127,7 @@ export default function ScrollArrows() {
     };
   }, []);
 
-  if (footerSlot)
+  if (footerSlot && (isPhone || isHeadAway))
     return createPortal(
       <div data-scroll-arrows>
         <ScrollArrow direction={1} isShown={canGo.down} inFooter />
