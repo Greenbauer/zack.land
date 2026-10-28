@@ -24,8 +24,11 @@ export const FIELDS = 4;
 const CORNER_PX = 120;
 // A small pane marked `data-glass-near` (the scroll arrows') fades out by
 // NEAR_TO (CSS pixels) past its edge, not glass.ts's FEATHER_TO, so its
-// glass stays close around it, and keeps its own corners.
+// glass stays close around it, and keeps its own corners; and its glass is
+// drawn at NEAR_STRENGTH, half blended into the scene behind, so it is a
+// light touch rather than a card.
 export const NEAR_TO = 40;
+const NEAR_STRENGTH = 0.5;
 export type Card = {
   element: HTMLElement;
   // Its box on the canvas, in canvas pixels from the bottom left.
@@ -90,6 +93,7 @@ export const findCards = (canvas: HTMLCanvasElement) => {
   const scale = canvas.width / canvas.getBoundingClientRect().width;
   return find(canvas, 'section, [data-glass]', CARDS).map((card) => ({
     ...card,
+    opacity: card.near ? card.opacity * NEAR_STRENGTH : card.opacity,
     // No more than half the card's shorter side.
     radius: Math.min(
       Math.max(card.radius, card.near ? 0 : CORNER_PX * scale),
