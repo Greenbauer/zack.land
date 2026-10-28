@@ -32,6 +32,9 @@ const CHEVRONS_UP =
   'top-11 rotate-90 scale-[0.7] [@media(max-height:700px)]:top-[29px] [@media(max-height:700px)]:scale-[0.45]';
 const CHEVRONS_DOWN =
   'top-1 -rotate-90 scale-[0.7] max-md:top-[3px] max-md:scale-[0.45] [@media(max-height:700px)]:top-[3px] [@media(max-height:700px)]:scale-[0.45]';
+// In a phone's footer the down arrow keeps the full size, to be easy to see
+// and tap.
+const CHEVRONS_DOWN_FOOTER = 'top-1 -rotate-90 scale-[0.7]';
 // The header's text ends 58px down (edgeFade.ts); the footer's top edge is
 // --footer-height up from the bottom (Footer). Each arrow keeps GAP from
 // them, and from the head.
@@ -52,7 +55,7 @@ const DOWN_TOP = `min(calc(${FOOTER_TOP} - 0.25rem - ${ARROW_HEIGHT}), max(calc(
 // pointing up, with the word Scroll under them, just under the header and
 // centred over the 3D head, and Scroll over chevrons pointing down, just
 // over the footer and centred under it. On a phone, only the down arrow, in
-// the footer, at the right of its text (data-footer-arrow, Footer) and in
+// the footer, at the left of its text (data-footer-arrow, Footer) and in
 // the footer's colours. Each glides to the post before or after, and shows
 // only while there is a post that way. On a wide screen each is coloured
 // from the sky behind it, and they sit on the body, outside the page's
@@ -135,6 +138,13 @@ export default function ScrollArrows() {
   );
 }
 
+// The chevrons' place and size for an arrow pointing up or down, in the
+// footer or over the sky.
+const chevrons = (isUp: boolean, inFooter: boolean) => {
+  if (isUp) return CHEVRONS_UP;
+  return inFooter ? CHEVRONS_DOWN_FOOTER : CHEVRONS_DOWN;
+};
+
 const noChange = () => () => {};
 // Calls `change` as the window crosses into or out of a phone's width.
 const watchPhone = (change: () => void) => {
@@ -181,21 +191,23 @@ function ScrollArrow({
       {/* The chevrons point left; turned a quarter, up or down. Shrunk, so
           their slide (the arrow-l keyframes) fits the box, ending at its far
           edge, and never reaches the header. On a short window, where the
-          space over the head is tight, and in a phone's footer, they and the
-          word are smaller still. */}
+          space over the head is tight, they and the word are smaller still;
+          in a phone's footer they keep the full size. */}
       <span
         aria-hidden
-        className="relative block h-12 w-16 max-md:h-8 [@media(max-height:700px)]:h-8"
+        className={`relative block h-12 w-16 ${
+          inFooter ? '' : 'max-md:h-8 [@media(max-height:700px)]:h-8'
+        }`}
       >
-        <span
-          className={`absolute left-1/2 block ${
-            isUp ? CHEVRONS_UP : CHEVRONS_DOWN
-          }`}
-        >
+        <span className={`absolute left-1/2 block ${chevrons(isUp, inFooter)}`}>
           <Chevrons />
         </span>
       </span>
-      <span className="font-display text-sm uppercase tracking-[0.3em] text-[color:var(--sky-text)] max-md:text-xs [@media(max-height:700px)]:text-xs">
+      <span
+        className={`font-display text-sm uppercase tracking-[0.3em] text-[color:var(--sky-text)] ${
+          inFooter ? '' : 'max-md:text-xs [@media(max-height:700px)]:text-xs'
+        }`}
+      >
         Scroll
       </span>
     </button>
