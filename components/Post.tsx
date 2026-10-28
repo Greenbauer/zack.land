@@ -8,6 +8,7 @@ import { Content } from '@/types';
 
 import EdgeCard from './EdgeCard';
 import PostCollage from './PostCollage';
+import useClipped from './useClipped';
 import useHeadClear from './useHeadClear';
 import useHeldCard, { PostPlace } from './useHeldCard';
 
@@ -57,6 +58,17 @@ export default function Post({ content }: PostProps) {
   // On a phone a post with images shows a few lines of its text and hides the
   // rest behind More, which gives the whole post to the text.
   const isClamped = hasMedia && !isExpanded;
+  // The card never scrolls inside: on any screen, text that doesn't fit is
+  // cut short (faded out at the bottom on a wide screen) and More shows.
+  // Opened, the card takes the whole post in place of its images, and if
+  // that is still too short the post grows and the page scrolls through it
+  // (SnapPager.tsx).
+  const articleRef = useRef<HTMLElement | null>(null);
+  const descriptionRef = useRef<HTMLDivElement | null>(null);
+  const isArticleCut = useClipped(articleRef);
+  const isDescriptionCut = useClipped(descriptionRef);
+  const isCut = !isExpanded && (isArticleCut || isDescriptionCut);
+  const hasMore = isExpanded || isCut;
   const postRef = useRef<HTMLDivElement | null>(null);
   useHeadClear(postRef);
   const place = useHeldCard(postRef);
@@ -78,54 +90,72 @@ export default function Post({ content }: PostProps) {
   // and, after a pause, the next slides in (CARD), each card's text fading
   // as it goes, while the images move with their posts.
   // The images lie behind the card, never over its text. On a wide screen
-  // the card takes at most 55% of the post's height (longer text scrolls
-  // inside it), so the images always keep the rest.
+  // the card takes at most 55% of the post's height, so the images always
+  // keep the rest; longer text is cut short until More opens the card: then
+  // it is no longer fixed but lies in the post, which it fills in place of
+  // the images, at least a page tall and taller if its text needs.
   return (
     <div
       ref={postRef}
       data-post
-      className="relative flex h-[var(--post-height)] w-full shrink-0 snap-start scroll-mt-[var(--page-top)] flex-col justify-end"
-      style={{ paddingBottom: 'var(--card-height, 0px)' }}
+      className={`relative flex min-h-[var(--post-height)] w-full shrink-0 snap-start scroll-mt-[var(--page-top)] flex-col ${
+        isExpanded ? '' : 'h-[var(--post-height)] justify-end'
+      }`}
+      style={{
+        paddingBottom: isExpanded ? undefined : 'var(--card-height, 0px)',
+      }}
     >
       {hasMedia && (
         <PostCollage
           mediaSources={mediaSources}
           style={{ marginLeft: 'var(--head-clear, 0px)' }}
-          className={`-mb-2 min-h-0 flex-1 md:block ${
-            isExpanded ? 'hidden' : 'block'
-          }`}
+          className={`-mb-2 min-h-0 flex-1 ${isExpanded ? 'hidden' : 'block'}`}
         />
       )}
       <EdgeCard
-        style={{
-          position: 'fixed',
-          margin: 0,
-          left: 'calc(var(--to-left, 0px) + var(--head-clear, 0px) - var(--bleed-left, 0px))',
-          right: '-15rem',
-          bottom: 'var(--page-bottom)',
-          top: isExpanded ? 'var(--page-top)' : undefined,
-          maxHeight: 'var(--card-max, var(--post-height))',
-        }}
-        className={`z-20 w-auto max-w-none flex-col md:[--card-max:calc(var(--post-height)*0.55)] ${
-          CARD[place]
-        }`}
+        style={
+          isExpanded
+            ? { position: 'relative' }
+            : {
+                position: 'fixed',
+                // Longhands, as EdgeCard sets: React clearing a `margin`
+                // shorthand on More would clear EdgeCard's margins too.
+                marginLeft: 0,
+                marginRight: 0,
+                left: 'calc(var(--to-left, 0px) + var(--head-clear, 0px) - var(--bleed-left, 0px))',
+                right: '-15rem',
+                bottom: 'var(--page-bottom)',
+                maxHeight: 'var(--card-max, var(--post-height))',
+              }
+        }
+        className={`z-20 flex w-auto max-w-none flex-col md:[--card-max:calc(var(--post-height)*0.55)] ${
+          isExpanded ? 'flex-1' : ''
+        } ${CARD[place]}`}
       >
         <article
-          className={`flex min-h-0 flex-col gap-3 overflow-y-auto p-5 md:flex-row md:gap-8 md:p-8 [&_p]:text-base [&_p]:leading-6 lg:[&_p]:text-lg lg:[&_p]:leading-7 [@media(max-height:800px)]:md:p-6 [@media(max-height:800px)]:[&_h2]:text-3xl [@media(max-height:800px)]:[&_p]:text-base [@media(max-height:800px)]:[&_p]:leading-6 ${
+          ref={articleRef}
+          className={`flex min-h-0 flex-col gap-3 overflow-hidden p-5 md:flex-row md:gap-8 md:p-8 [&_p]:text-base [&_p]:leading-6 lg:[&_p]:text-lg lg:[&_p]:leading-7 [@media(max-height:800px)]:md:p-6 [@media(max-height:800px)]:[&_h2]:text-3xl [@media(max-height:800px)]:[&_p]:text-base [@media(max-height:800px)]:[&_p]:leading-6 ${
             isExpanded ? 'flex-1' : ''
           } ${isCurrent ? CONTENT_IN : CONTENT_OUT}`}
         >
-          <div className="flex min-w-0 flex-col gap-3 md:flex-1 md:gap-4">
+          <div className="flex min-h-0 min-w-0 flex-col gap-3 md:flex-1 md:gap-4">
             <h2>{name}</h2>
             {!!description && (
               <div
-                className={isClamped ? 'line-clamp-4 md:line-clamp-none' : ''}
+                ref={descriptionRef}
+                className={`min-h-0 overflow-hidden ${
+                  isClamped ? 'line-clamp-4 md:line-clamp-none' : ''
+                } ${
+                  isCut
+                    ? 'md:[mask-image:linear-gradient(to_bottom,black_calc(100%-2rem),transparent)]'
+                    : ''
+                }`}
               >
                 {description}
               </div>
             )}
           </div>
-          <div className="flex flex-col gap-3 md:w-64 md:shrink-0 md:gap-4 md:pt-2">
+          <div className="flex shrink-0 flex-col gap-3 md:w-64 md:gap-4 md:pt-2">
             {!!coded && <CodedBadge coded={coded} />}
             {!!technology && (
               <p className={isClamped ? 'hidden md:block' : ''}>
@@ -134,11 +164,21 @@ export default function Post({ content }: PostProps) {
                 <small>{technology}</small>
               </p>
             )}
-            {hasMedia && (
+            {(hasMedia || hasMore) && (
               <button
                 type="button"
-                className="self-start text-sm uppercase tracking-wider text-[color:var(--card-ink)] underline decoration-[color:var(--card-underline)] underline-offset-4 transition-[text-decoration-color] hover:decoration-[color:var(--card-accent)] md:hidden"
-                onClick={() => setIsExpanded(!isExpanded)}
+                className={`self-start text-sm uppercase tracking-wider text-[color:var(--card-ink)] underline decoration-[color:var(--card-underline)] underline-offset-4 transition-[text-decoration-color] hover:decoration-[color:var(--card-accent)] ${
+                  hasMore ? '' : 'md:hidden'
+                }`}
+                onClick={() => {
+                  setIsExpanded(!isExpanded);
+                  // Closing a post the page has scrolled down through goes
+                  // back to its top.
+                  if (isExpanded)
+                    requestAnimationFrame(() =>
+                      postRef.current?.scrollIntoView({ block: 'start' }),
+                    );
+                }}
                 aria-expanded={isExpanded}
               >
                 {isExpanded ? 'Less' : 'More'}

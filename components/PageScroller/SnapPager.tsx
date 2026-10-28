@@ -3,24 +3,34 @@
 import { useEffect } from 'react';
 
 import { PAGE_SCROLLER_ID } from './edgeFade';
-import { GLIDE_EVENT, postPositions } from './pageGlide';
+import { GLIDE_EVENT, postSpans } from './pageGlide';
 import {
   easeOutCubic,
   GLIDE_MS,
   keyDirection,
-  nextPost,
+  postAt,
+  throughPost,
   turnGate,
+  turnTo,
   wheelPager,
 } from './paging';
 
 // How far a finger must travel up or down the screen to turn a page, in
 // pixels.
 const SWIPE_PX = 40;
+// How long the wheel must rest after scrolling through a post before it may
+// turn the page, in milliseconds, so a trackpad's coast reaching the post's
+// end doesn't turn it too.
+const THROUGH_REST_MS = 180;
+// How much of the window a key or a scroll arrow scrolls through a post.
+const THROUGH_STEP = 0.8;
 
 // Pages the scroller between its posts (paging.ts) on the wheel, a swipe,
 // the keyboard and the scroll arrows (pageGlide.ts). A turn the same way
 // waits for the last turn's next card to come most of the way in, a turn
-// back goes at once (turnGate). Renders nothing.
+// back goes at once (turnGate). A post that More has opened taller than the
+// page (Post.tsx) is scrolled through first, and turns only at its end
+// (throughPost). Renders nothing.
 export default function SnapPager() {
   useEffect(() => {
     const scroller = document.getElementById(PAGE_SCROLLER_ID);
@@ -31,16 +41,25 @@ export default function SnapPager() {
     const still = matchMedia('(prefers-reduced-motion: reduce)');
     let frame = 0;
     let wait = 0;
+    // When the wheel last scrolled through a post.
+    let throughAt = -Infinity;
 
-    const positions = () => postPositions(scroller);
+    const spans = () => postSpans(scroller);
+    // The browser's snapping would pull the page back to a post's top, so it
+    // is off while the page is on a post taller than the page.
+    const fitSnap = () => {
+      const at = spans();
+      const [start, end] = at[postAt(at, scroller.scrollTop)] ?? [0, 0];
+      scroller.style.scrollSnapType = end > start ? 'none' : '';
+    };
 
     const move = (direction: 1 | -1, quick: boolean) => {
-      const at = positions();
+      const at = spans();
       if (!at.length) return;
       // A quick turn back brings its card straight back (Post.tsx): the card
       // it turns away from never set off.
       scroller.style.setProperty('--turn-delay', quick ? '0s' : '');
-      const to = at[nextPost(at, scroller.scrollTop, direction)]!;
+      const to = turnTo(at, scroller.scrollTop, direction);
       cancelAnimationFrame(frame);
       if (still.matches) {
         scroller.scrollTop = to;
@@ -55,7 +74,7 @@ export default function SnapPager() {
         const t = Math.min((now - start) / GLIDE_MS, 1);
         scroller.scrollTop = from + (to - from) * easeOutCubic(t);
         if (t < 1) frame = requestAnimationFrame(step);
-        else scroller.style.scrollSnapType = '';
+        else fitSnap();
       };
       frame = requestAnimationFrame(step);
     };
@@ -76,58 +95,94 @@ export default function SnapPager() {
       else wait = window.setTimeout(play, gate.freeAt - now);
     };
 
-    // Whether something inside a post (its text, opened on a phone) can
-    // still scroll that way itself, so the wheel should scroll it instead.
-    const scrollsItself = (target: EventTarget | null, deltaY: number) => {
-      for (
-        let node = target instanceof Element ? target : null;
-        node && node !== scroller;
-        node = node.parentElement
-      ) {
-        const { overflowY } = getComputedStyle(node);
-        if (overflowY !== 'auto' && overflowY !== 'scroll') continue;
-        if (
-          deltaY > 0 &&
-          node.scrollTop + node.clientHeight < node.scrollHeight
-        )
-          return true;
-        if (deltaY < 0 && node.scrollTop > 0) return true;
+    // A key or a scroll arrow scrolls most of a window through a tall post,
+    // or else turns the page.
+    const step = (direction: 1 | -1) => {
+      const to = throughPost(
+        spans(),
+        scroller.scrollTop,
+        direction,
+        scroller.clientHeight * THROUGH_STEP,
+      );
+      if (to === null) glide(direction);
+      else {
+        fitSnap();
+        scroller.scrollTo({
+          top: to,
+          behavior: still.matches ? 'instant' : 'smooth',
+        });
       }
-      return false;
     };
 
     const onWheel = (event: WheelEvent) => {
       if (event.ctrlKey || Math.abs(event.deltaX) > Math.abs(event.deltaY))
         return;
-      if (scrollsItself(event.target, event.deltaY)) return;
       event.preventDefault();
+      if (!event.deltaY) return;
+      const to = throughPost(
+        spans(),
+        scroller.scrollTop,
+        event.deltaY > 0 ? 1 : -1,
+        Math.abs(event.deltaY),
+      );
+      if (to !== null) {
+        fitSnap();
+        scroller.scrollTop = to;
+        throughAt = event.timeStamp;
+        return;
+      }
+      // At the post's end: what is left of that scroll is spent here.
+      if (event.timeStamp - throughAt < THROUGH_REST_MS) {
+        throughAt = event.timeStamp;
+        return;
+      }
       const direction = turn(event.deltaY, event.timeStamp);
       if (direction) glide(direction);
     };
 
     // A swipe turns one page as the finger lifts, the browser's own scroll
-    // held off meanwhile, unless what it began on can still scroll that way.
-    let touch: { x: number; y: number; target: EventTarget | null } | null =
-      null;
+    // held off meanwhile. On a post taller than the page the finger drags the
+    // page through it instead, no further than its end, and that swipe turns
+    // nothing.
+    let touch: {
+      x: number;
+      y: number;
+      lastY: number;
+      through: boolean;
+    } | null = null;
     const onTouchStart = (event: TouchEvent) => {
       const { clientX, clientY } = event.touches[0]!;
       touch =
         event.touches.length === 1
-          ? { x: clientX, y: clientY, target: event.target }
+          ? { x: clientX, y: clientY, lastY: clientY, through: false }
           : null;
     };
     const onTouchMove = (event: TouchEvent) => {
       if (!touch) return;
+      event.preventDefault();
       const { clientY } = event.touches[0]!;
-      if (scrollsItself(touch.target, touch.y - clientY)) touch = null;
-      else event.preventDefault();
+      const dy = touch.lastY - clientY;
+      touch.lastY = clientY;
+      if (!dy) return;
+      const to = throughPost(
+        spans(),
+        scroller.scrollTop,
+        dy > 0 ? 1 : -1,
+        Math.abs(dy),
+      );
+      if (to === null) return;
+      fitSnap();
+      scroller.scrollTop = to;
+      touch.through = true;
     };
     const onTouchEnd = (event: TouchEvent) => {
       if (!touch) return;
       const { clientX, clientY } = event.changedTouches[0]!;
       const dx = touch.x - clientX;
       const dy = touch.y - clientY;
+      const { through } = touch;
       touch = null;
+      if (through) return;
       if (Math.abs(dy) >= SWIPE_PX && Math.abs(dy) > Math.abs(dx))
         glide(dy > 0 ? 1 : -1);
     };
@@ -138,11 +193,11 @@ export default function SnapPager() {
       const direction = keyDirection(event.key, event.shiftKey);
       if (!direction) return;
       event.preventDefault();
-      glide(direction);
+      step(direction);
     };
 
     const onRequest = (event: Event) =>
-      glide((event as CustomEvent<1 | -1>).detail);
+      step((event as CustomEvent<1 | -1>).detail);
 
     scroller.addEventListener('wheel', onWheel, { passive: false });
     scroller.addEventListener('touchstart', onTouchStart, { passive: true });
