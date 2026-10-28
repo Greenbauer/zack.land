@@ -22,6 +22,10 @@ export const FIELDS = 4;
 // than a card's own, so its fade stays round all the way in rather than
 // squaring off inside the edge.
 const CORNER_PX = 120;
+// A small pane marked `data-glass-near` (the scroll arrows') fades out by
+// NEAR_TO (CSS pixels) past its edge, not glass.ts's FEATHER_TO, so its
+// glass stays close around it, and keeps its own corners.
+export const NEAR_TO = 40;
 export type Card = {
   element: HTMLElement;
   // Its box on the canvas, in canvas pixels from the bottom left.
@@ -33,6 +37,8 @@ export type Card = {
   // How see-through it is (its own CSS opacity and its ancestors'), so its
   // glass fades with it.
   opacity: number;
+  // Whether its glass keeps close (data-glass-near, NEAR_TO).
+  near: boolean;
 };
 
 // An element's opacity as shown: its own times every ancestor's.
@@ -74,6 +80,7 @@ function find(canvas: HTMLCanvasElement, selector: string, most: number) {
       radius: parseFloat(getComputedStyle(element).borderTopLeftRadius) * scale,
       faded: element.closest(`#${PAGE_SCROLLER_ID}`) !== null,
       opacity,
+      near: element.hasAttribute('data-glass-near'),
     });
   }
   return found;
@@ -85,7 +92,7 @@ export const findCards = (canvas: HTMLCanvasElement) => {
     ...card,
     // No more than half the card's shorter side.
     radius: Math.min(
-      Math.max(card.radius, CORNER_PX * scale),
+      Math.max(card.radius, card.near ? 0 : CORNER_PX * scale),
       (card.box.z - card.box.x) / 2,
       (card.box.w - card.box.y) / 2,
     ),
