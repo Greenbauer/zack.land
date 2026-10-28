@@ -40,6 +40,12 @@ describe("the head's place across the window", () => {
     expect(headCentre(1024, 900, face)).toBe(face / 2);
   });
 
+  it('goes off the left of a wide window when a card leaves it too little room', () => {
+    const face = 2 * HEAD_REACH * 1000;
+    expect(headCentre(910, 1000, 71, true)).toBe(-AWAY_HEIGHTS * 1000);
+    expect(headCentre(910, 1000, face, true)).toBe(face / 2);
+  });
+
   it('measures the look from a twelfth of the window right of the head', () => {
     framedHead.x = Number.NaN;
     expect(lookOrigin(1200)).toBe(700);
