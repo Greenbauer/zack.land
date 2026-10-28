@@ -36,7 +36,7 @@ function ContactPageText() {
   // bare fragment would lay the two out side by side.
   return (
     <div>
-      <h6>Please fill out this form. Ill will respond as soon as I can.</h6>
+      <h6>Please fill out this form. I will respond as soon as I can.</h6>
       {recaptchaEnabled && (
         <small className="mt-4 block text-[color:var(--sky-muted)]">
           This site is protected by reCAPTCHA and the Google{' '}
