@@ -11,6 +11,8 @@ import useWindowSize from '@/hooks/useWindowSize';
 import Spinner from '../Spinner';
 import BackdropSampler from './BackdropSampler';
 import Grading from './Grading';
+import HeadFraming from './HeadFraming';
+import { lookOrigin } from './headPlace';
 import MyHead, { Point } from './MyHead';
 import { renderQuality } from './quality';
 import Sky from './Sky';
@@ -24,12 +26,11 @@ export default function Background() {
   // Read by the head every frame: the pointer moves without re-rendering
   // (useMousePosition).
   const lookPositionStart = (): Point => ({
-    x: (mousePosition.x - width / 3) * 0.5,
+    x: (mousePosition.x - lookOrigin(width)) * 0.5,
     y: (mousePosition.y - height / 2) * 0.5,
   });
 
   const handleCameraUpdate = (camera: PerspectiveCameraType): void => {
-    camera.setViewOffset(width, height, width / 4, 0, width, height);
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
   };
@@ -62,6 +63,7 @@ export default function Background() {
             penumbra={1}
             position={[250, 750, 500]}
           />
+          <HeadFraming />
           <MyHead
             lookPositionStart={lookPositionStart}
             pointer={mousePosition}

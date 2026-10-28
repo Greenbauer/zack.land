@@ -30,7 +30,7 @@ design tokens (`tailwind.config.js` + `styles/globals.css`) so they match the li
 | `icon-512.png` / `icon-256.png` | 512² / 256² | Smaller avatar sizes |
 | `apple-touch-icon.png` | 180² | iOS home-screen icon |
 
-> **Favicon:** unchanged — the existing `public/favicon.ico` stays as the browser favicon. This kit does **not** ship a replacement favicon.
+> **Favicon:** `public/favicon.ico` (a 72×72 PNG under the `.ico` name, as the original was) is the original's curved gradient redrawn in the dawn palette (`theme/head.json`): arcs around a centre at (−54, −2) in its 72px frame, from `dark` through `indigo` and `blue` to a bright `peach` arc, a `purple` gap, then `rose` out to near `light` in the far corner (stops at radii 55, 79, 89, 110, 116, 122, 130 and 145px). The centre and radii were fitted to the original image, so only the colours changed.
 | `og-image.png` | 1200×630 | Link preview for iMessage/text, Slack, Discord, Facebook, X/Twitter, LinkedIn shares |
 | `linkedin-banner-1584x396.png` | 1584×396 | LinkedIn personal profile cover (lower-left kept clear for the avatar) |
 | `instagram-1080x1080.png` | 1080×1080 | Instagram post / square social |
@@ -60,4 +60,4 @@ export const metadata: Metadata = {
 };
 ```
 
-`favicon.ico` is intentionally the original (unchanged); only the apple-touch icon points at the kit.
+`favicon.ico` keeps the original's shape in the dawn palette (see Favicon above); the apple-touch icon points at the kit.

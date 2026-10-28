@@ -19,6 +19,9 @@ import { titleWords } from '@/components/Background/titleWords';
 // as WCAG AA needs. Its weight is thin, so it is held to the 4.5:1 of normal
 // text rather than the 3:1 its size would allow. BackdropSampler measures the
 // sky behind it a few times a second.
+//
+// Below lg both sit at the top of the screen, above the head
+// (app/(root)/page.tsx), the name set smaller so it fits on one line.
 
 const NAME = ['Zack', "Greenbauer's"];
 const SUBTITLE_LIGHT: [number, number, number] = [255, 255, 255];
@@ -73,7 +76,7 @@ export default function Title() {
 
   return (
     <>
-      <h1 className="!bg-transparent !bg-none !text-transparent">
+      <h1 className="!bg-transparent !bg-none !text-transparent max-sm:text-[1.7rem] sm:max-lg:text-5xl">
         {NAME.map((text, index) => (
           <span key={text}>
             {index > 0 && ' '}
@@ -83,7 +86,7 @@ export default function Title() {
       </h1>
       <h2
         ref={subtitle}
-        className="transition-colors duration-300"
+        className="transition-colors duration-300 max-sm:text-lg"
         style={{ color: `rgb(${subtitleColour.join(' ')})` }}
       >
         Portfolio and Sandbox

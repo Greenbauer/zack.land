@@ -126,32 +126,6 @@ const Contents: Content[] = [
     ],
   },
   {
-    name: 'Night Shift Lens',
-    description: (
-      <p>
-        As it’s known, orange tinted light at night is good for our circadian
-        rhythm. I wanted my projector to have this feature, so I made this
-        little robot. Every evening an Arduino rotates a servo, which moves an
-        orange lens filter in front of a projector lens. Then, early the
-        morning, it rotates back. The casing is 3D printed, painted and sanded
-        to create a sleek black look. It’s also adjustable and will fit most
-        projector setups.
-      </p>
-    ),
-    technology:
-      '3D Printing, Arduino, AutoCAD, Mechanical Engineering, Robotics Engineering, SolidWorks',
-    repositoryUrl: 'https://github.com/Greenbauer/night-shift-lens',
-    mediaSources: [
-      {
-        key: '/miscellaneous/night-lens.gif',
-        alt: 'Night Shift Lens',
-        type: 'img',
-        width: 600,
-        height: 600,
-      },
-    ],
-  },
-  {
     name: 'Shofar Mount',
     description: (
       <p>
