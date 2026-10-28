@@ -64,15 +64,21 @@ export default function Post({ content }: PostProps) {
   const isCurrent = place === 'current';
   // More and Less move rather than jump, and a post left open closes again
   // once the page has moved on from it (useMoreMotion).
-  const { isExpanded, isOpen, toggle } = useMoreMotion(postRef, isCurrent);
+  const { isExpanded, isOpen, isClosed, toggle } = useMoreMotion(
+    postRef,
+    isCurrent,
+  );
   const hasMedia = !!mediaSources?.length;
   // On a phone a post with images shows a few lines of its text (two on a
   // short screen) and hides the rest behind More, which gives the whole post
   // to the text; its badge, More and links share a row, so its images keep
   // room.
   // Where its images are held by the phone's width, so the card's room
-  // costs them nothing, it shows whole instead (usePhoneWhole).
-  const isWhole = usePhoneWhole(postRef, mediaSources, hasMedia);
+  // costs them nothing, it shows whole instead (usePhoneWhole). It is
+  // measured only while the card is closed and still: measured open, or
+  // while Less brings it down, it kept a wrong answer and Less left the card
+  // tall and the images small.
+  const isWhole = usePhoneWhole(postRef, mediaSources, hasMedia && isClosed);
   const isClamped = hasMedia && !isExpanded && !isWhole;
   // The card never scrolls inside: on any screen, text that doesn't fit is
   // cut after its last whole line, with an ellipsis (FitText), and More
