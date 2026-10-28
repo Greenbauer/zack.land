@@ -8,17 +8,20 @@ import { collage, cropFor } from './collageLayout';
 import Media from './Media';
 
 // A post's images as separate tiles above its card (laid out by
-// collageLayout.ts). When the post comes into view each tile slides in from
-// off the window's right side after its own random wait, then drifts gently
-// on its own beat; when the post leaves, each slides back off to the right.
-// The motion is in .collage in styles/globals.css.
+// collageLayout.ts). When the post is the one in view (`isShown`, as its card
+// arrives) each tile slides in from off the window's right side after its own
+// random wait, then drifts gently on its own beat; when the post leaves, each
+// slides back off to the right. The motion is in .collage in
+// styles/globals.css.
 
 export default function PostCollage({
   mediaSources,
+  isShown,
   className = '',
   style,
 }: {
   mediaSources: MediaSource[];
+  isShown: boolean;
   className?: string;
   style?: CSSProperties;
 }) {
@@ -36,33 +39,23 @@ export default function PostCollage({
     return () => resize.disconnect();
   }, []);
 
-  // Watched once the tiles are there (after the box is measured), so the
-  // first time in view slides them in too.
+  // Set once the tiles are there (after the box is measured), so the first
+  // time in view slides them in too. Each time the post comes into view or
+  // leaves, every tile gets a new wait. (It follows the post rather than the
+  // tiles' own space, which on a short phone is too small a strip to count
+  // as in view.)
   const isLaidOut = size.width > 0 && size.height > 0;
   useEffect(() => {
     const box = boxRef.current;
     if (!box || !isLaidOut) return;
-    // Each time the post comes into view or leaves, every tile gets a new
-    // wait.
-    const view = new IntersectionObserver(
-      ([entry]) => {
-        const shown = entry!.isIntersecting;
-        for (const tile of box.querySelectorAll<HTMLElement>('.collage-tile')) {
-          tile.style.setProperty(
-            '--wait',
-            `${Math.random() * (shown ? 0.6 : 0.25)}s`,
-          );
-        }
-        box.toggleAttribute('data-shown', shown);
-      },
-      // In view: half its tiles' space clear of the page's top and bottom
-      // fades, so the next post's tiles, peeking under the footer's fade, wait
-      // to slide in until it is paged to.
-      { threshold: 0.5, rootMargin: '-20% 0px -20% 0px' },
-    );
-    view.observe(box);
-    return () => view.disconnect();
-  }, [isLaidOut]);
+    for (const tile of box.querySelectorAll<HTMLElement>('.collage-tile')) {
+      tile.style.setProperty(
+        '--wait',
+        `${Math.random() * (isShown ? 0.6 : 0.25)}s`,
+      );
+    }
+    box.toggleAttribute('data-shown', isShown);
+  }, [isLaidOut, isShown]);
 
   // A video goes first, laid out as the main, largest tile.
   const sources = [...mediaSources].sort(

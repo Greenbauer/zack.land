@@ -57,8 +57,10 @@ export default function Post({ content }: PostProps) {
 
   const [isExpanded, setIsExpanded] = useState(false);
   const hasMedia = !!mediaSources?.length;
-  // On a phone a post with images shows a few lines of its text and hides the
-  // rest behind More, which gives the whole post to the text.
+  // On a phone a post with images shows a few lines of its text (two on a
+  // short screen) and hides the rest behind More, which gives the whole post
+  // to the text; its badge, More and links share a row, so its images keep
+  // room.
   const isClamped = hasMedia && !isExpanded;
   // The card never scrolls inside: on any screen, text that doesn't fit is
   // cut short (faded out at the bottom on a wide screen) and More shows.
@@ -110,6 +112,7 @@ export default function Post({ content }: PostProps) {
       {hasMedia && (
         <PostCollage
           mediaSources={mediaSources}
+          isShown={isCurrent}
           style={{ marginLeft: 'var(--head-clear, 0px)' }}
           className={`-mb-2 min-h-0 flex-1 ${isExpanded ? 'hidden' : 'block'}`}
         />
@@ -146,7 +149,9 @@ export default function Post({ content }: PostProps) {
               <div
                 ref={descriptionRef}
                 className={`min-h-0 overflow-hidden ${
-                  isClamped ? 'line-clamp-4 md:line-clamp-none' : ''
+                  isClamped
+                    ? 'line-clamp-4 md:line-clamp-none max-md:[@media(max-height:700px)]:line-clamp-2'
+                    : ''
                 } ${
                   isCut
                     ? 'md:[mask-image:linear-gradient(to_bottom,black_calc(100%-2rem),transparent)]'
@@ -157,7 +162,13 @@ export default function Post({ content }: PostProps) {
               </div>
             )}
           </div>
-          <div className="flex shrink-0 flex-col gap-3 md:w-64 md:gap-4 md:pt-2">
+          <div
+            className={`flex shrink-0 flex-col gap-3 md:w-64 md:gap-4 md:pt-2 ${
+              isClamped
+                ? 'max-md:flex-row max-md:flex-wrap max-md:items-center'
+                : ''
+            }`}
+          >
             {!!coded && <CodedBadge coded={coded} />}
             {!!technology && (
               <p className={isClamped ? 'hidden md:block' : ''}>
@@ -169,7 +180,7 @@ export default function Post({ content }: PostProps) {
             {(hasMedia || hasMore) && (
               <button
                 type="button"
-                className={`self-start text-sm uppercase tracking-wider text-[color:var(--card-ink)] underline decoration-[color:var(--card-underline)] underline-offset-4 transition-[text-decoration-color] hover:decoration-[color:var(--card-accent)] ${
+                className={`self-start ${isClamped ? 'max-md:self-center' : ''} text-sm uppercase tracking-wider text-[color:var(--card-ink)] underline decoration-[color:var(--card-underline)] underline-offset-4 transition-[text-decoration-color] hover:decoration-[color:var(--card-accent)] ${
                   hasMore ? '' : 'md:hidden'
                 }`}
                 onClick={() => {
