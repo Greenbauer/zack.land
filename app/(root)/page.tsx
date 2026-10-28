@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 
+import NavHint from '@/components/Home/NavHint';
 import Title from '@/components/Home/Title';
 import TitleBox from '@/components/Home/TitleBox';
 
@@ -21,6 +22,8 @@ export default function Page() {
       <TitleBox>
         <Title />
       </TitleBox>
+      {/* Left alone for a while, the page points up at Portfolio. */}
+      <NavHint />
     </div>
   );
 }
