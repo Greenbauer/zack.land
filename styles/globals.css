@@ -290,6 +290,22 @@
   50% { translate: 0 -8px; }
 }
 
+/* As the site goes to another page (components/PageLeave.tsx), the tiles
+   slide off to the right as when their post leaves, after shorter waits, and
+   the scroll arrows fade. */
+body[data-leaving] .collage[data-shown] .collage-tile {
+  visibility: hidden;
+  transform: translateX(calc(100vw + 20rem)) rotate(var(--tilt));
+  transition:
+    transform 0.6s cubic-bezier(0.32, 0, 0.67, 0) calc(var(--wait, 0s) * 0.4),
+    visibility 0s calc(var(--wait, 0s) * 0.4 + 0.6s),
+    scale 0.3s ease-out;
+}
+body[data-leaving] [data-scroll-arrows] button {
+  visibility: hidden;
+  opacity: 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .collage-tile {
     transform: rotate(var(--tilt));
