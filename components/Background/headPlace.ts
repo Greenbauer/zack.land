@@ -15,7 +15,8 @@ export const AWAY_HEIGHTS = 0.6;
 // beside it (its cards, the home page's title: elements marked
 // data-head-avoid), whose left edge is `freeRight`; undefined when the page
 // has none. Where that space is narrower than the head's face, the head
-// goes back to the middle of the screen.
+// goes back to the middle of the screen, or, if what is there is a card, off
+// the left edge as on a narrow window, rather than show behind its text.
 export function headCentre(
   width: number,
   height: number,
@@ -24,7 +25,8 @@ export function headCentre(
 ): number {
   if (width < WIDE_FROM) return covered ? -AWAY_HEIGHTS * height : width / 2;
   if (freeRight === undefined) return width / 2;
-  if (freeRight < 2 * HEAD_REACH * height) return width / 2;
+  if (freeRight < 2 * HEAD_REACH * height)
+    return covered ? -AWAY_HEIGHTS * height : width / 2;
   return freeRight / 2;
 }
 
