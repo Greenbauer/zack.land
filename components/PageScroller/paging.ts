@@ -1,9 +1,9 @@
 // Paging the portfolio's posts: one wheel turn, swipe or key press moves
 // straight to the next post (or back) in a short, quick glide, instead of
 // the browser's own snapping, which waits for the scroll to settle first.
-// A turn the same way waits for the last turn's next card to come most of
-// the way in (turnGate); a turn back goes at once, its cards reversing from
-// wherever they are (Post.tsx).
+// A push the same way while the last turn's next card is still coming in is
+// let go (turnGate), so one scroll turns one page; a turn back goes at once,
+// its cards reversing from wherever they are (Post.tsx).
 
 // How long the glide to the next post takes, in milliseconds.
 export const GLIDE_MS = 300;
@@ -15,51 +15,38 @@ export const easeOutCubic = (t: number) => 1 - (1 - t) ** 3;
 // leaves, in milliseconds (Post.tsx's --turn-delay, 0.7s by default): a turn
 // back inside it is quick, as that card has not set off yet.
 export const QUICK_MS = 700;
-// How long a turn the same way waits after the last, in milliseconds: the
+// How long after a turn a push the same way is let go, in milliseconds: the
 // pause and most of the next card's slide in, so it never sets off across
-// the whole window only to be sent straight back out.
+// the whole window only to be sent straight back out, and a long or uneven
+// swipe, or a mouse wheel spun on, turns one page, not two.
 export const HOLD_MS = 1400;
 
-// Spaces page turns out: a turn the same way as the last waits `holdMs`
-// after it, and only the latest one asked for waits, so a burst of pushes
-// turns a page at a time. A turn back the other way goes at once, its cards
-// reversing from wherever they are, and is `quick` inside `quickMs`: the card
-// it turns away from has not set off, so the card it brings back need not
-// wait for it. `ask` says whether to turn now; `due` gives the waiting turn
-// once it may go, and `freeAt` when that is. Given `playingFrom`, it starts
-// as if a turn began then (the first card arriving as the page loads).
+// Spaces page turns out: a push the same way as the last turn, inside
+// `holdMs` of it, is let go rather than kept for later (kept, it turned a
+// second page as the first card landed, so a post flashed past). A turn
+// back the other way goes at once, its cards reversing from wherever they
+// are, and is `quick` inside `quickMs`: the card it turns away from has not
+// set off, so the card it brings back need not wait for it. `ask` says
+// whether to turn now. Given `playingFrom`, it starts as if a turn began
+// then (the first card arriving as the page loads).
 export function turnGate({
   holdMs = HOLD_MS,
   quickMs = QUICK_MS,
   playingFrom = -Infinity,
 } = {}) {
   let turnedAt = playingFrom;
-  let freeAt = playingFrom + holdMs;
   let last: 1 | -1 | 0 = 0;
-  let waiting: 1 | -1 | 0 = 0;
   const go = (direction: 1 | -1, now: number, quick: boolean) => {
     last = direction;
-    waiting = 0;
     turnedAt = now;
-    freeAt = now + holdMs;
     return { direction, quick };
   };
   return {
     ask(direction: 1 | -1, now: number) {
       if (last && direction !== last)
         return go(direction, now, now - turnedAt < quickMs);
-      if (now >= freeAt) return go(direction, now, false);
-      waiting = direction;
+      if (now - turnedAt >= holdMs) return go(direction, now, false);
       return null;
-    },
-    due(now: number) {
-      return waiting && now >= freeAt ? go(waiting, now, false) : null;
-    },
-    get freeAt() {
-      return freeAt;
-    },
-    get waiting() {
-      return waiting;
     },
   };
 }

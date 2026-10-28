@@ -197,16 +197,14 @@ describe('spacing page turns out', () => {
     expect(gate.ask(1, 1400)).toEqual({ direction: 1, quick: false });
   });
 
-  it('holds a turn the same way until the next card is most of the way in', () => {
+  it('lets a push the same way go while the next card comes in, keeping none for later', () => {
     const gate = turnGate(options);
     gate.ask(1, 0);
+    // A long swipe's later pushes, or a wheel spun on: none turns a page.
     expect(gate.ask(1, 300)).toBeNull();
-    expect(gate.due(1399)).toBeNull();
-    // Still waiting, for a timer that came a moment early to look again.
-    expect(gate.waiting).toBe(1);
-    expect(gate.due(1400)).toEqual({ direction: 1, quick: false });
-    expect(gate.waiting).toBe(0);
-    expect(gate.freeAt).toBe(2800);
+    expect(gate.ask(1, 1399)).toBeNull();
+    // Once the card is most of the way in, the next push turns at once.
+    expect(gate.ask(1, 1400)).toEqual({ direction: 1, quick: false });
   });
 
   it('turns back at once, quick only before the next card sets off', () => {
@@ -218,27 +216,9 @@ describe('spacing page turns out', () => {
     expect(midway.ask(-1, 1000)).toEqual({ direction: -1, quick: false });
   });
 
-  it('keeps only the latest of a burst the same way', () => {
-    const gate = turnGate(options);
-    gate.ask(1, 0);
-    gate.ask(1, 100);
-    gate.ask(1, 200);
-    expect(gate.due(1400)).toEqual({ direction: 1, quick: false });
-    expect(gate.due(2800)).toBeNull();
-  });
-
-  it('drops a waiting turn when one back goes instead', () => {
-    const gate = turnGate(options);
-    gate.ask(1, 0);
-    gate.ask(1, 100);
-    gate.ask(-1, 200);
-    expect(gate.waiting).toBe(0);
-    expect(gate.due(1600)).toBeNull();
-  });
-
   it('can start as if a turn is already playing', () => {
     const gate = turnGate({ ...options, playingFrom: 100 });
     expect(gate.ask(1, 500)).toBeNull();
-    expect(gate.due(1500)).toEqual({ direction: 1, quick: false });
+    expect(gate.ask(1, 1500)).toEqual({ direction: 1, quick: false });
   });
 });
