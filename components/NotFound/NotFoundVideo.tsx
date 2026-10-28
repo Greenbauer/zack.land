@@ -45,7 +45,10 @@ export default function NotFoundVideo() {
       <EdgeCard className="motion-safe:animate-card-in">
         <article className="flex flex-col gap-4 motion-safe:animate-content-in md:gap-6">
           <h3>404 - Page not found</h3>
-          <div className="relative aspect-video max-h-[calc(100dvh-var(--page-top)-var(--page-bottom)-10rem)] w-full overflow-hidden rounded-2xl bg-head-dark [container-type:size]">
+          {/* 16:9, as wide as the card, or narrower where the space between
+              the header's and footer's fades (less the title) is the
+              limit, so it stays 16:9 rather than being cut shorter. */}
+          <div className="relative aspect-video w-[min(100%,calc((100dvh_-_var(--page-top)_-_var(--page-bottom)_-_10rem)*16/9))] overflow-hidden rounded-2xl bg-head-dark [container-type:size]">
             {/* As wide as its picture needs to fill the window across
                 (PICTURE_WIDTH), or as its height needs to fill it down,
                 whichever is more, centred. */}
