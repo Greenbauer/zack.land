@@ -42,7 +42,8 @@ export default function NavDropdown({
         transition
         className="fixed inset-0 -z-10 backdrop-blur-[6px] transition-opacity duration-300 data-[closed]:opacity-0"
       />
-      <PopoverButton className="group flex outline-none">
+      {/* data-nav-dropdown: the home page's idle hint points at it (Home/NavHint.tsx). */}
+      <PopoverButton data-nav-dropdown className="group flex outline-none">
         <span className={linkStyle({ isActive })}>{label}</span>
       </PopoverButton>
       <div
