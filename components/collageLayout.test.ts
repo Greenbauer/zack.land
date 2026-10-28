@@ -99,6 +99,22 @@ describe("a post's collage", () => {
     },
   );
 
+  it('sits at the bottom of its box, by the card, the same gap at any height', () => {
+    // Perf Sealers' one square, limited by a phone's width, in boxes of
+    // three heights: the gap under it does not grow with the box.
+    const gaps = [520, 700, 900].map((h) => {
+      const [tile] = collage([1], seeds(1), 500, h);
+      expect(tile!.width).toBeCloseTo(500 * 1, 0);
+      return h - (tile!.y + tile!.height);
+    });
+    for (const gap of gaps) {
+      expect(gap).toBeGreaterThanOrEqual(-1e-9);
+      expect(gap).toBeLessThanOrEqual(NUDGE * 500);
+      // Within a couple of pixels (its growth is capped by the box).
+      expect(Math.abs(gap - gaps[0]!)).toBeLessThan(2);
+    }
+  });
+
   it('scatters the same way every time, and each image its own way', () => {
     const once = collage([1, 1, 1, 1], seeds(4), 600, 800);
     expect(collage([1, 1, 1, 1], seeds(4), 600, 800)).toEqual(once);

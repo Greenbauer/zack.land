@@ -179,7 +179,10 @@ function pack(
 
 // The tiles for images of crops `crops` (each tile takes its crop or one
 // shape taller) in a box `width` by `height`, each scattered by its own
-// `seeds` (one per tile, such as its image's path), in the middle of the box.
+// `seeds` (one per tile, such as its image's path), centred across the box
+// and down at its bottom, by the card, so the gap between them and the card
+// is the same at any size (centred down the box too, a group limited by the
+// box's width left a gap above the card that grew with the window's height).
 // A `main` tile (by index; a video) is laid out as the largest, in its own
 // shape.
 export function collage(
@@ -190,7 +193,9 @@ export function collage(
   main?: number,
 ): Tile[] {
   if (!crops.length || width <= 0 || height <= 0) return [];
-  return pack(crops, width, height, main).map((box, k) => {
+  const boxes = pack(crops, width, height, main);
+  const drop = height - Math.max(...boxes.map((box) => box.y + box.height));
+  return boxes.map((box, k) => {
     const random = seeded(seeds[k] ?? String(k));
     const spread = () => random() * 2 - 1;
     // Grown, but never past the box.
@@ -198,7 +203,7 @@ export function collage(
     const w = box.width * grow;
     const h = box.height * grow;
     const x = box.x + (box.width - w) / 2 + spread() * NUDGE * w;
-    const y = box.y + (box.height - h) / 2 + spread() * NUDGE * h;
+    const y = box.y + drop + (box.height - h) / 2 + spread() * NUDGE * h;
     return {
       x: Math.min(Math.max(x, 0), width - w),
       y: Math.min(Math.max(y, 0), height - h),
