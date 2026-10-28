@@ -9,8 +9,10 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 
+import { watchBackdrop } from '@/components/Background/backdrop';
 import { framedHead } from '@/components/Background/headPlace';
 
+import { isWhite } from './arrowInk';
 import { Chevrons } from './Chevrons';
 import { PAGE_SCROLLER_ID, WIDE_FROM } from './edgeFade';
 import { postSpans, requestGlide } from './pageGlide';
@@ -57,8 +59,9 @@ const DOWN_TOP = `min(calc(${FOOTER_TOP} - 0.25rem - ${ARROW_HEIGHT}), max(calc(
 // cards' frosted glass (data-glass, drawn in the 3D scene by
 // Background/glass.ts) that keeps close around it (data-glass-near), padded
 // a little past the arrow, its top pulled up as far so the arrow keeps its
-// place, and in the cards' text colour, which the glass keeps readable
-// (--card-ink, styles/globals.css). On a phone, or
+// place, and in white while the head or a dark sky is behind it, read from
+// the frame (arrowInk.ts), else in the cards' text colour, which the glass
+// keeps readable (--card-ink, styles/globals.css). On a phone, or
 // wherever the head has stepped off the screen to leave a card the room
 // (framedHead.x below 0, headPlace.ts), only the down arrow, in the footer,
 // at the left of its text (data-footer-arrow, Footer) and in the footer's
@@ -173,9 +176,20 @@ function ScrollArrow({
   inFooter?: boolean;
 }) {
   const isUp = direction < 0;
+  // Over the sky: white while the head (or a dark sky) is behind it
+  // (arrowInk.ts), else the cards' text colour.
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const [white, setWhite] = useState(false);
+  useEffect(() => {
+    if (inFooter || !buttonRef.current) return;
+    return watchBackdrop(buttonRef.current, (samples) =>
+      setWhite((was) => isWhite(samples, was)),
+    );
+  }, [inFooter]);
 
   return (
     <button
+      ref={buttonRef}
       data-glass={inFooter ? undefined : true}
       data-glass-near={inFooter ? undefined : true}
       type="button"
@@ -185,7 +199,10 @@ function ScrollArrow({
       style={
         inFooter
           ? undefined
-          : ({ '--arrow-top': isUp ? UP_TOP : DOWN_TOP } as CSSProperties)
+          : ({
+              '--arrow-top': isUp ? UP_TOP : DOWN_TOP,
+              ...(white && { '--sky-text': 'white' }),
+            } as CSSProperties)
       }
       className={`flex items-center gap-1 transition-opacity duration-500 ${
         inFooter
