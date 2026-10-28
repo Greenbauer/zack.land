@@ -6,7 +6,7 @@
 // spreads through the face instead of bunching at the pins. Distances are in
 // head.bin units (about 1.7 mm).
 
-import { add, boundaryLoops, normals, scale } from './mesh.mjs';
+import { add, boundaryLoops, normals, scale } from "./mesh.mjs";
 
 const smoothstep = (x, low, high) => {
   const t = Math.min(Math.max((x - low) / (high - low), 0), 1);
@@ -362,7 +362,46 @@ function squint(rig, face) {
   });
 }
 
-export const EXPRESSIONS = { smile, wide, gasp, pout, browsUp, squint };
+// Worried (reference: the inner ends of the brows drawn up and together
+// while their outer ends stay, the lips pressed and the mouth's corners
+// turned down, the chin a little bunched): the eyes stay as they are, but
+// for the lower lids tightening a touch.
+function worried(rig, face) {
+  const pins = still(rig, { seam: 0 });
+  lids(rig, pins, 0, 0.08);
+  brows(rig, pins, (across, side) => {
+    const inner = 1 - smoothstep(across, 5, 24);
+    return [-side * 1.2 * inner, 4.6 * inner - 0.8 * (1 - inner), 0];
+  });
+  lips(rig, face, pins, (s, lower) => {
+    const body = 1 - s * s;
+    return [0, -1.9 * s * s + (lower ? 0.5 : -0.1) * body, 0.4 * body];
+  });
+  face.lips.corners.forEach((i, k) =>
+    pins.set(i, [(k ? 1 : -1) * 0.5, -2.5, -0.4]),
+  );
+  rig.vertices.forEach((v, i) => {
+    if (
+      !pins.has(i) &&
+      v[1] < -52 &&
+      v[2] > 20 &&
+      Math.abs(v[0]) < 14 &&
+      rig.height(v) > 8
+    )
+      pins.set(i, [0, 0.9, 0.6]);
+  });
+  return finish(rig, face, pins);
+}
+
+export const EXPRESSIONS = {
+  smile,
+  wide,
+  gasp,
+  pout,
+  browsUp,
+  squint,
+  worried,
+};
 
 // Every expression's displacement of the face's points, by name. `eyes` are
 // the eyeballs' centres; `height(p)` is a point's height over the join.

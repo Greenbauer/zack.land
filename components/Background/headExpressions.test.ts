@@ -36,7 +36,7 @@ describe('the head joined to its neck and shoulders', () => {
       return n.map((c) => c / l);
     };
 
-    it('has a smile, a wide-eyed look, a gasp, a pout, brows up and a squint', () => {
+    it('has a smile, a wide-eyed look, a gasp, a pout, brows up, a squint and a worried look', () => {
       expect(expressions).toEqual([
         'smile',
         'wide',
@@ -44,7 +44,22 @@ describe('the head joined to its neck and shoulders', () => {
         'pout',
         'browsUp',
         'squint',
+        'worried',
       ]);
+    });
+
+    it('draws the inner brows up for the worried look and turns the mouth corners down', () => {
+      const d = moves('worried');
+      for (const side of [-1, 1]) {
+        // The inner brows rise, well past the outer ends, and draw in.
+        const inner = near(d, side * 6, 12.5);
+        expect(inner[1]).toBeGreaterThan(1.5);
+        expect(inner[1]).toBeGreaterThan(near(d, side * 28, 12.5)[1]! + 1.5);
+        expect(inner[0]! * side).toBeLessThan(0);
+      }
+      // The mouth's corners (as the smile's test finds them) go down.
+      expect(near(d, -14, -38.5, 2)[1]).toBeLessThan(-0.8);
+      expect(near(d, 12, -38.2, 2)[1]).toBeLessThan(-0.8);
     });
 
     it('lifts the brows for brows up and leaves the mouth still', () => {
