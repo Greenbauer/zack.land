@@ -6,11 +6,21 @@ import { FaPause, FaPlay } from 'react-icons/fa';
 import { headMood } from '@/components/Background/headMood';
 import EdgeCard from '@/components/EdgeCard';
 
+// How much of the video file's width its picture fills: it is about 4:3
+// inside a 16:9 frame, black at either side (measured at 0.7375), less a
+// little so no edge of the black shows.
+const PICTURE_WIDTH = 0.72;
+
 // The 404 page's card (app/(root)/not-found.tsx): its video on a card like
 // the contact form's, as wide and placed the same, sliding in from the
-// window's left edge as what is on it fades in. Clicking the video or the
-// play button plays or pauses it. While it shows, the 3D head faces the
-// camera, worried (headMood).
+// window's left edge as what is on it fades in. The video's window is 16:9
+// (no taller than the space between the header's and footer's fades
+// leaves it), and the picture fills it, cropped top and bottom, so the
+// file's black sides never show. Clicking it, or the play button over its
+// bottom, plays or pauses it; while it plays the scene behind the card
+// blurs, as it does while a contact field has focus (data-focus-blur,
+// Background/focusBlur.ts). While the page shows, the 3D head looks worried
+// (headMood).
 export default function NotFoundVideo() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -34,28 +44,34 @@ export default function NotFoundVideo() {
     <div className="relative flex size-full justify-end">
       <EdgeCard className="motion-safe:animate-card-in">
         <article className="flex flex-col gap-4 motion-safe:animate-content-in md:gap-6">
-          <div className="flex items-center justify-between gap-3">
-            <h3>404 - Page not found</h3>
+          <h3>404 - Page not found</h3>
+          <div className="relative aspect-video max-h-[calc(100dvh-var(--page-top)-var(--page-bottom)-10rem)] w-full overflow-hidden rounded-2xl bg-head-dark [container-type:size]">
+            {/* As wide as its picture needs to fill the window across
+                (PICTURE_WIDTH), or as its height needs to fill it down,
+                whichever is more, centred. */}
+            <video
+              ref={videoRef}
+              data-focus-blur
+              data-playing={isPlaying || undefined}
+              onClick={toggle}
+              style={{
+                width: `max(${100 / PICTURE_WIDTH}cqw, ${(100 * 16) / 9}cqh)`,
+              }}
+              className="absolute left-1/2 top-1/2 h-auto max-w-none -translate-x-1/2 -translate-y-1/2 cursor-pointer"
+              loop
+              playsInline
+            >
+              <source src="/not-found/hello-is-it-me.mp4" type="video/mp4" />
+            </video>
             <button
               type="button"
               aria-label={isPlaying ? 'Pause the video' : 'Play the video'}
               onClick={toggle}
-              className="text-[color:var(--card-ink)]"
+              className="absolute bottom-4 left-4 rounded-full bg-head-dark/60 p-3 text-head-light backdrop-blur-sm"
             >
-              {isPlaying ? <FaPause size={24} /> : <FaPlay size={24} />}
+              {isPlaying ? <FaPause size={20} /> : <FaPlay size={20} />}
             </button>
           </div>
-          {/* As wide as the card, and no taller than the space between the
-              header's and footer's fades leaves it. */}
-          <video
-            ref={videoRef}
-            onClick={toggle}
-            className="aspect-video max-h-[calc(100dvh-var(--page-top)-var(--page-bottom)-10rem)] w-full cursor-pointer rounded-2xl bg-head-dark object-contain"
-            loop
-            playsInline
-          >
-            <source src="/not-found/hello-is-it-me.mp4" type="video/mp4" />
-          </video>
         </article>
       </EdgeCard>
     </div>
