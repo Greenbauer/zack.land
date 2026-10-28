@@ -10,14 +10,16 @@ import {
 
 // Where the glass cards are (glass.ts draws their glass): every `section`,
 // and anything marked `data-glass`, read from the page every frame, with
-// their form fields and the page's fade under the header and footer.
+// their form fields and paragraphs and the page's fade under the header and
+// footer.
 
 // The most cards frosted at once, and how many points down the window the
 // page's fade is sampled at.
 export const CARDS = 8;
 export const FADE_SAMPLES = 64;
-// Behind at most FIELDS form fields at once the glass is calmer (glass.ts).
-export const FIELDS = 4;
+// Behind at most FIELDS form fields and paragraphs at once the glass is
+// calmer (glass.ts), so text over it reads clearly.
+export const FIELDS = 6;
 // The glass's corners are rounded to at least CORNER_PX (CSS pixels), more
 // than a card's own, so its fade stays round all the way in rather than
 // squaring off inside the edge.
@@ -106,7 +108,7 @@ export const findCards = (canvas: HTMLCanvasElement) => {
 export const findFields = (canvas: HTMLCanvasElement) =>
   find(
     canvas,
-    ':is(section, [data-glass]) :is(input, textarea, select)',
+    ':is(section, [data-glass]) :is(input, textarea, select, p)',
     FIELDS,
   );
 

@@ -59,14 +59,14 @@ const SMALL_STRENGTH = 0.75;
 // SPREAD_PX either side of its centre, squeezed into its own half-width.
 export const CELL_PX = 14;
 export const SPREAD_PX = 20;
-// Behind a card's form fields (glassCards.ts's FIELDS) the glass is calmer,
-// so what is behind does not distract from what is typed: frosted a little
-// harder, to FIELD_FROST_PX, its lenses bending only FIELD_LENS of what the
-// card's do; its edge softens over FIELD_FEATHER_PX either side of the
-// field's outline.
+// Behind a card's form fields and paragraphs (glassCards.ts's FIELDS) the
+// glass is calmer, so what is behind does not distract from what is typed
+// or read: frosted a little harder, to FIELD_FROST_PX, its lenses bending
+// only FIELD_LENS of what the card's do; its edge softens over
+// FIELD_FEATHER_PX either side of the outline, so it shows as no box.
 export const FIELD_FROST_PX = 11;
 export const FIELD_LENS = 0.4;
-const FIELD_FEATHER_PX = 1.5;
+const FIELD_FEATHER_PX = 12;
 
 // How strongly the glass is tinted on a window `width` by `height`.
 export const tintStrength = (width: number, height: number) =>
