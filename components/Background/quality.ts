@@ -1,4 +1,4 @@
-import { isSmall } from './glass';
+import { isSmall } from './smallScreen';
 
 // How finely the scene is drawn on a window `width` by `height` CSS pixels:
 // its pixel ratio (the range three may pick from, by the screen's own) and
