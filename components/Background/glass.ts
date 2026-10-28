@@ -44,7 +44,10 @@ export const FEATHER_TO = 160;
 // clear but for its frost and lenses, except where it must darken (or
 // lighten) for its text: then toward the colour of the sky around the card
 // (glassTint.ts's bounds). On a phone, or a screen too short for much text,
-// SMALL_STRENGTH throughout, so the text there stands more on its own.
+// SMALL_STRENGTH of the way to the sky's own colour around the card
+// throughout, so the text there stands more on its own and the glass matches
+// the sky the footer sits on, then darkened (or lightened) only as far as
+// the bounds need.
 const TINT_STRENGTH = 0;
 const SMALL_STRENGTH = 0.75;
 const SMALL_WIDTH = 768;
@@ -96,18 +99,20 @@ const tint = `
           gl_FragColor = scene;
           return;
         }
-        vec3 tintColour = cardTint(box, lightness);
-        // How far toward the tint the glass must go to stay within the
-        // card's bounds, reckoned in the frame's own (gamma) values, where
-        // the mix is straight.
+        vec3 sky = skyAround(box);
+        vec3 tintColour = cardTint(sky, lightness);
+        // First uStrength of the way to the sky's own colour (none on a
+        // large screen), then as far toward the tint as the glass must go to
+        // stay within the card's bounds, reckoned in the frame's own (gamma)
+        // values, where the mix is straight.
+        vec3 calmed = mix(scene.rgb, pow(sky, vec3(1.0 / 2.2)), uStrength);
         vec3 weights = vec3(0.2126, 0.7152, 0.0722);
-        float here = pow(dot(pow(scene.rgb, vec3(2.2)), weights), 1.0 / 2.2);
+        float here = pow(dot(pow(calmed, vec3(2.2)), weights), 1.0 / 2.2);
         float tinted = pow(dot(pow(tintColour, vec3(2.2)), weights), 1.0 / 2.2);
         float want = clamp(here, bounds.x, bounds.y);
         float apart = here - tinted;
         float shift = abs(apart) < 0.0001 ? 0.0 : clamp((here - want) / apart, 0.0, 1.0);
-        float strength = max(uStrength, shift);
-        vec3 colour = mix(scene.rgb, tintColour, strength * frost);
+        vec3 colour = mix(scene.rgb, mix(calmed, tintColour, shift), frost);
         gl_FragColor = vec4(colour, scene.a);`;
 
 // Mixes the frame with, inside the cards' soft outlines, the blurred frame
@@ -220,10 +225,10 @@ const composite = (mode: 'frost' | 'tint') =>
         return sum / max(n, 1.0);
       }
 
-      // A card's tint, as the frame's own values: the sky's colour around it,
-      // darkened on the dark side, lightened if need be on the light side.
-      vec3 cardTint(vec4 box, float lightness) {
-        vec3 sky = skyAround(box);
+      // A card's tint, as the frame's own values, from the sky's colour around
+      // it (skyAround): darkened on the dark side, lightened if need be on the
+      // light side.
+      vec3 cardTint(vec3 sky, float lightness) {
         float bright = luma(sky);
         vec3 dark = sky * min(${TINT_LUMINANCE} / max(bright, 0.000001), 1.0);
         vec3 headLight = pow(vec3(237.0, 228.0, 227.0) / 255.0, vec3(2.2));
