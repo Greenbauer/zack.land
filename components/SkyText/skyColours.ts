@@ -85,9 +85,15 @@ export function isOnDark(background: number, wasOnDark?: boolean) {
 // The colours as CSS values: text, its see-through grey and faint line,
 // the accent, and the underline under a coloured link. `wasOnDark` is the
 // side the text was on last, so it only switches once the sky is clearly
-// past the crossover.
-export function skyColours(background: number, wasOnDark?: boolean) {
-  const onDark = isOnDark(background, wasOnDark);
+// past the crossover. `restingOnDark`, while the sky rests at its view's
+// home (components/Background/skyState.ts), is the side its station reads on,
+// which the text takes whatever the sky does.
+export function skyColours(
+  background: number,
+  wasOnDark?: boolean,
+  restingOnDark?: boolean,
+) {
+  const onDark = restingOnDark ?? isOnDark(background, wasOnDark);
   // On a dark sky, the light text. On a light one, the lightest colour that
   // reads (darker the lighter the sky), and never the light text itself.
   const darkest = readableText(background, TEXT_RATIO, LIGHT, DARK);

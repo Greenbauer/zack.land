@@ -209,13 +209,14 @@ export function collage(
   });
 }
 
-// How much of the window's left side a post keeps free for the head
-// (components/useHeadClear.ts), in pixels, for a window `width` by `height`:
-// room for a head a quarter of the way across, its face drawn about
-// HEAD_REACH of the window's height to either side (measured at 1024 to 1920
-// pixels wide). The head then centres itself in the space the post leaves
-// (components/Background/headPlace.ts). The shoulders reach further, low
-// down, where the haze covers them.
+// How much of a post's left side it keeps free for the head
+// (components/useHeadClear.ts), in pixels, for a post `width` wide (the
+// content's frame, centred and capped however wide the window) in a window
+// `height` tall: room for a head a quarter of the way across, its face drawn
+// about HEAD_REACH of the window's height to either side (measured at 1024 to
+// 1920 pixels wide). The head then centres itself in the space the post
+// leaves (components/Background/headPlace.ts). The shoulders reach further,
+// low down, where the haze covers them.
 export const HEAD_REACH = 0.15;
 export const headRight = (width: number, height: number) =>
   width / 4 + HEAD_REACH * height;

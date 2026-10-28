@@ -25,6 +25,11 @@ export const FACING = [0.04, 0.15] as const;
 
 // How fast strengths ease toward their targets: about 1 / EASE_RATE seconds.
 export const EASE_RATE = 4;
+// How fast the smile eases while the head is not facing the camera: far
+// slower, so the head swinging past the camera as it looks around, or a
+// passing half smile (ambient.ts), moves the lips only gently, not in a
+// quick smile each time.
+export const SMILE_AWAY_RATE = 1;
 
 const smoothstep = (x: number, [low, high]: readonly [number, number]) => {
   const t = Math.min(Math.max((x - low) / (high - low), 0), 1);
@@ -67,3 +72,11 @@ export const shareOver = (share: number, seconds: number) =>
 // facing the camera).
 export const facingSmile = ({ x, y }: Point) =>
   FACING_SMILE * (1 - smoothstep(Math.hypot(x, y), FACING));
+
+// The rate an expression (`name`) eases at, the head turned `look`: the
+// smile slowly unless the head faces the camera (within FACING's nearer
+// edge), every other expression at EASE_RATE.
+export const easeRate = (name: string, look: Point) =>
+  name === 'smile' && Math.hypot(look.x, look.y) > FACING[0]
+    ? SMILE_AWAY_RATE
+    : EASE_RATE;

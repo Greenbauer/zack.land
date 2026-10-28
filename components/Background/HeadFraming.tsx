@@ -4,6 +4,7 @@ import { useFrame } from '@react-three/fiber';
 import { useEffect, useRef } from 'react';
 import { PerspectiveCamera } from 'three';
 
+import { menuOpen } from './focusBlur';
 import { framedHead, glide, headCentre } from './headPlace';
 
 // How often the page is measured for the head's place, in milliseconds.
@@ -41,15 +42,24 @@ export default function HeadFraming() {
           };
         })
         .filter((box) => box.bottom > 0 && box.top < innerHeight);
-      if (avoid.length && !shown.length) return;
+      // While the phone menu is open its pane covers the page (whose cards
+      // hide), so the head comes back behind it: the pane's lenses then
+      // have the head to show, on every page, as on the home page.
+      const menu = menuOpen();
+      if (!menu && avoid.length && !shown.length) return;
       // A card above the head (data-head-avoid="above", EdgeCard) leaves it
       // centred under it.
-      const beside = shown.filter((box) => !box.above);
+      const beside = menu ? [] : shown.filter((box) => !box.above);
+      // The content's frame (app/(root)/layout.tsx), or the whole window.
+      const frame = document
+        .querySelector('[data-frame]')
+        ?.getBoundingClientRect() ?? { left: 0, right: innerWidth };
       target.current = headCentre(
         innerWidth,
         innerHeight,
         beside.length ? Math.min(...beside.map((box) => box.left)) : undefined,
         beside.some((box) => box.card),
+        { left: frame.left, right: frame.right },
       );
       if (still.matches)
         Object.assign(framedHead, { x: target.current, speed: 0 });

@@ -1,6 +1,7 @@
 import { RefObject, useEffect } from 'react';
 
 import { watchBackdrop } from '@/components/Background/backdrop';
+import { skyState } from '@/components/Background/skyState';
 
 import { skyBehind, skyColours } from './skyColours';
 
@@ -9,7 +10,9 @@ import { skyBehind, skyColours } from './skyColours';
 // --sky-text, --sky-muted, --sky-faint, --sky-accent and --sky-underline,
 // which its children use, without re-rendering; each change fades (the
 // .sky-colours class in styles/globals.css). Until the sky is first measured, the
-// defaults there apply.
+// defaults there apply. While the sky rests at its view's home (skyState) the
+// text takes that sky's side, light or dark, whatever the pointer or the head
+// does.
 export default function useSkyColours(ref: RefObject<HTMLElement | null>) {
   useEffect(() => {
     const element = ref.current;
@@ -18,7 +21,11 @@ export default function useSkyColours(ref: RefObject<HTMLElement | null>) {
     let last = '';
     let onDark: boolean | undefined;
     return watchBackdrop(element, (samples) => {
-      const colours = skyColours(skyBehind(samples), onDark);
+      const colours = skyColours(
+        skyBehind(samples),
+        onDark,
+        skyState.settled ? !skyState.light : undefined,
+      );
       onDark = colours.onDark;
       const key = colours.text + colours.accent;
       if (key === last) return;

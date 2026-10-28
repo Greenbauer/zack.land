@@ -225,7 +225,9 @@ function cardStyle(isExpanded: boolean, isOnTop: boolean): CSSProperties {
     marginLeft: 0,
     marginRight: 0,
     left: 'calc(var(--to-left, 0px) + var(--head-clear, 0px) - var(--bleed-left, 0px))',
-    right: '-15rem',
+    // To the post's right side, or past the window's when that is near
+    // (EdgeCard's --bleed-right).
+    right: 'calc(var(--to-right, 0px) - var(--bleed-right, 0px))',
     ...(isOnTop
       ? { top: 'var(--page-top)' }
       : { bottom: 'var(--page-bottom)' }),

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import { tintStrength } from './glass';
 import {
@@ -9,6 +9,7 @@ import {
   type Rgb,
   skyOf,
 } from './glassTint';
+import { skyState } from './skyState';
 
 const PINK_DAWN: Rgb = [214, 160, 190];
 const BLUE_NIGHT: Rgb = [40, 60, 140];
@@ -43,7 +44,13 @@ describe('glass tints', () => {
     expect(above.dataset.sky).toBe('dark');
   });
 
+  afterEach(() => {
+    Object.assign(skyState, { settled: false, light: false });
+  });
+
   it('change a card’s side over CHANGE_SECONDS, eased in and out', () => {
+    // As the sky glides to another view's home.
+    skyState.settled = false;
     const tints = new CardTints();
     const element = card();
     tints.aim(element, BLUE_NIGHT);
@@ -69,5 +76,21 @@ describe('glass tints', () => {
     expect(tintStrength(1440, 900)).toBe(0);
     expect(tintStrength(375, 812)).toBeGreaterThan(0);
     expect(tintStrength(1440, 500)).toBeGreaterThan(0);
+  });
+
+  it('take the resting sky’s side, whatever the sky around it reads', () => {
+    const tints = new CardTints();
+    const element = card();
+    tints.aim(element, BLUE_NIGHT);
+    Object.assign(skyState, { settled: true, light: false });
+    tints.aim(element, PINK_DAWN);
+    expect(element.dataset.sky).toBe('dark');
+    // At rest on a light sky, a side taken on the way in is dropped.
+    Object.assign(skyState, { settled: true, light: true });
+    tints.aim(element, BLUE_NIGHT);
+    expect(element.dataset.sky).toBe('light');
+    skyState.settled = false;
+    tints.aim(element, BLUE_NIGHT);
+    expect(element.dataset.sky).toBe('dark');
   });
 });

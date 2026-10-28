@@ -22,6 +22,25 @@ describe("the head's place across the window", () => {
     expect(headCentre(390, 844, -240, true)).toBeLessThan(-844 / 2);
   });
 
+  it('keeps to the content frame on a window wider than it', () => {
+    // A 3440 wide window with the 1536 frame centred in it.
+    const frame = { left: 952, right: 2488 };
+    // A card starting 600px into the frame: the head halfway to it.
+    expect(headCentre(3440, 1440, 1552, false, frame)).toBe(952 + 300);
+    // Nothing beside it: the frame's middle, the window's middle here.
+    expect(headCentre(3440, 1440, undefined, false, frame)).toBe(1720);
+    // Too little room beside the title: the frame's middle too.
+    expect(headCentre(3440, 1440, 1100, false, frame)).toBe(1720);
+  });
+
+  it('goes off the left of a wide window when a card leaves it no room', () => {
+    // A tablet: the post's card spans the frame.
+    const frame = { left: 12, right: 1012 };
+    expect(headCentre(1024, 1200, 12, true, frame)).toBe(-AWAY_HEIGHTS * 1200);
+    // The same room beside a title (not a card) keeps the head in the middle.
+    expect(headCentre(1024, 1200, 12, false, frame)).toBe(512);
+  });
+
   it('stays in the free space beside a card on a wide window', () => {
     expect(headCentre(1440, 900, 700, true)).toBe(350);
   });

@@ -11,23 +11,32 @@ export const AWAY_HEIGHTS = 0.6;
 // screen, unless a card is showing (`covered`: the contact form, a post's
 // card), which there spans the screen right over the head: then the head
 // goes off the left edge, so its lenses don't show behind the card's text.
-// On a wide one, the middle of the free space left of what the page shows
-// beside it (its cards, the home page's title: elements marked
-// data-head-avoid), whose left edge is `freeRight`; undefined when the page
-// has none. Where that space is narrower than the head's face, the head
-// goes back to the middle of the screen, or, if what is there is a card, off
-// the left edge as on a narrow window, rather than show behind its text.
+// On a wide one, the middle of the free space between the left of the
+// content's `frame` (the centred, width-capped container: data-frame) and
+// what the page shows beside the head (its cards, the home page's title:
+// elements marked data-head-avoid), whose left edge is `freeRight`;
+// undefined when the page has none. Where that space is narrower than the
+// head's face, the head goes off the left edge if what is beside it is a
+// card (`covered`), as on a narrow window, and otherwise to the frame's
+// middle, as it does when there is nothing beside it. So on a window wider
+// than the frame the head stays with the content, centred with it, rather
+// than out at the window's left.
 export function headCentre(
   width: number,
   height: number,
   freeRight: number | undefined,
   covered = false,
+  frame = { left: 0, right: width },
 ): number {
-  if (width < WIDE_FROM) return covered ? -AWAY_HEIGHTS * height : width / 2;
-  if (freeRight === undefined) return width / 2;
-  if (freeRight < 2 * HEAD_REACH * height)
-    return covered ? -AWAY_HEIGHTS * height : width / 2;
-  return freeRight / 2;
+  const middle = (frame.left + frame.right) / 2;
+  const away = -AWAY_HEIGHTS * height;
+  if (width < WIDE_FROM) return covered ? away : middle;
+  if (freeRight === undefined) return middle;
+  const free = freeRight - frame.left;
+  // No room beside a card: it spans the frame over the head, so the head
+  // goes, as on a narrow window, rather than sit behind the card's text.
+  if (free < 2 * HEAD_REACH * height) return covered ? away : middle;
+  return frame.left + free / 2;
 }
 
 // Where the head's middle is this frame, gliding toward headCentre, and how

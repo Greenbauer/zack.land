@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  EASE_RATE,
+  easeRate,
   easeToward,
   FACING_SMILE,
   facingSmile,
   pointerExpressions,
   shareOver,
+  SMILE_AWAY_RATE,
   SQUINT_MAX,
 } from './faceExpression';
 
@@ -74,5 +77,18 @@ describe('a per-frame ease at any frame rate', () => {
     const fast = 1 - (1 - shareOver(0.05, 1 / 60)) ** 60;
     expect(slow).toBeCloseTo(fast);
     expect(slow).toBeGreaterThan(0.9);
+  });
+});
+
+describe('how fast the smile comes and goes', () => {
+  it('eases as usual facing the camera, and slowly looking away', () => {
+    expect(easeRate('smile', { x: 0, y: 0 })).toBe(EASE_RATE);
+    expect(easeRate('smile', { x: 0.02, y: -0.3 })).toBe(SMILE_AWAY_RATE);
+    expect(SMILE_AWAY_RATE).toBeLessThanOrEqual(EASE_RATE / 4);
+  });
+
+  it('leaves every other expression at its usual rate', () => {
+    for (const name of ['browsUp', 'squint', 'pout', 'gasp'])
+      expect(easeRate(name, { x: 0.1, y: 0.4 })).toBe(EASE_RATE);
   });
 });
