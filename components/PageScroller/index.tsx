@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 
 import { edgeFadeCss, PAGE_SCROLLER_ID } from './edgeFade';
+import ScrollbarWidth from './ScrollbarWidth';
 
 // The page scrolls in this fixed, full-window box rather than the window, so
 // its fade under the header and the footer (edgeFade.ts) stays put without
@@ -14,6 +15,7 @@ export default function PageScroller({ children }: { children: ReactNode }) {
       className="fixed inset-0 z-0 snap-y snap-mandatory overflow-y-auto overflow-x-hidden"
     >
       <style>{edgeFadeCss(`#${PAGE_SCROLLER_ID}`)}</style>
+      <ScrollbarWidth />
       <div className="flex min-h-full w-full justify-center pb-[var(--page-bottom)]">
         {children}
       </div>
