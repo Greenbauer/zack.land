@@ -89,7 +89,11 @@ export default function Footer() {
   // The footer sits on the sky, not on the cards' glass, on every screen:
   // the glass takes no colour of its own (components/Background/Grading.tsx),
   // so a card above it has no tint to match, and glass under the footer only
-  // showed as a tinted pill while the phone menu's tint pass ran.
+  // showed as a tinted pill while the phone menu's tint pass ran. What keeps
+  // it readable where it crosses the head (its chest, on a phone) is a soft
+  // halo of the other side's theme colour behind its text and icons
+  // (--sky-halo, skyColours.ts): a light glow behind dark text, a dark one
+  // behind light.
 
   // The page's bottom fade sits on the footer's top edge (see
   // components/PageScroller/edgeFade.ts), so it follows the footer's height.
@@ -119,7 +123,7 @@ export default function Footer() {
       <div
         ref={iconsRef}
         data-footer-extra
-        className={`order-last flex-none md:order-first ${EXTRA[phase]}`}
+        className={`order-last flex-none md:order-first [&_svg]:[filter:drop-shadow(0_0_0.2em_var(--sky-halo))] ${EXTRA[phase]}`}
       >
         <SocialLinks />
       </div>
@@ -138,7 +142,10 @@ export default function Footer() {
           data-footer-arrow
           className={`ml-2 flex-none empty:hidden ${ARROW[phase]}`}
         />
-        <div data-footer-extra className={`max-md:flex-1 ${EXTRA[phase]}`}>
+        <div
+          data-footer-extra
+          className={`[text-shadow:0_0_0.1em_var(--sky-halo),0_0_0.25em_var(--sky-halo),0_0_0.6em_var(--sky-halo)] max-md:flex-1 ${EXTRA[phase]}`}
+        >
           {pathname === '/contact' ? <ContactPageText /> : <DefaultText />}
         </div>
       </div>

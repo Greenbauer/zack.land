@@ -19,6 +19,7 @@
   --sky-faint: theme('colors.head.light / 30%');
   --sky-accent: theme('colors.head.peach');
   --sky-underline: theme('colors.head.rose');
+  --sky-halo: theme('colors.head.dark');
 }
 
 /* The sky colours (components/SkyText) are registered as colours so a group
@@ -30,9 +31,10 @@
 @property --sky-faint { syntax: '<color>'; inherits: true; initial-value: rgb(237 228 227 / 0.3); }
 @property --sky-accent { syntax: '<color>'; inherits: true; initial-value: #d3aba0; }
 @property --sky-underline { syntax: '<color>'; inherits: true; initial-value: #a57374; }
+@property --sky-halo { syntax: '<color>'; inherits: true; initial-value: #010018; }
 
 .sky-colours {
-  transition-property: --sky-text, --sky-muted, --sky-faint, --sky-accent, --sky-underline;
+  transition-property: --sky-text, --sky-muted, --sky-faint, --sky-accent, --sky-underline, --sky-halo;
   transition-duration: 1.5s;
   transition-timing-function: ease-in-out;
 }

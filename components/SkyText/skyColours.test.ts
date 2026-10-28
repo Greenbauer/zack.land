@@ -95,6 +95,13 @@ describe('the theme colour that reads', () => {
   });
 });
 
+describe('the halo behind text that crosses the head', () => {
+  it("is the other side's theme colour: dark behind light text, light behind dark", () => {
+    expect(hex(skyColours(0.03).halo)).toBe(head.dark);
+    expect(hex(skyColours(0.45).halo)).toBe(head.light);
+  });
+});
+
 describe('accents over the sky', () => {
   it('is peach over a dark sky and deep indigo over a light one', () => {
     expect(hex(skyColours(0.03).accent)).toBe(head.peach);
