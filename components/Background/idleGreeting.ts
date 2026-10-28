@@ -78,3 +78,16 @@ export const faceSeen = (page: {
   headX: number;
   covered: boolean;
 }) => page.visible && page.focused && page.headX >= 0 && !page.covered;
+
+// The longest gap between frames, in seconds, that counts as the page being
+// watched all along: a hidden tab draws no frames, though the clock runs on.
+export const FRAME_GAP = 0.5;
+
+// When the greeting's idle clock started, as of a frame at `time` (seconds):
+// it starts over on a frame the face can't be seen (`seen`, faceSeen), and on
+// the first frame after a gap of more than FRAME_GAP since the last
+// (`lastFrame`), so time spent away from the page never counts toward it.
+export const idleStart = (
+  since: number,
+  { time, lastFrame, seen }: { time: number; lastFrame: number; seen: boolean },
+) => (!seen || time - lastFrame > FRAME_GAP ? time : since);

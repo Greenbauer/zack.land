@@ -42,6 +42,7 @@ import {
   greetingExpressions,
   greetingOn,
   idle,
+  idleStart,
   stepGreeting,
 } from './idleGreeting';
 import { fadeNeck, fadeTime } from './neckFade';
@@ -201,6 +202,8 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
   // Looking around on its own (wander.ts), and when the page was last used.
   const wandering = useRef<Wander | null>(null);
   const idleSince = useRef(0);
+  // When the last frame was drawn (none are while the tab is hidden).
+  const lastFrame = useRef(0);
   const idleFor = useRef(idleWait());
   // The little tilts and faint expressions it makes on its own (ambient.ts).
   const ambient = useRef<Ambient>(startAmbient(0));
@@ -236,11 +239,16 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
   };
 
   // While the face can't be seen clearly there is no greeting, and its clock
-  // only counts the time it can.
+  // only counts the time it can, never time away from the page (idleStart).
   const holdWhileUnseen = (time: number): void => {
-    if (isTouch || faceInView()) return;
-    idleSince.current = time;
-    if (greetingOn(greeting)) greeting = idle;
+    const seen = isTouch || faceInView();
+    idleSince.current = idleStart(idleSince.current, {
+      time,
+      lastFrame: lastFrame.current,
+      seen,
+    });
+    lastFrame.current = time;
+    if (!seen && greetingOn(greeting)) greeting = idle;
   };
 
   const startWandering = (time: number): void => {

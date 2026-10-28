@@ -168,6 +168,41 @@ describe('turning pages with the wheel', () => {
     expect(turn(100, 120)).toBe(1);
   });
 
+  // Notches of a mouse wheel: three down, `gap` ms apart, then one up.
+  const burstThenBack = (gap: number) => {
+    const turn = wheelPager();
+    const gate = turnGate({ holdMs: 1400, quickMs: 700 });
+    let post = 0;
+    for (const [delta, at] of [
+      [100, 0],
+      [100, gap],
+      [100, 2 * gap],
+      [-100, 3 * gap],
+    ] as const) {
+      const direction = turn(delta, at);
+      const next = direction ? gate.ask(direction, at) : null;
+      if (next) post += next.direction;
+    }
+    return post;
+  };
+
+  it('turns back for a notch the other way right after a burst', () => {
+    // Within half a second, at any spacing, it ends back on the first post.
+    expect(burstThenBack(60)).toBe(0);
+    expect(burstThenBack(100)).toBe(0);
+    expect(burstThenBack(130)).toBe(0);
+  });
+
+  it('never turns back on a coast that wavers the other way', () => {
+    const turn = wheelPager();
+    expect(turn(100, 0)).toBe(1);
+    // A swipe's coast with a tiny flick back in it: no turn either way.
+    const coast = [60, 40, -2, 30, 20, 10, 5].map((d, k) =>
+      turn(d, 16 + k * 16),
+    );
+    expect(coast.filter((t) => t !== 0)).toEqual([]);
+  });
+
   it('turns again once the wheel has been quiet', () => {
     const turn = wheelPager();
     expect(turn(100, 0)).toBe(1);
@@ -202,9 +237,19 @@ describe('spacing page turns out', () => {
     gate.ask(1, 0);
     // A long swipe's later pushes, or a wheel spun on: none turns a page.
     expect(gate.ask(1, 300)).toBeNull();
-    expect(gate.ask(1, 1399)).toBeNull();
-    // Once the card is most of the way in, the next push turns at once.
+    expect(gate.ask(1, 1000)).toBeNull();
+    // Once the card is most of the way in, a fresh push turns at once.
     expect(gate.ask(1, 1400)).toEqual({ direction: 1, quick: false });
+  });
+
+  it('turns one page for a scroll that goes on past the hold', () => {
+    const gate = turnGate(options);
+    gate.ask(1, 0);
+    // A wheel spun on for two seconds, a push every 120 ms: still one page.
+    for (let at = 120; at <= 2040; at += 120)
+      expect(gate.ask(1, at)).toBeNull();
+    // Once it pauses, the next push turns the next page.
+    expect(gate.ask(1, 2400)).toEqual({ direction: 1, quick: false });
   });
 
   it('turns back at once, quick only before the next card sets off', () => {
