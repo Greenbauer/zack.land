@@ -20,11 +20,12 @@ import {
   menuOpen,
   TitlePass,
 } from './focusBlur';
-import { GlassPass, GlassTintPass, isSmall, tintStrength } from './glass';
+import { GlassPass, GlassTintPass, tintStrength } from './glass';
 import { findCards, findFields, pageFade } from './glassCards';
 import { CardTints, Rgb, skyOf, skyPoints } from './glassTint';
 import { photoLens } from './photoLens';
 import { renderQuality } from './quality';
+import { isSmall } from './smallScreen';
 import usePixelReader from './usePixelReader';
 
 extend({ LUTPass, OutputPass });

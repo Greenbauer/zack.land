@@ -66,10 +66,6 @@ export const FIELD_FROST_PX = 11;
 export const FIELD_LENS = 0.4;
 const FIELD_FEATHER_PX = 1.5;
 
-// On a small window (smallScreen.ts) the glass is less clear: tinted more
-// strongly, and the whole card as calm as a form field.
-export { isSmall };
-
 // How strongly the glass is tinted on a window `width` by `height`.
 export const tintStrength = (width: number, height: number) =>
   isSmall(width, height) ? SMALL_STRENGTH : TINT_STRENGTH;
