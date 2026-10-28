@@ -12,7 +12,8 @@ import { FullScreenQuad, Pass } from 'three/addons/postprocessing/Pass.js';
 import { HorizontalBlurShader } from 'three/addons/shaders/HorizontalBlurShader.js';
 import { VerticalBlurShader } from 'three/addons/shaders/VerticalBlurShader.js';
 
-import { type Card, CARDS, FADE_SAMPLES, FIELDS } from './glassCards';
+import { type Card, CARDS, FADE_SAMPLES, FIELDS, NEAR_TO } from './glassCards';
+import { frost, tint } from './glassLooks';
 import {
   AROUND_PX,
   type Glass,
@@ -37,8 +38,8 @@ const BLUR_STEPS = 2.7;
 const ROUNDS = 2;
 // The frosting and tint fade out across a card's edge rather than stopping at
 // it: whole up to FEATHER_FROM inside the edge, gone by FEATHER_TO outside it
-// (CSS pixels). Cards' padding (24px at least) keeps their text on the
-// whole tint.
+// (CSS pixels; NEAR_TO for a small pane, glassCards.ts). Cards' padding (24px
+// at least) keeps their text on the whole tint.
 export const FEATHER_FROM = -24;
 export const FEATHER_TO = 160;
 // The glass's tint: on a large screen none (TINT_STRENGTH), so the glass is
@@ -81,42 +82,6 @@ const blur = (shader: {
     uniforms: UniformsUtils.clone(shader.uniforms),
   });
 
-// The glass's two looks, as the end of the composite's main(): the frosted
-// scene, seen through the lenses; and the tint.
-const frost = `
-        float bend = lensed;
-        vec2 bent = mix(p, lens(p, box), bend) / uSize;
-        vec4 glass = mix(texture2D(tBlur, bent), texture2D(tSmooth, bent), field);
-        gl_FragColor = mix(scene, glass, frost);`;
-const tint = `
-        if (frost < 0.001) {
-          gl_FragColor = scene;
-          return;
-        }
-        vec3 sky = uShare > 0.5 ? skyAround(uShared, true) : skyAround(box, false);
-        vec3 tintColour = cardTint(sky, lightness);
-        vec3 weights = vec3(0.2126, 0.7152, 0.0722);
-        float tinted = pow(dot(pow(tintColour, vec3(2.2)), weights), 1.0 / 2.2);
-        if (deep > 0.5) {
-          float here = pow(dot(pow(scene.rgb, vec3(2.2)), weights), 1.0 / 2.2);
-          float want = clamp(here, bounds.x, bounds.y);
-          float apart = here - tinted;
-          float shift = abs(apart) < 0.0001 ? 0.0 : clamp((here - want) / apart, 0.0, 1.0);
-          gl_FragColor = vec4(mix(scene.rgb, tintColour, max(uStrength, shift) * frost), scene.a);
-          return;
-        }
-        // First uStrength of the way to the sky's own colour (none on a
-        // large screen), then as far toward the tint as the glass must go to
-        // stay within the card's bounds, reckoned in the frame's own (gamma)
-        // values, where the mix is straight.
-        vec3 calmed = mix(scene.rgb, pow(sky, vec3(1.0 / 2.2)), uStrength);
-        float here = pow(dot(pow(calmed, vec3(2.2)), weights), 1.0 / 2.2);
-        float want = clamp(here, bounds.x, bounds.y);
-        float apart = here - tinted;
-        float shift = abs(apart) < 0.0001 ? 0.0 : clamp((here - want) / apart, 0.0, 1.0);
-        vec3 colour = mix(scene.rgb, mix(calmed, tintColour, shift), frost);
-        gl_FragColor = vec4(colour, scene.a);`;
-
 // Mixes the frame with, inside the cards' soft outlines, the blurred frame
 // (`frost`) or the tint (`tint`), through the glass's lenses.
 const composite = (mode: 'frost' | 'tint') =>
@@ -141,6 +106,7 @@ const composite = (mode: 'frost' | 'tint') =>
       uShare: { value: 0 },
       uShared: { value: new Vector4() },
       uRadius: { value: Array<number>(CARDS).fill(0) },
+      uReach: { value: Array<number>(CARDS).fill(FEATHER_TO) },
       uFaded: { value: Array<number>(CARDS).fill(0) },
       uOpacity: { value: Array<number>(CARDS).fill(1) },
       uCount: { value: 0 },
@@ -176,6 +142,7 @@ const composite = (mode: 'frost' | 'tint') =>
       uniform float uShare;
       uniform vec4 uShared;
       uniform float uRadius[${CARDS}];
+      uniform float uReach[${CARDS}];
       uniform float uFaded[${CARDS}];
       uniform float uOpacity[${CARDS}];
       uniform int uCount;
@@ -187,12 +154,12 @@ const composite = (mode: 'frost' | 'tint') =>
       varying vec2 vUv;
 
       // How much of a rounded box's frosting reaches a point: whole inside
-      // and just past its edge, fading out beyond (uFeather, canvas pixels).
-      float inside(vec2 p, vec4 box, float radius) {
+      // and just past its edge, fading out by reach beyond (canvas pixels).
+      float inside(vec2 p, vec4 box, float radius, float reach) {
         vec2 centre = (box.xy + box.zw) * 0.5;
         vec2 extent = (box.zw - box.xy) * 0.5 - radius;
         float d = length(max(abs(p - centre) - extent, 0.0)) - radius;
-        return 1.0 - smoothstep(uFeather.x, uFeather.y, d);
+        return 1.0 - smoothstep(uFeather.x, reach, d);
       }
 
       // The colour of the sky around a card (glassTint.ts), in linear light:
@@ -289,7 +256,7 @@ const composite = (mode: 'frost' | 'tint') =>
         for (int i = 0; i < ${CARDS}; i++) {
           if (i >= uCount) break;
           float shown = mix(1.0, fade, uFaded[i]) * uOpacity[i];
-          float here = inside(p, uCards[i], uRadius[i]) * shown;
+          float here = inside(p, uCards[i], uRadius[i], uReach[i]) * shown;
           // The menu's pane wins over the footer's.
           if (here > frost || (uDeep[i] > 0.5 && here > 0.0 && here >= frost)) {
             frost = here;
@@ -333,9 +300,10 @@ function setCards(
   u.uCell!.value = CELL_PX * dpr;
   u.uSpread!.value = SPREAD_PX * dpr;
   u.uCount!.value = cards.length;
-  cards.forEach(({ box, radius, faded, opacity }, k) => {
+  cards.forEach(({ box, radius, faded, opacity, near }, k) => {
     u.uCards!.value[k].copy(box);
     u.uRadius!.value[k] = radius;
+    u.uReach!.value[k] = (near ? NEAR_TO : FEATHER_TO) * dpr;
     u.uFaded!.value[k] = faded ? 1 : 0;
     u.uOpacity!.value[k] = opacity;
   });
