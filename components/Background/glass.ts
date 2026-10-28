@@ -48,7 +48,8 @@ export const FEATHER_TO = 160;
 // SMALL_STRENGTH of the way to the sky's own colour around the card
 // throughout, so the text there stands more on its own and the glass matches
 // the sky the footer sits on, then darkened (or lightened) only as far as
-// the bounds need.
+// the bounds need. The phone menu (data-glass-deep) goes as far toward
+// the tint itself, so its lenses show.
 const TINT_STRENGTH = 0;
 const SMALL_STRENGTH = 0.75;
 // The glass is pressed into small square lenses, like lenslet glass: each
@@ -94,14 +95,22 @@ const tint = `
         }
         vec3 sky = uShare > 0.5 ? skyAround(uShared, true) : skyAround(box, false);
         vec3 tintColour = cardTint(sky, lightness);
+        vec3 weights = vec3(0.2126, 0.7152, 0.0722);
+        float tinted = pow(dot(pow(tintColour, vec3(2.2)), weights), 1.0 / 2.2);
+        if (deep > 0.5) {
+          float here = pow(dot(pow(scene.rgb, vec3(2.2)), weights), 1.0 / 2.2);
+          float want = clamp(here, bounds.x, bounds.y);
+          float apart = here - tinted;
+          float shift = abs(apart) < 0.0001 ? 0.0 : clamp((here - want) / apart, 0.0, 1.0);
+          gl_FragColor = vec4(mix(scene.rgb, tintColour, max(uStrength, shift) * frost), scene.a);
+          return;
+        }
         // First uStrength of the way to the sky's own colour (none on a
         // large screen), then as far toward the tint as the glass must go to
         // stay within the card's bounds, reckoned in the frame's own (gamma)
         // values, where the mix is straight.
         vec3 calmed = mix(scene.rgb, pow(sky, vec3(1.0 / 2.2)), uStrength);
-        vec3 weights = vec3(0.2126, 0.7152, 0.0722);
         float here = pow(dot(pow(calmed, vec3(2.2)), weights), 1.0 / 2.2);
-        float tinted = pow(dot(pow(tintColour, vec3(2.2)), weights), 1.0 / 2.2);
         float want = clamp(here, bounds.x, bounds.y);
         float apart = here - tinted;
         float shift = abs(apart) < 0.0001 ? 0.0 : clamp((here - want) / apart, 0.0, 1.0);
@@ -123,6 +132,7 @@ const composite = (mode: 'frost' | 'tint') =>
       uFieldFeather: { value: FIELD_FEATHER_PX },
       uCards: { value: Array.from({ length: CARDS }, () => new Vector4()) },
       uLight: { value: Array<number>(CARDS).fill(0) },
+      uDeep: { value: Array<number>(CARDS).fill(0) },
       uAround: { value: AROUND_PX },
       uBounds: {
         value: Array.from({ length: CARDS }, () => new Vector2(0, 1)),
@@ -157,6 +167,7 @@ const composite = (mode: 'frost' | 'tint') =>
       uniform float uFieldFeather;
       uniform vec4 uCards[${CARDS}];
       uniform float uLight[${CARDS}];
+      uniform float uDeep[${CARDS}];
       uniform vec2 uBounds[${CARDS}];
       uniform float uAround;
       uniform float uStrength;
@@ -273,15 +284,18 @@ const composite = (mode: 'frost' | 'tint') =>
         float frost = 0.0;
         vec4 box = vec4(0.0, 0.0, 1.0, 1.0);
         float lightness = 0.0;
+        float deep = 0.0;
         vec2 bounds = vec2(0.0, 1.0);
         for (int i = 0; i < ${CARDS}; i++) {
           if (i >= uCount) break;
           float shown = mix(1.0, fade, uFaded[i]) * uOpacity[i];
           float here = inside(p, uCards[i], uRadius[i]) * shown;
-          if (here > frost) {
+          // The menu's pane wins over the footer's.
+          if (here > frost || (uDeep[i] > 0.5 && here > 0.0 && here >= frost)) {
             frost = here;
             box = uCards[i];
             lightness = uLight[i];
+            deep = uDeep[i];
             bounds = uBounds[i];
           }
         }
@@ -446,6 +460,10 @@ export class GlassTintPass extends Pass {
     this.glasses.forEach(({ light, bounds }, k) => {
       material.uniforms.uLight!.value[k] = light;
       material.uniforms.uBounds!.value[k].set(...bounds);
+    });
+    const deep = material.uniforms.uDeep!.value as number[];
+    cards.forEach(({ element }, k) => {
+      deep[k] = element.hasAttribute('data-glass-deep') ? 1 : 0;
     });
     material.uniforms.uAround!.value = AROUND_PX * dpr;
     material.uniforms.uStrength!.value = this.strength;

@@ -13,10 +13,8 @@ export const metadata: Metadata = {
 
 export default function Miscellaneous() {
   return (
-    <div className="flex w-full justify-between gap-9 xl:gap-12">
-      <div className="hidden shrink-0 md:flex">
-        <ScrollArrows />
-      </div>
+    <div className="flex w-full">
+      <ScrollArrows />
       <div className="flex min-w-0 flex-1 flex-col gap-[var(--post-gap)]">
         <SnapPager />
         {Contents.map((content) => (
