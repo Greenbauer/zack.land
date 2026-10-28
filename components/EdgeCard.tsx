@@ -46,20 +46,30 @@ export default function EdgeCard({
     };
   }, []);
 
+  // The glass over any photos under the card is drawn on the layer before it,
+  // outside the card so it fades with the card rather than popping on at the
+  // end (components/Background/photoLens.ts places it every frame).
   return (
-    <section
-      ref={cardRef}
-      data-head-avoid
-      style={{
-        marginLeft: 'calc(var(--head-clear, 0px) - var(--bleed-left, 0px))',
-        paddingLeft: 'var(--bleed-left, 0px)',
-        marginRight: 'calc(-1 * var(--bleed-right))',
-        paddingRight: 'var(--bleed-right)',
-        ...style,
-      }}
-      className={`box-content [--bleed-right:calc(var(--to-right,0px)+15rem)] max-md:[--bleed-left:calc(var(--to-left,0px)+15rem)] ${className}`}
-    >
-      {children}
-    </section>
+    <>
+      <div
+        data-photo-lens
+        aria-hidden
+        className="pointer-events-none fixed [backdrop-filter:var(--photo-lens,none)]"
+      />
+      <section
+        ref={cardRef}
+        data-head-avoid
+        style={{
+          marginLeft: 'calc(var(--head-clear, 0px) - var(--bleed-left, 0px))',
+          paddingLeft: 'var(--bleed-left, 0px)',
+          marginRight: 'calc(-1 * var(--bleed-right))',
+          paddingRight: 'var(--bleed-right)',
+          ...style,
+        }}
+        className={`box-content [--bleed-right:calc(var(--to-right,0px)+15rem)] max-md:[--bleed-left:calc(var(--to-left,0px)+15rem)] ${className}`}
+      >
+        {children}
+      </section>
+    </>
   );
 }

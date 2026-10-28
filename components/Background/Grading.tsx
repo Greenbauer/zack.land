@@ -23,7 +23,7 @@ import {
 import { GlassPass, GlassTintPass, tintStrength } from './glass';
 import { findCards, findFields, pageFade } from './glassCards';
 import { CardTints, Rgb, skyOf, skyPoints } from './glassTint';
-import { photoLens } from './photoLens';
+import { photoLenses } from './photoLens';
 import { renderQuality } from './quality';
 import { isSmall } from './smallScreen';
 import usePixelReader from './usePixelReader';
@@ -76,8 +76,10 @@ export default function Grading() {
       calm: isSmall(size.width, size.height),
     });
     // The glass over any photos under the cards (photoLens.ts).
-    for (const { element } of glass.cards)
-      photoLens(element, isSmall(size.width, size.height));
+    photoLenses(
+      glass.cards.map(({ element }) => element),
+      isSmall(size.width, size.height),
+    );
     Object.assign(tint, {
       glasses: glass.cards.map(({ element }) => tints.shown(element, delta)),
       strength: tintStrength(size.width, size.height),

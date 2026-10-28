@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest';
 
 import { FEATHER_FROM, SPREAD_PX } from './glass';
 import { BRIGHTEST, DIMMEST } from './glassTint';
-import { boundTable, displacement, PHOTO_REACH, strengthAt } from './photoLens';
+import {
+  boundTable,
+  displacement,
+  layerStyle,
+  PHOTO_REACH,
+  strengthAt,
+} from './photoLens';
 
 const toLinear = (s: number) =>
   s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
@@ -39,5 +45,22 @@ describe('the glass over photos', () => {
     // Smooth: no step anywhere along the way.
     for (let edge = 1; edge <= PHOTO_REACH - FEATHER_FROM; edge++)
       expect(strengthAt(edge) - strengthAt(edge - 1)).toBeLessThan(0.03);
+  });
+
+  it("lays a card's own layer PHOTO_REACH past it, just below it, as see-through as it", () => {
+    const box = { left: 500, top: 600, width: 800, height: 300 };
+    expect(layerStyle(box, '0.4', '20')).toEqual({
+      left: `${500 - PHOTO_REACH}px`,
+      top: `${600 - PHOTO_REACH}px`,
+      width: `${800 + 2 * PHOTO_REACH}px`,
+      height: `${300 + 2 * PHOTO_REACH}px`,
+      opacity: '0.4',
+      zIndex: '19',
+    });
+  });
+
+  it('leaves the layer to DOM order under a card with no z-index', () => {
+    const box = { left: 0, top: 0, width: 10, height: 10 };
+    expect(layerStyle(box, '1', 'auto').zIndex).toBe('');
   });
 });
