@@ -25,9 +25,9 @@ export const linkStyle = cva(
   },
 );
 
-// On a pane of the cards' glass (the phone menu, the Portfolio dropdown),
-// links take the card's ink, the one colour the glass keeps readable, which
-// follows the glass (globals.css); the current page keeps its underline.
+// On the phone menu's pane of the cards' glass, links take the card's ink,
+// the one colour the glass keeps readable, which follows the glass
+// (globals.css); the current page keeps its underline.
 export const ON_GLASS =
   '[--sky-accent:var(--card-ink)] [--sky-faint:color-mix(in_srgb,var(--card-ink)_30%,transparent)] [--sky-muted:var(--card-ink)] [--sky-text:var(--card-ink)] [--sky-underline:var(--card-underline)]';
 
