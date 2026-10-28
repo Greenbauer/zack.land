@@ -236,27 +236,15 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
     return true;
   };
 
-  // Whether the head turns straight to the camera this frame, and how fast:
-  // while a page holds its face (the 404 page, headMood), or a tap's reaction
-  // is under way (stepTouch). Zero when it looks wherever it would.
-  const faceCamera = (time: number): number => {
-    if (headMood.worried) {
-      stopRandomRotation();
-      return 0.05;
-    }
-    return stepTouch(time) ? TAP_TURN_SPEED : 0;
-  };
-
   const rotateMyHead = (time: number, seconds: number): void => {
     const { rotation } = myHeadRef.current!;
     const turn = look.current;
     let lookPosition: Point = lookPositionStart();
     let rotationSpeed: number = 0.05;
 
-    const facingSpeed = faceCamera(time);
-    if (facingSpeed) {
+    if (stepTouch(time)) {
       lookPosition = { x: 0, y: 0 };
-      rotationSpeed = facingSpeed;
+      rotationSpeed = TAP_TURN_SPEED;
     } else if (pointer.moved) {
       stopRandomRotation();
       greeting = idle;
@@ -330,10 +318,12 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
     // otherwise the face reacts to where it is looking.
     const isTapped = tapsOn(taps.current);
     const isGreeting = isTapped || greetingOn(greeting);
-    const targets: Record<string, number> = headMood.worried
-      ? WORRIED
-      : isTapped
-        ? tapExpressions(taps.current)
+    // A page holding the face (the 404 page, headMood) sets it worried,
+    // while the head still moves as it would.
+    const targets: Record<string, number> = isTapped
+      ? tapExpressions(taps.current)
+      : headMood.worried
+        ? WORRIED
         : greetingOn(greeting)
           ? greetingExpressions(greeting)
           : {

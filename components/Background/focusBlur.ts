@@ -2,7 +2,8 @@ import { Camera, Scene, WebGLRenderer, WebGLRenderTarget } from 'three';
 import { Pass } from 'three/addons/postprocessing/Pass.js';
 
 // While a field of a form marked `data-focus-blur` (the contact form) has
-// focus, the scene behind it blurs softly, inside the scene's own drawing
+// focus, or a video marked it is playing (the 404 page's, which marks itself
+// `data-playing` then), the scene behind it blurs softly, inside the scene's own drawing
 // (Grading.tsx) rather than as a CSS filter on the canvas: so the 3D titles
 // (the home page's name, the header's page title; TitleName.tsx) are drawn
 // sharp on top of the blur, and the blur runs clean to the screen's edges.
@@ -17,7 +18,9 @@ export const FOCUS_BLUR_PX = 6;
 export const FOCUS_BLUR_SECONDS = 0.3;
 
 export const formFocused = () =>
-  document.querySelector('form[data-focus-blur]:focus-within') !== null;
+  document.querySelector(
+    'form[data-focus-blur]:focus-within, video[data-focus-blur][data-playing]',
+  ) !== null;
 
 // Whether the phone menu is open (components/Header/MobileNav): its glass
 // panel covers the page, so the 3D titles are not drawn over it.
