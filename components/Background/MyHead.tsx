@@ -1,11 +1,13 @@
 import { useFrame } from '@react-three/fiber';
-import { use, useMemo, useRef } from 'react';
+import { use, useEffect, useMemo, useRef } from 'react';
 import {
   BufferAttribute,
   BufferGeometry,
   Group,
   Material,
   Mesh,
+  Raycaster,
+  Vector2,
   Vector3,
 } from 'three';
 
@@ -18,6 +20,16 @@ import {
   shareOver,
 } from './faceExpression';
 import { decodeHead, HeadMesh, loadHead } from './headGeometry';
+import { lookOrigin } from './headPlace';
+import {
+  HeadTaps,
+  stepTaps,
+  TAP_TURN_SPEED,
+  tapExpressions,
+  tapHead,
+  tapsOn,
+  untapped,
+} from './headTaps';
 import { headTurn, turnHead } from './headTurn';
 import {
   Greeting,
@@ -130,6 +142,13 @@ let randomPosition: Point = { x: 0, y: 0 };
 let greeting: Greeting = idle;
 // Below this every expression counts as eased out: a neutral face.
 const NEUTRAL = 0.02;
+// How long the head looks one way before it picks another on a touch screen,
+// in frames (there is no pointer to follow, so it looks around from the
+// start, more often than it wanders on a desktop).
+const TOUCH_LOOK_FRAMES = [120, 360] as const;
+// A tap on any of these is meant for the page, not the head.
+const PAGE_TARGETS =
+  'a, button, input, textarea, select, label, section, header, footer, [data-glass]';
 
 export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
   const myHeadRef = useRef<Group>(null);
@@ -147,6 +166,26 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
   }, [myHeadFile]);
   // Each expression's strength now, eased toward what the look calls for.
   const strengths = useRef<number[]>([]);
+  // On a touch screen: the head looks around on its own, and reacts to taps
+  // on it (headTaps.ts). A tap waits here until the next frame tests it
+  // against the head.
+  const isTouch = useMemo(
+    () => typeof window !== 'undefined' && matchMedia('(hover: none)').matches,
+    [],
+  );
+  const taps = useRef<HeadTaps>(untapped);
+  const tapAt = useRef<Point | null>(null);
+  const raycaster = useMemo(() => new Raycaster(), []);
+
+  useEffect(() => {
+    if (!isTouch) return;
+    const onTap = (event: MouseEvent) => {
+      if ((event.target as Element | null)?.closest(PAGE_TARGETS)) return;
+      tapAt.current = { x: event.clientX, y: event.clientY };
+    };
+    addEventListener('click', onTap);
+    return () => removeEventListener('click', onTap);
+  }, [isTouch]);
 
   const lookPositionLimit = (
     coordinate: number,
@@ -170,12 +209,30 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
     };
 
     frameCount = 0;
-    frameCountLimit = randomNumber(300, 800);
+    frameCountLimit = isTouch
+      ? randomNumber(...TOUCH_LOOK_FRAMES)
+      : randomNumber(300, 800);
     isFrameCounting = true;
     randomPosition = {
       x: randomNumber(1200, -2000),
       y: randomNumber(520, -600),
     };
+  };
+
+  // On a touch screen there is no pointer to follow (a tap's emulated
+  // mousemove is not one), so the head looks around from the start; while a
+  // tap's reaction is under way it faces the camera instead. Returns whether
+  // it is reacting.
+  const stepTouch = (time: number): boolean => {
+    if (!isTouch) return false;
+    pointer.moved = false;
+    if (!tapsOn(taps.current)) {
+      if (!isFrameCounting) startRandomRotation();
+      return false;
+    }
+    taps.current = stepTaps(taps.current, time);
+    if (!tapsOn(taps.current)) startRandomRotation();
+    return true;
   };
 
   const rotateMyHead = (time: number, seconds: number): void => {
@@ -184,7 +241,10 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
     let lookPosition: Point = lookPositionStart();
     let rotationSpeed: number = 0.05;
 
-    if (pointer.moved) {
+    if (stepTouch(time)) {
+      lookPosition = { x: 0, y: 0 };
+      rotationSpeed = TAP_TURN_SPEED;
+    } else if (pointer.moved) {
       stopRandomRotation();
       greeting = idle;
     } else if (greetingOn(greeting)) {
@@ -229,32 +289,49 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
 
   useFrame(({ clock, camera, size }, delta) => {
     fadeTime.value = clock.elapsedTime;
+    // A tap that lands on the head (its skin, as posed this frame) sets off
+    // the next reaction.
+    if (tapAt.current && skinRef.current) {
+      const { x, y } = tapAt.current;
+      tapAt.current = null;
+      raycaster.setFromCamera(
+        new Vector2((x / size.width) * 2 - 1, 1 - (y / size.height) * 2),
+        camera,
+      );
+      if (raycaster.intersectObject(skinRef.current, false).length) {
+        taps.current = tapHead(taps.current, clock.elapsedTime);
+        isFrameCounting = false;
+      }
+    }
     rotateMyHead(clock.elapsedTime, delta);
     // Where the head is looking, back in screen pixels (index.tsx measures
-    // the look from a third of the way across and halfway down), against
-    // where the eyes are on screen.
+    // the look from lookOrigin across and halfway down), against where the
+    // eyes are on screen.
     const spot = {
-      x: heading.target.x * 2 + size.width / 3,
+      x: heading.target.x * 2 + lookOrigin(size.width),
       y: heading.target.y * 2 + size.height / 2,
     };
     const eyes = myHeadRef.current!.localToWorld(EYES.clone()).project(camera);
-    // Greeting: no expression while the head turns to the camera, then the
-    // gasp, then the smile, each eased in quickly; otherwise the face reacts
-    // to where it is looking.
-    const isGreeting = greetingOn(greeting);
-    const targets: Record<string, number> = isGreeting
-      ? greetingExpressions(greeting)
-      : {
-          smile: facingSmile(look.current),
-          ...pointerExpressions(
-            spot,
-            {
-              x: ((eyes.x + 1) / 2) * size.width,
-              y: ((1 - eyes.y) / 2) * size.height,
-            },
-            size,
-          ),
-        };
+    // A tap's reaction, or the greeting (no expression while the head turns
+    // to the camera, then the gasp, then the smile), each eased in quickly;
+    // otherwise the face reacts to where it is looking.
+    const isTapped = tapsOn(taps.current);
+    const isGreeting = isTapped || greetingOn(greeting);
+    const targets: Record<string, number> = isTapped
+      ? tapExpressions(taps.current)
+      : greetingOn(greeting)
+        ? greetingExpressions(greeting)
+        : {
+            smile: facingSmile(look.current),
+            ...pointerExpressions(
+              spot,
+              {
+                x: ((eyes.x + 1) / 2) * size.width,
+                y: ((1 - eyes.y) / 2) * size.height,
+              },
+              size,
+            ),
+          };
     strengths.current = expressions.map((name, k) =>
       easeToward(
         strengths.current[k] ?? 0,

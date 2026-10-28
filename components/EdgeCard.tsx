@@ -10,7 +10,9 @@ import { CSSProperties, ReactNode, useEffect, useRef } from 'react';
 // off screen, so there the card meets the window's edge square and only
 // fades out at its top and bottom. Its box is content-box, so a width given
 // to it is its content's. A post's card also starts at --head-clear, which
-// the post sets (components/useHeadClear.ts).
+// the post sets (components/useHeadClear.ts). On a wide screen the 3D head
+// centres itself in the space left of it (data-head-avoid,
+// components/Background/headPlace.ts).
 export default function EdgeCard({
   className = '',
   style,
@@ -47,6 +49,7 @@ export default function EdgeCard({
   return (
     <section
       ref={cardRef}
+      data-head-avoid
       style={{
         marginLeft: 'calc(var(--head-clear, 0px) - var(--bleed-left, 0px))',
         paddingLeft: 'var(--bleed-left, 0px)',
