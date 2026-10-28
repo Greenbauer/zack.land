@@ -63,7 +63,6 @@ const Contents: Content[] = [
   },
   {
     name: 'Passero',
-    coded: 'vibe',
     description: (
       <p>
         <a href="http://www.travelpassero.com" target="_blank" rel="noreferrer">
@@ -91,7 +90,6 @@ const Contents: Content[] = [
   },
   {
     name: 'Perf Sealers',
-    coded: 'vibe',
     description: (
       <p>
         <a href="http://www.perfsealers.com" target="_blank" rel="noreferrer">
