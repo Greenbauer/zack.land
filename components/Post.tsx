@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import { HiHandRaised, HiSparkles } from 'react-icons/hi2';
 
 import Button from '@/components/Button';
@@ -11,6 +11,7 @@ import PostCollage from './PostCollage';
 import useClipped from './useClipped';
 import useHeadClear from './useHeadClear';
 import useHeldCard, { PostPlace } from './useHeldCard';
+import useMoreMotion from './useMoreMotion';
 
 type PostProps = { content: Content };
 
@@ -55,7 +56,12 @@ export default function Post({ content }: PostProps) {
     repositoryUrl,
   } = content;
 
-  const [isExpanded, setIsExpanded] = useState(false);
+  const postRef = useRef<HTMLDivElement | null>(null);
+  const place = useHeldCard(postRef);
+  const isCurrent = place === 'current';
+  // More and Less move rather than jump, and a post left open closes again
+  // once the page has moved on from it (useMoreMotion).
+  const { isExpanded, isOpen, toggle } = useMoreMotion(postRef, isCurrent);
   const hasMedia = !!mediaSources?.length;
   // On a phone a post with images shows a few lines of its text (two on a
   // short screen) and hides the rest behind More, which gives the whole post
@@ -73,10 +79,7 @@ export default function Post({ content }: PostProps) {
   const isDescriptionCut = useClipped(descriptionRef);
   const isCut = !isExpanded && (isArticleCut || isDescriptionCut);
   const hasMore = isExpanded || isCut;
-  const postRef = useRef<HTMLDivElement | null>(null);
   useHeadClear(postRef);
-  const place = useHeldCard(postRef);
-  const isCurrent = place === 'current';
 
   // Each post fills the space between the page's fades (--post-height, from
   // PageScroller), and the page snaps from post to post (data-post, found by
@@ -114,7 +117,7 @@ export default function Post({ content }: PostProps) {
           mediaSources={mediaSources}
           isShown={isCurrent}
           style={{ marginLeft: 'var(--head-clear, 0px)' }}
-          className={`-mb-2 min-h-0 flex-1 ${isExpanded ? 'hidden' : 'block'}`}
+          className={`-mb-2 min-h-0 flex-1 ${isOpen ? 'hidden' : 'block'}`}
         />
       )}
       <EdgeCard
@@ -190,15 +193,7 @@ export default function Post({ content }: PostProps) {
                 isExpanded={isExpanded}
                 isInRow={isClamped}
                 isWideToo={hasMore}
-                onToggle={() => {
-                  setIsExpanded(!isExpanded);
-                  // Closing a post the page has scrolled down through goes
-                  // back to its top.
-                  if (isExpanded)
-                    requestAnimationFrame(() =>
-                      postRef.current?.scrollIntoView({ block: 'start' }),
-                    );
-                }}
+                onToggle={toggle}
               />
             )}
             {!!siteUrl && (
