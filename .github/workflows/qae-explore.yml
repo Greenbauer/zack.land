@@ -203,6 +203,24 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p qae-artifacts/qae qae-inputs/references
+          # What the site does on this runner, which the explorer reads first: without it the explorer
+          # spent most of its turns pausing the 3D scene's animation to take screenshots and probing the
+          # page for the head's turn, and ran out of turns before its last criterion (PR 113, 2026-10-28).
+          cat > qae-inputs/site.md <<'MD'
+          # The site under test
+          - No sign-in: every page is public, and there is one theme.
+          - Every page draws a 3D scene behind it (WebGL). This runner has no GPU, so the scene renders in
+            software at a few frames a second. The page still works, only slowly.
+          - Screenshots work while the scene animates: take them as they are. Pausing or replacing
+            requestAnimationFrame, reading the canvas's pixels, and reading React or three.js internals
+            are not needed to check anything a user sees.
+          - The head turns toward the pointer, read from `mousemove` events on the document, and settles
+            within a few seconds here. To check it, move the mouse (or dispatch a `mousemove` with
+            clientX and clientY on the document), wait 3 seconds, and take a screenshot. After the
+            pointer has been still for a while, the head looks around on its own. The sky turns slowly
+            with the head.
+          - Focusing a form field blurs the scene behind the form within a few seconds here.
+          MD
           # Design references for criteria that name [ref: <key>], read from the base branch so a pull
           # request cannot supply the image it is judged against. Each is a 1x screenshot of the design.
           base="origin/$GITHUB_BASE_REF"

@@ -1,7 +1,6 @@
 import {
   CELL_PX,
   FEATHER_FROM,
-  FEATHER_TO,
   FIELD_FROST_PX,
   FIELD_LENS,
   FROST_PX,
@@ -15,14 +14,24 @@ import { BRIGHTEST, DIMMEST } from './glassTint';
 // with a CSS backdrop-filter instead: an SVG filter of the scene's frost and
 // lenses, the lenses the same size and laid from the same corner as the
 // scene's (so the two meet seamlessly), on a layer behind the card's text
-// (the card's ::before, styles/globals.css, which feathers its edges). It
-// also keeps the photos within the card's brightness bounds
-// (glassTint.ts), dark side or light, so the text over them keeps 4.5:1.
-// It is on only while a photo lies under the card.
+// (the card's ::before, styles/globals.css). It also keeps the photos
+// within the card's brightness bounds (glassTint.ts), dark side or light, so
+// the text over them keeps 4.5:1. It is on only while a photo is within
+// PHOTO_REACH of the card.
+// Toward its edges the glass weakens rather than turning see-through: its
+// lenses bend less, its frost and bounds fade, so over a photo it eases in
+// from nothing (a see-through lens would still show its hard squares).
 
 const SVG = 'http://www.w3.org/2000/svg';
 // The lens map is drawn at this resolution and stretched to each lens.
 const MAP_PX = 64;
+// How far past the card the glass reaches over photos (CSS pixels): less
+// than the scene's glass, so the photos above a card keep clear. It eases
+// in from nothing there to whole FEATHER_FROM inside the card's edge.
+export const PHOTO_REACH = 64;
+const FADE_PX = PHOTO_REACH - FEATHER_FROM;
+// The fade map is drawn at a quarter of the layer's size and stretched.
+const FADE_SCALE = 4;
 
 const toSrgb = (l: number) =>
   l <= 0.0031308 ? 12.92 * l : 1.055 * l ** (1 / 2.4) - 0.055;
@@ -67,6 +76,36 @@ function map() {
   return (lensMap = canvas.toDataURL());
 }
 
+// The glass's strength, 0 to 1, `edge` CSS pixels in from the layer's edge
+// (along one axis; a point's strength is the product of both axes').
+export function strengthAt(edge: number) {
+  const t = Math.min(Math.max(edge / FADE_PX, 0), 1);
+  return t * t * (3 - 2 * t);
+}
+
+// The layer's fade, as a data URL: grey, black at the edges to white where
+// the glass is whole, for a layer `width` by `height` CSS pixels.
+function fadeMap(width: number, height: number) {
+  const w = Math.max(Math.ceil(width / FADE_SCALE), 1);
+  const h = Math.max(Math.ceil(height / FADE_SCALE), 1);
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const context = canvas.getContext('2d')!;
+  const image = context.createImageData(w, h);
+  const along = (k: number, n: number, size: number) =>
+    strengthAt(Math.min(k + 0.5, n - k - 0.5) * (size / n));
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      const g = Math.round(255 * along(x, w, width) * along(y, h, height));
+      const k = (y * w + x) * 4;
+      image.data[k] = image.data[k + 1] = image.data[k + 2] = g;
+      image.data[k + 3] = 255;
+    }
+  context.putImageData(image, 0, 0);
+  return canvas.toDataURL();
+}
+
 let defs: SVGDefsElement | undefined;
 function defsElement() {
   if (defs?.isConnected) return defs;
@@ -84,11 +123,15 @@ const lenses = new WeakMap<HTMLElement, Lens>();
 let count = 0;
 
 // The filter for a card whose lenses are `cellX` by `cellY` CSS pixels, on
-// the `side` of the sky, calm (as a form field) on a small screen.
+// a layer `width` by `height`, on the `side` of the sky, calm (as a form
+// field) on a small screen. The lens map is pulled toward no bend (0.5) as
+// the fade map darkens (k1 L g + k3 g + k4 = 0.5 + (L - 0.5) g), and the
+// result is laid over the photos as strongly as the fade map says.
 function filterMarkup(
   id: string,
   cellX: number,
   cellY: number,
+  layer: { width: number; height: number },
   side: 'dark' | 'light',
   calm: boolean,
 ) {
@@ -98,30 +141,37 @@ function filterMarkup(
     .map((v) => v.toFixed(4))
     .join(' ');
   return `<filter id="${id}" x="0" y="0" width="1" height="1" color-interpolation-filters="sRGB">
+  <feImage href="${fadeMap(layer.width, layer.height)}" x="0" y="0" width="${layer.width}" height="${layer.height}" preserveAspectRatio="none" result="fade"/>
+  <feColorMatrix in="fade" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0" result="strength"/>
   <feGaussianBlur in="SourceGraphic" stdDeviation="${blur}" edgeMode="duplicate" result="frost"/>
-  <feImage href="${map()}" x="${FEATHER_TO}" y="${FEATHER_TO}" width="${cellX}" height="${cellY}" preserveAspectRatio="none" result="lens"/>
+  <feImage href="${map()}" x="${PHOTO_REACH}" y="${PHOTO_REACH}" width="${cellX}" height="${cellY}" preserveAspectRatio="none" result="lens"/>
   <feTile in="lens" result="lenses"/>
-  <feDisplacementMap in="frost" in2="lenses" scale="${displacement((cellX + cellY) / 2) * bend}" xChannelSelector="R" yChannelSelector="G"/>
+  <feComposite in="lenses" in2="fade" operator="arithmetic" k1="1" k2="0" k3="-0.5" k4="0.5" result="bends"/>
+  <feDisplacementMap in="frost" in2="bends" scale="${displacement((cellX + cellY) / 2) * bend}" xChannelSelector="R" yChannelSelector="G"/>
   <feComponentTransfer>
     <feFuncR type="table" tableValues="${table}"/>
     <feFuncG type="table" tableValues="${table}"/>
     <feFuncB type="table" tableValues="${table}"/>
   </feComponentTransfer>
+  <feComposite in2="strength" operator="in" result="glass"/>
+  <feMerge>
+    <feMergeNode in="SourceGraphic"/>
+    <feMergeNode in="glass"/>
+  </feMerge>
 </filter>`;
 }
 
-// Whether any photo lies within the reach of `card`'s glass (as far past
-// it as the scene's glass fades, FEATHER_TO).
+// Whether any photo lies within the reach of `card`'s glass (PHOTO_REACH).
 function overPhoto(card: HTMLElement) {
   const box = card.getBoundingClientRect();
   for (const photo of document.querySelectorAll('.collage-tile')) {
     const r = photo.getBoundingClientRect();
     if (
       r.width > 0 &&
-      r.right > box.left - FEATHER_TO &&
-      r.left < box.right + FEATHER_TO &&
-      r.bottom > box.top - FEATHER_TO &&
-      r.top < box.bottom + FEATHER_TO
+      r.right > box.left - PHOTO_REACH &&
+      r.left < box.right + PHOTO_REACH &&
+      r.bottom > box.top - PHOTO_REACH &&
+      r.top < box.bottom + PHOTO_REACH
     )
       return true;
   }
@@ -136,16 +186,18 @@ export function photoLens(card: HTMLElement, calm: boolean) {
     card.style.removeProperty('--photo-lens');
     return;
   }
-  // The layer reaches FEATHER_TO past the card, whole from -FEATHER_FROM
-  // inside it, as the scene's glass (its lenses laid from the card's corner,
-  // FEATHER_TO into the layer).
-  card.style.setProperty('--glass-reach', `${FEATHER_TO}px`);
-  card.style.setProperty('--glass-fade', `${FEATHER_TO - FEATHER_FROM}px`);
+  // The layer reaches PHOTO_REACH past the card (its lenses laid from the
+  // card's corner, PHOTO_REACH into the layer, as the scene's are).
+  card.style.setProperty('--glass-reach', `${PHOTO_REACH}px`);
   const { width, height } = card.getBoundingClientRect();
   const cellX = width / Math.max(Math.round(width / CELL_PX), 1);
   const cellY = height / Math.max(Math.round(height / CELL_PX), 1);
+  const layer = {
+    width: Math.round(width + 2 * PHOTO_REACH),
+    height: Math.round(height + 2 * PHOTO_REACH),
+  };
   const side = card.dataset.sky === 'light' ? 'light' : 'dark';
-  const key = `${cellX.toFixed(3)} ${cellY.toFixed(3)} ${side} ${calm}`;
+  const key = `${cellX.toFixed(3)} ${cellY.toFixed(3)} ${layer.width} ${layer.height} ${side} ${calm}`;
   let lens = lenses.get(card);
   if (!lens) {
     lens = { id: `photo-lens-${++count}`, key: '' };
@@ -157,7 +209,7 @@ export function photoLens(card: HTMLElement, calm: boolean) {
     host.querySelector(`#${lens.id}`)?.remove();
     host.insertAdjacentHTML(
       'beforeend',
-      filterMarkup(lens.id, cellX, cellY, side, calm),
+      filterMarkup(lens.id, cellX, cellY, layer, side, calm),
     );
   }
   card.style.setProperty('--photo-lens', `url(#${lens.id})`);
