@@ -28,16 +28,19 @@ export function keepsImages(
 
 type Step = 'short' | 'trying' | 'whole';
 
-// A phone post's size, and the window's height (a phone's post, and its
-// images' box, fill the window).
-type Frame = { width: number; height: number; windowHeight: number };
+// A phone post's whole box (offsetWidth, offsetHeight): its height is
+// --post-height, the room between the page's fades, so it follows the window
+// and the footer (which shrinks to the scroll arrow alone, Footer/index.tsx),
+// and the card leaves it alone.
+type Frame = { width: number; height: number };
 
-// Whether the card needs trying again: when the post's width or the window's
-// height has changed. Not when only the post's own height has: showing the
-// card whole changes that itself, and re-trying on it flipped the card
+// Whether the card needs trying again: when the post's whole box has changed.
+// Not when only its padding has: the post's bottom padding is its card's
+// height (--card-height), so showing the card whole changes that, and
+// re-trying on it (as a ResizeObserver's content box does) flipped the card
 // between short and whole for as long as it fit (about 40 times a second).
 export const frameChanged = (was: Frame | null, now: Frame) =>
-  !was || was.width !== now.width || was.windowHeight !== now.windowHeight;
+  !was || was.width !== now.width || was.height !== now.height;
 
 // Whether a phone's post with images (`isWanted`) shows its card whole, its
 // technology and all its description, with no More: when its images are
@@ -47,8 +50,8 @@ export const frameChanged = (was: Frame | null, now: Frame) =>
 // images' box, then tries it whole and measures the card again, all before
 // the page paints, and keeps it whole only if the images keep their size
 // (keepsImages: their widest tile no narrower). It tries again when the
-// post's width or the window's height changes (frameChanged), not when the
-// card changes the post's height.
+// post's whole box changes (frameChanged), not when the card changes its
+// padding.
 export default function usePhoneWhole(
   postRef: RefObject<HTMLElement | null>,
   mediaSources: readonly MediaSource[] | undefined,
@@ -67,11 +70,7 @@ export default function usePhoneWhole(
     if (!post || !isWanted) return setStep('short');
     let was: Frame | null = null;
     const check = () => {
-      const now = {
-        width: post.clientWidth,
-        height: post.clientHeight,
-        windowHeight: innerHeight,
-      };
+      const now = { width: post.offsetWidth, height: post.offsetHeight };
       if (!frameChanged(was, now)) return;
       was = now;
       setStep('short');
@@ -79,11 +78,7 @@ export default function usePhoneWhole(
     };
     const resize = new ResizeObserver(check);
     resize.observe(post);
-    addEventListener('resize', check);
-    return () => {
-      resize.disconnect();
-      removeEventListener('resize', check);
-    };
+    return () => resize.disconnect();
   }, [postRef, isWanted]);
 
   useLayoutEffect(() => {
