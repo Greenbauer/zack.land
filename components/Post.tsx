@@ -137,7 +137,7 @@ export default function Post({ content }: PostProps) {
       >
         <article
           ref={articleRef}
-          className={`flex min-h-0 flex-col gap-3 overflow-hidden p-5 md:flex-row md:gap-8 md:p-8 [&_p]:text-base [&_p]:leading-6 lg:[&_p]:text-lg lg:[&_p]:leading-7 [@media(max-height:800px)]:md:p-6 [@media(max-height:800px)]:[&_h2]:text-3xl [@media(max-height:800px)]:[&_p]:text-base [@media(max-height:800px)]:[&_p]:leading-6 ${
+          className={`flex min-h-0 flex-col gap-3 overflow-hidden p-5 md:flex-row md:gap-8 md:p-8 max-md:[&_h2]:text-xl [&_p]:text-base [&_p]:leading-6 lg:[&_p]:text-lg lg:[&_p]:leading-7 [@media(max-height:800px)]:md:p-6 md:[@media(max-height:800px)]:[&_h2]:text-3xl [@media(max-height:800px)]:[&_p]:text-base [@media(max-height:800px)]:[&_p]:leading-6 ${
             isExpanded ? 'flex-1' : ''
           } ${isCurrent ? CONTENT_IN : CONTENT_OUT}`}
         >
