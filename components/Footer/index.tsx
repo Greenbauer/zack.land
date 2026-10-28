@@ -4,7 +4,10 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 
+import { isSmall } from '@/components/Background/smallScreen';
+import { ON_GLASS } from '@/components/Header/NavLink';
 import useSkyColours from '@/components/SkyText/useSkyColours';
+import useWindowSize from '@/hooks/useWindowSize';
 
 import SocialLinks from './SocialLinks';
 
@@ -67,6 +70,13 @@ export default function Footer() {
   const textRef = useRef<HTMLDivElement | null>(null);
   useSkyColours(iconsRef);
   useSkyColours(textRef);
+  // On a small window the footer is on the cards' glass (data-glass), so a
+  // post's card runs into it in one colour rather than a stripe of glass
+  // above a stripe of sky; its text and icons then take the card's ink, set
+  // one level in so it wins over the sky's colours on the blocks above.
+  const { width, height } = useWindowSize();
+  const onGlass = width > 0 && isSmall(width, height);
+  const ink = onGlass ? ON_GLASS : '';
 
   // The page's bottom fade sits on the footer's top edge (see
   // components/PageScroller/edgeFade.ts), so it follows the footer's height.
@@ -87,16 +97,21 @@ export default function Footer() {
   return (
     <footer
       ref={ref}
-      className="flex w-full flex-col items-center gap-6 pb-6 md:flex-row md:items-end [&_a]:pointer-events-auto"
+      data-glass={onGlass ? '' : undefined}
+      className="relative flex w-full flex-col items-center gap-6 pb-6 md:flex-row md:items-end [&_a]:pointer-events-auto"
     >
       <div ref={iconsRef} className="order-last flex-none md:order-first">
-        <SocialLinks />
+        <div className={ink}>
+          <SocialLinks />
+        </div>
       </div>
       <div
         ref={textRef}
         className="order-first flex flex-1 justify-end text-center md:order-last md:text-right [&_h6]:text-[color:var(--sky-text)]"
       >
-        {pathname === '/contact' ? <ContactPageText /> : <DefaultText />}
+        <div className={ink}>
+          {pathname === '/contact' ? <ContactPageText /> : <DefaultText />}
+        </div>
       </div>
     </footer>
   );
