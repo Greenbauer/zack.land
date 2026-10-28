@@ -26,9 +26,9 @@ const THROUGH_REST_MS = 180;
 const THROUGH_STEP = 0.8;
 
 // Pages the scroller between its posts (paging.ts) on the wheel, a swipe,
-// the keyboard and the scroll arrows (pageGlide.ts). A turn the same way
-// waits for the last turn's next card to come most of the way in, a turn
-// back goes at once (turnGate). A post that More has opened taller than the
+// the keyboard and the scroll arrows (pageGlide.ts). A push the same way
+// while the last turn's next card is still coming in is let go, a turn back
+// goes at once (turnGate). A post that More has opened taller than the
 // page (Post.tsx) is scrolled through first, and turns only at its end
 // (throughPost). Renders nothing.
 export default function SnapPager() {
@@ -40,7 +40,6 @@ export default function SnapPager() {
     const gate = turnGate({ playingFrom: performance.now() });
     const still = matchMedia('(prefers-reduced-motion: reduce)');
     let frame = 0;
-    let wait = 0;
     // When the wheel last scrolled through a post.
     let throughAt = -Infinity;
 
@@ -79,20 +78,11 @@ export default function SnapPager() {
       frame = requestAnimationFrame(step);
     };
 
-    // A turn goes now, or waits for the last turn's next card to come in.
-    // (A timer can fire a moment early, so it looks again until it may.)
-    const play = () => {
-      const next = gate.due(performance.now());
-      if (next) move(next.direction, next.quick);
-      else if (gate.waiting)
-        wait = window.setTimeout(play, gate.freeAt - performance.now());
-    };
+    // A turn goes now, or not at all while the last turn's next card is
+    // still coming in (turnGate).
     const glide = (direction: 1 | -1) => {
-      const now = performance.now();
-      const next = gate.ask(direction, now);
-      clearTimeout(wait);
+      const next = gate.ask(direction, performance.now());
       if (next) move(next.direction, next.quick);
-      else wait = window.setTimeout(play, gate.freeAt - now);
     };
 
     // A key or a scroll arrow scrolls most of a window through a tall post,
@@ -207,7 +197,6 @@ export default function SnapPager() {
     window.addEventListener(GLIDE_EVENT, onRequest);
     return () => {
       cancelAnimationFrame(frame);
-      clearTimeout(wait);
       scroller.style.scrollSnapType = '';
       scroller.style.removeProperty('--turn-delay');
       scroller.removeEventListener('wheel', onWheel);
