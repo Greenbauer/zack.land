@@ -4,15 +4,21 @@ import { CSSProperties, useEffect, useRef, useState } from 'react';
 
 import { MediaSource } from '@/types';
 
-import { collage, cropFor } from './collageLayout';
+import { collage, cropFor, Tile } from './collageLayout';
 import Media from './Media';
+import { videoFill } from './videoFill';
 
 // A post's images as separate tiles above its card (laid out by
 // collageLayout.ts). When the post is the one in view (`isShown`, as its card
 // arrives) each tile slides in from off the window's right side after its own
 // random wait, then drifts gently on its own beat; when the post leaves, each
 // slides back off to the right. The motion is in .collage in
-// styles/globals.css.
+// styles/globals.css. A video's tile sits over the others, so none covers
+// its controls. While it plays it takes the whole post, as More does for the
+// card: it grows to the post's full width (videoFill), straightens, and its
+// card fades away until it stops; the other tiles blur, and the scene
+// behind blurs as it does behind a focused contact field (data-focus-blur,
+// Background/focusBlur.ts). It pauses when the post leaves.
 
 export default function PostCollage({
   mediaSources,
@@ -27,6 +33,43 @@ export default function PostCollage({
 }) {
   const boxRef = useRef<HTMLDivElement | null>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
+  const [isPlaying, setIsPlaying] = useState(false);
+  // Where the video goes while it plays, in the box's own pixels: the
+  // post's whole width (or as wide as its height allows), centred in it.
+  const [playingAt, setPlayingAt] = useState<Tile | null>(null);
+
+  useEffect(() => {
+    const box = boxRef.current;
+    const post = box?.closest('[data-post]');
+    if (!isPlaying || !box || !post) return;
+    const place = () => {
+      const at = box.getBoundingClientRect();
+      const whole = post.getBoundingClientRect();
+      const fill = videoFill(whole.width, whole.height);
+      setPlayingAt({
+        ...fill,
+        x: fill.x + whole.left - at.left,
+        y: fill.y + whole.top - at.top,
+      });
+    };
+    place();
+    addEventListener('resize', place);
+    // The card fades away, glass and all, and back when the video stops.
+    const fade = post.querySelector('section')?.animate([{ opacity: 0 }], {
+      duration: 400,
+      easing: 'ease-out',
+      fill: 'forwards',
+    });
+    return () => {
+      removeEventListener('resize', place);
+      if (!fade) return;
+      fade.reverse();
+      fade.finished.then(
+        () => fade.cancel(),
+        () => {},
+      );
+    };
+  }, [isPlaying]);
 
   useEffect(() => {
     const box = boxRef.current;
@@ -70,27 +113,43 @@ export default function PostCollage({
   );
 
   return (
-    <div ref={boxRef} className={`collage relative ${className}`} style={style}>
-      {tiles.map((tile, k) => (
-        <div
-          key={sources[k]!.key}
-          className="collage-tile absolute overflow-hidden rounded-2xl"
-          style={
-            {
-              left: tile.x,
-              top: tile.y,
-              width: tile.width,
-              height: tile.height,
-              '--tilt': `${tile.tilt}deg`,
-              // Its own drift: 5 to 8 seconds a cycle, started part way in.
-              '--drift': `${5 + ((k * 7) % 4)}s`,
-              '--drift-at': `${-k * 1.3}s`,
-            } as CSSProperties
-          }
-        >
-          <Media mediaSource={sources[k]!} />
-        </div>
-      ))}
+    <div
+      ref={boxRef}
+      data-playing={isPlaying || undefined}
+      className={`collage relative ${className}`}
+      style={style}
+    >
+      {tiles.map((laidOut, k) => {
+        const isVideo = sources[k]!.type === 'YouTube';
+        const tile = isVideo && isPlaying && playingAt ? playingAt : laidOut;
+        return (
+          <div
+            key={sources[k]!.key}
+            data-video={isVideo || undefined}
+            data-focus-blur={isVideo || undefined}
+            data-playing={(isVideo && isPlaying) || undefined}
+            className="collage-tile absolute overflow-hidden rounded-2xl"
+            style={
+              {
+                left: tile.x,
+                top: tile.y,
+                width: tile.width,
+                height: tile.height,
+                '--tilt': `${tile.tilt}deg`,
+                // Its own drift: 5 to 8 seconds a cycle, started part way in.
+                '--drift': `${5 + ((k * 7) % 4)}s`,
+                '--drift-at': `${-k * 1.3}s`,
+              } as CSSProperties
+            }
+          >
+            <Media
+              mediaSource={sources[k]!}
+              onPlaying={isVideo ? setIsPlaying : undefined}
+              paused={!isShown}
+            />
+          </div>
+        );
+      })}
     </div>
   );
 }
