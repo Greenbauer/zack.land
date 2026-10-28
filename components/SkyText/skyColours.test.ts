@@ -9,6 +9,7 @@ import head from '@/theme/head.json';
 import {
   ACCENT_RATIO,
   CROSSOVER,
+  darkText,
   FAINT_ALPHA,
   isOnDark,
   MUTED_ALPHA,
@@ -16,6 +17,7 @@ import {
   skyColours,
   SWITCH_MARGIN,
   TEXT_RATIO,
+  themeText,
 } from './skyColours';
 
 // A CSS rgb() value's channels and alpha.
@@ -35,11 +37,22 @@ const hex = (value: string) =>
 const SKIES = [0.03, 0.07, 0.12, 0.148, 0.2, 0.3, 0.45];
 
 describe('text and icons over the sky', () => {
-  it('is the theme light over a dark sky, darkening toward its dark only as far as needed', () => {
+  it('is the theme light over a dark sky, and over a light one the lightest darker theme colour that reads', () => {
     expect(hex(skyColours(0.05).text)).toBe(head.light);
-    const overLight = luminanceOf(skyColours(0.6).text);
-    expect(overLight).toBeLessThan(relativeLuminance(237, 228, 227));
-    expect(overLight).toBeGreaterThan(relativeLuminance(1, 0, 24));
+    // A very light sky: the theme's purple already reads.
+    expect(hex(skyColours(0.7).text)).toBe(head.purple);
+    // A paler mid sky: purple falls short, blue reads.
+    expect(contrastRatio(relativeLuminance(89, 77, 105), 0.3)).toBeLessThan(
+      TEXT_RATIO,
+    );
+    expect(hex(skyColours(0.3).text)).toBe(head.blue);
+  });
+
+  it('is always one of the theme colours, never a blend', () => {
+    const swatches = Object.values(head);
+    for (let sky = 0; sky <= 1; sky += 0.01)
+      for (const wasOnDark of [true, false, undefined])
+        expect(swatches).toContain(hex(skyColours(sky, wasOnDark).text));
   });
 
   it('reads at 4.5:1, or as close as any colour can where none does', () => {
@@ -64,10 +77,37 @@ describe('text and icons over the sky', () => {
   });
 });
 
+describe('the theme colour that reads', () => {
+  it('takes the lightest darker colour that reaches the ratio', () => {
+    for (const sky of [0.2, 0.3, 0.45, 0.7, 0.9]) {
+      const text = darkText(sky, TEXT_RATIO);
+      expect(
+        contrastRatio(relativeLuminance(...text), sky),
+      ).toBeGreaterThanOrEqual(TEXT_RATIO);
+    }
+    // Nothing reads against a sky this dark: the darkest it has.
+    expect(darkText(0.12, TEXT_RATIO)).toEqual([1, 0, 24]);
+  });
+
+  it('keeps the light wherever it reads, as the home subtitle does', () => {
+    expect(themeText(0.05, TEXT_RATIO)).toEqual([237, 228, 227]);
+    expect(themeText(0.6, TEXT_RATIO)).toEqual([89, 77, 105]);
+  });
+});
+
 describe('accents over the sky', () => {
   it('is peach over a dark sky and deep indigo over a light one', () => {
     expect(hex(skyColours(0.03).accent)).toBe(head.peach);
     expect(hex(skyColours(0.45).accent)).toBe(head.indigo);
+  });
+
+  it('is the light, not a blend, where peach falls short of 3:1', () => {
+    // Peach against a mid sky of 0.14 is about 2.5:1.
+    expect(hex(skyColours(0.14, true).accent)).toBe(head.light);
+    const swatches = Object.values(head);
+    for (let sky = 0; sky <= 1; sky += 0.01)
+      for (const wasOnDark of [true, false])
+        expect(swatches).toContain(hex(skyColours(sky, wasOnDark).accent));
   });
 
   it('always reads at 3:1', () => {

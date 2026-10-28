@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { readableText, watchBackdrop } from '@/components/Background/backdrop';
+import { watchBackdrop } from '@/components/Background/backdrop';
 import { titleWords } from '@/components/Background/titleWords';
+import { themeText } from '@/components/SkyText/skyColours';
 
 // The home page's title over the 3D background.
 //
@@ -29,8 +30,6 @@ import { titleWords } from '@/components/Background/titleWords';
 // so the gap between the lines stays in proportion at every width.
 
 const NAME = ['Zack', "Greenbauer's"];
-const SUBTITLE_LIGHT: [number, number, number] = [255, 255, 255];
-const SUBTITLE_DARK: [number, number, number] = [14, 12, 32];
 const SUBTITLE_RATIO = 4.5;
 // The canvas's colour before the sky loads (#6864a8, Background/index.tsx).
 const LOADING_SKY = 0.148;
@@ -61,21 +60,14 @@ export function NameWord({ text, index }: { text: string; index: number }) {
 export default function Title() {
   const subtitle = useRef<HTMLHeadingElement>(null);
   const [subtitleColour, setSubtitleColour] = useState(
-    readableText(LOADING_SKY, SUBTITLE_RATIO, SUBTITLE_LIGHT, SUBTITLE_DARK),
+    themeText(LOADING_SKY, SUBTITLE_RATIO),
   );
 
   useEffect(() => {
     if (!subtitle.current) return;
     // The lightest part of the sky behind it decides.
     return watchBackdrop(subtitle.current, (samples) =>
-      setSubtitleColour(
-        readableText(
-          Math.max(...samples),
-          SUBTITLE_RATIO,
-          SUBTITLE_LIGHT,
-          SUBTITLE_DARK,
-        ),
-      ),
+      setSubtitleColour(themeText(Math.max(...samples), SUBTITLE_RATIO)),
     );
   }, []);
 

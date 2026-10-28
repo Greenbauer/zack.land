@@ -11,8 +11,9 @@ import { createPortal } from 'react-dom';
 
 import { watchBackdrop } from '@/components/Background/backdrop';
 import { framedHead } from '@/components/Background/headPlace';
+import head from '@/theme/head.json';
 
-import { isWhite } from './arrowInk';
+import { isLight } from './arrowInk';
 import { Chevrons } from './Chevrons';
 import { PAGE_SCROLLER_ID, WIDE_FROM } from './edgeFade';
 import { postSpans, requestGlide } from './pageGlide';
@@ -67,7 +68,7 @@ const DOWN_TOP = `min(calc(${FOOTER_TOP} - 0.25rem - ${ARROW_HEIGHT}), max(calc(
 // keeps close around it (data-glass-near), padded well past the arrow at its
 // sides and on the side toward the header or footer but only a little toward
 // the head, its top pulled up as far as its top padding so the arrow keeps its
-// place, and in white while the head or a dark sky is behind it, read from the
+// place, and in the theme's light while the head or a dark sky is behind it, read from the
 // frame (arrowInk.ts), else in the cards' text colour, which the glass keeps
 // readable (--card-ink, styles/globals.css). On a phone, or wherever the head
 // has stepped off the screen to leave a card the room (framedHead.x below 0,
@@ -196,14 +197,14 @@ function ScrollArrow({
   inFooter?: boolean;
 }) {
   const isUp = direction < 0;
-  // Over the sky: white while the head (or a dark sky) is behind it
-  // (arrowInk.ts), else the cards' text colour.
+  // Over the sky: the theme's light while the head (or a dark sky) is behind
+  // it (arrowInk.ts), else the cards' text colour.
   const buttonRef = useRef<HTMLButtonElement | null>(null);
-  const [white, setWhite] = useState(false);
+  const [light, setLight] = useState(false);
   useEffect(() => {
     if (inFooter || !buttonRef.current) return;
     return watchBackdrop(buttonRef.current, (samples) =>
-      setWhite((was) => isWhite(samples, was)),
+      setLight((was) => isLight(samples, was)),
     );
   }, [inFooter]);
 
@@ -221,7 +222,7 @@ function ScrollArrow({
           ? undefined
           : ({
               '--arrow-top': isUp ? UP_TOP : DOWN_TOP,
-              ...(white && { '--sky-text': 'white' }),
+              ...(light && { '--sky-text': head.light }),
             } as CSSProperties)
       }
       className={`flex items-center gap-1 transition-[opacity,visibility] duration-500 ${

@@ -1,16 +1,18 @@
 import {
-  readableText,
+  contrastRatio,
   relativeLuminance,
 } from '@/components/Background/backdrop';
 import head from '@/theme/head.json';
 
 // The colours for text and icons over the 3D sky, from the luminance of the
 // sky (and head) behind them, as BackdropSampler measures it. Like
-// the home page's subtitle, text is the theme's light colour wherever the sky
-// allows and darkens toward its dark colour only as far as WCAG AA needs.
-// Grey items are that same colour, partly see-through. Links that used to
+// the home page's subtitle, text is always one of the theme's own colours
+// (theme/head.json): its light over a dark sky, and over a light one the
+// lightest of its darker colours that reads (WCAG AA). Grey items are that
+// same colour, partly see-through. Links that used to
 // turn a colour on hover, or that were coloured, take a theme colour: peach
-// over a dark sky, deep indigo over a light one.
+// over a dark sky (the light where peach falls short of 3:1), deep indigo
+// over a light one.
 
 type Rgb = [number, number, number];
 
@@ -40,28 +42,10 @@ const rgb = (hex: string): Rgb => [
 ];
 const LIGHT = rgb(head.light);
 const DARK = rgb(head.dark);
+// The theme's colours for text over a light sky, lightest first.
+const DARK_TEXT = [head.purple, head.blue, head.navy, head.dark].map(rgb);
 
-const toLinear = (c: number) => {
-  const s = c / 255;
-  return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
-};
-const toSrgb = (l: number) =>
-  Math.round(
-    255 * (l <= 0.0031308 ? 12.92 * l : 1.055 * l ** (1 / 2.4) - 0.055),
-  );
 const luminance = (c: Rgb) => relativeLuminance(...c);
-
-// `colour`, lightened toward `light` (in linear light) only as far as it
-// takes to reach `ratio` against a background of luminance `background`.
-function lighten(background: number, ratio: number, colour: Rgb, light: Rgb) {
-  const target = ratio * (background + 0.05) - 0.05;
-  const [from, to] = [luminance(colour), luminance(light)];
-  if (from >= target) return colour;
-  const t = Math.min((target - from) / (to - from), 1);
-  return colour.map((c, k) =>
-    toSrgb(toLinear(c) * (1 - t) + toLinear(light[k]!) * t),
-  ) as Rgb;
-}
 
 const css = ([r, g, b]: Rgb, alpha = 1) =>
   alpha === 1 ? `rgb(${r} ${g} ${b})` : `rgb(${r} ${g} ${b} / ${alpha})`;
@@ -82,6 +66,25 @@ export function isOnDark(background: number, wasOnDark?: boolean) {
     : background < CROSSOVER - SWITCH_MARGIN;
 }
 
+// The lightest of the theme's darker colours that reaches `ratio` against a
+// background of luminance `background`; its darkest where none quite does.
+export const darkText = (background: number, ratio: number) =>
+  DARK_TEXT.find((c) => contrastRatio(luminance(c), background) >= ratio) ??
+  DARK;
+
+// The theme colour that reads against `background`: its light wherever that
+// reaches `ratio`, otherwise darkText; over the narrow band where neither
+// light nor dark reaches it, whichever comes closer.
+export function themeText(background: number, ratio: number) {
+  const light = contrastRatio(luminance(LIGHT), background);
+  if (light >= ratio) return LIGHT;
+  const dark = darkText(background, ratio);
+  return contrastRatio(luminance(dark), background) >= ratio ||
+    contrastRatio(luminance(dark), background) > light
+    ? dark
+    : LIGHT;
+}
+
 // The colours as CSS values: text, its see-through grey and faint line,
 // the accent, and the underline under a coloured link. `wasOnDark` is the
 // side the text was on last, so it only switches once the sky is clearly
@@ -94,10 +97,9 @@ export function skyColours(
   restingOnDark?: boolean,
 ) {
   const onDark = restingOnDark ?? isOnDark(background, wasOnDark);
-  // On a dark sky, the light text. On a light one, the lightest colour that
-  // reads (darker the lighter the sky), and never the light text itself.
-  const darkest = readableText(background, TEXT_RATIO, LIGHT, DARK);
-  const text = onDark ? LIGHT : darkest === LIGHT ? DARK : darkest;
+  // On a dark sky, the light text. On a light one, the lightest of the
+  // theme's darker colours that reads, never the light text itself.
+  const text = onDark ? LIGHT : darkText(background, TEXT_RATIO);
   return {
     onDark,
     text: css(text),
@@ -105,7 +107,9 @@ export function skyColours(
     faint: css(text, FAINT_ALPHA),
     accent: css(
       onDark
-        ? lighten(background, ACCENT_RATIO, rgb(head.peach), LIGHT)
+        ? contrastRatio(luminance(rgb(head.peach)), background) >= ACCENT_RATIO
+          ? rgb(head.peach)
+          : LIGHT
         : rgb(head.indigo),
     ),
     underline: css(rgb(onDark ? head.rose : head.purple)),
