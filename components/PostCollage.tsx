@@ -100,16 +100,15 @@ export default function PostCollage({
     box.toggleAttribute('data-shown', isShown);
   }, [isLaidOut, isShown]);
 
-  // A video goes first, laid out as the main, largest tile.
-  const sources = [...mediaSources].sort(
-    (a, b) => Number(b.type === 'YouTube') - Number(a.type === 'YouTube'),
-  );
+  // A video goes first, laid out as the main, largest tile; with none, an
+  // image marked `main` does.
+  const sources = [...mediaSources].sort((a, b) => leads(b) - leads(a));
   const tiles = collage(
     sources.map(cropFor),
     sources.map(({ key }) => key),
     size.width,
     size.height,
-    sources[0]?.type === 'YouTube' ? 0 : undefined,
+    sources[0] && leads(sources[0]) ? 0 : undefined,
   );
 
   return (
@@ -153,3 +152,8 @@ export default function PostCollage({
     </div>
   );
 }
+
+// How strongly a source claims the main tile: a video most, then an image
+// marked `main`.
+const leads = (source: MediaSource) =>
+  source.type === 'YouTube' ? 2 : source.main ? 1 : 0;

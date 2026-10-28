@@ -44,6 +44,7 @@ const Contents: Content[] = [
         type: 'img',
         width: 960,
         height: 540,
+        main: true,
       },
       {
         key: '/web-apps/create-your-own-square.gif',

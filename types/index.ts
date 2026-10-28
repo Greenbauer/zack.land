@@ -7,6 +7,9 @@ export type MediaSource = {
   // An image's size in pixels, which picks its crop (components/collageLayout.ts).
   width?: number;
   height?: number;
+  // An image laid out as its post's largest tile, in its own shape, when the
+  // post has no video (components/PostCollage.tsx).
+  main?: true;
 };
 
 export type Content = {
