@@ -104,6 +104,21 @@ describe("the head's little movements of its own", () => {
     expect(ambientFace(ambient, 0.3).browsUpRight).toBeGreaterThan(0);
   });
 
+  it('never moves one side of the face alone: the other follows', () => {
+    for (const [name, look] of Object.entries(LOOKS)) {
+      const parts = Object.keys(look('Left', 'Right'));
+      const left = parts.filter((morph) => morph.endsWith('Left'));
+      const right = parts.filter((morph) => morph.endsWith('Right'));
+      expect(left.length > 0, name).toBe(right.length > 0);
+    }
+    // The one-eyed looks: the other eye narrows too, less and a beat later.
+    for (const name of ['oneEye', 'halfSmile']) {
+      const parts = LOOKS[name]!('Left', 'Right');
+      expect(parts.squintRight![1]).toBeLessThan(parts.squintLeft![0]);
+      expect(parts.squintRight![2]).toBeGreaterThan(0);
+    }
+  });
+
   it('brings up brow looks most often', () => {
     const counts: Record<string, number> = {};
     frames.forEach(({ ambient }, k) => {

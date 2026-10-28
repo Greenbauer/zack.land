@@ -6,7 +6,8 @@ import { Side, SIDES } from './sideMorphs';
 // the other now and then (a roll of the head on its neck: headTurn.ts), and
 // every few seconds a passing look comes and goes: one brow raised, the other
 // following a beat later and less, as its eye squints a little; both brows up,
-// one leading; one eye narrowed; the lips pursed a little; a faint half smile
+// one leading; one eye narrowed, the other a little; the lips pursed a little;
+// a faint half smile
 // (the one-sided ones made by sideMorphs.ts). Brow looks come most often.
 // The mouth only moves subtly: it never opens on its own. No wide eyes: opening the lids round the still eyeballs
 // reads as the eyes popping out.
@@ -50,9 +51,18 @@ export const LOOKS: Record<
     [`browsUp${side}`]: [0.35, 0.6],
     [`browsUp${other}`]: [0.3, 0.5, 0.12],
   }),
-  oneEye: (side) => ({ [`squint${side}`]: [0.4, 0.7], pout: [0.1, 0.2] }),
+  // One eye narrowed, the other following a little, a beat later.
+  oneEye: (side, other) => ({
+    [`squint${side}`]: [0.4, 0.7],
+    [`squint${other}`]: [0.1, 0.2, 0.12],
+    pout: [0.1, 0.2],
+  }),
   purse: () => ({ pout: [0.2, 0.4] }),
-  halfSmile: (side) => ({ smile: [0.2, 0.35], [`squint${side}`]: [0.1, 0.2] }),
+  halfSmile: (side, other) => ({
+    smile: [0.2, 0.35],
+    [`squint${side}`]: [0.1, 0.2],
+    [`squint${other}`]: [0.04, 0.08, 0.12],
+  }),
 };
 // How often each look comes up against the others: the brows most.
 export const LOOK_WEIGHTS: Record<string, number> = {
