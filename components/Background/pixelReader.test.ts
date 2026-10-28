@@ -26,6 +26,7 @@ function fakeGl(fill: () => number) {
     RGBA: 0,
     UNSIGNED_BYTE: 7,
     STREAM_READ: 0,
+    STREAM_COPY: 0,
     SYNC_GPU_COMMANDS_COMPLETE: 0,
     createBuffer: (): Buffer => ({ data: new Uint8Array(0) }),
     bindBuffer: (target: number, buffer: Buffer | null) =>

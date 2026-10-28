@@ -24,7 +24,7 @@ export class PixelReader {
   // One buffer per read in a batch, and the one they are gathered into,
   // kept for the next batch.
   private readonly buffers: Slot[] = [];
-  private gathered: Slot | null = null;
+  private gathered: WebGLBuffer | null = null;
   private reads: Read[] = [];
   private sync: WebGLSync | null = null;
   private done: ((_pixels: Pixels[]) => void) | null = null;
@@ -50,7 +50,11 @@ export class PixelReader {
       this.buffers.push(slot);
     }
     gl.bindBuffer(gl.PIXEL_PACK_BUFFER, slot.buffer);
-    this.fit(gl.PIXEL_PACK_BUFFER, slot, bytes);
+    // The read's own buffer only passes its pixels on, on the GPU.
+    if (slot.bytes < bytes) {
+      gl.bufferData(gl.PIXEL_PACK_BUFFER, bytes, gl.STREAM_COPY);
+      slot.bytes = bytes;
+    }
     gl.readPixels(
       region.x,
       region.y,
@@ -64,21 +68,17 @@ export class PixelReader {
     this.reads.push({ buffer: slot.buffer, float, bytes });
   }
 
-  // Makes `slot`'s buffer, bound at `target`, hold at least `bytes`.
-  private fit(target: number, slot: Slot, bytes: number) {
-    if (slot.bytes >= bytes) return;
-    this.gl.bufferData(target, bytes, this.gl.STREAM_READ);
-    slot.bytes = bytes;
-  }
-
   // Closes the batch: `done` gets each read's pixels, in the order read,
   // once they have arrived (from poll). A batch with no reads ends at once.
   send(done: (_pixels: Pixels[]) => void) {
     const { gl } = this;
     if (!this.reads.length) return;
-    this.gathered ??= { buffer: gl.createBuffer()!, bytes: 0 };
-    gl.bindBuffer(gl.COPY_WRITE_BUFFER, this.gathered.buffer);
-    this.fit(gl.COPY_WRITE_BUFFER, this.gathered, this.bytes());
+    this.gathered ??= gl.createBuffer()!;
+    gl.bindBuffer(gl.COPY_WRITE_BUFFER, this.gathered);
+    // Made afresh each batch: Chrome keeps a copy of a read buffer ready to
+    // fetch, and drops it (with a warning) if the buffer is written again
+    // rather than remade.
+    gl.bufferData(gl.COPY_WRITE_BUFFER, this.bytes(), gl.STREAM_READ);
     let offset = 0;
     for (const { buffer, bytes } of this.reads) {
       gl.bindBuffer(gl.COPY_READ_BUFFER, buffer);
@@ -105,7 +105,7 @@ export class PixelReader {
       return;
     gl.deleteSync(sync);
     const all = new Uint8Array(this.bytes());
-    gl.bindBuffer(gl.COPY_READ_BUFFER, this.gathered!.buffer);
+    gl.bindBuffer(gl.COPY_READ_BUFFER, this.gathered);
     gl.getBufferSubData(gl.COPY_READ_BUFFER, 0, all);
     gl.bindBuffer(gl.COPY_READ_BUFFER, null);
     let offset = 0;
@@ -132,7 +132,7 @@ export class PixelReader {
     const { gl } = this;
     if (this.sync) gl.deleteSync(this.sync);
     for (const { buffer } of this.buffers) gl.deleteBuffer(buffer);
-    if (this.gathered) gl.deleteBuffer(this.gathered.buffer);
+    if (this.gathered) gl.deleteBuffer(this.gathered);
     this.buffers.length = 0;
     this.gathered = null;
     this.reads = [];
