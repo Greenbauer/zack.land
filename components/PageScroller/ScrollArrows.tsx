@@ -55,9 +55,10 @@ const DOWN_TOP = `min(calc(${FOOTER_TOP} - 0.25rem - ${ARROW_HEIGHT}), max(calc(
 // centred over the 3D head, and Scroll over chevrons pointing down, just
 // over the footer and centred under it. Over the sky each is a pane of the
 // cards' frosted glass (data-glass, drawn in the 3D scene by
-// Background/glass.ts), padded a little past the arrow, its top pulled up as
-// far so the arrow keeps its place, and in the cards' text colour, which the
-// glass keeps readable (--card-ink, styles/globals.css). On a phone, or
+// Background/glass.ts) that keeps close around it (data-glass-near), padded
+// a little past the arrow, its top pulled up as far so the arrow keeps its
+// place, and in the cards' text colour, which the glass keeps readable
+// (--card-ink, styles/globals.css). On a phone, or
 // wherever the head has stepped off the screen to leave a card the room
 // (framedHead.x below 0, headPlace.ts), only the down arrow, in the footer,
 // at the left of its text (data-footer-arrow, Footer) and in the footer's
@@ -176,6 +177,7 @@ function ScrollArrow({
   return (
     <button
       data-glass={inFooter ? undefined : true}
+      data-glass-near={inFooter ? undefined : true}
       type="button"
       aria-label={isUp ? 'Scroll up' : 'Scroll down'}
       disabled={!isShown}
@@ -188,7 +190,7 @@ function ScrollArrow({
       className={`flex items-center gap-1 transition-opacity duration-500 ${
         inFooter
           ? 'pointer-events-auto'
-          : 'fixed left-[var(--arrows-x,50%)] top-[var(--arrow-top)] z-30 -mt-3 -translate-x-1/2 rounded-3xl px-6 py-3 [--arrow-h:4.5rem] [--sky-text:var(--card-ink)] [@media(max-height:700px)]:[--arrow-h:3.25rem]'
+          : 'fixed left-[var(--arrows-x,50%)] top-[var(--arrow-top)] z-30 -mt-2 -translate-x-1/2 rounded-3xl px-4 py-2 [--arrow-h:4.5rem] [--sky-text:var(--card-ink)] [@media(max-height:700px)]:[--arrow-h:3.25rem]'
       } ${isUp ? 'flex-col' : 'flex-col-reverse'} ${
         isShown ? 'opacity-100' : 'invisible opacity-0'
       }`}
