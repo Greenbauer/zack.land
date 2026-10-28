@@ -13,7 +13,9 @@ import {
 
 import type { MousePosition } from '@/hooks/useMousePosition';
 
+import { Ambient, startAmbient, stepAmbient, withAmbient } from './ambient';
 import {
+  easeRate,
   easeToward,
   facingSmile,
   pointerExpressions,
@@ -41,6 +43,8 @@ import {
   stepGreeting,
 } from './idleGreeting';
 import { fadeNeck, fadeTime } from './neckFade';
+import { withSides } from './sideMorphs';
+import { shownGaze, startWander, stepWander, Wander } from './wander';
 
 export type Point = { x: number; y: number };
 
@@ -134,19 +138,20 @@ function headGeometry(part: HeadMesh): BufferGeometry {
   return geometry;
 }
 
-let frameCount: number = 0;
-let frameCountLimit: number = 300;
-let isFrameCounting: boolean = false;
-let randomPosition: Point = { x: 0, y: 0 };
 // Before it first wanders off on its own, the head faces the camera and looks
 // surprised (idleGreeting.ts).
 let greeting: Greeting = idle;
 // Below this every expression counts as eased out: a neutral face.
 const NEUTRAL = 0.02;
-// How long the head looks one way before it picks another on a touch screen,
-// in frames (there is no pointer to follow, so it looks around from the
-// start, more often than it wanders on a desktop).
-const TOUCH_LOOK_FRAMES = [120, 360] as const;
+// How long the page has to be left alone (no pointer move, scroll, press or
+// key: useMousePosition) before the head greets and then looks around on its
+// own, in seconds: somewhere in this range, picked afresh each time.
+const IDLE_SECONDS = [10, 15] as const;
+const idleWait = () =>
+  IDLE_SECONDS[0] + Math.random() * (IDLE_SECONDS[1] - IDLE_SECONDS[0]);
+// How quickly the sky follows the head while it looks around on its own: a
+// share each frame, so it trails behind the head's glances.
+const WANDER_SKY_SPEED = 0.01;
 // A tap on any of these is meant for the page, not the head.
 const PAGE_TARGETS =
   'a, button, input, textarea, select, label, section, header, footer, [data-glass]';
@@ -160,7 +165,8 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
   const mouthRef = useRef<Mesh>(null);
 
   const { geometry: myHeadGeometry, expressions } = useMemo(() => {
-    const { meshes, expressions } = decodeHead(myHeadFile);
+    // With one-sided brows and squints (sideMorphs.ts) for ambient.ts.
+    const { meshes, expressions } = withSides(decodeHead(myHeadFile));
     const geometry: MyHeadGeometry = {};
     for (const [name, part] of meshes) geometry[name] = headGeometry(part);
     return { geometry, expressions };
@@ -175,6 +181,12 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
     [],
   );
   const taps = useRef<HeadTaps>(untapped);
+  // Looking around on its own (wander.ts), and when the page was last used.
+  const wandering = useRef<Wander | null>(null);
+  const idleSince = useRef(0);
+  const idleFor = useRef(idleWait());
+  // The little tilts and faint expressions it makes on its own (ambient.ts).
+  const ambient = useRef<Ambient>(startAmbient(0));
   const tapAt = useRef<Point | null>(null);
   const raycaster = useMemo(() => new Raycaster(), []);
 
@@ -198,26 +210,16 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
     return coordinate;
   };
 
-  const stopRandomRotation = (): void => {
-    frameCount = 0;
+  // Someone used the page: stop looking around, and start the idle clock.
+  const stopWandering = (time: number): void => {
+    wandering.current = null;
+    idleSince.current = time;
+    idleFor.current = idleWait();
     pointer.moved = false;
-    isFrameCounting = false;
   };
 
-  const startRandomRotation = (): void => {
-    const randomNumber = (min: number, max: number) => {
-      return Math.floor(Math.random() * (max - min)) + min;
-    };
-
-    frameCount = 0;
-    frameCountLimit = isTouch
-      ? randomNumber(...TOUCH_LOOK_FRAMES)
-      : randomNumber(300, 800);
-    isFrameCounting = true;
-    randomPosition = {
-      x: randomNumber(1200, -2000),
-      y: randomNumber(520, -600),
-    };
+  const startWandering = (time: number): void => {
+    wandering.current = startWander(look.current, time);
   };
 
   // On a touch screen there is no pointer to follow (a tap's emulated
@@ -228,11 +230,11 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
     if (!isTouch) return false;
     pointer.moved = false;
     if (!tapsOn(taps.current)) {
-      if (!isFrameCounting) startRandomRotation();
+      if (!wandering.current) startWandering(time);
       return false;
     }
     taps.current = stepTaps(taps.current, time);
-    if (!tapsOn(taps.current)) startRandomRotation();
+    if (!tapsOn(taps.current)) startWandering(time);
     return true;
   };
 
@@ -241,12 +243,13 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
     const turn = look.current;
     let lookPosition: Point = lookPositionStart();
     let rotationSpeed: number = 0.05;
+    let skySpeed: number | undefined;
 
     if (stepTouch(time)) {
       lookPosition = { x: 0, y: 0 };
       rotationSpeed = TAP_TURN_SPEED;
     } else if (pointer.moved) {
-      stopRandomRotation();
+      stopWandering(time);
       greeting = idle;
     } else if (greetingOn(greeting)) {
       lookPosition = { x: 0, y: 0 };
@@ -256,24 +259,24 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
         neutral: strengths.current.every((s) => s < NEUTRAL),
         time,
       });
-      if (greeting.phase === 'done') startRandomRotation();
-    } else {
-      if (isFrameCounting) {
-        lookPosition = randomPosition;
-        rotationSpeed = 0.01;
-      }
-
-      frameCount += 1;
-
-      if (frameCount > frameCountLimit) {
-        if (!isFrameCounting && greeting.phase === 'idle')
-          greeting = { phase: 'facing' };
-        else startRandomRotation();
-      }
+      if (greeting.phase === 'done') startWandering(time);
+    } else if (wandering.current) {
+      // Looking around on its own: the wander's gaze is already smooth, so
+      // the head takes it as it is (in the pointer's units, x the turn).
+      wandering.current = stepWander(wandering.current, time, seconds);
+      const gaze = shownGaze(wandering.current, time);
+      lookPosition = { x: gaze.y * 1000, y: gaze.x * 1000 };
+      rotationSpeed = 1;
+      skySpeed = WANDER_SKY_SPEED;
+    } else if (
+      time - idleSince.current > idleFor.current &&
+      greeting.phase === 'idle'
+    ) {
+      greeting = { phase: 'facing' };
     }
 
     heading.target = lookPosition;
-    heading.speed = rotationSpeed;
+    heading.speed = skySpeed ?? rotationSpeed;
 
     lookPosition = {
       x: lookPositionLimit(lookPosition.x * 0.001, -0.5, 0.3),
@@ -285,7 +288,8 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
     turn.y += share * (lookPosition.x - turn.y);
     const { body, head } = splitLook(turn);
     rotation.set(body.x, body.y, 0);
-    headTurn.value.set(head.x, head.y);
+    ambient.current = stepAmbient(ambient.current, turn, time, seconds);
+    headTurn.value.set(head.x, head.y, ambient.current.tilt);
   };
 
   useFrame(({ clock, camera, size }, delta) => {
@@ -301,7 +305,7 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
       );
       if (raycaster.intersectObject(skinRef.current, false).length) {
         taps.current = tapHead(taps.current, clock.elapsedTime);
-        isFrameCounting = false;
+        wandering.current = null;
       }
     }
     rotateMyHead(clock.elapsedTime, delta);
@@ -326,23 +330,29 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
         ? WORRIED
         : greetingOn(greeting)
           ? greetingExpressions(greeting)
-          : {
-              smile: facingSmile(look.current),
-              ...pointerExpressions(
-                spot,
-                {
-                  x: ((eyes.x + 1) / 2) * size.width,
-                  y: ((1 - eyes.y) / 2) * size.height,
-                },
-                size,
-              ),
-            };
+          : // The face's reactions to where it looks, with a faint
+            // expression of its own now and then (ambient.ts).
+            withAmbient(
+              {
+                smile: facingSmile(look.current),
+                ...pointerExpressions(
+                  spot,
+                  {
+                    x: ((eyes.x + 1) / 2) * size.width,
+                    y: ((1 - eyes.y) / 2) * size.height,
+                  },
+                  size,
+                ),
+              },
+              ambient.current,
+              clock.elapsedTime,
+            );
     strengths.current = expressions.map((name, k) =>
       easeToward(
         strengths.current[k] ?? 0,
         targets[name] ?? 0,
         delta,
-        isGreeting ? GREETING_EASE_RATE : undefined,
+        isGreeting ? GREETING_EASE_RATE : easeRate(name, look.current),
       ),
     );
     for (const mesh of [skinRef.current, mouthRef.current])

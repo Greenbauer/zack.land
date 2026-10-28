@@ -1,5 +1,7 @@
 import { isOnDark } from '@/components/SkyText/skyColours';
 
+import { skyState } from './skyState';
+
 // The glass cards' tint (glass.ts): the colour of the sky around each card,
 // so the card matches its sky, with its text dark on a light sky and light
 // on a dark one, as the text over the sky is (components/SkyText). The tint
@@ -68,9 +70,16 @@ export class CardTints {
   // head's dark crown.
   aim(card: HTMLElement, sky: Rgb) {
     const state = this.cards.get(card);
+    // A card above the head stays on the dark side; any other takes the
+    // side of the sky's station while the sky rests at its view's home.
     const light =
       card.dataset.headAvoid !== 'above' &&
-      !isOnDark(luminance(sky), state === undefined ? undefined : !state.light);
+      (skyState.settled
+        ? skyState.light
+        : !isOnDark(
+            luminance(sky),
+            state === undefined ? undefined : !state.light,
+          ));
     if (state) state.light = light;
     else this.cards.set(card, { light, progress: light ? 1 : 0 });
     const side = light ? 'light' : 'dark';

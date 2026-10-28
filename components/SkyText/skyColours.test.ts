@@ -14,6 +14,7 @@ import {
   MUTED_ALPHA,
   skyBehind,
   skyColours,
+  SWITCH_MARGIN,
   TEXT_RATIO,
 } from './skyColours';
 
@@ -118,5 +119,25 @@ describe('switching between light and dark text', () => {
 
   it('keeps dark text dark just below the crossover', () => {
     expect(hex(skyColours(CROSSOVER - 0.02, false).text)).toBe(head.dark);
+  });
+});
+
+describe('text held to its side while the sky rests at home', () => {
+  it("takes the resting sky's side, whatever the sky reads", () => {
+    expect(skyColours(0.9, true, true).onDark).toBe(true);
+    expect(skyColours(0.01, false, false).onDark).toBe(false);
+  });
+
+  it('drops a side it took while the sky glided in', () => {
+    // Light text, kept by the switch margin on a light sky just past the
+    // crossover, turns dark once that light sky is at rest.
+    const between = CROSSOVER + SWITCH_MARGIN / 2;
+    expect(skyColours(between, true).onDark).toBe(true);
+    expect(skyColours(between, true, false).onDark).toBe(false);
+  });
+
+  it('follows the sky while it moves', () => {
+    expect(skyColours(0.9, true).onDark).toBe(false);
+    expect(skyColours(0.01, false).onDark).toBe(true);
   });
 });

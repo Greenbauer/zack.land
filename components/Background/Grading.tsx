@@ -6,12 +6,14 @@ import {
   useLoader,
   useThree,
 } from '@react-three/fiber';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { HorizontalBlurShader } from 'three/addons/shaders/HorizontalBlurShader.js';
 import { VerticalBlurShader } from 'three/addons/shaders/VerticalBlurShader.js';
 import { LUTCubeLoader, LUTPass } from 'three-stdlib';
+
+import { leavesTrail } from '@/components/pointerInk';
 
 import {
   FOCUS_BLUR_PX,
@@ -24,6 +26,7 @@ import { GlassPass, GlassTintPass, tintStrength } from './glass';
 import { findCards, findFields, pageFade } from './glassCards';
 import { CardTints, Rgb, skyOf, skyPoints } from './glassTint';
 import { photoLenses } from './photoLens';
+import { TrailPass } from './pointerTrail';
 import { renderQuality } from './quality';
 import { isSmall } from './smallScreen';
 import usePixelReader from './usePixelReader';
@@ -62,10 +65,20 @@ export default function Grading() {
   const [tint] = useState(() => new GlassTintPass(glass));
   const [titles] = useState(() => new TitlePass(get));
   const [tints] = useState(() => new CardTints());
+  const [trail] = useState(() => new TrailPass());
   const frame = useRef(0);
   const reader = usePixelReader();
   // How far the focus blur has come in, from 0 to 1.
   const blur = useRef(0);
+
+  // The pointer's trail through the scene (pointerTrail.ts).
+  useEffect(() => {
+    const move = (event: PointerEvent) => {
+      if (leavesTrail(event)) trail.move(event.clientX, event.clientY);
+    };
+    addEventListener('pointermove', move, { passive: true });
+    return () => removeEventListener('pointermove', move);
+  }, [trail]);
 
   useFrame(({ gl, size }, delta) => {
     // The cards' frosting follows them every frame.
@@ -133,15 +146,17 @@ export default function Grading() {
 
   // Since three r153 the renderer only tone maps to the screen, so the
   // OutputPass puts back the tone mapping the sandbox (three r148) got for
-  // free. The focus blur comes first, then the cards' frosting (glass.ts),
-  // then the titles over both, so the colour grading falls on all alike;
-  // the cards' tint goes on last, over the graded frame.
+  // free. The focus blur comes first, then the titles over it, then the
+  // pointer's trail through both, then the cards' frosting (glass.ts), so
+  // the glass sits still over the trail and the colour grading falls on all
+  // alike; the cards' tint goes on last, over the graded frame.
   return (
     <Effects disableGamma multisamping={samples}>
       <primitive object={across} />
       <primitive object={down} />
-      <primitive object={glass} />
       <primitive object={titles} />
+      <primitive object={trail} />
+      <primitive object={glass} />
       <outputPass />
       <lUTPass args={[{ lut: texture3D, intensity: 0.75 }]} />
       <primitive object={tint} />
