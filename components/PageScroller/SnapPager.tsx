@@ -8,10 +8,11 @@ import {
   easeOutCubic,
   GLIDE_MS,
   keyDirection,
+  landing,
   postAt,
   throughPost,
   turnGate,
-  turnTo,
+  turnIndex,
   wheelPager,
 } from './paging';
 
@@ -58,20 +59,29 @@ export default function SnapPager() {
       // A quick turn back brings its card straight back (Post.tsx): the card
       // it turns away from never set off.
       scroller.style.setProperty('--turn-delay', quick ? '0s' : '');
-      const to = turnTo(at, scroller.scrollTop, direction);
+      const from = scroller.scrollTop;
+      const next = turnIndex(at, from, direction);
+      // Where it lands, looked up again each frame: a post opened by More
+      // that closes as the page comes back to it (useMoreMotion) moves it.
+      const to = () => {
+        const span = next === null ? undefined : spans()[next];
+        return span ? landing(span, direction) : from;
+      };
       cancelAnimationFrame(frame);
       if (still.matches) {
-        scroller.scrollTop = to;
+        scroller.scrollTop = to();
         return;
       }
       // The browser's snapping would pull each step back, so it is off
       // until the glide lands (on a post, where it agrees).
       scroller.style.scrollSnapType = 'none';
-      const from = scroller.scrollTop;
+      // The way still to go, kept relative to where it lands, so if that
+      // moves the glide moves with it.
+      const way = to() - from;
       const start = performance.now();
       const step = (now: number) => {
         const t = Math.min((now - start) / GLIDE_MS, 1);
-        scroller.scrollTop = from + (to - from) * easeOutCubic(t);
+        scroller.scrollTop = to() - way * (1 - easeOutCubic(t));
         if (t < 1) frame = requestAnimationFrame(step);
         else fitSnap();
       };

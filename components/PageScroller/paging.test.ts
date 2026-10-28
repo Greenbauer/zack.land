@@ -4,10 +4,11 @@ import {
   easeOutCubic,
   GLIDE_MS,
   keyDirection,
+  landing,
   postAt,
   throughPost,
   turnGate,
-  turnTo,
+  turnIndex,
   wheelPager,
 } from './paging';
 
@@ -37,22 +38,36 @@ describe('paging between posts', () => {
     expect(postAt(tall, 1208)).toBe(1);
   });
 
+  // Where a turn lands from `top`, as SnapPager glides to it.
+  const lands = (at: [number, number][], top: number, direction: 1 | -1) => {
+    const next = turnIndex(at, top, direction);
+    return next === null ? null : landing(at[next]!, direction);
+  };
+
   it('turns to the next post, or back to the last', () => {
-    expect(turnTo(spans, 0, 1)).toBe(708);
-    expect(turnTo(spans, 708, -1)).toBe(0);
-    expect(turnTo(spans, 800, 1)).toBe(1416);
-    expect(turnTo(spans, 1300, -1)).toBe(708);
+    expect(lands(spans, 0, 1)).toBe(708);
+    expect(lands(spans, 708, -1)).toBe(0);
+    expect(lands(spans, 800, 1)).toBe(1416);
+    expect(lands(spans, 1300, -1)).toBe(708);
   });
 
-  it('stays on the first and last posts at the ends', () => {
-    expect(turnTo(spans, 0, -1)).toBe(0);
-    expect(turnTo(spans, 2124, 1)).toBe(2124);
+  it('turns nowhere past the first and last posts', () => {
+    expect(turnIndex(spans, 0, -1)).toBeNull();
+    expect(turnIndex(spans, 2124, 1)).toBeNull();
   });
 
   it('turns from the end of a tall post, and back up onto its end', () => {
-    expect(turnTo(tall, 1208, 1)).toBe(1916);
-    expect(turnTo(tall, 1916, -1)).toBe(1208);
-    expect(turnTo(tall, 708, -1)).toBe(0);
+    expect(lands(tall, 1208, 1)).toBe(1916);
+    expect(lands(tall, 1916, -1)).toBe(1208);
+    expect(lands(tall, 708, -1)).toBe(0);
+  });
+
+  it('lands back up on a post by its end as it is then', () => {
+    // Turning up onto the opened second post, which closes as the page
+    // comes back to it: the landing is looked up again, at its new end.
+    const next = turnIndex(tall, 1916, -1)!;
+    expect(landing(tall[next]!, -1)).toBe(1208);
+    expect(landing(spans[next]!, -1)).toBe(708);
   });
 
   it('scrolls through a tall post before turning, never past its end', () => {
