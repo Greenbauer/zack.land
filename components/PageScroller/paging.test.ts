@@ -4,25 +4,74 @@ import {
   easeOutCubic,
   GLIDE_MS,
   keyDirection,
-  nextPost,
+  postAt,
+  throughPost,
   turnGate,
+  turnTo,
   wheelPager,
 } from './paging';
 
 describe('paging between posts', () => {
-  const positions = [0, 708, 1416, 2124];
+  // Four one-page posts, then the same with the second opened by More to
+  // run on 500px past the page.
+  const spans: [number, number][] = [
+    [0, 0],
+    [708, 708],
+    [1416, 1416],
+    [2124, 2124],
+  ];
+  const tall: [number, number][] = [
+    [0, 0],
+    [708, 1208],
+    [1916, 1916],
+    [2624, 2624],
+  ];
 
-  it('moves to the post after or before the nearest one', () => {
-    expect(nextPost(positions, 0, 1)).toBe(1);
-    expect(nextPost(positions, 708, -1)).toBe(0);
-    // Partway down, from the nearest post.
-    expect(nextPost(positions, 800, 1)).toBe(2);
-    expect(nextPost(positions, 1300, -1)).toBe(1);
+  it('finds the post the page is on, or the nearest', () => {
+    expect(postAt(spans, 0)).toBe(0);
+    expect(postAt(spans, 800)).toBe(1);
+    expect(postAt(spans, 1300)).toBe(2);
+    // Anywhere within a tall post is on it.
+    expect(postAt(tall, 708)).toBe(1);
+    expect(postAt(tall, 1100)).toBe(1);
+    expect(postAt(tall, 1208)).toBe(1);
+  });
+
+  it('turns to the next post, or back to the last', () => {
+    expect(turnTo(spans, 0, 1)).toBe(708);
+    expect(turnTo(spans, 708, -1)).toBe(0);
+    expect(turnTo(spans, 800, 1)).toBe(1416);
+    expect(turnTo(spans, 1300, -1)).toBe(708);
   });
 
   it('stays on the first and last posts at the ends', () => {
-    expect(nextPost(positions, 0, -1)).toBe(0);
-    expect(nextPost(positions, 2124, 1)).toBe(3);
+    expect(turnTo(spans, 0, -1)).toBe(0);
+    expect(turnTo(spans, 2124, 1)).toBe(2124);
+  });
+
+  it('turns from the end of a tall post, and back up onto its end', () => {
+    expect(turnTo(tall, 1208, 1)).toBe(1916);
+    expect(turnTo(tall, 1916, -1)).toBe(1208);
+    expect(turnTo(tall, 708, -1)).toBe(0);
+  });
+
+  it('scrolls through a tall post before turning, never past its end', () => {
+    expect(throughPost(tall, 708, 1, 100)).toBe(808);
+    expect(throughPost(tall, 1150, 1, 100)).toBe(1208);
+    expect(throughPost(tall, 1208, 1, 100)).toBeNull();
+    expect(throughPost(tall, 1208, -1, 100)).toBe(1108);
+    expect(throughPost(tall, 750, -1, 100)).toBe(708);
+    expect(throughPost(tall, 708, -1, 100)).toBeNull();
+  });
+
+  it('never scrolls within a one-page post', () => {
+    expect(throughPost(spans, 708, 1, 100)).toBeNull();
+    expect(throughPost(spans, 708, -1, 100)).toBeNull();
+    expect(throughPost([], 0, 1, 100)).toBeNull();
+    // Gliding between posts, a push turns the page rather than scrolling.
+    expect(throughPost(spans, 300, -1, 100)).toBeNull();
+    expect(throughPost(tall, 1500, -1, 100)).toBeNull();
+    expect(throughPost(tall, 400, 1, 100)).toBeNull();
   });
 
   it('glides quickly, fast out and gently in', () => {

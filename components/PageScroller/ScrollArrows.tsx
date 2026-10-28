@@ -14,7 +14,7 @@ import useSkyColours from '@/components/SkyText/useSkyColours';
 
 import { Chevrons } from './Chevrons';
 import { PAGE_SCROLLER_ID, WIDE_FROM } from './edgeFade';
-import { postPositions, requestGlide } from './pageGlide';
+import { postSpans, requestGlide } from './pageGlide';
 
 // Where the 3D head's crown and chin sit, as fractions of the window's
 // height. The head is fixed in the scene, so it scales with the window's
@@ -100,11 +100,11 @@ export default function ScrollArrows() {
     const scroller = document.getElementById(PAGE_SCROLLER_ID);
     if (!scroller) return;
     const check = () => {
-      const at = postPositions(scroller);
+      const at = postSpans(scroller);
       if (!at.length) return;
       const { scrollTop } = scroller;
-      const up = scrollTop > at[0]! + 4;
-      const down = scrollTop < at[at.length - 1]! - 4;
+      const up = scrollTop > at[0]![0] + 4;
+      const down = scrollTop < at[at.length - 1]![1] - 4;
       setCanGo((was) =>
         was.up === up && was.down === down ? was : { up, down },
       );

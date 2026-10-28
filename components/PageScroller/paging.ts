@@ -64,19 +64,57 @@ export function turnGate({
   };
 }
 
-// The post to move to: the one after (direction 1) or before (-1) the one
-// nearest `scrollTop`, given each post's scroll position, in order.
-export function nextPost(
-  positions: readonly number[],
+// The post the page is on at `scrollTop`, given each post's span (postSpans):
+// the one whose span holds it, or else the nearest.
+export function postAt(
+  spans: readonly (readonly [number, number])[],
+  scrollTop: number,
+): number {
+  let at = 0;
+  let nearest = Infinity;
+  spans.forEach(([start, end], k) => {
+    const gap = Math.max(start - scrollTop, scrollTop - end, 0);
+    if (gap < nearest) {
+      at = k;
+      nearest = gap;
+    }
+  });
+  return at;
+}
+
+// Where a push down (1) or up (-1) of `step` pixels scrolls the page while
+// it is within a post that runs on past the page that way (one More has
+// opened taller than the page): on through it, no further than its end. Null
+// once the page is at that end, or between posts (gliding), when the push
+// turns the page instead (turnTo).
+export function throughPost(
+  spans: readonly (readonly [number, number])[],
+  scrollTop: number,
+  direction: 1 | -1,
+  step: number,
+): number | null {
+  if (!spans.length) return null;
+  const [start, end] = spans[postAt(spans, scrollTop)]!;
+  if (end <= start || scrollTop < start - 1 || scrollTop > end + 1) return null;
+  if (direction > 0 && scrollTop < end - 1)
+    return Math.min(end, scrollTop + step);
+  if (direction < 0 && scrollTop > start + 1)
+    return Math.max(start, scrollTop - step);
+  return null;
+}
+
+// Where a page turn down (1) or up (-1) goes from `scrollTop`: the next
+// post's top, or the last post's bottom (its end, if it is taller than the
+// page, as scrolling up reaches it), or nowhere past the first and last.
+export function turnTo(
+  spans: readonly (readonly [number, number])[],
   scrollTop: number,
   direction: 1 | -1,
 ): number {
-  let nearest = 0;
-  positions.forEach((at, k) => {
-    if (Math.abs(at - scrollTop) < Math.abs(positions[nearest]! - scrollTop))
-      nearest = k;
-  });
-  return Math.min(Math.max(nearest + direction, 0), positions.length - 1);
+  const at = postAt(spans, scrollTop);
+  const next = spans[at + direction];
+  if (!next) return scrollTop;
+  return direction > 0 ? next[0] : next[1];
 }
 
 // Turns a stream of wheel events into page turns. Once the scroll in one
