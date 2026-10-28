@@ -144,7 +144,15 @@ export default function Post({ content }: PostProps) {
           } ${isCurrent ? CONTENT_IN : CONTENT_OUT}`}
         >
           <div className="flex min-h-0 min-w-0 flex-col gap-3 md:flex-1 md:gap-4">
-            <h2>{name}</h2>
+            {/* On a phone the badge sits in the title's row, at its right,
+                or on its own line at the left when the title leaves no room
+                (on a wide screen it heads the column of links). */}
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+              <h2>{name}</h2>
+              {!!coded && (
+                <CodedBadge coded={coded} className="self-center md:hidden" />
+              )}
+            </div>
             {!!description && (
               <div
                 ref={descriptionRef}
@@ -165,11 +173,11 @@ export default function Post({ content }: PostProps) {
           <div
             className={`flex shrink-0 flex-col gap-3 md:w-64 md:gap-4 md:pt-2 ${
               isClamped
-                ? 'max-md:flex-row max-md:flex-wrap max-md:items-center'
+                ? 'max-md:flex-row max-md:flex-wrap max-md:items-center max-md:justify-end'
                 : ''
             }`}
           >
-            {!!coded && <CodedBadge coded={coded} />}
+            {!!coded && <CodedBadge coded={coded} className="max-md:hidden" />}
             {!!technology && (
               <p className={isClamped ? 'hidden md:block' : ''}>
                 Technology used:
@@ -211,8 +219,9 @@ export default function Post({ content }: PostProps) {
 }
 
 // More, or Less once the card is open. On a wide screen it shows only when
-// the text is cut short or open (`isWideToo`); in a phone's row of badge,
-// More and links (`isInRow`) it sits centred on the row.
+// the text is cut short or open (`isWideToo`); in a phone's row of More and
+// links (`isInRow`), set to the right under the end of the text, it sits
+// centred on the row.
 function MoreButton({
   isExpanded,
   isInRow,
@@ -242,12 +251,18 @@ function MoreButton({
 // ink (the only colour its glass keeps readable): hand coded, with a raised
 // hand in the card's accent on a wash of it; vibe coded, with the sparkles AI
 // tools mark themselves with, on a wash of the ink.
-function CodedBadge({ coded }: { coded: 'hand' | 'vibe' }) {
+function CodedBadge({
+  coded,
+  className = '',
+}: {
+  coded: 'hand' | 'vibe';
+  className?: string;
+}) {
   const isHand = coded === 'hand';
   const Icon = isHand ? HiHandRaised : HiSparkles;
   return (
     <span
-      className={`inline-flex items-center gap-2 self-start rounded-full px-3 py-1 font-display text-xs uppercase tracking-widest text-[color:var(--card-ink)] ${
+      className={`inline-flex items-center gap-2 self-start rounded-full px-3 py-1 font-display text-xs uppercase tracking-widest text-[color:var(--card-ink)] ${className} ${
         isHand
           ? 'bg-[color-mix(in_srgb,var(--card-accent)_15%,transparent)]'
           : 'bg-[color-mix(in_srgb,var(--card-ink)_10%,transparent)]'
