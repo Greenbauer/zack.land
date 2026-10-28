@@ -1,10 +1,51 @@
 // Paging the portfolio's posts: one wheel turn, swipe or key press moves
 // straight to the next post (or back) in a short, quick glide, instead of
 // the browser's own snapping, which waits for the scroll to settle first.
-// Quick pushes chain: each one adds a post to where the glide is headed.
+// Each turn then plays its cards' whole change before another can start
+// (turnGate), so cards never pile up over each other.
 
 // How long the glide to the next post takes, in milliseconds.
 export const GLIDE_MS = 300;
+
+// How long a page turn's cards take to change, in milliseconds: the last
+// card slides out while the next waits 0.7 seconds, then slides in for 1.4
+// (animate-card-in in tailwind.config.js, with Post.tsx's delay).
+export const TURN_MS = 2100;
+
+// Holds page turns while one is playing: a turn asked for then waits until
+// the last has finished (`busyMs` after it began), and only the latest one
+// asked for waits, so a burst of pushes, or a push back the other way, makes
+// at most one more turn. `ask` says whether to turn now; `due` gives the
+// waiting turn once it may go, and when that is. Given `playingFrom`, it
+// starts as if a turn began then (the first card arriving as the page loads).
+export function turnGate(busyMs = TURN_MS, playingFrom = -Infinity) {
+  let freeAt = playingFrom + busyMs;
+  let waiting: 1 | -1 | 0 = 0;
+  return {
+    ask(direction: 1 | -1, now: number): 1 | -1 | 0 {
+      if (now >= freeAt) {
+        freeAt = now + busyMs;
+        waiting = 0;
+        return direction;
+      }
+      waiting = direction;
+      return 0;
+    },
+    due(now: number): 1 | -1 | 0 {
+      if (!waiting || now < freeAt) return 0;
+      const direction = waiting;
+      waiting = 0;
+      freeAt = now + busyMs;
+      return direction;
+    },
+    get freeAt() {
+      return freeAt;
+    },
+    get waiting() {
+      return waiting;
+    },
+  };
+}
 
 // Fast out, gentle stop.
 export const easeOutCubic = (t: number) => 1 - (1 - t) ** 3;
