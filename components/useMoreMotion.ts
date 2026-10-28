@@ -59,18 +59,11 @@ export default function useMoreMotion(
     if (!post || !card || !was || (phase !== 'opening' && phase !== 'closing'))
       return;
     from.current = null;
-    const now = card.getBoundingClientRect();
     const timing = { duration: OPEN_MS, easing: SMOOTH };
     let motion: Animation;
     const flights: Animation[] = [];
     let release = () => {};
     if (phase === 'opening') {
-      // The card now lies in the post from its top; it starts at its old
-      // top, the space above it given back as it rises.
-      motion = card.animate(
-        [{ marginTop: `${was.card.top - now.top}px` }, { marginTop: '0px' }],
-        timing,
-      );
       if (images && was.images) {
         // Held where they were, out of the layout, as they fly off.
         const at = post.getBoundingClientRect();
@@ -92,7 +85,16 @@ export default function useMoreMotion(
           ),
         );
       }
+      // The card now lies in the post from its top (measured once the images
+      // are out of the layout, or it would still sit below them); it starts
+      // at its old top, the space above it given back as it rises.
+      const now = card.getBoundingClientRect();
+      motion = card.animate(
+        [{ marginTop: `${was.card.top - now.top}px` }, { marginTop: '0px' }],
+        timing,
+      );
     } else {
+      const now = card.getBoundingClientRect();
       // The card is fixed at the bottom again; it starts at its open top,
       // free of its usual height limit until it has come down.
       motion = card.animate(

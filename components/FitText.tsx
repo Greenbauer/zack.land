@@ -1,4 +1,4 @@
-import { RefObject, useEffect } from 'react';
+import { ReactNode, RefObject, useLayoutEffect } from 'react';
 
 // How many whole lines of text fit in `room` pixels, or null when all of it
 // (`content` pixels tall) fits. Never less than one line.
@@ -26,18 +26,21 @@ const CLAMP = [
 // once everything else on it is counted: the card's height less the box's
 // own. A line clamp the box already has from its classes (a phone's few
 // lines) stays the most it shows. While `isOn` is false the text is whole.
-export default function useFitLines(
-  ref: RefObject<HTMLElement | null>,
-  isOn: boolean,
-) {
-  useEffect(() => {
+// A layout effect, so the cut is made before the page paints, and (in a
+// child, FitText) before the post's own layout effects measure the card
+// (useMoreMotion, as Less brings it back down).
+export function useFitLines(ref: RefObject<HTMLElement | null>, isOn: boolean) {
+  useLayoutEffect(() => {
     const box = ref.current;
     const card = box?.closest('section');
     if (!box || !card) return;
     const fit = () => {
-      for (const name of CLAMP) box.style.removeProperty(name);
       const cap = parseFloat(getComputedStyle(card).maxHeight);
-      if (!isOn || !cap) return;
+      // The card's height limit lifted for a moment (Less's motion,
+      // useMoreMotion): the cut stays as it is.
+      if (isOn && !cap) return;
+      for (const name of CLAMP) box.style.removeProperty(name);
+      if (!isOn) return;
       const room = cap - card.getBoundingClientRect().height + box.clientHeight;
       const line = parseFloat(
         getComputedStyle(box.querySelector('p') ?? box).lineHeight,
@@ -59,4 +62,24 @@ export default function useFitLines(
       for (const name of CLAMP) box.style.removeProperty(name);
     };
   }, [ref, isOn]);
+}
+
+// A box of text cut to the lines its card has room for (useFitLines).
+export default function FitText({
+  ref,
+  isOn,
+  className,
+  children,
+}: {
+  ref: RefObject<HTMLDivElement | null>;
+  isOn: boolean;
+  className: string;
+  children: ReactNode;
+}) {
+  useFitLines(ref, isOn);
+  return (
+    <div ref={ref} className={className}>
+      {children}
+    </div>
+  );
 }
