@@ -12,6 +12,7 @@ import Spinner from '../Spinner';
 import BackdropSampler from './BackdropSampler';
 import Grading from './Grading';
 import MyHead, { Point } from './MyHead';
+import { renderQuality } from './quality';
 import Sky from './Sky';
 import TitleName from './TitleName';
 
@@ -42,7 +43,14 @@ export default function Background() {
       )}
       {/* Before the sky loads, the canvas shows a lavender near the dawn sky's
           middle, so the title over it reads the same from the first frame. */}
-      <Canvas className="bg-[#6864a8]">
+      {/* No smoothing on the canvas itself: the scene is drawn and smoothed
+          in the colour grading's targets (Grading.tsx), and the canvas only
+          receives its last full-screen pass. */}
+      <Canvas
+        className="bg-[#6864a8]"
+        dpr={renderQuality(width, height).dpr}
+        gl={{ antialias: false }}
+      >
         <Suspense fallback={null}>
           <ambientLight intensity={Math.PI} />
           <spotLight

@@ -22,8 +22,10 @@ import {
 } from './focusBlur';
 import { GlassPass, GlassTintPass, isSmall, tintStrength } from './glass';
 import { findCards, findFields, pageFade } from './glassCards';
-import { CardTints, skyAround } from './glassTint';
+import { CardTints, Rgb, skyOf, skyPoints } from './glassTint';
 import { photoLens } from './photoLens';
+import { renderQuality } from './quality';
+import usePixelReader from './usePixelReader';
 
 extend({ LUTPass, OutputPass });
 
@@ -47,6 +49,12 @@ export default function Grading() {
     '/background/environment/cubicle-99.cube',
   );
   const get = useThree((state) => state.get);
+  // The composer's targets are made once, so their smoothing is chosen once,
+  // by the window's size as the scene loads.
+  const [samples] = useState(() => {
+    const { width, height } = get().size;
+    return renderQuality(width, height).samples;
+  });
   const [across] = useState(() => new ShaderPass(HorizontalBlurShader));
   const [down] = useState(() => new ShaderPass(VerticalBlurShader));
   const [glass] = useState(() => new GlassPass());
@@ -54,6 +62,7 @@ export default function Grading() {
   const [titles] = useState(() => new TitlePass(get));
   const [tints] = useState(() => new CardTints());
   const frame = useRef(0);
+  const reader = usePixelReader();
   // How far the focus blur has come in, from 0 to 1.
   const blur = useRef(0);
 
@@ -85,14 +94,28 @@ export default function Grading() {
   });
 
   // Every few frames, once the frame is drawn (priority 2, as
-  // BackdropSampler), each card's tint is aimed at the sky around it.
+  // BackdropSampler), each card's tint is aimed at the sky around it, when
+  // that has been read back (pixelReader.ts).
   useFrame(({ gl }) => {
     frame.current = (frame.current + 1) % SAMPLE_EVERY;
-    if (frame.current) return;
-    for (const { element } of glass.cards) {
-      const sky = skyAround(gl.getContext(), gl.domElement, element);
-      if (sky) tints.aim(element, sky);
-    }
+    if (frame.current || reader.busy) return;
+    const reads = glass.cards
+      .map(({ element }) => ({
+        element,
+        points: skyPoints(gl.domElement, element),
+      }))
+      .filter(({ points }) => points.length);
+    for (const { points } of reads)
+      for (const { x, y } of points) reader.read({ x, y, width: 1, height: 1 });
+    reader.send((pixels) => {
+      let at = 0;
+      for (const { element, points } of reads) {
+        const sky = pixels
+          .slice(at, (at += points.length))
+          .map((p): Rgb => [p[0]!, p[1]!, p[2]!]);
+        tints.aim(element, skyOf(sky));
+      }
+    });
   }, 2);
 
   // Since three r153 the renderer only tone maps to the screen, so the
@@ -101,7 +124,7 @@ export default function Grading() {
   // then the titles over both, so the colour grading falls on all alike;
   // the cards' tint goes on last, over the graded frame.
   return (
-    <Effects disableGamma>
+    <Effects disableGamma multisamping={samples}>
       <primitive object={across} />
       <primitive object={down} />
       <primitive object={glass} />
