@@ -18,7 +18,8 @@ import { videoFill } from './videoFill';
 // card: it grows to the post's full width (videoFill), straightens, and its
 // card fades away until it stops; the other tiles blur, and the scene
 // behind blurs as it does behind a focused contact field (data-focus-blur,
-// Background/focusBlur.ts). It pauses when the post leaves.
+// Background/focusBlur.ts). A press outside it pauses it, which puts it
+// back, and so does the post leaving.
 
 export default function PostCollage({
   mediaSources,
@@ -34,6 +35,9 @@ export default function PostCollage({
   const boxRef = useRef<HTMLDivElement | null>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [isPlaying, setIsPlaying] = useState(false);
+  // Whether a press outside the playing video has stopped it; cleared as it
+  // plays again.
+  const [isDismissed, setIsDismissed] = useState(false);
   // Where the video goes while it plays, in the box's own pixels: the
   // post's whole width (or as wide as its height allows), centred in it.
   const [playingAt, setPlayingAt] = useState<Tile | null>(null);
@@ -54,6 +58,10 @@ export default function PostCollage({
     };
     place();
     addEventListener('resize', place);
+    // A press anywhere but on the video (a press on it reaches its player,
+    // not this page) stops it and puts it back.
+    const dismiss = () => setIsDismissed(true);
+    document.addEventListener('pointerdown', dismiss, true);
     // The card fades away, glass and all, and back when the video stops.
     const fade = post.querySelector('section')?.animate([{ opacity: 0 }], {
       duration: 400,
@@ -62,6 +70,7 @@ export default function PostCollage({
     });
     return () => {
       removeEventListener('resize', place);
+      document.removeEventListener('pointerdown', dismiss, true);
       if (!fade) return;
       fade.reverse();
       fade.finished.then(
@@ -143,8 +152,15 @@ export default function PostCollage({
           >
             <Media
               mediaSource={sources[k]!}
-              onPlaying={isVideo ? setIsPlaying : undefined}
-              paused={!isShown}
+              onPlaying={
+                isVideo
+                  ? (playing) => {
+                      setIsPlaying(playing);
+                      if (playing) setIsDismissed(false);
+                    }
+                  : undefined
+              }
+              paused={!isShown || isDismissed}
             />
           </div>
         );
