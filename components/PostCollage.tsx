@@ -74,7 +74,7 @@ export default function PostCollage({
       {tiles.map((tile, k) => (
         <div
           key={sources[k]!.key}
-          className="collage-tile absolute overflow-hidden rounded-2xl shadow-2xl shadow-head-dark/60"
+          className="collage-tile absolute overflow-hidden rounded-2xl"
           style={
             {
               left: tile.x,

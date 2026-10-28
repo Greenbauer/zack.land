@@ -10,7 +10,9 @@ import { framedHead, glide, headCentre } from './headPlace';
 const MEASURE_MS = 300;
 
 // Moves the camera so the head's middle sits where headCentre says, gliding
-// there (glide, a damped spring) when the page or the window changes. The page is measured a few times
+// there (glide, a damped spring) when the page or the window changes, and on
+// a phone off the screen and back as a card (data-head-avoid="card") comes
+// and goes. The page is measured a few times
 // a second, not every frame: the left edge of whatever marked data-head-avoid
 // is showing, where it rests. While none shows (a post's card between fades),
 // the head stays where it is. Renders nothing.
@@ -30,7 +32,12 @@ export default function HeadFraming() {
           // arriving slides in from the left, CSS translate).
           const box = el.getBoundingClientRect();
           const slide = parseFloat(getComputedStyle(el).translate) || 0;
-          return { top: box.top, bottom: box.bottom, left: box.left - slide };
+          return {
+            top: box.top,
+            bottom: box.bottom,
+            left: box.left - slide,
+            card: el.dataset.headAvoid === 'card',
+          };
         })
         .filter((box) => box.bottom > 0 && box.top < innerHeight);
       if (avoid.length && !shown.length) return;
@@ -38,6 +45,7 @@ export default function HeadFraming() {
         innerWidth,
         innerHeight,
         shown.length ? Math.min(...shown.map((box) => box.left)) : undefined,
+        shown.some((box) => box.card),
       );
       if (still.matches)
         Object.assign(framedHead, { x: target.current, speed: 0 });

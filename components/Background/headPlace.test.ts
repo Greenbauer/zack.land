@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { HEAD_REACH } from '@/components/collageLayout';
 
 import {
+  AWAY_HEIGHTS,
   framedHead,
   glide,
   GLIDE_SECONDS,
@@ -11,9 +12,18 @@ import {
 } from './headPlace';
 
 describe("the head's place across the window", () => {
-  it('is the middle of a narrow window, whatever the page shows', () => {
+  it('is the middle of a narrow window when no card covers it', () => {
     expect(headCentre(375, 812, 12)).toBe(187.5);
     expect(headCentre(767, 1024, 600)).toBe(383.5);
+  });
+
+  it('goes off the left of a narrow window while a card covers it', () => {
+    expect(headCentre(390, 844, -240, true)).toBe(-AWAY_HEIGHTS * 844);
+    expect(headCentre(390, 844, -240, true)).toBeLessThan(-844 / 2);
+  });
+
+  it('stays in the free space beside a card on a wide window', () => {
+    expect(headCentre(1440, 900, 700, true)).toBe(350);
   });
 
   it('is the middle of the free space left of the cards on a wide window', () => {

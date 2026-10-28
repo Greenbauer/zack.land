@@ -1,10 +1,18 @@
 import { HEAD_REACH } from '@/components/collageLayout';
 import { WIDE_FROM } from '@/components/PageScroller/edgeFade';
 
+// How far off the window's left edge the head's middle goes while a card
+// covers it on a narrow window, in window heights: past its shoulders, which
+// reach about half a window height either side of it.
+export const AWAY_HEIGHTS = 0.6;
+
 // Where across the window the head's middle goes, in pixels (HeadFraming.tsx
 // moves the camera to put it there). On a narrow window, the middle of the
-// screen. On a wide one, the middle of the free space left of what the page
-// shows beside it (its cards, the home page's title: elements marked
+// screen, unless a card is showing (`covered`: the contact form, a post's
+// card), which there spans the screen right over the head: then the head
+// goes off the left edge, so its lenses don't show behind the card's text.
+// On a wide one, the middle of the free space left of what the page shows
+// beside it (its cards, the home page's title: elements marked
 // data-head-avoid), whose left edge is `freeRight`; undefined when the page
 // has none. Where that space is narrower than the head's face, the head
 // goes back to the middle of the screen.
@@ -12,8 +20,10 @@ export function headCentre(
   width: number,
   height: number,
   freeRight: number | undefined,
+  covered = false,
 ): number {
-  if (width < WIDE_FROM || freeRight === undefined) return width / 2;
+  if (width < WIDE_FROM) return covered ? -AWAY_HEIGHTS * height : width / 2;
+  if (freeRight === undefined) return width / 2;
   if (freeRight < 2 * HEAD_REACH * height) return width / 2;
   return freeRight / 2;
 }
