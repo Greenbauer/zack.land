@@ -20,6 +20,7 @@ import {
   shareOver,
 } from './faceExpression';
 import { decodeHead, HeadMesh, loadHead } from './headGeometry';
+import { headMood, WORRIED } from './headMood';
 import { lookOrigin } from './headPlace';
 import {
   HeadTaps,
@@ -235,15 +236,27 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
     return true;
   };
 
+  // Whether the head turns straight to the camera this frame, and how fast:
+  // while a page holds its face (the 404 page, headMood), or a tap's reaction
+  // is under way (stepTouch). Zero when it looks wherever it would.
+  const faceCamera = (time: number): number => {
+    if (headMood.worried) {
+      stopRandomRotation();
+      return 0.05;
+    }
+    return stepTouch(time) ? TAP_TURN_SPEED : 0;
+  };
+
   const rotateMyHead = (time: number, seconds: number): void => {
     const { rotation } = myHeadRef.current!;
     const turn = look.current;
     let lookPosition: Point = lookPositionStart();
     let rotationSpeed: number = 0.05;
 
-    if (stepTouch(time)) {
+    const facingSpeed = faceCamera(time);
+    if (facingSpeed) {
       lookPosition = { x: 0, y: 0 };
-      rotationSpeed = TAP_TURN_SPEED;
+      rotationSpeed = facingSpeed;
     } else if (pointer.moved) {
       stopRandomRotation();
       greeting = idle;
@@ -317,21 +330,23 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
     // otherwise the face reacts to where it is looking.
     const isTapped = tapsOn(taps.current);
     const isGreeting = isTapped || greetingOn(greeting);
-    const targets: Record<string, number> = isTapped
-      ? tapExpressions(taps.current)
-      : greetingOn(greeting)
-        ? greetingExpressions(greeting)
-        : {
-            smile: facingSmile(look.current),
-            ...pointerExpressions(
-              spot,
-              {
-                x: ((eyes.x + 1) / 2) * size.width,
-                y: ((1 - eyes.y) / 2) * size.height,
-              },
-              size,
-            ),
-          };
+    const targets: Record<string, number> = headMood.worried
+      ? WORRIED
+      : isTapped
+        ? tapExpressions(taps.current)
+        : greetingOn(greeting)
+          ? greetingExpressions(greeting)
+          : {
+              smile: facingSmile(look.current),
+              ...pointerExpressions(
+                spot,
+                {
+                  x: ((eyes.x + 1) / 2) * size.width,
+                  y: ((1 - eyes.y) / 2) * size.height,
+                },
+                size,
+              ),
+            };
     strengths.current = expressions.map((name, k) =>
       easeToward(
         strengths.current[k] ?? 0,
