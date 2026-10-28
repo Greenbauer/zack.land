@@ -34,18 +34,10 @@ export default function useMoreMotion(
   // page still.
   const away = useRef<{ height: number; above: boolean } | null>(null);
 
-  const parts = () => {
-    const post = postRef.current;
-    return {
-      post,
-      card: post?.querySelector<HTMLElement>('section') ?? null,
-      images: post?.querySelector<HTMLElement>('.collage') ?? null,
-    };
-  };
   const still = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const toggle = () => {
-    const { post, card, images } = parts();
+    const { post, card, images } = partsOf(postRef.current);
     if (!post || !card) return;
     if (phase === 'opening' || phase === 'open') {
       // Back to the post's top first, if the page has scrolled down it.
@@ -62,7 +54,7 @@ export default function useMoreMotion(
   };
 
   useLayoutEffect(() => {
-    const { post, card, images } = parts();
+    const { post, card, images } = partsOf(postRef.current);
     const was = from.current;
     if (!post || !card || !was || (phase !== 'opening' && phase !== 'closing'))
       return;
@@ -129,15 +121,13 @@ export default function useMoreMotion(
       flights.forEach((flight) => flight.cancel());
       release();
     };
-    // Runs as each change begins; `parts` reads the post as it is then.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase]);
+  }, [phase, postRef]);
 
   // Closes, at once, an opened post the page has moved on from.
   useEffect(() => {
     if (isCurrent || phase === 'closed') return;
     const timer = setTimeout(() => {
-      const { post } = parts();
+      const post = postRef.current;
       if (post) {
         const box = post.getBoundingClientRect();
         away.current = { height: box.height, above: box.bottom <= 0 };
@@ -145,21 +135,19 @@ export default function useMoreMotion(
       setPhase('closed');
     }, CLOSE_AWAY_MS);
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isCurrent, phase]);
+  }, [isCurrent, phase, postRef]);
 
   // A post closed above the window gives back the height it lost to the
   // page's scroll, so what is in view stays put.
   useLayoutEffect(() => {
     const was = away.current;
-    const { post } = parts();
+    const post = postRef.current;
     if (phase !== 'closed' || !was || !post) return;
     away.current = null;
     const scroller = document.getElementById(PAGE_SCROLLER_ID);
     if (was.above && scroller)
       scroller.scrollTop -= was.height - post.getBoundingClientRect().height;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase]);
+  }, [phase, postRef]);
 
   return {
     isExpanded: phase === 'opening' || phase === 'open',
@@ -168,6 +156,13 @@ export default function useMoreMotion(
     toggle,
   };
 }
+
+// A post's card and its images.
+const partsOf = (post: HTMLElement | null) => ({
+  post,
+  card: post?.querySelector<HTMLElement>('section') ?? null,
+  images: post?.querySelector<HTMLElement>('.collage') ?? null,
+});
 
 // Sets `style` on `element`, giving back a function that puts back what it
 // had before (React's own inline styles included).
