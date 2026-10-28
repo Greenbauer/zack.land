@@ -6,6 +6,7 @@ import { useEffect, useRef } from 'react';
 
 import useSkyColours from '@/components/SkyText/useSkyColours';
 
+import { Swap, useArrowSwap } from './arrowSwap';
 import SocialLinks from './SocialLinks';
 
 // Shown only when reCAPTCHA is active — required by Google's terms when the
@@ -59,9 +60,27 @@ function ContactPageText() {
   );
 }
 
+// The text and links, and the arrow, for each step of their taking turns
+// (arrowSwap.ts): the text fades out before the arrow fades in, and fades
+// back in only after the scroll arrows above have.
+const EXTRA: Record<Swap, string> = {
+  text: 'opacity-100 transition-opacity duration-[400ms] delay-[500ms]',
+  leaving: 'opacity-0 transition-opacity duration-[400ms]',
+  arrow: 'hidden',
+  returning: 'opacity-0',
+};
+const ARROW: Record<Swap, string> = {
+  text: 'hidden',
+  leaving: 'hidden',
+  arrow: 'motion-safe:animate-fade-in',
+  returning: 'hidden',
+};
+
 export default function Footer() {
   const pathname = usePathname();
   const ref = useRef<HTMLElement | null>(null);
+  const slotRef = useRef<HTMLDivElement | null>(null);
+  const phase = useArrowSwap(slotRef);
   // The icons and the text each take their colours from the sky behind them.
   const iconsRef = useRef<HTMLDivElement | null>(null);
   const textRef = useRef<HTMLDivElement | null>(null);
@@ -91,7 +110,7 @@ export default function Footer() {
   return (
     <footer
       ref={ref}
-      className="relative flex w-full flex-col items-center gap-6 pb-6 md:flex-row md:items-end [&:has([data-footer-arrow]:not(:empty))_[data-footer-extra]]:hidden [&_a]:pointer-events-auto"
+      className="relative flex w-full flex-col items-center gap-6 pb-6 md:flex-row md:items-end [&_a]:pointer-events-auto"
     >
       {/* Where the head can't fit beside the page, on the portfolio's
           pages, the scroll arrow moves in here (below) and is all the footer
@@ -100,7 +119,7 @@ export default function Footer() {
       <div
         ref={iconsRef}
         data-footer-extra
-        className="order-last flex-none md:order-first"
+        className={`order-last flex-none md:order-first ${EXTRA[phase]}`}
       >
         <SocialLinks />
       </div>
@@ -110,10 +129,16 @@ export default function Footer() {
           page). */}
       <div
         ref={textRef}
-        className="order-first flex flex-1 items-center justify-end gap-4 text-center md:order-last md:text-right [&:has([data-footer-arrow]:not(:empty))]:justify-center [&_h6]:text-[color:var(--sky-text)]"
+        className={`order-first flex flex-1 items-center justify-end gap-4 text-center md:order-last md:text-right ${
+          phase === 'arrow' ? 'justify-center' : ''
+        } [&_h6]:text-[color:var(--sky-text)]`}
       >
-        <div data-footer-arrow className="ml-2 flex-none empty:hidden" />
-        <div data-footer-extra className="max-md:flex-1">
+        <div
+          ref={slotRef}
+          data-footer-arrow
+          className={`ml-2 flex-none empty:hidden ${ARROW[phase]}`}
+        />
+        <div data-footer-extra className={`max-md:flex-1 ${EXTRA[phase]}`}>
           {pathname === '/contact' ? <ContactPageText /> : <DefaultText />}
         </div>
       </div>
