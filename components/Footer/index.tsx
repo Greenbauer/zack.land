@@ -15,7 +15,7 @@ const recaptchaEnabled = !!process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 function DefaultText() {
   return (
     <h6>
-      I can make almost anything, and would love to help develop your idea.{' '}
+      I can make almost anything and would love to help develop your idea.{' '}
       <Link
         className="whitespace-nowrap text-[color:var(--sky-accent)] underline decoration-[color:var(--sky-underline)] underline-offset-4 hover:decoration-[color:var(--sky-accent)]"
         href="/contact"
