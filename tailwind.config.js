@@ -41,10 +41,10 @@ module.exports = {
             left: '-40px',
           },
         },
-        // A card arriving: it slides in from the window's left edge over 1.4
-        // seconds, slowing gently to a stop, its glass whole all the way; what
-        // is on it fades in alongside (content-in). A post's card does this
-        // after a 0.7-second pause (Post.tsx).
+        // The contact card arriving: it slides in from the window's left
+        // edge over 1.4 seconds, slowing gently to a stop, its glass whole
+        // all the way, as a post's card does (Post.tsx); the form on it fades
+        // in alongside (content-in).
         'card-in': {
           '0%': { translate: '-100vw 0' },
           '100%': { translate: '0 0' },
@@ -55,18 +55,6 @@ module.exports = {
           '0%': { opacity: '0' },
           '20%': { opacity: '0' },
           '100%': { opacity: '1' },
-        },
-        // A post's card leaving: it carries on to the right, gathering
-        // speed off the window's right edge over 0.8 seconds, then hides;
-        // what is on it fades out by 85% of the way (content-out).
-        'card-out': {
-          '0%': { translate: '0 0', visibility: 'visible' },
-          '100%': { translate: '100vw 0', visibility: 'hidden' },
-        },
-        'content-out': {
-          '0%': { opacity: '1' },
-          '85%': { opacity: '0' },
-          '100%': { opacity: '0' },
         },
         // The phone menu arriving: the same, sliding down from above.
         'menu-in': {
@@ -79,8 +67,6 @@ module.exports = {
         'arrow-l': 'arrow-l 2.5s ease-in-out infinite',
         'card-in': 'card-in 1.4s cubic-bezier(0.22, 1, 0.36, 1) both',
         'content-in': 'content-in 1.4s cubic-bezier(0.22, 1, 0.36, 1) both',
-        'card-out': 'card-out 0.8s cubic-bezier(0.32, 0, 0.67, 0) both',
-        'content-out': 'content-out 0.8s cubic-bezier(0.32, 0, 0.67, 0) both',
         'menu-in': 'menu-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) both',
       },
     },
