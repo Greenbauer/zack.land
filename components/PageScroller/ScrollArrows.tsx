@@ -10,7 +10,6 @@ import {
 import { createPortal } from 'react-dom';
 
 import { framedHead } from '@/components/Background/headPlace';
-import useSkyColours from '@/components/SkyText/useSkyColours';
 
 import { Chevrons } from './Chevrons';
 import { PAGE_SCROLLER_ID, WIDE_FROM } from './edgeFade';
@@ -54,14 +53,18 @@ const DOWN_TOP = `min(calc(${FOOTER_TOP} - 0.25rem - ${ARROW_HEIGHT}), max(calc(
 // On the portfolio's pages on a wide screen: sliding chevrons (Chevrons.tsx)
 // pointing up, with the word Scroll under them, just under the header and
 // centred over the 3D head, and Scroll over chevrons pointing down, just
-// over the footer and centred under it. On a phone, or wherever the head has
-// stepped off the screen to leave a card the room (framedHead.x below 0,
-// headPlace.ts), only the down arrow, in the footer, at the left of its text
-// (data-footer-arrow, Footer) and in the footer's colours. Each glides to the post before or after, and shows
-// only while there is a post that way. On a wide screen each is coloured
-// from the sky behind it, and they sit on the body, outside the page's
-// scroller, so its fade under the header doesn't hide them. They hide with
-// the page while the phone menu is open (data-scroll-arrows,
+// over the footer and centred under it. Over the sky each is a pane of the
+// cards' frosted glass (data-glass, drawn in the 3D scene by
+// Background/glass.ts), padded a little past the arrow, its top pulled up as
+// far so the arrow keeps its place, and in the cards' text colour, which the
+// glass keeps readable (--card-ink, styles/globals.css). On a phone, or
+// wherever the head has stepped off the screen to leave a card the room
+// (framedHead.x below 0, headPlace.ts), only the down arrow, in the footer,
+// at the left of its text (data-footer-arrow, Footer) and in the footer's
+// colours. Each glides to the post before or after, and shows only while
+// there is a post that way. On a wide screen they sit on the body, outside
+// the page's scroller, so its fade under the header doesn't hide them. They
+// hide with the page while the phone menu is open (data-scroll-arrows,
 // styles/globals.css).
 export default function ScrollArrows() {
   const [canGo, setCanGo] = useState({ up: false, down: false });
@@ -168,15 +171,11 @@ function ScrollArrow({
   isShown: boolean;
   inFooter?: boolean;
 }) {
-  // Over the sky it reads the sky behind it; in the footer it takes the
-  // footer's colours (and its ref is never set, so this does nothing).
-  const skyRef = useRef<HTMLButtonElement | null>(null);
-  useSkyColours(skyRef);
   const isUp = direction < 0;
 
   return (
     <button
-      ref={inFooter ? undefined : skyRef}
+      data-glass={inFooter ? undefined : true}
       type="button"
       aria-label={isUp ? 'Scroll up' : 'Scroll down'}
       disabled={!isShown}
@@ -189,7 +188,7 @@ function ScrollArrow({
       className={`flex items-center gap-1 transition-opacity duration-500 ${
         inFooter
           ? 'pointer-events-auto'
-          : 'fixed left-[var(--arrows-x,50%)] top-[var(--arrow-top)] z-30 -translate-x-1/2 [--arrow-h:4.5rem] [@media(max-height:700px)]:[--arrow-h:3.25rem]'
+          : 'fixed left-[var(--arrows-x,50%)] top-[var(--arrow-top)] z-30 -mt-3 -translate-x-1/2 rounded-3xl px-6 py-3 [--arrow-h:4.5rem] [--sky-text:var(--card-ink)] [@media(max-height:700px)]:[--arrow-h:3.25rem]'
       } ${isUp ? 'flex-col' : 'flex-col-reverse'} ${
         isShown ? 'opacity-100' : 'invisible opacity-0'
       }`}
