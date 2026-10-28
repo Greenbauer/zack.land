@@ -91,9 +91,17 @@ export default function Footer() {
   return (
     <footer
       ref={ref}
-      className="relative flex w-full flex-col items-center gap-6 pb-6 md:flex-row md:items-end [&_a]:pointer-events-auto"
+      className="relative flex w-full flex-col items-center gap-6 pb-6 md:flex-row md:items-end [&:has([data-footer-arrow]:not(:empty))_[data-footer-extra]]:hidden [&_a]:pointer-events-auto"
     >
-      <div ref={iconsRef} className="order-last flex-none md:order-first">
+      {/* Where the head can't fit beside the page, on the portfolio's
+          pages, the scroll arrow moves in here (below) and is all the footer
+          shows: the text and the social links (data-footer-extra) are left
+          out, so the posts get the room. */}
+      <div
+        ref={iconsRef}
+        data-footer-extra
+        className="order-last flex-none md:order-first"
+      >
         <SocialLinks />
       </div>
       {/* On a phone the portfolio's down scroll arrow shares the text's row,
@@ -102,10 +110,10 @@ export default function Footer() {
           page). */}
       <div
         ref={textRef}
-        className="order-first flex flex-1 items-center justify-end gap-4 text-center md:order-last md:text-right [&_h6]:text-[color:var(--sky-text)]"
+        className="order-first flex flex-1 items-center justify-end gap-4 text-center md:order-last md:text-right [&:has([data-footer-arrow]:not(:empty))]:justify-center [&_h6]:text-[color:var(--sky-text)]"
       >
         <div data-footer-arrow className="ml-2 flex-none empty:hidden" />
-        <div className="max-md:flex-1">
+        <div data-footer-extra className="max-md:flex-1">
           {pathname === '/contact' ? <ContactPageText /> : <DefaultText />}
         </div>
       </div>
