@@ -82,7 +82,7 @@ export function postAt(
 // it is within a post that runs on past the page that way (one More has
 // opened taller than the page): on through it, no further than its end. Null
 // once the page is at that end, or between posts (gliding), when the push
-// turns the page instead (turnTo).
+// turns the page instead (turnIndex).
 export function throughPost(
   spans: readonly (readonly [number, number])[],
   scrollTop: number,
@@ -99,19 +99,21 @@ export function throughPost(
   return null;
 }
 
-// Where a page turn down (1) or up (-1) goes from `scrollTop`: the next
-// post's top, or the last post's bottom (its end, if it is taller than the
-// page, as scrolling up reaches it), or nowhere past the first and last.
-export function turnTo(
+// The post a page turn down (1) or up (-1) goes to from `scrollTop`, by its
+// index in `spans`, or null past the first and last.
+export function turnIndex(
   spans: readonly (readonly [number, number])[],
   scrollTop: number,
   direction: 1 | -1,
-): number {
-  const at = postAt(spans, scrollTop);
-  const next = spans[at + direction];
-  if (!next) return scrollTop;
-  return direction > 0 ? next[0] : next[1];
+): number | null {
+  const next = postAt(spans, scrollTop) + direction;
+  return next >= 0 && next < spans.length ? next : null;
 }
+
+// Where a turn lands on post `span`: its top going down, its bottom (its
+// end, if it is taller than the page, as scrolling up reaches it) going up.
+export const landing = (span: readonly [number, number], direction: 1 | -1) =>
+  direction > 0 ? span[0] : span[1];
 
 // Turns a stream of wheel events into page turns. Once the scroll in one
 // direction adds up to `threshold` pixels it turns a page; it turns another
