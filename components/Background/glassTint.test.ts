@@ -36,6 +36,13 @@ describe('glass tints', () => {
     });
   });
 
+  it('keep a card over the head on the dark side, whatever the sky', () => {
+    const tints = new CardTints();
+    const above = { dataset: { headAvoid: 'above' } } as unknown as HTMLElement;
+    tints.aim(above, PINK_DAWN);
+    expect(above.dataset.sky).toBe('dark');
+  });
+
   it('change a card’s side over CHANGE_SECONDS, eased in and out', () => {
     const tints = new CardTints();
     const element = card();

@@ -63,12 +63,14 @@ export class CardTints {
 
   // Puts `card` on the side of the sky around it, marking it as its
   // data-sky, light or dark, which its text follows (styles/globals.css).
+  // A card over the head (data-head-avoid="above", EdgeCard.tsx) is on the
+  // dark side whatever the sky, as most of what is behind its text is the
+  // head's dark crown.
   aim(card: HTMLElement, sky: Rgb) {
     const state = this.cards.get(card);
-    const light = !isOnDark(
-      luminance(sky),
-      state === undefined ? undefined : !state.light,
-    );
+    const light =
+      card.dataset.headAvoid !== 'above' &&
+      !isOnDark(luminance(sky), state === undefined ? undefined : !state.light);
     if (state) state.light = light;
     else this.cards.set(card, { light, progress: light ? 1 : 0 });
     const side = light ? 'light' : 'dark';

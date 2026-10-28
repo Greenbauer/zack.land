@@ -37,15 +37,19 @@ export default function HeadFraming() {
             bottom: box.bottom,
             left: box.left - slide,
             card: el.dataset.headAvoid === 'card',
+            above: el.dataset.headAvoid === 'above',
           };
         })
         .filter((box) => box.bottom > 0 && box.top < innerHeight);
       if (avoid.length && !shown.length) return;
+      // A card above the head (data-head-avoid="above", EdgeCard) leaves it
+      // centred under it.
+      const beside = shown.filter((box) => !box.above);
       target.current = headCentre(
         innerWidth,
         innerHeight,
-        shown.length ? Math.min(...shown.map((box) => box.left)) : undefined,
-        shown.some((box) => box.card),
+        beside.length ? Math.min(...beside.map((box) => box.left)) : undefined,
+        beside.some((box) => box.card),
       );
       if (still.matches)
         Object.assign(framedHead, { x: target.current, speed: 0 });

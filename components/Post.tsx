@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { CSSProperties, useRef } from 'react';
 import { HiHandRaised, HiSparkles } from 'react-icons/hi2';
 
 import Button from '@/components/Button';
@@ -8,6 +8,7 @@ import { Content } from '@/types';
 
 import EdgeCard from './EdgeCard';
 import PostCollage from './PostCollage';
+import useCardOnTop from './useCardOnTop';
 import useClipped from './useClipped';
 import useFitLines from './useFitLines';
 import useHeadClear from './useHeadClear';
@@ -83,6 +84,11 @@ export default function Post({ content }: PostProps) {
   const isCut = !isExpanded && (isArticleCut || isDescriptionCut);
   const hasMore = isExpanded || isCut;
   useHeadClear(postRef);
+  // A post with no images, on a wide window with no room for its card
+  // beside the head: the card sits at the top of the post instead of the
+  // bottom, where it ends above the head's brows, and the head stays centred
+  // under it, so the post isn't empty (useCardOnTop).
+  const isOnTop = useCardOnTop(postRef, !hasMedia && !isExpanded);
 
   // Each post fills the space between the page's fades (--post-height, from
   // PageScroller), and the page snaps from post to post (data-post, found by
@@ -124,21 +130,8 @@ export default function Post({ content }: PostProps) {
         />
       )}
       <EdgeCard
-        style={
-          isExpanded
-            ? { position: 'relative' }
-            : {
-                position: 'fixed',
-                // Longhands, as EdgeCard sets: React clearing a `margin`
-                // shorthand on More would clear EdgeCard's margins too.
-                marginLeft: 0,
-                marginRight: 0,
-                left: 'calc(var(--to-left, 0px) + var(--head-clear, 0px) - var(--bleed-left, 0px))',
-                right: '-15rem',
-                bottom: 'var(--page-bottom)',
-                maxHeight: 'var(--card-max, var(--post-height))',
-              }
-        }
+        isAboveHead={isOnTop}
+        style={cardStyle(isExpanded, isOnTop)}
         className={`post-card z-20 flex w-auto max-w-none flex-col md:[--card-max:calc(var(--post-height)*0.55)] ${
           isExpanded ? 'flex-1' : ''
         } ${CARD[place]}`}
@@ -219,6 +212,25 @@ export default function Post({ content }: PostProps) {
       </EdgeCard>
     </div>
   );
+}
+
+// Where a post's card is: opened, in the post; else fixed at the bottom of
+// the space between the fades, or at its top (`isOnTop`).
+function cardStyle(isExpanded: boolean, isOnTop: boolean): CSSProperties {
+  if (isExpanded) return { position: 'relative' };
+  return {
+    position: 'fixed',
+    // Longhands, as EdgeCard sets: React clearing a `margin` shorthand on
+    // More would clear EdgeCard's margins too.
+    marginLeft: 0,
+    marginRight: 0,
+    left: 'calc(var(--to-left, 0px) + var(--head-clear, 0px) - var(--bleed-left, 0px))',
+    right: '-15rem',
+    ...(isOnTop
+      ? { top: 'var(--page-top)' }
+      : { bottom: 'var(--page-bottom)' }),
+    maxHeight: 'var(--card-max, var(--post-height))',
+  };
 }
 
 // More, or Less once the card is open. On a wide screen it sits under the

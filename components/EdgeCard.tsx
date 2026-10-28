@@ -13,13 +13,18 @@ import { CSSProperties, ReactNode, useEffect, useRef } from 'react';
 // the post sets (components/useHeadClear.ts). On a wide screen the 3D head
 // centres itself in the space left of it (data-head-avoid,
 // components/Background/headPlace.ts).
+// `isAboveHead`: the card sits at the top of the window, over the head's
+// crown, and the head stays centred under it (data-head-avoid="above",
+// Background/HeadFraming.tsx) rather than moving away.
 export default function EdgeCard({
   className = '',
   style,
+  isAboveHead = false,
   children,
 }: {
   className?: string;
   style?: CSSProperties;
+  isAboveHead?: boolean;
   children: ReactNode;
 }) {
   const cardRef = useRef<HTMLElement | null>(null);
@@ -58,7 +63,7 @@ export default function EdgeCard({
       />
       <section
         ref={cardRef}
-        data-head-avoid="card"
+        data-head-avoid={isAboveHead ? 'above' : 'card'}
         style={{
           marginLeft: 'calc(var(--head-clear, 0px) - var(--bleed-left, 0px))',
           paddingLeft: 'var(--bleed-left, 0px)',
