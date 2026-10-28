@@ -1,8 +1,8 @@
 'use client';
 
 import { Environment, PerspectiveCamera, useProgress } from '@react-three/drei';
-import { Canvas } from '@react-three/fiber';
-import { Suspense } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { Suspense, useEffect, useMemo, useRef } from 'react';
 import { PerspectiveCamera as PerspectiveCameraType } from 'three';
 
 import useMousePosition from '@/hooks/useMousePosition';
@@ -15,6 +15,7 @@ import HeadFraming from './HeadFraming';
 import { lookOrigin } from './headPlace';
 import MyHead, { Point } from './MyHead';
 import { renderQuality } from './quality';
+import { frameSettler, markSceneReady, READY_AT_MOST_MS } from './sceneReady';
 import Sky from './Sky';
 import TitleName from './TitleName';
 
@@ -30,6 +31,13 @@ export default function Background() {
     y: (mousePosition.y - height / 2) * 0.5,
   });
 
+  // The page's load motion waits for the scene (sceneReady.ts), but no longer
+  // than this, as without WebGL it never draws.
+  useEffect(() => {
+    const wait = setTimeout(markSceneReady, READY_AT_MOST_MS);
+    return () => clearTimeout(wait);
+  }, []);
+
   const handleCameraUpdate = (camera: PerspectiveCameraType): void => {
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
@@ -38,7 +46,10 @@ export default function Background() {
   // The loading boundary sits inside the Canvas: a suspense that escapes it
   // unmounts the Canvas mid-load, which loses its WebGL context in dev.
   return (
-    <div className="fixed left-0 top-0 -z-50 flex size-full overflow-hidden">
+    <div
+      data-scene
+      className="fixed left-0 top-0 -z-50 flex size-full overflow-hidden"
+    >
       {isLoading && (
         <div className="fixed flex size-full items-center justify-center">
           <Spinner />
@@ -72,6 +83,7 @@ export default function Background() {
           <Grading />
           <BackdropSampler />
           <TitleName />
+          <SceneReady />
           <Environment
             files="/background/environment/kiara_1_dawn_1k.hdr"
             background
@@ -87,4 +99,17 @@ export default function Background() {
       </Canvas>
     </div>
   );
+}
+
+// Marks the scene ready once it has loaded (inside the Suspense) and drawn a
+// few smooth frames (sceneReady.ts).
+function SceneReady() {
+  const settled = useMemo(() => frameSettler(), []);
+  const isDone = useRef(false);
+  useFrame((_, delta) => {
+    if (isDone.current || !settled(delta)) return;
+    isDone.current = true;
+    markSceneReady();
+  });
+  return null;
 }

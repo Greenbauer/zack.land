@@ -309,6 +309,38 @@
   }
 }
 
+/* Until the 3D scene is ready (data-scene-ready on <html>,
+   components/Background/sceneReady.ts), what a page moves in as it loads
+   waits where it starts, so its motion isn't spent behind the load's stalls:
+   the page's CSS animations (the home title, the contact card) pause, a
+   post's card waits unseen off the left with its text faded, its image tiles
+   off the right, and the header, footer and scroll arrows are hidden, fading
+   in once it is. Pages without the scene ([data-scene]) don't wait. */
+html:not([data-scene-ready]):has([data-scene]) #page * {
+  animation-play-state: paused;
+}
+html:not([data-scene-ready]):has([data-scene]) .post-card {
+  visibility: hidden;
+  translate: calc(-100vw - 20rem) 0;
+}
+html:not([data-scene-ready]):has([data-scene]) .post-card article {
+  opacity: 0;
+}
+html:not([data-scene-ready]):has([data-scene])
+  .collage[data-shown]
+  .collage-tile {
+  visibility: hidden;
+  transform: translateX(calc(100vw + 20rem)) rotate(var(--tilt));
+}
+[data-site-chrome],
+[data-scroll-arrows] {
+  transition: opacity 0.8s ease-out;
+}
+html:not([data-scene-ready]):has([data-scene])
+  :is([data-site-chrome], [data-scroll-arrows]) {
+  opacity: 0;
+}
+
 /* While the phone menu is open (components/Header/MobileNav), its glass pane
    covers the page: the page's own text and cards would show through it, so
    they hide, with the portfolio's scroll arrows (ScrollArrows.tsx). */

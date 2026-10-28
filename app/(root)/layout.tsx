@@ -24,7 +24,10 @@ export default function Layout({ children }: LayoutProps) {
           </main>
         </div>
       </PageScroller>
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center">
+      <div
+        data-site-chrome
+        className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center"
+      >
         <div className="container mx-3">
           <Footer />
         </div>
