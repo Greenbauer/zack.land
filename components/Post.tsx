@@ -14,12 +14,14 @@ import useHeldCard from './useHeldCard';
 type PostProps = { content: Content };
 
 // A post's card leaving: it fades and sinks 12px over 0.4 seconds, then
-// hides. Arriving, after a 0.7-second pause (the last card gone), it fades in
-// and rises into place over 1.5 seconds, slowing gently to a stop.
+// hides and moves to the window's left edge. Arriving, after a 0.7-second
+// pause (the last card gone), it slides in from there and rises into place
+// over 1.4 seconds, slowing gently to a stop, and starts fading in a quarter
+// of a second into the slide (as the contact card does, animate-card-in).
+const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
 const CARD_OUT =
-  'opacity 0.4s ease-in, transform 0.4s ease-in, visibility 0s 0.4s';
-const CARD_IN =
-  'opacity 1.5s cubic-bezier(0.22, 1, 0.36, 1) 0.7s, transform 1.5s cubic-bezier(0.22, 1, 0.36, 1) 0.7s, visibility 0s 0.7s';
+  'opacity 0.4s ease-in, transform 0.4s ease-in, translate 0s 0.4s, visibility 0s 0.4s';
+const CARD_IN = `translate 1.4s ${EASE} 0.7s, transform 1.4s ${EASE} 0.7s, opacity 1.2s ${EASE} 0.95s, visibility 0s 0.7s`;
 
 export default function Post({ content }: PostProps) {
   const {
@@ -54,8 +56,8 @@ export default function Post({ content }: PostProps) {
   // The card doesn't scroll: it is fixed where it rests, at the bottom of the
   // space between the fades (the post keeps room for it, --card-height), and
   // only the card of the post in view shows. Paging, one card fades out and
-  // sinks a little, there is a pause, and the next slowly fades in and rises
-  // into place (CARD_OUT, CARD_IN), while the images move with their posts.
+  // sinks a little, there is a pause, and the next slides in from the left
+  // and fades in (CARD_OUT, CARD_IN), while the images move with their posts.
   // The images lie behind the card, never over its text. On a wide screen
   // the card takes at most 55% of the post's height (longer text scrolls
   // inside it), so the images always keep the rest.
@@ -89,7 +91,7 @@ export default function Post({ content }: PostProps) {
         className={`z-20 w-auto max-w-none flex-col md:[--card-max:calc(var(--post-height)*0.55)] ${
           isCurrent
             ? 'opacity-100'
-            : 'pointer-events-none invisible opacity-0 motion-safe:translate-y-3'
+            : 'pointer-events-none invisible opacity-0 motion-safe:translate-y-3 motion-safe:[translate:-100vw_0]'
         }`}
       >
         <article

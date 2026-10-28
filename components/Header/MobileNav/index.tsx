@@ -12,15 +12,16 @@ import MobileNavButton from './MobileNavButton';
 // glass rounds and feathers a pane's corners (at least 120px), so the pane
 // reaches 15rem past every edge of the screen, its padding putting the links
 // back where they were: its corners fall off screen and the menu stays square.
-// Its links take the card's ink (ON_GLASS). Portfolio is a button: it turns
-// the menu to a second view of its pages, with a way back (MenuViews). The
-// page behind it hides while it is open (.mobile-menu there).
+// It slides down from above as it opens, fading in on the way
+// (animate-menu-in). Its links take the card's ink (ON_GLASS). Portfolio is a
+// button: it turns the menu to a second view of its pages, with a way back
+// (MenuViews). The page behind it hides while it is open (.mobile-menu there).
 const mobileNavBackgroundStyle = cva(
   'mobile-menu -left-60 -top-60 h-[calc(100%+30rem)] w-[calc(100vw+30rem)] p-60 pt-80',
   {
     variants: {
       isOpen: {
-        true: 'fixed',
+        true: 'fixed motion-safe:animate-menu-in',
         false: 'hidden',
       },
     },

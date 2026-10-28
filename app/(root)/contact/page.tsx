@@ -22,8 +22,9 @@ export default function Contact() {
         />
       )}
       {/* Its glass runs out past the window's right side (and a phone's
-          left), like the portfolio's cards. */}
-      <EdgeCard>
+          left), like the portfolio's cards, and like theirs it slides in from
+          the window's left edge, fading in as it comes. */}
+      <EdgeCard className="motion-safe:animate-card-in">
         <article>
           <Form />
         </article>

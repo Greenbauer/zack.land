@@ -41,9 +41,25 @@ module.exports = {
             left: '-40px',
           },
         },
+        // A card arriving: it slides in from the window's left edge over 1.4
+        // seconds, slowing gently to a stop, and starts fading in a fifth of
+        // the way through (Post.tsx does the same with transitions).
+        'card-in': {
+          '0%': { translate: '-100vw 0', opacity: '0' },
+          '20%': { opacity: '0' },
+          '100%': { translate: '0 0', opacity: '1' },
+        },
+        // The phone menu arriving: the same, sliding down from above.
+        'menu-in': {
+          '0%': { translate: '0 -100dvh', opacity: '0' },
+          '20%': { opacity: '0' },
+          '100%': { translate: '0 0', opacity: '1' },
+        },
       },
       animation: {
         'arrow-l': 'arrow-l 2.5s ease-in-out infinite',
+        'card-in': 'card-in 1.4s cubic-bezier(0.22, 1, 0.36, 1) both',
+        'menu-in': 'menu-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) both',
       },
     },
   },

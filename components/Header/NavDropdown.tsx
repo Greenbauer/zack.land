@@ -11,9 +11,10 @@ type NavDropdownProps = {
 
 // A header link that opens a small pane of the cards' frosted glass
 // (data-glass, drawn in the 3D scene by components/Background/glass.ts) with
-// the pages under it, instead of going to a page itself. It fades in and out
-// (the glass fades with it), and closes on a choice, a click outside or
-// Escape.
+// the pages under it, instead of going to a page itself. It slides down 3rem
+// into place, slowing to a stop, and starts fading in as it moves (the glass
+// fades with it); it fades out quickly, and closes on a choice, a click
+// outside or Escape.
 export default function NavDropdown({
   label,
   isActive,
@@ -28,7 +29,7 @@ export default function NavDropdown({
       <PopoverPanel
         transition
         data-glass
-        className={`absolute left-0 top-full mt-4 flex min-w-60 flex-col rounded-3xl py-4 transition duration-300 ease-out data-[closed]:-translate-y-2 data-[closed]:opacity-0 ${ON_GLASS}`}
+        className={`absolute left-0 top-full mt-4 flex min-w-60 flex-col rounded-3xl py-4 transition-[transform,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] data-[closed]:opacity-0 data-[leave]:duration-200 data-[leave]:ease-in data-[enter]:[transition-delay:0s,0.1s] motion-safe:data-[closed]:-translate-y-12 ${ON_GLASS}`}
       >
         {({ close }) => (
           <>
