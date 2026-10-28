@@ -20,7 +20,7 @@ The `feature-map` line in `.vibe-verifier` fails a pull request that adds a page
 feature-map --surface page 'app/**/page.tsx' --surface route 'app/**/route.ts'
 ```
 
-The surfaces come from the code: every tracked `app/**/page.tsx` is a `page` and every tracked `app/**/route.ts` is a `route`. The gate names a surface by its file path, so a feature lists `app/(root)/contact/page.tsx`, not `/contact`; Reach and the table above give the URL. `app/robots.ts`, `app/sitemap.ts` and `app/not-found.tsx` are not page or route files, so the gate does not count them; [home](home.md) lists them as sources.
+The surfaces come from the code: every tracked `app/**/page.tsx` is a `page` and every tracked `app/**/route.ts` is a `route`. The gate names a surface by its file path, so a feature lists `app/(root)/contact/page.tsx`, not `/contact`; Reach and the table above give the URL. `app/robots.ts`, `app/sitemap.ts` and `app/(root)/not-found.tsx` are not page or route files (the catch-all `app/(root)/[...missing]/page.tsx` that shows the 404 page is), so the gate does not count them; [home](home.md) lists them as sources.
 
 ## Changing the map
 

@@ -4,6 +4,7 @@ import Background from '@/components/Background';
 
 import Footer from '../../components/Footer';
 import Header from '../../components/Header';
+import PageLeave from '../../components/PageLeave';
 import PageScroller from '../../components/PageScroller';
 
 type LayoutProps = {
@@ -15,6 +16,7 @@ export default function Layout({ children }: LayoutProps) {
     <>
       <Background />
       <Header />
+      <PageLeave />
       <PageScroller>
         <div className="container mx-3 flex flex-col">
           <main className="flex flex-1">

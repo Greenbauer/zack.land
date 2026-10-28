@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { slideAwayTo } from './TitleBox';
+import { slideAwayTo } from './leaveTo';
 
 const plain = {
   button: 0,
@@ -11,7 +11,7 @@ const plain = {
 };
 const here = 'https://zack.land/';
 
-describe('which link clicks slide the home title away first', () => {
+describe('which link clicks move the page out first', () => {
   it('slides away for a plain click on another page of the site', () => {
     expect(slideAwayTo(plain, { href: '/contact', target: '' }, here)).toBe(
       '/contact',
