@@ -81,7 +81,13 @@ export default function useMoreMotion(
               { translate: '0 0' },
               { translate: `0 ${-was.images.bottom - 32}px` },
             ],
-            { duration: OPEN_MS, easing: 'cubic-bezier(0.32, 0, 0.67, 0)' },
+            // Held at the end, gone above the window, until the post drops
+            // them (`open`): without it they show back in place for a frame.
+            {
+              duration: OPEN_MS,
+              easing: 'cubic-bezier(0.32, 0, 0.67, 0)',
+              fill: 'forwards',
+            },
           ),
         );
       }
