@@ -19,10 +19,16 @@ describe('isWhite', () => {
     expect(isWhite([HEAD, HEAD, HEAD, LIGHT_SKY, LIGHT_SKY], false)).toBe(true);
   });
 
+  it('takes the card colour over a mid sky, where white reads poorly', () => {
+    // White against 0.3 is 3:1, under AA.
+    expect(isWhite([0.3, 0.29, 0.32], false)).toBe(false);
+    expect(isWhite([0.3, 0.29, 0.32], true)).toBe(false);
+  });
+
   it('holds its side near the edge', () => {
-    // White against 0.3 is 3:1, between the two thresholds.
-    expect(isWhite([0.3], true)).toBe(true);
-    expect(isWhite([0.3], false)).toBe(false);
+    // White against 0.2 is 4.2:1, between the two thresholds.
+    expect(isWhite([0.2], true)).toBe(true);
+    expect(isWhite([0.2], false)).toBe(false);
   });
 
   it('keeps its side with nothing read', () => {
