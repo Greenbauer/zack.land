@@ -5,6 +5,7 @@ import {
   GLIDE_MS,
   keyDirection,
   nextPost,
+  turnGate,
   wheelPager,
 } from './paging';
 
@@ -116,5 +117,51 @@ describe('turning pages with the keyboard', () => {
     expect(keyDirection('PageUp', false)).toBe(-1);
     expect(keyDirection(' ', true)).toBe(-1);
     expect(keyDirection('a', false)).toBe(0);
+  });
+});
+
+describe('holding page turns while one plays', () => {
+  it('turns at once when nothing is playing', () => {
+    const gate = turnGate(2000);
+    expect(gate.ask(1, 0)).toBe(1);
+    expect(gate.ask(1, 2000)).toBe(1);
+  });
+
+  it('holds a push back the other way until the turn has played', () => {
+    const gate = turnGate(2000);
+    gate.ask(1, 0);
+    expect(gate.ask(-1, 500)).toBe(0);
+    expect(gate.due(1999)).toBe(0);
+    // Still waiting, for a timer that came a moment early to look again.
+    expect(gate.waiting).toBe(-1);
+    expect(gate.due(2000)).toBe(-1);
+    expect(gate.waiting).toBe(0);
+    // That turn plays in full too.
+    expect(gate.freeAt).toBe(4000);
+    expect(gate.due(4000)).toBe(0);
+  });
+
+  it('keeps only the latest push from a burst', () => {
+    const gate = turnGate(2000);
+    gate.ask(1, 0);
+    gate.ask(1, 100);
+    gate.ask(1, 200);
+    gate.ask(-1, 300);
+    expect(gate.due(2000)).toBe(-1);
+    expect(gate.due(4000)).toBe(0);
+  });
+
+  it('can start as if a turn is already playing', () => {
+    const gate = turnGate(2000, 100);
+    expect(gate.ask(1, 500)).toBe(0);
+    expect(gate.due(2100)).toBe(1);
+  });
+
+  it('lets a turn asked once free go at once, dropping nothing stale', () => {
+    const gate = turnGate(2000);
+    gate.ask(1, 0);
+    gate.ask(-1, 100);
+    expect(gate.ask(1, 2500)).toBe(1);
+    expect(gate.due(4500)).toBe(0);
   });
 });

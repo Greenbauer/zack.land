@@ -9,36 +9,39 @@ import {
   GLIDE_MS,
   keyDirection,
   nextPost,
+  TURN_MS,
+  turnGate,
   wheelPager,
 } from './paging';
 
-// Pages the scroller between its posts (paging.ts) on the wheel, the
-// keyboard and the scroll arrows (pageGlide.ts). A phone's swipe keeps the
-// browser's own snapping, which already moves a post at a time. Renders
-// nothing.
+// How far a finger must travel up or down the screen to turn a page, in
+// pixels.
+const SWIPE_PX = 40;
+
+// Pages the scroller between its posts (paging.ts) on the wheel, a swipe,
+// the keyboard and the scroll arrows (pageGlide.ts). Each turn plays its
+// cards' whole change before the next (turnGate): a push meanwhile waits,
+// and only the latest. Renders nothing.
 export default function SnapPager() {
   useEffect(() => {
     const scroller = document.getElementById(PAGE_SCROLLER_ID);
     if (!scroller) return;
     const turn = wheelPager();
+    // The first card is arriving as the page loads.
+    const gate = turnGate(TURN_MS, performance.now());
     const still = matchMedia('(prefers-reduced-motion: reduce)');
     let frame = 0;
+    let wait = 0;
 
     const positions = () => postPositions(scroller);
 
-    // Where a glide under way is headed, so a quick push adds a post to it
-    // rather than to wherever the glide has got to.
-    let headedTo: number | null = null;
-
-    const glide = (direction: 1 | -1) => {
+    const move = (direction: 1 | -1) => {
       const at = positions();
       if (!at.length) return;
-      const to = at[nextPost(at, headedTo ?? scroller.scrollTop, direction)]!;
-      headedTo = to;
+      const to = at[nextPost(at, scroller.scrollTop, direction)]!;
       cancelAnimationFrame(frame);
       if (still.matches) {
         scroller.scrollTop = to;
-        headedTo = null;
         return;
       }
       // The browser's snapping would pull each step back, so it is off
@@ -50,12 +53,27 @@ export default function SnapPager() {
         const t = Math.min((now - start) / GLIDE_MS, 1);
         scroller.scrollTop = from + (to - from) * easeOutCubic(t);
         if (t < 1) frame = requestAnimationFrame(step);
-        else {
-          scroller.style.scrollSnapType = '';
-          headedTo = null;
-        }
+        else scroller.style.scrollSnapType = '';
       };
       frame = requestAnimationFrame(step);
+    };
+
+    // A turn goes now, or waits for the one playing to finish. (A timer can
+    // fire a moment early, so it looks again until the wait is over.)
+    const play = () => {
+      const due = gate.due(performance.now());
+      if (due) move(due);
+      else if (gate.waiting)
+        wait = window.setTimeout(play, gate.freeAt - performance.now());
+    };
+    const glide = (direction: 1 | -1) => {
+      const now = performance.now();
+      if (gate.ask(direction, now)) {
+        move(direction);
+        return;
+      }
+      clearTimeout(wait);
+      wait = window.setTimeout(play, gate.freeAt - now);
     };
 
     // Whether something inside a post (its text, opened on a phone) can
@@ -87,6 +105,33 @@ export default function SnapPager() {
       if (direction) glide(direction);
     };
 
+    // A swipe turns one page as the finger lifts, the browser's own scroll
+    // held off meanwhile, unless what it began on can still scroll that way.
+    let touch: { x: number; y: number; target: EventTarget | null } | null =
+      null;
+    const onTouchStart = (event: TouchEvent) => {
+      const { clientX, clientY } = event.touches[0]!;
+      touch =
+        event.touches.length === 1
+          ? { x: clientX, y: clientY, target: event.target }
+          : null;
+    };
+    const onTouchMove = (event: TouchEvent) => {
+      if (!touch) return;
+      const { clientY } = event.touches[0]!;
+      if (scrollsItself(touch.target, touch.y - clientY)) touch = null;
+      else event.preventDefault();
+    };
+    const onTouchEnd = (event: TouchEvent) => {
+      if (!touch) return;
+      const { clientX, clientY } = event.changedTouches[0]!;
+      const dx = touch.x - clientX;
+      const dy = touch.y - clientY;
+      touch = null;
+      if (Math.abs(dy) >= SWIPE_PX && Math.abs(dy) > Math.abs(dx))
+        glide(dy > 0 ? 1 : -1);
+    };
+
     const onKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement;
       if (target.closest('input, textarea, select, [contenteditable]')) return;
@@ -100,12 +145,19 @@ export default function SnapPager() {
       glide((event as CustomEvent<1 | -1>).detail);
 
     scroller.addEventListener('wheel', onWheel, { passive: false });
+    scroller.addEventListener('touchstart', onTouchStart, { passive: true });
+    scroller.addEventListener('touchmove', onTouchMove, { passive: false });
+    scroller.addEventListener('touchend', onTouchEnd);
     window.addEventListener('keydown', onKey);
     window.addEventListener(GLIDE_EVENT, onRequest);
     return () => {
       cancelAnimationFrame(frame);
+      clearTimeout(wait);
       scroller.style.scrollSnapType = '';
       scroller.removeEventListener('wheel', onWheel);
+      scroller.removeEventListener('touchstart', onTouchStart);
+      scroller.removeEventListener('touchmove', onTouchMove);
+      scroller.removeEventListener('touchend', onTouchEnd);
       window.removeEventListener('keydown', onKey);
       window.removeEventListener(GLIDE_EVENT, onRequest);
     };
