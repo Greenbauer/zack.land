@@ -41,12 +41,13 @@ module.exports = {
             left: '-40px',
           },
         },
-        // The contact card arriving: it slides in from the window's left
-        // edge over 1.4 seconds, slowing gently to a stop, its glass whole
-        // all the way, as a post's card does (Post.tsx); the form on it fades
-        // in alongside (content-in).
+        // The contact card arriving: it slides in from wholly off the
+        // window's left side (its glass reaches 15rem past the right edge, so
+        // a window's width and 20rem) over 1.4 seconds, slowing gently to a
+        // stop, its glass whole all the way, as a post's card does (Post.tsx);
+        // the form on it fades in alongside (content-in).
         'card-in': {
-          '0%': { translate: '-100vw 0' },
+          '0%': { translate: 'calc(-100vw - 20rem) 0' },
           '100%': { translate: '0 0' },
         },
         // What is on a card arriving: it starts fading in a fifth of the way

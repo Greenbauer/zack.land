@@ -15,8 +15,10 @@ import useHeldCard, { PostPlace } from './useHeldCard';
 type PostProps = { content: Content };
 
 // Where a post's card waits, by where its post is (PostPlace): in place for
-// the post in view, off the window's right side for posts above it and off
-// its left side for posts below. Paging down, a card slides out to the right
+// the post in view, wholly off the window's right side for posts above it
+// and off its left side for posts below (a window's width and 20rem: its
+// glass reaches 15rem past the window's edge, and the glass over photos 64px
+// past that, photoLens.ts). Paging down, a card slides out to the right
 // and the next comes in from the left; paging up, the other way. They are
 // transitions, so a card turned back part way reverses from where it is.
 // Leaving, it gathers speed off the window's edge (0.8 seconds) and then
@@ -34,8 +36,8 @@ const LEAVING =
 const CARD: Record<PostPlace, string> = {
   current:
     'motion-safe:[transition:translate_1.4s_cubic-bezier(0.22,1,0.36,1)_var(--turn-delay,0.7s),visibility_0s] motion-reduce:[transition:visibility_0s_0.7s]',
-  before: `motion-safe:[translate:100vw_0] ${LEAVING}`,
-  after: `motion-safe:[translate:-100vw_0] ${LEAVING}`,
+  before: `motion-safe:[translate:calc(100vw+20rem)_0] ${LEAVING}`,
+  after: `motion-safe:[translate:calc(-100vw-20rem)_0] ${LEAVING}`,
 };
 const CONTENT_IN =
   'motion-safe:[transition:opacity_1.2s_cubic-bezier(0.22,1,0.36,1)_calc(var(--turn-delay,0.7s)+0.25s)] motion-reduce:[transition:opacity_1.2s_ease-out_0.7s]';
