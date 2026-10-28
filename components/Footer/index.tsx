@@ -106,16 +106,20 @@ export default function Footer() {
         </div>
       </div>
       {/* On a phone the portfolio's down scroll arrow shares the text's row,
-          at its right (data-footer-arrow, filled by ScrollArrows.tsx; empty
-          and taking no room on every other page). */}
+          at its left, a little in from the window's edge (data-footer-arrow,
+          filled by ScrollArrows.tsx; empty and taking no room on every other
+          page). */}
       <div
         ref={textRef}
         className="order-first flex flex-1 items-center justify-end gap-4 text-center md:order-last md:text-right [&_h6]:text-[color:var(--sky-text)]"
       >
+        <div
+          data-footer-arrow
+          className={`ml-2 flex-none empty:hidden ${ink}`}
+        />
         <div className={`max-md:flex-1 ${ink}`}>
           {pathname === '/contact' ? <ContactPageText /> : <DefaultText />}
         </div>
-        <div data-footer-arrow className={`flex-none empty:hidden ${ink}`} />
       </div>
     </footer>
   );
