@@ -28,6 +28,17 @@ export function keepsImages(
 
 type Step = 'short' | 'trying' | 'whole';
 
+// A phone post's size, and the window's height (a phone's post, and its
+// images' box, fill the window).
+type Frame = { width: number; height: number; windowHeight: number };
+
+// Whether the card needs trying again: when the post's width or the window's
+// height has changed. Not when only the post's own height has: showing the
+// card whole changes that itself, and re-trying on it flipped the card
+// between short and whole for as long as it fit (about 40 times a second).
+export const frameChanged = (was: Frame | null, now: Frame) =>
+  !was || was.width !== now.width || was.windowHeight !== now.windowHeight;
+
 // Whether a phone's post with images (`isWanted`) shows its card whole, its
 // technology and all its description, with no More: when its images are
 // held by the window's width, so the room the whole card takes from them
@@ -35,7 +46,9 @@ type Step = 'short' | 'trying' | 'whole';
 // card out short, as usual (a few lines, More), measures it and the
 // images' box, then tries it whole and measures the card again, all before
 // the page paints, and keeps it whole only if the images keep their size
-// (keepsImages: their widest tile no narrower).
+// (keepsImages: their widest tile no narrower). It tries again when the
+// post's width or the window's height changes (frameChanged), not when the
+// card changes the post's height.
 export default function usePhoneWhole(
   postRef: RefObject<HTMLElement | null>,
   mediaSources: readonly MediaSource[] | undefined,
@@ -52,17 +65,25 @@ export default function usePhoneWhole(
   useEffect(() => {
     const post = postRef.current;
     if (!post || !isWanted) return setStep('short');
-    let width = -1;
-    let height = -1;
-    const resize = new ResizeObserver(([entry]) => {
-      const box = entry!.contentRect;
-      if (box.width === width && box.height === height) return;
-      ({ width, height } = box);
+    let was: Frame | null = null;
+    const check = () => {
+      const now = {
+        width: post.clientWidth,
+        height: post.clientHeight,
+        windowHeight: innerHeight,
+      };
+      if (!frameChanged(was, now)) return;
+      was = now;
       setStep('short');
       setRound((r) => r + 1);
-    });
+    };
+    const resize = new ResizeObserver(check);
     resize.observe(post);
-    return () => resize.disconnect();
+    addEventListener('resize', check);
+    return () => {
+      resize.disconnect();
+      removeEventListener('resize', check);
+    };
   }, [postRef, isWanted]);
 
   useLayoutEffect(() => {

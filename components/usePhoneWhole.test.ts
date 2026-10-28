@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { collage } from './collageLayout';
-import { keepsImages } from './usePhoneWhole';
+import { frameChanged, keepsImages } from './usePhoneWhole';
 
 describe("whether a phone's card can show whole", () => {
   const seeds = (n: number) => Array.from({ length: n }, (_, k) => `${k}`);
@@ -28,5 +28,28 @@ describe("whether a phone's card can show whole", () => {
 
   it('does not for no images', () => {
     expect(keepsImages(() => [], 700, 0)).toBe(false);
+  });
+});
+
+describe("when a phone's card is tried again", () => {
+  const frame = { width: 366, height: 844, windowHeight: 844 };
+
+  it('is tried the first time', () => {
+    expect(frameChanged(null, frame)).toBe(true);
+  });
+
+  it('is not tried again when only the post grows or shrinks', () => {
+    // Showing the card whole changes the post's own height and nothing
+    // else; re-trying on that flipped the card short and whole forever.
+    expect(frameChanged(frame, { ...frame, height: 1032 })).toBe(false);
+    expect(frameChanged(frame, { ...frame })).toBe(false);
+  });
+
+  it('is tried again when the post narrows or widens', () => {
+    expect(frameChanged(frame, { ...frame, width: 390 })).toBe(true);
+  });
+
+  it('is tried again when the window grows or shrinks in height', () => {
+    expect(frameChanged(frame, { ...frame, windowHeight: 700 })).toBe(true);
   });
 });
