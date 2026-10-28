@@ -13,15 +13,21 @@ import useHeldCard from './useHeldCard';
 
 type PostProps = { content: Content };
 
-// A post's card leaving fades out as it carries on off the window's right
-// side (animate-card-out, 0.8 seconds). Arriving, after a 0.7-second pause,
-// it slides in from the window's left edge, fading in on the way
-// (animate-card-in, 1.4 seconds; both in tailwind.config.js). A card that has
-// never shown just stays hidden. With reduced motion they only fade.
+// A post's card leaving carries on off the window's right side, its glass
+// whole, while what is on it fades out (animate-card-out, animate-content-out:
+// 0.8 seconds). Arriving, after a 0.7-second pause, it slides in from the
+// window's left edge while what is on it fades in (animate-card-in,
+// animate-content-in: 1.4 seconds; all in tailwind.config.js). A card that
+// has never shown just stays hidden. With reduced motion the card just shows
+// or hides, and what is on it fades.
 const CARD_IN =
-  'motion-safe:animate-card-in motion-safe:[animation-delay:0.7s] motion-reduce:[transition:opacity_1.2s_ease-out_0.7s,visibility_0s_0.7s]';
+  'motion-safe:animate-card-in motion-safe:[animation-delay:0.7s] motion-reduce:[transition:visibility_0s_0.7s]';
 const CARD_HIDDEN =
-  'pointer-events-none invisible opacity-0 motion-reduce:[transition:opacity_0.4s_ease-in,visibility_0s_0.4s]';
+  'pointer-events-none invisible motion-reduce:[transition:visibility_0s_0.4s]';
+const CONTENT_IN =
+  'motion-safe:animate-content-in motion-safe:[animation-delay:0.7s] motion-reduce:[transition:opacity_1.2s_ease-out_0.7s]';
+const CONTENT_HIDDEN =
+  'opacity-0 motion-reduce:[transition:opacity_0.4s_ease-in]';
 
 export default function Post({ content }: PostProps) {
   const {
@@ -57,9 +63,9 @@ export default function Post({ content }: PostProps) {
   //
   // The card doesn't scroll: it is fixed where it rests, at the bottom of the
   // space between the fades (the post keeps room for it, --card-height), and
-  // only the card of the post in view shows. Paging, one card fades out as it
-  // slides off to the right, there is a pause, and the next slides in from
-  // the left and fades in, while the images move with their posts.
+  // only the card of the post in view shows. Paging, one card slides off to
+  // the right, there is a pause, and the next slides in from the left, each
+  // card's text fading as it goes, while the images move with their posts.
   // The images lie behind the card, never over its text. On a wide screen
   // the card takes at most 55% of the post's height (longer text scrolls
   // inside it), so the images always keep the rest.
@@ -91,13 +97,17 @@ export default function Post({ content }: PostProps) {
         }}
         className={`z-20 w-auto max-w-none flex-col md:[--card-max:calc(var(--post-height)*0.55)] ${
           isCurrent
-            ? `opacity-100 ${CARD_IN}`
+            ? CARD_IN
             : `${CARD_HIDDEN} ${hasShown ? 'motion-safe:animate-card-out' : ''}`
         }`}
       >
         <article
           className={`flex min-h-0 flex-col gap-3 overflow-y-auto p-5 md:flex-row md:gap-8 md:p-8 [&_p]:text-base [&_p]:leading-6 lg:[&_p]:text-lg lg:[&_p]:leading-7 [@media(max-height:800px)]:md:p-6 [@media(max-height:800px)]:[&_h2]:text-3xl [@media(max-height:800px)]:[&_p]:text-base [@media(max-height:800px)]:[&_p]:leading-6 ${
             isExpanded ? 'flex-1' : ''
+          } ${
+            isCurrent
+              ? CONTENT_IN
+              : `${CONTENT_HIDDEN} ${hasShown ? 'motion-safe:animate-content-out' : ''}`
           }`}
         >
           <div className="flex min-w-0 flex-col gap-3 md:flex-1 md:gap-4">
