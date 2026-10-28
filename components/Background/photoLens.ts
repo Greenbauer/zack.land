@@ -6,7 +6,6 @@ import {
   FROST_PX,
   SPREAD_PX,
 } from './glass';
-import { BRIGHTEST, DIMMEST } from './glassTint';
 
 // The glass over the photos under a card. The card's glass is drawn in the
 // 3D scene (glass.ts), which cannot see the page's photos (the image tiles
@@ -19,13 +18,17 @@ import { BRIGHTEST, DIMMEST } from './glassTint';
 // outside the card because a card fading in by opacity is a backdrop root:
 // a backdrop-filter inside it sees nothing until it is opaque again, so the
 // glass would pop on at the end of the fade. The layer takes the card's
-// opacity instead, every frame, and so fades in and out with it. It also
-// keeps the photos within the card's brightness bounds (glassTint.ts), dark
-// side or light, so the text over them keeps 4.5:1. It is on only while a
-// photo is within PHOTO_REACH of the card.
+// opacity instead, every frame, and so fades in and out with it. It changes
+// no colours, as the card's own glass does not (Grading.tsx's tint pass is
+// off but for the open phone menu). It is on only while a photo is within
+// PHOTO_REACH of the card.
 // Toward its edges the glass weakens rather than turning see-through: its
 // lenses bend less, its frost and bounds fade, so over a photo it eases in
-// from nothing (a see-through lens would still show its hard squares).
+// from nothing (a see-through lens would still show its hard squares). The
+// bending fades out much sooner than the frost (bendAt): a lens near a
+// photo's edge shows that edge flipped and shrunk, so lenses bending out in
+// the fade drew ghost copies of the photo's edge over the sky past it, a
+// jagged, shadow-like band. There, only the frost shows.
 
 const SVG = 'http://www.w3.org/2000/svg';
 // The lens map is drawn at this resolution and stretched to each lens.
@@ -37,23 +40,6 @@ export const PHOTO_REACH = 64;
 const FADE_PX = PHOTO_REACH - FEATHER_FROM;
 // The fade map is drawn at a quarter of the layer's size and stretched.
 const FADE_SCALE = 4;
-
-const toSrgb = (l: number) =>
-  l <= 0.0031308 ? 12.92 * l : 1.055 * l ** (1 / 2.4) - 0.055;
-
-// A colour channel's limit for a luminance bound: every channel at most (or
-// at least) this keeps the luminance there.
-const DARK_CAP = toSrgb(BRIGHTEST);
-const LIGHT_FLOOR = toSrgb(DIMMEST);
-
-// The values of a transfer table that holds a channel to at most `cap` (dark
-// side) or at least `floor` (light side), changing nothing else.
-export function boundTable(side: 'dark' | 'light', steps = 16) {
-  return Array.from({ length: steps + 1 }, (_, k) => {
-    const v = k / steps;
-    return side === 'dark' ? Math.min(v, DARK_CAP) : Math.max(v, LIGHT_FLOOR);
-  });
-}
 
 // How far a lens moves what it shows, in CSS pixels, for feDisplacementMap's
 // scale: a lens shows the view SPREAD_PX either side of its centre, so a
@@ -87,6 +73,12 @@ export function strengthAt(edge: number) {
   const t = Math.min(Math.max(edge / FADE_PX, 0), 1);
   return t * t * (3 - 2 * t);
 }
+
+// How strongly the lenses bend, 0 to 1, `edge` CSS pixels in from the
+// layer's edge: the strength to the BEND_EXPONENT, so they bend fully only
+// where the glass is nearly whole (the card) and hardly at all in its fade.
+export const BEND_EXPONENT = 3;
+export const bendAt = (edge: number) => strengthAt(edge) ** BEND_EXPONENT;
 
 // The layer's fade, as a data URL: grey, black at the edges to white where
 // the glass is whole, for a layer `width` by `height` CSS pixels.
@@ -128,36 +120,33 @@ const lenses = new WeakMap<HTMLElement, Lens>();
 let count = 0;
 
 // The filter for a card whose lenses are `cellX` by `cellY` CSS pixels, on
-// a layer `width` by `height`, on the `side` of the sky, calm (as a form
+// a layer `width` by `height`, calm (as a form
 // field) on a small screen. The lens map is pulled toward no bend (0.5) as
-// the fade map darkens (k1 L g + k3 g + k4 = 0.5 + (L - 0.5) g), and the
-// result is laid over the photos as strongly as the fade map says.
+// the bend fade (the fade map to the BEND_EXPONENT: bendAt) darkens
+// (k1 L b + k3 b + k4 = 0.5 + (L - 0.5) b), and the result is laid over the
+// photos as strongly as the fade map says.
 function filterMarkup(
   id: string,
   cellX: number,
   cellY: number,
   layer: { width: number; height: number },
-  side: 'dark' | 'light',
   calm: boolean,
 ) {
   const blur = calm ? FIELD_FROST_PX : FROST_PX;
   const bend = calm ? FIELD_LENS : 1;
-  const table = boundTable(side)
-    .map((v) => v.toFixed(4))
-    .join(' ');
   return `<filter id="${id}" x="0" y="0" width="1" height="1" color-interpolation-filters="sRGB">
   <feImage href="${fadeMap(layer.width, layer.height)}" x="0" y="0" width="${layer.width}" height="${layer.height}" preserveAspectRatio="none" result="fade"/>
   <feColorMatrix in="fade" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0" result="strength"/>
   <feGaussianBlur in="SourceGraphic" stdDeviation="${blur}" edgeMode="duplicate" result="frost"/>
   <feImage href="${map()}" x="${PHOTO_REACH}" y="${PHOTO_REACH}" width="${cellX}" height="${cellY}" preserveAspectRatio="none" result="lens"/>
   <feTile in="lens" result="lenses"/>
-  <feComposite in="lenses" in2="fade" operator="arithmetic" k1="1" k2="0" k3="-0.5" k4="0.5" result="bends"/>
-  <feDisplacementMap in="frost" in2="bends" scale="${displacement((cellX + cellY) / 2) * bend}" xChannelSelector="R" yChannelSelector="G"/>
-  <feComponentTransfer>
-    <feFuncR type="table" tableValues="${table}"/>
-    <feFuncG type="table" tableValues="${table}"/>
-    <feFuncB type="table" tableValues="${table}"/>
+  <feComponentTransfer in="fade" result="bendFade">
+    <feFuncR type="gamma" exponent="${BEND_EXPONENT}"/>
+    <feFuncG type="gamma" exponent="${BEND_EXPONENT}"/>
+    <feFuncB type="gamma" exponent="${BEND_EXPONENT}"/>
   </feComponentTransfer>
+  <feComposite in="lenses" in2="bendFade" operator="arithmetic" k1="1" k2="0" k3="-0.5" k4="0.5" result="bends"/>
+  <feDisplacementMap in="frost" in2="bends" scale="${displacement((cellX + cellY) / 2) * bend}" xChannelSelector="R" yChannelSelector="G"/>
   <feComposite in2="strength" operator="in" result="glass"/>
   <feMerge>
     <feMergeNode in="SourceGraphic"/>
@@ -229,11 +218,14 @@ export function photoLenses(cards: HTMLElement[], calm: boolean) {
 
 // Lays (or lifts) the glass over the photos under `card`, matching its
 // lenses to the scene's (glass.ts: as many whole lenses of about CELL_PX as
-// fit), on the side of the sky it is on, calm on a small screen.
+// fit), calm on a small screen.
 export function photoLens(card: HTMLElement, calm: boolean) {
   const own = layerOf(card);
   const target = own ?? card;
-  if (!overPhoto(card)) {
+  // A pane over the page (the header's dropdown, data-glass-over) takes its
+  // glass over whatever is under it, not only photos.
+  const always = card.dataset.glassOver !== undefined;
+  if (!always && !overPhoto(card)) {
     target.style.removeProperty('--photo-lens');
     return;
   }
@@ -249,8 +241,7 @@ export function photoLens(card: HTMLElement, calm: boolean) {
     width: Math.round(width + 2 * PHOTO_REACH),
     height: Math.round(height + 2 * PHOTO_REACH),
   };
-  const side = card.dataset.sky === 'light' ? 'light' : 'dark';
-  const key = `${cellX.toFixed(3)} ${cellY.toFixed(3)} ${layer.width} ${layer.height} ${side} ${calm}`;
+  const key = `${cellX.toFixed(3)} ${cellY.toFixed(3)} ${layer.width} ${layer.height} ${calm}`;
   let lens = lenses.get(card);
   if (!lens) {
     lens = { id: `photo-lens-${++count}`, key: '' };
@@ -262,7 +253,7 @@ export function photoLens(card: HTMLElement, calm: boolean) {
     host.querySelector(`#${lens.id}`)?.remove();
     host.insertAdjacentHTML(
       'beforeend',
-      filterMarkup(lens.id, cellX, cellY, layer, side, calm),
+      filterMarkup(lens.id, cellX, cellY, layer, calm),
     );
   }
   target.style.setProperty('--photo-lens', `url(#${lens.id})`);

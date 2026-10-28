@@ -58,7 +58,7 @@ export default function EdgeCard({
       />
       <section
         ref={cardRef}
-        data-head-avoid
+        data-head-avoid="card"
         style={{
           marginLeft: 'calc(var(--head-clear, 0px) - var(--bleed-left, 0px))',
           paddingLeft: 'var(--bleed-left, 0px)',

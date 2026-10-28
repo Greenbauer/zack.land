@@ -4,10 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 
-import { isSmall } from '@/components/Background/smallScreen';
-import { ON_GLASS } from '@/components/Header/NavLink';
 import useSkyColours from '@/components/SkyText/useSkyColours';
-import useWindowSize from '@/hooks/useWindowSize';
 
 import SocialLinks from './SocialLinks';
 
@@ -70,13 +67,10 @@ export default function Footer() {
   const textRef = useRef<HTMLDivElement | null>(null);
   useSkyColours(iconsRef);
   useSkyColours(textRef);
-  // On a small window the footer is on the cards' glass (data-glass), so a
-  // post's card runs into it in one colour rather than a stripe of glass
-  // above a stripe of sky; its text and icons then take the card's ink, set
-  // one level in so it wins over the sky's colours on the blocks above.
-  const { width, height } = useWindowSize();
-  const onGlass = width > 0 && isSmall(width, height);
-  const ink = onGlass ? ON_GLASS : '';
+  // The footer sits on the sky, not on the cards' glass, on every screen:
+  // the glass takes no colour of its own (components/Background/Grading.tsx),
+  // so a card above it has no tint to match, and glass under the footer only
+  // showed as a tinted pill while the phone menu's tint pass ran.
 
   // The page's bottom fade sits on the footer's top edge (see
   // components/PageScroller/edgeFade.ts), so it follows the footer's height.
@@ -97,13 +91,10 @@ export default function Footer() {
   return (
     <footer
       ref={ref}
-      data-glass={onGlass ? '' : undefined}
       className="relative flex w-full flex-col items-center gap-6 pb-6 md:flex-row md:items-end [&_a]:pointer-events-auto"
     >
       <div ref={iconsRef} className="order-last flex-none md:order-first">
-        <div className={ink}>
-          <SocialLinks />
-        </div>
+        <SocialLinks />
       </div>
       {/* On a phone the portfolio's down scroll arrow shares the text's row,
           at its left, a little in from the window's edge (data-footer-arrow,
@@ -113,11 +104,8 @@ export default function Footer() {
         ref={textRef}
         className="order-first flex flex-1 items-center justify-end gap-4 text-center md:order-last md:text-right [&_h6]:text-[color:var(--sky-text)]"
       >
-        <div
-          data-footer-arrow
-          className={`ml-2 flex-none empty:hidden ${ink}`}
-        />
-        <div className={`max-md:flex-1 ${ink}`}>
+        <div data-footer-arrow className="ml-2 flex-none empty:hidden" />
+        <div className="max-md:flex-1">
           {pathname === '/contact' ? <ContactPageText /> : <DefaultText />}
         </div>
       </div>

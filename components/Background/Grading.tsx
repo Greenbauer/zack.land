@@ -80,8 +80,18 @@ export default function Grading() {
       glass.cards.map(({ element }) => element),
       isSmall(size.width, size.height),
     );
+    // The cards' glass is never tinted, not even to keep its text within the
+    // card's bounds: it shows no colour the sky behind it does not. Only
+    // the open phone menu's pane (data-glass-deep) takes its deep tint, so
+    // its lenses show; the page under it is hidden. So the tint pass runs
+    // only while that menu is open, and otherwise the graded frame goes out
+    // as is.
+    const deep = menuOpen();
     Object.assign(tint, {
-      glasses: glass.cards.map(({ element }) => tints.shown(element, delta)),
+      enabled: deep,
+      glasses: deep
+        ? glass.cards.map(({ element }) => tints.shown(element, delta))
+        : [],
       strength: tintStrength(size.width, size.height),
     });
     const toward = formFocused() ? 1 : 0;
