@@ -90,9 +90,15 @@ export default function usePhoneWhole(
     if (step === 'short') {
       if (measured.current === round) return;
       measured.current = round;
+      // The images' box as it is with the card short: the post's bottom
+      // padding (--card-height, kept by useHeldCard.ts) can still hold the
+      // card's whole height from the round before, which leaves the box
+      // that much shorter, and measured so the card was kept short where
+      // it fits whole (and Less, measuring again, then showed it whole).
+      const padding = parseFloat(getComputedStyle(post!).paddingBottom) || 0;
       short.current = {
         card: card.offsetHeight,
-        box: box.offsetHeight,
+        box: box.offsetHeight + padding - card.offsetHeight,
         width: box.offsetWidth,
       };
       setStep('trying');

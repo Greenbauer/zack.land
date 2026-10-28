@@ -168,6 +168,8 @@ export default function useMoreMotion(
     isExpanded: phase === 'opening' || phase === 'open',
     // Whether the images are gone (they stay, flying, while it opens).
     isOpen: phase === 'open',
+    // Whether it is closed and still: not open, opening or closing.
+    isClosed: phase === 'closed',
     toggle,
   };
 }
