@@ -9,6 +9,8 @@ import {
   Vector3,
 } from 'three';
 
+import type { MousePosition } from '@/hooks/useMousePosition';
+
 import {
   easeToward,
   facingSmile,
@@ -32,7 +34,11 @@ export type Point = { x: number; y: number };
 type MyHeadGeometry = { [key: string]: BufferGeometry };
 
 type MyHeadProps = {
-  lookPositionStart: Point;
+  // Where the pointer has the head look, now.
+  lookPositionStart: () => Point;
+  // The pointer (useMousePosition): the head clears `moved` once it has
+  // seen the move.
+  pointer: MousePosition;
 };
 
 // The look of pmndrs' "Color grading" sandbox (codesandbox.io/p/sandbox/wvgxp):
@@ -125,8 +131,7 @@ let greeting: Greeting = idle;
 // Below this every expression counts as eased out: a neutral face.
 const NEUTRAL = 0.02;
 
-export default function MyHead({ lookPositionStart }: MyHeadProps) {
-  let isMouseMoving = true;
+export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
   const myHeadRef = useRef<Group>(null);
   // Where the head is looking: x tips it, y turns it (radians).
   const look = useRef({ x: 0, y: 0 });
@@ -155,7 +160,7 @@ export default function MyHead({ lookPositionStart }: MyHeadProps) {
 
   const stopRandomRotation = (): void => {
     frameCount = 0;
-    isMouseMoving = false;
+    pointer.moved = false;
     isFrameCounting = false;
   };
 
@@ -176,10 +181,10 @@ export default function MyHead({ lookPositionStart }: MyHeadProps) {
   const rotateMyHead = (time: number, seconds: number): void => {
     const { rotation } = myHeadRef.current!;
     const turn = look.current;
-    let lookPosition: Point = lookPositionStart;
+    let lookPosition: Point = lookPositionStart();
     let rotationSpeed: number = 0.05;
 
-    if (isMouseMoving) {
+    if (pointer.moved) {
       stopRandomRotation();
       greeting = idle;
     } else if (greetingOn(greeting)) {

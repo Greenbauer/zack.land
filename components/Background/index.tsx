@@ -21,10 +21,12 @@ export default function Background() {
   const { width, height } = useWindowSize();
   const { active: isLoading } = useProgress();
 
-  const lookPositionStart: Point = {
+  // Read by the head every frame: the pointer moves without re-rendering
+  // (useMousePosition).
+  const lookPositionStart = (): Point => ({
     x: (mousePosition.x - width / 3) * 0.5,
     y: (mousePosition.y - height / 2) * 0.5,
-  };
+  });
 
   const handleCameraUpdate = (camera: PerspectiveCameraType): void => {
     camera.setViewOffset(width, height, width / 4, 0, width, height);
@@ -60,7 +62,10 @@ export default function Background() {
             penumbra={1}
             position={[250, 750, 500]}
           />
-          <MyHead lookPositionStart={lookPositionStart} />
+          <MyHead
+            lookPositionStart={lookPositionStart}
+            pointer={mousePosition}
+          />
           <Sky />
           <Grading />
           <BackdropSampler />
