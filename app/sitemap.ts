@@ -4,7 +4,6 @@ const SITE_URL = 'https://www.zack.land';
 
 const routes = [
   '',
-  '/portfolio',
   '/portfolio/web-apps',
   '/portfolio/miscellaneous',
   '/contact',

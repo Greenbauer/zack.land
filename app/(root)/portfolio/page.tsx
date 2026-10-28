@@ -1,27 +1,7 @@
-import { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 
-import Menu, { MenuItem } from '@/components/Menu';
-
-export const metadata: Metadata = {
-  title: 'Portfolio - Zack Greenbauer',
-  description: "Zack Greenbauer's Portfolio and Sandbox",
-};
-
-const items: MenuItem[] = [
-  {
-    name: 'Web Apps',
-    path: '/portfolio/web-apps',
-  },
-  {
-    name: 'Miscellaneous',
-    path: '/portfolio/miscellaneous',
-  },
-];
-
+// The portfolio's pages are offered in the header's Portfolio dropdown, so
+// /portfolio itself has nothing of its own: it goes to the first of them.
 export default function Portfolio() {
-  return (
-    <div className="relative flex size-full justify-start">
-      <Menu items={items} useArrow />
-    </div>
-  );
+  redirect('/portfolio/web-apps');
 }

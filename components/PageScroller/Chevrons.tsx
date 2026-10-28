@@ -41,12 +41,3 @@ export function Chevrons() {
     </>
   );
 }
-
-// The portfolio menu's arrow, pointing at the menu from its right.
-export default function Arrow() {
-  return (
-    <div className="absolute -right-24 top-0 hidden h-full items-center justify-center md:flex">
-      <Chevrons />
-    </div>
-  );
-}
