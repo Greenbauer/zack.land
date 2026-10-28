@@ -45,6 +45,13 @@ const GAP = '1rem';
 // The up arrow keeps further from the header, so it doesn't crowd the links.
 const UP_GAP = '2rem';
 const HEAD_GAP = '0.5rem';
+// On a wide screen the arrows fade out as the page turns, and back in once
+// the arriving card has slid past them: SETTLE_MS after the page last
+// scrolled (its 0.3s glide), or after the page opens (its first card
+// arriving), so they show about 1.2s into a turn, as the card (sliding in
+// from 0.7s, useHeldCard.ts) clears the head.
+const SETTLE_MS = 900;
+const OPEN_SETTLE_MS = 1200;
 
 // The up arrow sits just under the header, and the down arrow just over the
 // footer, each moving in toward the other only as far as the head allows on
@@ -54,20 +61,21 @@ const DOWN_TOP = `min(calc(${FOOTER_TOP} - 0.25rem - ${ARROW_HEIGHT}), max(calc(
 
 // On the portfolio's pages on a wide screen: sliding chevrons (Chevrons.tsx)
 // pointing up, with the word Scroll under them, just under the header and
-// centred over the 3D head, and Scroll over chevrons pointing down, just
-// over the footer and centred under it. Over the sky each is a pane of the
-// cards' frosted glass (data-glass, drawn in the 3D scene by
-// Background/glass.ts) that keeps close around it (data-glass-near), padded
-// well past the arrow at its sides and on the side toward the header or
-// footer but only a little toward the head, its top pulled up as far as its
-// top padding so the arrow keeps its place, and in white while the head or a dark sky is behind it, read from
-// the frame (arrowInk.ts), else in the cards' text colour, which the glass
-// keeps readable (--card-ink, styles/globals.css). On a phone, or
-// wherever the head has stepped off the screen to leave a card the room
-// (framedHead.x below 0, headPlace.ts), only the down arrow, in the footer,
-// at the left of its text (data-footer-arrow, Footer) and in the footer's
-// colours. Each glides to the post before or after, and shows only while
-// there is a post that way. On a wide screen they sit on the body, outside
+// centred over the 3D head, and Scroll over chevrons pointing down, just over
+// the footer and centred under it. Over the sky each is a pane of the cards'
+// frosted glass (data-glass, drawn in the 3D scene by Background/glass.ts) that
+// keeps close around it (data-glass-near), padded well past the arrow at its
+// sides and on the side toward the header or footer but only a little toward
+// the head, its top pulled up as far as its top padding so the arrow keeps its
+// place, and in white while the head or a dark sky is behind it, read from the
+// frame (arrowInk.ts), else in the cards' text colour, which the glass keeps
+// readable (--card-ink, styles/globals.css). On a phone, or wherever the head
+// has stepped off the screen to leave a card the room (framedHead.x below 0,
+// headPlace.ts), only the down arrow, in the footer, at the left of its text
+// (data-footer-arrow, Footer) and in the footer's colours. Each glides to the
+// post before or after, and shows only while there is a post that way; on a
+// wide screen they fade out as the page turns and back in once the arriving
+// card has passed (SETTLE_MS). On a wide screen they sit on the body, outside
 // the page's scroller, so its fade under the header doesn't hide them. They
 // hide with the page while the phone menu is open (data-scroll-arrows,
 // styles/globals.css).
@@ -113,9 +121,17 @@ export default function ScrollArrows() {
     return () => cancelAnimationFrame(frame);
   }, []);
 
+  // Whether the page is turning, or a card still arriving (SETTLE_MS).
+  const [isSettling, setIsSettling] = useState(true);
   useEffect(() => {
     const scroller = document.getElementById(PAGE_SCROLLER_ID);
     if (!scroller) return;
+    let settle = setTimeout(() => setIsSettling(false), OPEN_SETTLE_MS);
+    const turning = () => {
+      setIsSettling(true);
+      clearTimeout(settle);
+      settle = setTimeout(() => setIsSettling(false), SETTLE_MS);
+    };
     const check = () => {
       const at = postSpans(scroller);
       if (!at.length) return;
@@ -128,9 +144,12 @@ export default function ScrollArrows() {
     };
     check();
     scroller.addEventListener('scroll', check, { passive: true });
+    scroller.addEventListener('scroll', turning, { passive: true });
     addEventListener('resize', check);
     return () => {
+      clearTimeout(settle);
       scroller.removeEventListener('scroll', check);
+      scroller.removeEventListener('scroll', turning);
       removeEventListener('resize', check);
     };
   }, []);
@@ -145,8 +164,8 @@ export default function ScrollArrows() {
   if (!body) return null;
   return createPortal(
     <div ref={groupRef} data-scroll-arrows>
-      <ScrollArrow direction={-1} isShown={canGo.up} />
-      <ScrollArrow direction={1} isShown={canGo.down} />
+      <ScrollArrow direction={-1} isShown={canGo.up && !isSettling} />
+      <ScrollArrow direction={1} isShown={canGo.down && !isSettling} />
     </div>,
     body,
   );
@@ -205,7 +224,7 @@ function ScrollArrow({
               ...(white && { '--sky-text': 'white' }),
             } as CSSProperties)
       }
-      className={`flex items-center gap-1 transition-opacity duration-500 ${
+      className={`flex items-center gap-1 transition-[opacity,visibility] duration-500 ${
         inFooter
           ? 'pointer-events-auto'
           : 'fixed left-[var(--arrows-x,50%)] top-[var(--arrow-top)] z-30 -translate-x-1/2 rounded-3xl px-10 [--arrow-h:4.5rem] [--sky-text:var(--card-ink)] [@media(max-height:700px)]:[--arrow-h:3.25rem]'
