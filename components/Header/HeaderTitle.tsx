@@ -13,10 +13,7 @@ const FIRST_WORD = 100;
 
 export default function HeaderTitle({ title }: { title: string }) {
   return (
-    <h4
-      data-header-title
-      className="text-right font-medium tracking-wider !text-transparent [word-spacing:0.2em]"
-    >
+    <h4 className="text-right font-medium tracking-wider !text-transparent [word-spacing:0.2em]">
       {title.split(' ').map((word, k) => (
         <span key={word}>
           {k > 0 && ' '}
