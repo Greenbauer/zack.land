@@ -299,7 +299,8 @@
 
 /* While the phone menu is open (components/Header/MobileNav), its glass pane
    covers the page: the page's own text and cards would show through it, so
-   they hide. */
-body:has(.mobile-menu.fixed) #page {
+   they hide, with the portfolio's scroll arrows (ScrollArrows.tsx). */
+body:has(.mobile-menu.fixed) #page,
+body:has(.mobile-menu.fixed) [data-scroll-arrows] {
   visibility: hidden;
 }
