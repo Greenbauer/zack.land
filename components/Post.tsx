@@ -92,7 +92,7 @@ export default function Post({ content }: PostProps) {
   const isArticleCut = useClipped(articleRef, !isExpanded);
   const isDescriptionCut = useClipped(descriptionRef, !isExpanded);
   const linksRef = useRef<HTMLDivElement | null>(null);
-  useCardFloor(articleRef, linksRef);
+  useCardFloor(articleRef, linksRef, descriptionRef);
   const isCut = !isExpanded && (isArticleCut || isDescriptionCut);
   const hasMore = isExpanded || isCut;
   useHeadClear(postRef);
@@ -119,9 +119,10 @@ export default function Post({ content }: PostProps) {
   // as it goes, while the images move with their posts.
   // The images lie behind the card, never over its text. On a wide screen
   // the card takes at most 55% of the post's height (but never so little
-  // that its links are cut, useCardFloor), so the images keep the rest; longer text is cut short until More opens the card: then
-  // it is no longer fixed but lies in the post, which it fills in place of
-  // the images, at least a page tall and taller if its text needs.
+  // that its links or a line of its description are cut, useCardFloor), so
+  // the images keep the rest; longer text is cut short until More opens the
+  // card: then it is no longer fixed but lies in the post, which it fills in
+  // place of the images, at least a page tall and taller if its text needs.
   return (
     <div
       ref={postRef}
@@ -245,7 +246,7 @@ function cardStyle(isExpanded: boolean, isOnTop: boolean): CSSProperties {
     ...(isOnTop
       ? { top: 'var(--page-top)' }
       : { bottom: 'var(--page-bottom)' }),
-    // Never so low that it cuts the column of links (useCardFloor), and
+    // Never so low that it cuts its links or its text (useCardFloor), and
     // never past the post, where it would run under the header.
     maxHeight:
       'min(max(var(--card-max, var(--post-height)), var(--card-floor, 0px)), var(--post-height))',
