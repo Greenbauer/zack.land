@@ -220,7 +220,7 @@
   }
 
   article {
-    @apply p-6 md:p-12 w-full;
+    @apply p-5 md:p-12 w-full;
   }
 
   /* The theme's colours (the head's, tailwind.config.js): its brightest

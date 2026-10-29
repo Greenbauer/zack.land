@@ -155,13 +155,18 @@ export default function ScrollArrows() {
     };
   }, []);
 
+  // In the footer, only while there is a post below: at the last post the
+  // slot empties and the footer's text and links fade back in its place
+  // (Footer/arrowSwap.ts).
   if (footerSlot && (isPhone || isHeadAway))
-    return createPortal(
-      <div data-scroll-arrows>
-        <ScrollArrow direction={1} isShown={canGo.down} inFooter />
-      </div>,
-      footerSlot,
-    );
+    return canGo.down
+      ? createPortal(
+          <div data-scroll-arrows>
+            <ScrollArrow direction={1} isShown inFooter />
+          </div>,
+          footerSlot,
+        )
+      : null;
   if (!body) return null;
   return createPortal(
     <div ref={groupRef} data-scroll-arrows>

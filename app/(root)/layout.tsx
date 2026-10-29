@@ -35,7 +35,9 @@ export default function Layout({ children }: LayoutProps) {
         data-site-chrome
         className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center"
       >
-        <div className="container mx-3">
+        {/* On a phone the header and footer keep the cards' text margin (2rem,
+            the frame's 0.75rem and a card's 1.25rem padding). */}
+        <div className="container mx-3 max-md:mx-8">
           <Footer />
         </div>
       </div>
