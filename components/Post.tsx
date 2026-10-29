@@ -9,6 +9,7 @@ import { Content } from '@/types';
 import EdgeCard from './EdgeCard';
 import FitText from './FitText';
 import PostCollage from './PostCollage';
+import useCardFloor from './useCardFloor';
 import useCardOnTop from './useCardOnTop';
 import useClipped from './useClipped';
 import useHeadClear from './useHeadClear';
@@ -90,6 +91,8 @@ export default function Post({ content }: PostProps) {
   const descriptionRef = useRef<HTMLDivElement | null>(null);
   const isArticleCut = useClipped(articleRef, !isExpanded);
   const isDescriptionCut = useClipped(descriptionRef, !isExpanded);
+  const linksRef = useRef<HTMLDivElement | null>(null);
+  useCardFloor(articleRef, linksRef);
   const isCut = !isExpanded && (isArticleCut || isDescriptionCut);
   const hasMore = isExpanded || isCut;
   useHeadClear(postRef);
@@ -115,8 +118,8 @@ export default function Post({ content }: PostProps) {
   // and, after a pause, the next slides in (CARD), each card's text fading
   // as it goes, while the images move with their posts.
   // The images lie behind the card, never over its text. On a wide screen
-  // the card takes at most 55% of the post's height, so the images always
-  // keep the rest; longer text is cut short until More opens the card: then
+  // the card takes at most 55% of the post's height (but never so little
+  // that its links are cut, useCardFloor), so the images keep the rest; longer text is cut short until More opens the card: then
   // it is no longer fixed but lies in the post, which it fills in place of
   // the images, at least a page tall and taller if its text needs.
   return (
@@ -184,7 +187,8 @@ export default function Post({ content }: PostProps) {
             )}
           </div>
           <div
-            className={`flex shrink-0 flex-col gap-3 md:w-64 md:gap-4 md:pt-2 ${
+            ref={linksRef}
+            className={`flex shrink-0 flex-col gap-3 md:w-64 md:gap-4 md:self-start md:pt-2 ${
               isClamped
                 ? 'max-md:flex-row max-md:flex-wrap max-md:items-center max-md:justify-end'
                 : ''
@@ -241,7 +245,9 @@ function cardStyle(isExpanded: boolean, isOnTop: boolean): CSSProperties {
     ...(isOnTop
       ? { top: 'var(--page-top)' }
       : { bottom: 'var(--page-bottom)' }),
-    maxHeight: 'var(--card-max, var(--post-height))',
+    // Never so low that it cuts the column of links (useCardFloor).
+    maxHeight:
+      'max(var(--card-max, var(--post-height)), var(--card-floor, 0px))',
   };
 }
 
