@@ -2,7 +2,7 @@
 
 import { Environment, PerspectiveCamera, useProgress } from '@react-three/drei';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Suspense, useEffect, useMemo, useRef } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { PerspectiveCamera as PerspectiveCameraType } from 'three';
 
 import useMousePosition from '@/hooks/useMousePosition';
@@ -21,6 +21,7 @@ import {
   markSceneReady,
   pageInDelay,
   READY_AT_MOST_MS,
+  sceneDelay,
 } from './sceneReady';
 import Sky from './Sky';
 import TitleName from './TitleName';
@@ -47,6 +48,16 @@ export default function Background() {
       clearTimeout(pageIn);
       clearTimeout(wait);
     };
+  }, []);
+
+  // Whether the scene has started loading (sceneDelay).
+  const [isSceneOn, setIsSceneOn] = useState(false);
+  useEffect(() => {
+    const start = setTimeout(
+      () => setIsSceneOn(true),
+      sceneDelay(performance.now(), drawsInSoftware()),
+    );
+    return () => clearTimeout(start);
   }, []);
 
   const handleCameraUpdate = (camera: PerspectiveCameraType): void => {
@@ -76,32 +87,34 @@ export default function Background() {
         dpr={renderQuality(width, height, drawsInSoftware()).dpr}
         gl={{ antialias: false }}
       >
-        <Suspense fallback={null}>
-          <ambientLight intensity={Math.PI} />
-          <spotLight
-            intensity={0.5 * Math.PI}
-            decay={0}
-            angle={0.2}
-            penumbra={1}
-            position={[250, 750, 500]}
-          />
-          <HeadFraming />
-          <MyHead
-            lookPositionStart={lookPositionStart}
-            pointer={mousePosition}
-          />
-          <Sky />
-          <Grading />
-          <BackdropSampler />
-          <TitleName />
-          <SceneReady />
-          <Environment
-            files="/background/environment/kiara_1_dawn_1k.hdr"
-            background
-            backgroundBlurriness={0.6}
-            backgroundIntensity={0.45}
-          />
-        </Suspense>
+        {isSceneOn && (
+          <Suspense fallback={null}>
+            <ambientLight intensity={Math.PI} />
+            <spotLight
+              intensity={0.5 * Math.PI}
+              decay={0}
+              angle={0.2}
+              penumbra={1}
+              position={[250, 750, 500]}
+            />
+            <HeadFraming />
+            <MyHead
+              lookPositionStart={lookPositionStart}
+              pointer={mousePosition}
+            />
+            <Sky />
+            <Grading />
+            <BackdropSampler />
+            <TitleName />
+            <SceneReady />
+            <Environment
+              files="/background/environment/kiara_1_dawn_1k.hdr"
+              background
+              backgroundBlurriness={0.6}
+              backgroundIntensity={0.45}
+            />
+          </Suspense>
+        )}
         <PerspectiveCamera
           makeDefault
           position={[0, 0, 250]}

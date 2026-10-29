@@ -25,6 +25,17 @@ export const PAGE_IN_AT_MOST_MS = 500;
 export const pageInDelay = (now: number) =>
   Math.max(0, PAGE_IN_AT_MOST_MS - now);
 
+// How long a page's own motion as it opens takes (its 1.4 s slides), in
+// milliseconds.
+export const PAGE_MOTION_MS = 1500;
+
+// How long from `now` until the scene starts loading. A browser drawing
+// WebGL in software (quality.ts) freezes the page for a second or two while
+// the scene sets up, so there it starts once the page's own motion is done,
+// which then plays without stalling; elsewhere at once.
+export const sceneDelay = (now: number, software: boolean) =>
+  software ? pageInDelay(now) + PAGE_MOTION_MS : 0;
+
 // Takes each frame's time since the last, in seconds; true once
 // `frames` quick ones have come in a row.
 export function frameSettler(frames = SMOOTH_FRAMES, quick = SMOOTH_SECONDS) {

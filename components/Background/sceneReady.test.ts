@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest';
 import {
   frameSettler,
   PAGE_IN_AT_MOST_MS,
+  PAGE_MOTION_MS,
   pageInDelay,
+  sceneDelay,
   SMOOTH_FRAMES,
 } from './sceneReady';
 
@@ -35,5 +37,16 @@ describe('pageInDelay', () => {
   it('starts it at once once that time has passed, as on a later page', () => {
     expect(pageInDelay(500)).toBe(0);
     expect(pageInDelay(42_000)).toBe(0);
+  });
+});
+
+describe('sceneDelay', () => {
+  it('starts the scene at once on a GPU', () => {
+    expect(sceneDelay(120, false)).toBe(0);
+  });
+
+  it('waits for the page to move in first when WebGL is drawn in software', () => {
+    expect(sceneDelay(120, true)).toBe(380 + PAGE_MOTION_MS);
+    expect(sceneDelay(42_000, true)).toBe(PAGE_MOTION_MS);
   });
 });
