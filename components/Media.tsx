@@ -1,59 +1,55 @@
 'use client';
 
-import { cva } from 'class-variance-authority';
 import Image from 'next/image';
-import YouTube from 'react-youtube';
+import { useEffect, useRef } from 'react';
+import YouTube, { YouTubePlayer } from 'react-youtube';
 
 import { MediaSource } from '@/types';
 
-const mediaWidthStyle = cva('', {
-  variants: {
-    width: {
-      full: 'w-full',
-      '1/2': 'w-1/2',
-    },
-  },
-  defaultVariants: {
-    width: 'full',
-  },
-});
+// One image or video, filling its box (an image is cropped to cover it). A
+// video tells `onPlaying` when it starts and stops, and pauses while `paused`
+// (its post has left the window).
+export default function Media({
+  mediaSource,
+  onPlaying,
+  paused = false,
+}: {
+  mediaSource: MediaSource;
+  onPlaying?: (_isPlaying: boolean) => void;
+  paused?: boolean;
+}) {
+  const { key, alt, type, width = 800, height = 800 } = mediaSource;
+  const player = useRef<YouTubePlayer | null>(null);
 
-type MediaRendererProps = { mediaSource: MediaSource };
-
-const MediaRenderer = ({ mediaSource }: MediaRendererProps) => {
-  const { key, alt, type } = mediaSource;
+  useEffect(() => {
+    if (paused) player.current?.pauseVideo();
+  }, [paused]);
 
   switch (type) {
     case 'YouTube':
-      return <YouTube videoId={key} className="youtube" />;
+      return (
+        <YouTube
+          videoId={key}
+          className="size-full"
+          iframeClassName="size-full"
+          onReady={({ target }) => {
+            player.current = target;
+          }}
+          onPlay={() => onPlaying?.(true)}
+          onPause={() => onPlaying?.(false)}
+          onEnd={() => onPlaying?.(false)}
+        />
+      );
     default:
-      return <Image src={key} alt={alt} width={800} height={800} preload />;
+      return (
+        <Image
+          src={key}
+          alt={alt}
+          width={width}
+          height={height}
+          className="size-full object-cover"
+          preload
+        />
+      );
   }
-};
-
-type MediaProps = { mediaSources: MediaSource[] };
-
-export default function Media({ mediaSources }: MediaProps) {
-  const isSourcesTotalOdd = mediaSources.length % 2 !== 0;
-
-  return (
-    <>
-      {mediaSources.map((mediaSource, index) => {
-        const { key } = mediaSource;
-
-        const isIndexOdd = index % 3 === 0;
-
-        return (
-          <div
-            key={key}
-            className={mediaWidthStyle({
-              width: isSourcesTotalOdd && isIndexOdd ? 'full' : '1/2',
-            })}
-          >
-            <MediaRenderer mediaSource={mediaSource} />
-          </div>
-        );
-      })}
-    </>
-  );
 }

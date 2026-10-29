@@ -1,53 +1,67 @@
 # zack.land — brand & social kit
 
-Social/sharing assets for Zack Greenbauer's portfolio. Built from the site's own
-design tokens (`tailwind.config.js` + `styles/globals.css`) so they match the live site.
+Social and sharing assets for Zack Greenbauer's portfolio, taken from the live
+site's own dawn look: the 3D head and its sky (`components/Background/`), the
+palette in `theme/head.json`, and the site's fonts.
 
 ## Brand tokens
 
-| Token  | Value                  |
-|--------|------------------------|
-| black  | `#111111` (bg)         |
-| white  | `#dddddd`              |
-| yellow | `#ffd265`              |
-| pink   | `#ff31af`              |
-| cyan   | `#3de1ff`              |
-| blue   | `#003380`              |
+The dawn palette (`theme/head.json`):
 
-- **Headline font:** Kanit (600/500), UPPERCASE, wide tracking.
-- **Subhead font:** Roboto (100 thin), UPPERCASE, wide tracking.
-- **Signature gradient** (the H1 mark): `#111 linear-gradient(80deg, yellow 4%, pink 8%, cyan 20%, blue 85%)` — colors at **75% alpha over #111**, clipped to text. Identical to `globals.css` `h1`. Warm flash (yellow/pink) at the far left, fading through cyan to navy.
-- **Domain is always written `www.zack.land`.**
-- **No vibrant/rainbow elements** — the muted gradient on near-black is the whole look.
-- **Icon = the site's matcap 3D head** (`public/background/geometry/myHead.obj` + `public/background/images/mainMatcap.jpg`), rendered with the exact custom matcap shader from `components/Background/useMatcap.ts`. NOT a letter/monogram.
+| Token  | Value     |
+|--------|-----------|
+| light  | `#ede4e3` |
+| peach  | `#d3aba0` |
+| rose   | `#a57374` |
+| purple | `#594d69` |
+| blue   | `#1c265b` |
+| indigo | `#0b1953` |
+| navy   | `#040227` |
+| dark   | `#010018` |
+
+- **Name font:** Kanit, uppercase, as the home page's title.
+- **Subtitle and text font:** Roboto (light), as the site's subtitle and footer.
+- **The name** ("Zack Greenbauer's") shades left to right through part of the
+  palette, chosen against each image's sky: dark tones (navy to rose) on a light
+  sky, light tones (light to rose) on a dark one. No shadows.
+- **Domain is always written `www.zack.land`**, lowercase and widely spaced, as
+  the site sets it.
+- **The head** faces right of the camera with a neutral face, and a strip of the
+  site's glass lies over the shoulders only, never the face.
 
 ## Assets
 
 | File | Size | Use |
 |------|------|-----|
-| `icon-1024.png` | 1024² | Master profile icon / avatar (all platforms) |
-| `icon-1024.png` | 1024² | Master profile icon / avatar — the matcap 3D head |
-| `icon-512.png` / `icon-256.png` | 512² / 256² | Smaller avatar sizes |
-| `apple-touch-icon.png` | 180² | iOS home-screen icon |
+| `icon-1024.png` / `icon-512.png` / `icon-256.png` | 1024² / 512² / 256² | Profile icon / avatar: both eyes and the nose, close up |
+| `apple-touch-icon.png` | 180² | iOS home-screen icon (same close-up) |
+| `og-image.png` | 1200×630 | Link preview for iMessage, Slack, Discord, Facebook, X and LinkedIn shares |
+| `linkedin-banner-1584x396.png` | 1584×396 | LinkedIn profile cover |
+| `x-header-1500x500.png` | 1500×500 | X profile header |
+| `instagram-1080x1080.png` | 1080×1080 | Square post (Instagram and others) |
+| `wordmark.png` | 1700×440, transparent | `www.zack.land` in Roboto light, light to rose, for dark backgrounds |
 
-> **Favicon:** unchanged — the existing `public/favicon.ico` stays as the browser favicon. This kit does **not** ship a replacement favicon.
-| `og-image.png` | 1200×630 | Link preview for iMessage/text, Slack, Discord, Facebook, X/Twitter, LinkedIn shares |
-| `linkedin-banner-1584x396.png` | 1584×396 | LinkedIn personal profile cover (lower-left kept clear for the avatar) |
-| `instagram-1080x1080.png` | 1080×1080 | Instagram post / square social |
-| `wordmark.png` | 1700×440, transparent | `WWW.ZACK.LAND` logotype (uppercase, light-weight, gradient reversed: blue→cyan→pink→gold) for dark backgrounds |
+> **Favicon:** `public/favicon.ico` holds 16, 32 and 48 pixel PNG images of one
+> eye, closer than the app icons, so the face still reads at tab size.
+
+Each social image has its own part of the dawn sky: lilac to blush (link
+preview), a pink to purple sweep (LinkedIn), warm cream (X) and mauve (square).
 
 ## Regenerating
 
-Text assets: `/tmp/brandkit/build.py` (HTML + embedded Kanit/Roboto woff2).
-Icon (matcap head): `/tmp/brandkit/head.html` — Three.js r128 loading the repo's `myHead.obj` +
-`mainMatcap.jpg` with the site's matcap shader. Both rendered with headless Chrome at 2×
-(`--allow-file-access-from-files --use-angle=swiftshader` for the WebGL head) and downscaled with `sips`.
+The images are screenshots of the site itself, rendered in headless Chrome at
+2× and cropped to size: the pointer held to the head's right at eye height (so
+it turns right without squinting or raising its brows), the sky held at a fixed
+turn per image (`scene.backgroundRotation` and `scene.environmentRotation`, as
+`components/Background/Sky.tsx` sets them), the title, subtitle, tagline and
+domain placed over it, and a glass card (any `section`) laid over the shoulders.
+The render scripts are not kept in the repository.
 
 ## Link previews (wired in `app/layout.tsx`)
 
-The OG/Twitter metadata + icons are wired into the root layout's `metadata`
-export, so link-preview crawlers (iMessage, Slack, X, Facebook, LinkedIn)
-serve `og-image.png`:
+The OG/Twitter metadata and icons are in the root layout's `metadata` export,
+so link-preview crawlers (iMessage, Slack, X, Facebook, LinkedIn) serve
+`og-image.png`:
 
 ```ts
 export const metadata: Metadata = {
@@ -59,5 +73,3 @@ export const metadata: Metadata = {
   icons: { icon: '/favicon.ico', apple: '/brand/apple-touch-icon.png' },
 };
 ```
-
-`favicon.ico` is intentionally the original (unchanged); only the apple-touch icon points at the kit.

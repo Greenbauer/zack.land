@@ -1,9 +1,10 @@
 name: Code
 
 # Runs the unit tests (npm test: Vitest over every *.test.ts file) on every pull request and on every
-# push to master. Target: GitHub's ubuntu-latest, with the Node version .nvmrc names.
+# push to master, and the phone More/Less spec (cypress/e2e/more-less.cy.ts) against the built site.
+# Target: GitHub's ubuntu-latest, with the Node version .nvmrc names and its installed Chrome.
 #
-# The Cypress specs in cypress/e2e are not run here: they need the site built and started.
+# The other Cypress specs in cypress/e2e are not run here.
 
 on:
   pull_request:
@@ -39,3 +40,27 @@ jobs:
           CYPRESS_INSTALL_BINARY: '0'
       - name: Unit tests
         run: npm test
+
+  # More then Less on a phone puts each post back as it was: measured only in a real browser (the
+  # card's height, its images' layout), so it is a Cypress spec, run on the production build. The
+  # runner has no GPU: Chrome draws the 3D scene in software (cypress.config.ts).
+  more-less:
+    name: Phone More/Less
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version-file: .nvmrc
+      - name: Install dependencies
+        run: npm ci
+      - name: Build
+        run: npm run build
+      - name: More then Less on a phone
+        run: |
+          npm start -- --port 3000 > server.log 2>&1 &
+          for _ in $(seq 60); do curl -fsS -o /dev/null http://localhost:3000/ && break; sleep 1; done
+          npx cypress run --browser chrome --spec cypress/e2e/more-less.cy.ts --config baseUrl=http://localhost:3000

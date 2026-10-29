@@ -2,7 +2,7 @@ import '@/styles/globals.css';
 
 import { Analytics } from '@vercel/analytics/react';
 import { Metadata } from 'next';
-import { Kanit, Roboto } from 'next/font/google';
+import localFont from 'next/font/local';
 import { ReactNode } from 'react';
 
 const SITE_URL = 'https://www.zack.land';
@@ -11,8 +11,7 @@ const SITE_DESCRIPTION = "Zack Greenbauer's Portfolio and Sandbox";
 const SOCIAL_LINKS = [
   'https://github.com/Greenbauer',
   'https://www.linkedin.com/in/greenbauer',
-  'https://www.instagram.com/zgreenbauer',
-  'https://www.behance.net/greenbauer',
+  'https://x.com/greenbauer',
 ];
 
 const personJsonLd = {
@@ -31,7 +30,6 @@ export const metadata: Metadata = {
     'Zack Greenbauer',
     'portfolio',
     'web apps',
-    'digital art',
     '3D',
     'three.js',
     'creative developer',
@@ -60,6 +58,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
+    creator: '@greenbauer',
     title: 'Zack Greenbauer',
     description: SITE_DESCRIPTION,
     images: ['/brand/og-image.png'],
@@ -70,15 +69,21 @@ export const metadata: Metadata = {
   },
 };
 
-const kanit = Kanit({
-  subsets: ['latin'],
-  weight: ['100', '400'],
+// The two typefaces, served from the site itself (app/fonts, their Latin
+// subsets as Google Fonts serves them; Kanit under the SIL Open Font Licence,
+// Roboto under the Apache Licence 2.0), so building the site fetches nothing:
+// next/font/google's build-time download failed now and then in CI.
+const kanit = localFont({
+  src: [
+    { path: './fonts/kanit-100-latin.woff2', weight: '100' },
+    { path: './fonts/kanit-400-latin.woff2', weight: '400' },
+  ],
   variable: '--font-kanit',
 });
 
-const roboto = Roboto({
-  subsets: ['latin'],
-  weight: ['100', '400'],
+// One variable file covers both weights the site uses (100 and 400).
+const roboto = localFont({
+  src: [{ path: './fonts/roboto-latin.woff2', weight: '100 900' }],
   variable: '--font-roboto',
 });
 
@@ -90,7 +95,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en">
       <body
-        className={`${kanit.variable} ${roboto.variable} flex min-h-[100svh] w-full justify-center bg-black`}
+        className={`${kanit.variable} ${roboto.variable} flex min-h-svh w-full justify-center bg-head-dark`}
       >
         <script
           type="application/ld+json"

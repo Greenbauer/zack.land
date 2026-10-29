@@ -1,12 +1,12 @@
 import { cva, VariantProps } from 'class-variance-authority';
 
 const spinnerStyle = cva(
-  'relative animate-spin rounded-full border border-gray-dark border-l-white',
+  'relative animate-spin rounded-full border border-head-light/20 border-l-head-light',
   {
     variants: {
       size: {
-        sm: 'h-8 w-8',
-        xl: 'h-60 w-60',
+        sm: 'size-8',
+        xl: 'size-60',
       },
     },
     defaultVariants: {

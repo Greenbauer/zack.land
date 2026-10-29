@@ -96,13 +96,19 @@ jobs:
         # Its `shards` output is the explore job's matrix: one explorer, unless max-shards allows more
         # and the criteria are more walks than one is sized for (harnesses/qae/README.md).
         id: criteria
-        uses: Greenbauer/vibe-verifier/actions/criteria@48bd2a31ea0bdb1bed947244fbcc2ab55cc560b3 # main 2026-10-21
+        uses: Greenbauer/vibe-verifier/actions/criteria@a996377d26f76ed69bcce23701038a62373b0661 # main 2026-10-29
         with:
           path: qae-inputs/pr-body.md
           changed-files: qae-inputs/changed-files
           ticket: qae-inputs/ticket.md
           manifest: qae-inputs/manifest
-          max-shards: 1   # CONSUMER: the most explorers one pull request's criteria are split across
+          # Twelve: the 3D pages render in software on a runner with no GPU, a few frames a second, so
+          # a walk here is slow; four criteria at two widths (8 walks) left one explorer at its 30
+          # minutes with no verdict (PR 113, 2026-10-27), about ten criteria each ran one out of its
+          # 240 turns (8186fd7), and five each still ran one out of turns and two past 30 minutes
+          # (92d6659), so PR 113's 38 get twelve, about three each. GitHub-hosted runners run them at
+          # once.
+          max-shards: 12   # CONSUMER: the most explorers one pull request's criteria are split across
           token: ${{ secrets.GITHUB_TOKEN }}   # carries a passing walk's verdict across an update no browser can see
 
   explore:
@@ -120,7 +126,10 @@ jobs:
       matrix:
         shard: ${{ fromJSON(needs.criteria.outputs.shards) }}
     runs-on: ubuntu-latest   # CONSUMER
-    timeout-minutes: 30
+    # 60: an explorer walking five of PR 113's sampled criteria at two widths ran past 30 minutes
+    # (92d6659, walks 5 and 8), and one walking three (a sampled page turn, four posts' pills and
+    # the site's icons) reached the icons and ran out at 40, twice (32f4070, walk 11).
+    timeout-minutes: 60
     permissions:
       contents: read
       pull-requests: write
@@ -174,7 +183,7 @@ jobs:
         # Of several explorers only the first re-walks. Every one runs this step all the same: each
         # counts the selection, so that they share the criteria out alike, and the references step
         # below then takes qae-inputs/features away from every explorer but the first.
-        uses: Greenbauer/vibe-verifier/actions/features@48bd2a31ea0bdb1bed947244fbcc2ab55cc560b3 # main 2026-10-21
+        uses: Greenbauer/vibe-verifier/actions/features@a996377d26f76ed69bcce23701038a62373b0661 # main 2026-10-29
         with:
           changed-files: qae-inputs/changed-files
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
@@ -200,6 +209,52 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p qae-artifacts/qae qae-inputs/references
+          # What the site does on this runner, which the explorer reads first: without it the explorer
+          # spent most of its turns probing the page for the head's turn and ran out of turns before its
+          # last criterion (PR 113, 2026-10-28). A screenshot must be taken with the scene stopped: told
+          # it was not needed (true on a Mac, not on this runner), an explorer retried timed-out
+          # screenshots until it ran out of turns. Unable to load /favicon.ico any way it tried, an
+          # explorer stalled until the job's time ran out (PR 113, 2026-10-29); so did one that could not
+          # start sampling a page before it loaded.
+          cat > qae-inputs/site.md <<'MD'
+          # The site under test
+          - No sign-in: every page is public, and there is one theme.
+          - Every page draws a 3D scene behind it (WebGL). This runner has no GPU, so the scene renders in
+            software at a few frames a second. The page still works, only slowly.
+          - A screenshot waits for the scene to finish a frame, which here can take long enough for it to
+            time out. So before every screenshot, stop the scene where it is: run
+            `() => { window.requestAnimationFrame = () => 0; }` with the evaluate tool, then take the
+            screenshot. The scene stays stopped until the page loads again, so navigate to (or reload)
+            the page before the next step that needs it moving. After loading a page, wait until
+            `<html>` has the `data-scene-ready` attribute (at most 6 seconds), then 6 seconds more
+            before stopping the scene: the header, footer and cards come in then, and the head
+            takes its place beside them. Do not retry a screenshot that timed out
+            without stopping the scene first. Reading the canvas's pixels or React or three.js internals
+            is not needed to check anything a user sees.
+          - On this runner the site sees that WebGL is drawn on the CPU and draws the scene at a quarter
+            of its pixels, so the page keeps up (about 10 frames a second). For a criterion that samples
+            motion every so many milliseconds, keep the scene running while sampling (stopping it stops
+            what the scene drives, such as the glass over photos), and stop it only for screenshots.
+          - The head turns toward the pointer, read from `mousemove` events on the document, and settles
+            within a few seconds here. To check it, load the page, move the mouse (or dispatch a
+            `mousemove` with clientX and clientY on the document), wait 4 seconds, stop the scene, and
+            take a screenshot; then load the page again and do the same with the pointer on the other
+            side. After the pointer has been still for a while, the head looks around on its own. The
+            sky turns slowly with the head.
+          - Focusing a form field blurs the scene behind the form within a few seconds here: focus it,
+            wait 4 seconds, stop the scene, and take a screenshot.
+          - This browser fails every request for exactly `/favicon.ico` (as an image or a fetch), as
+            Playwright's Chromium does once a page has a route, which this harness sets; any other
+            address loads. To look at the favicon, open `/favicon.ico?v=1`, which the site answers with
+            the same file.
+          - A criterion sampled "from navigation" needs sampling to run while the page loads, which an
+            evaluate started after navigating cannot do. Instead, open `/robots.txt` (a plain page with
+            no scene), then in one evaluate add an iframe of the criterion's width and height, set its
+            `src` to the page under test, and sample it every so many milliseconds from setting `src`,
+            reading `iframe.contentDocument` afresh at each sample and skipping samples until it has
+            `#page` and its `readyState` is no longer `loading` (before that its styles have not
+            applied and nothing is drawn). Inside the iframe the page's window is the iframe's size.
+          MD
           # Design references for criteria that name [ref: <key>], read from the base branch so a pull
           # request cannot supply the image it is judged against. Each is a 1x screenshot of the design.
           base="origin/$GITHUB_BASE_REF"
@@ -284,7 +339,7 @@ jobs:
         # explorer's load starts at the feature re-walk's walks, so it takes fewer criteria and reaches
         # the re-walk in its time: a selected feature with no walked step fails the gate.
         id: references
-        uses: Greenbauer/vibe-verifier/actions/qae-inputs@48bd2a31ea0bdb1bed947244fbcc2ab55cc560b3 # main 2026-10-21
+        uses: Greenbauer/vibe-verifier/actions/qae-inputs@a996377d26f76ed69bcce23701038a62373b0661 # main 2026-10-29
         with:
           shard: ${{ matrix.shard || 1 }}
           shards: ${{ strategy.job-total }}
@@ -293,7 +348,7 @@ jobs:
         # integrity fixed by tools/qae-browser/package-lock.json in the catalog. Nothing here is
         # resolved from the registry at run time: this job holds the account-level token.
         id: browser
-        uses: Greenbauer/vibe-verifier/actions/qae-browser@48bd2a31ea0bdb1bed947244fbcc2ab55cc560b3 # main 2026-10-21
+        uses: Greenbauer/vibe-verifier/actions/qae-browser@a996377d26f76ed69bcce23701038a62373b0661 # main 2026-10-29
       - name: Explore the acceptance criteria in a real browser
         # --max-turns is the turn cap the references step sized to this run's walks: a fixed 80 cut off
         # a correct run of two criteria at two widths (harnesses/qae/README.md, "The turn cap").
@@ -418,7 +473,7 @@ jobs:
             # the Read rules never see that read, and any other path would post whatever file it names.
       - name: Collect numeric usage
         if: always()
-        uses: Greenbauer/vibe-verifier/actions/usage@48bd2a31ea0bdb1bed947244fbcc2ab55cc560b3 # main 2026-10-21
+        uses: Greenbauer/vibe-verifier/actions/usage@a996377d26f76ed69bcce23701038a62373b0661 # main 2026-10-29
         with:
           source-file: ${{ steps.explorer.outputs.execution_file }}
           source-ran: true
@@ -539,6 +594,8 @@ jobs:
     permissions:
       contents: read
       pull-requests: write   # the QA review comment, and nothing else
+      actions: read    # the explore jobs of this run, and
+      checks: read     # their failure annotations: a model usage limit gets its own QA review (actions/qa-review)
     steps:
       - name: Require a finished criteria job
         # The explore job is skipped when the criteria job found nothing to walk, and also when that
@@ -588,14 +645,23 @@ jobs:
           printf '%s' "$CARRY" > qae-inputs/carry.json
       - name: Read the criteria
         id: criteria
-        uses: Greenbauer/vibe-verifier/actions/criteria@48bd2a31ea0bdb1bed947244fbcc2ab55cc560b3 # main 2026-10-21
+        uses: Greenbauer/vibe-verifier/actions/criteria@a996377d26f76ed69bcce23701038a62373b0661 # main 2026-10-29
         with:
           path: qae-inputs/pr-body.md
           changed-files: qae-inputs/changed-files
           ticket: qae-inputs/ticket.md
           carry: qae-inputs/carry.json   # the criteria job's facts, so both jobs decide a carry alike
+      - name: Tell a model usage limit from a failure
+        # A failed explore job whose every explorer hit its model usage limit walked nothing. This step reads
+        # their failure annotations and, when that is so, warns with each limit and its reset: the steps below
+        # that judge a walk are skipped, so this job passes with the warning, and the QA review records the head
+        # as limited, never as walked (operator, 2026-10-29). An explorer that succeeded or failed any other way,
+        # or annotations it cannot read, leave `limited` false and the job judges as before.
+        id: limit
+        if: needs.explore.result == 'failure'
+        uses: Greenbauer/vibe-verifier/actions/qa-limit@a996377d26f76ed69bcce23701038a62373b0661 # main 2026-10-29
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        if: steps.criteria.outputs.count != '0'
+        if: steps.criteria.outputs.count != '0' && steps.limit.outputs.limited != 'true'
         # Every explorer's evidence, of every attempt of this run, each in a directory named for its
         # artifact: qae-evidence/qae-artifacts-<attempt>[-<explorer>]/ in the runner's temporary directory,
         # outside the checkout, so a directory the pull request commits is never one of them. The next
@@ -618,7 +684,7 @@ jobs:
         # A qae-artifacts/ the checkout already has came from the pull request (Git makes no empty
         # directory), so the step stops before writing anything: a link there could send the copies
         # anywhere on the runner. The gates refuse such evidence too (gates/_contract.py, planted).
-        if: steps.criteria.outputs.count != '0'
+        if: steps.criteria.outputs.count != '0' && steps.limit.outputs.limited != 'true'
         env:
           SHARDS: ${{ needs.criteria.outputs.shards }}
           EXPLORE_ATTEMPT: ${{ needs.explore.outputs.attempt }}
@@ -675,8 +741,8 @@ jobs:
           echo "verdict lines: $(grep -c 'acceptance-check:' qae-inputs/verdict.md || true)"
       - name: Run the QA gates
         id: gates
-        if: steps.criteria.outputs.declared-none == ''
-        uses: Greenbauer/vibe-verifier/actions/gates@48bd2a31ea0bdb1bed947244fbcc2ab55cc560b3 # main 2026-10-21
+        if: steps.criteria.outputs.declared-none == '' && steps.limit.outputs.limited != 'true'
+        uses: Greenbauer/vibe-verifier/actions/gates@a996377d26f76ed69bcce23701038a62373b0661 # main 2026-10-29
         with:
           manifest: .vibe-verifier-qae
       - name: Require every explorer of a split run
@@ -684,7 +750,7 @@ jobs:
         # can require it. The others, that name with (2), (3), ..., exist only on a large pull request,
         # and no rule can name them. So on a split run this job fails unless every explorer's job
         # succeeded, after the gates have said what they found. A run with one explorer is not touched.
-        if: ${{ !cancelled() && needs.criteria.outputs.shards != '[""]' && needs.explore.result != 'success' && needs.explore.result != 'skipped' }}
+        if: ${{ !cancelled() && needs.criteria.outputs.shards != '[""]' && needs.explore.result != 'success' && needs.explore.result != 'skipped' && steps.limit.outputs.limited != 'true' }}
         env:
           EXPLORE_RESULT: ${{ needs.explore.result }}
         run: |
@@ -693,7 +759,7 @@ jobs:
         # One comment per pull request, edited in place on every run: passed, changes needed, not
         # required, or could not run, from what the jobs and gates concluded, never the explorer's prose.
         if: ${{ !cancelled() }}
-        uses: Greenbauer/vibe-verifier/actions/qa-review@48bd2a31ea0bdb1bed947244fbcc2ab55cc560b3 # main 2026-10-21
+        uses: Greenbauer/vibe-verifier/actions/qa-review@a996377d26f76ed69bcce23701038a62373b0661 # main 2026-10-29
         with:
           criteria: qae-inputs/pr-body.md
           verdict: qae-inputs/verdict.md
@@ -702,4 +768,5 @@ jobs:
           gates-outcome: ${{ steps.gates.outcome }}
           not-required: ${{ steps.criteria.outputs.declared-none }}
           carried-from: ${{ steps.criteria.outputs.carried-from }}
+          limits: ${{ steps.limit.outputs.limits }}
           token: ${{ secrets.GITHUB_TOKEN }}

@@ -3,22 +3,73 @@
 @tailwind utilities;
 
 :root {
-  --white: theme('colors.white');
-  --black: theme('colors.black');
-  --yellow: theme('colors.yellow');
-  --pink: theme('colors.pink');
-  --cyan: theme('colors.cyan');
-  --blue: theme('colors.blue');
+  --head-light: theme('colors.head.light');
+  --head-peach: theme('colors.head.peach');
+  --head-rose: theme('colors.head.rose');
+  --head-purple: theme('colors.head.purple');
+  --head-blue: theme('colors.head.blue');
+  --head-indigo: theme('colors.head.indigo');
+  --head-navy: theme('colors.head.navy');
+  --head-dark: theme('colors.head.dark');
+  /* Text and icons over the sky (components/SkyText): these are its colours
+     over a dark sky, as at load; each group over the sky overwrites them
+     with what the sky behind it needs. */
+  --sky-text: theme('colors.head.light');
+  --sky-faint: theme('colors.head.light / 30%');
+  --sky-accent: theme('colors.head.peach');
+  --sky-underline: theme('colors.head.rose');
+}
+
+/* The sky colours (components/SkyText) are registered as colours so a group
+   over the sky fades from one to the next instead of snapping: light to dark
+   text over a second and a half (.sky-colours), while hover changes, which swap
+   which variable a colour uses, stay instant. */
+@property --sky-text { syntax: '<color>'; inherits: true; initial-value: #ede4e3; }
+@property --sky-faint { syntax: '<color>'; inherits: true; initial-value: rgb(237 228 227 / 0.3); }
+@property --sky-accent { syntax: '<color>'; inherits: true; initial-value: #d3aba0; }
+@property --sky-underline { syntax: '<color>'; inherits: true; initial-value: #a57374; }
+
+.sky-colours {
+  transition-property: --sky-text, --sky-faint, --sky-accent, --sky-underline;
+  transition-duration: 1.5s;
+  transition-timing-function: ease-in-out;
+}
+
+/* A glass card's colours. components/Background/glassTint.ts marks which
+   side of the sky a card is on as its data-sky: on a dark sky, light text
+   and a dark field; on a light sky, dark text and a light field. Every word
+   on a card is in its text colour at full strength, so the glass only has
+   to change where the sky behind is near the middle (glassTint.ts); links
+   are told apart by their underline, in the accent (peach on a dark card,
+   purple on a light one) and the brighter accent when hovered. They are
+   registered as colours so a card fades from one side to the other along
+   with its glass (glassTint.ts's CHANGE_SECONDS). */
+@property --card-ink { syntax: '<color>'; inherits: true; initial-value: #ede4e3; }
+@property --card-accent { syntax: '<color>'; inherits: true; initial-value: #eebdaf; }
+@property --card-underline { syntax: '<color>'; inherits: true; initial-value: #d3aba0; }
+@property --card-field { syntax: '<color>'; inherits: true; initial-value: #010018; }
+
+:where(section, [data-glass]) {
+  transition-property: --card-ink, --card-accent, --card-underline, --card-field;
+  transition-duration: 0.8s;
+  transition-timing-function: ease-in-out;
+}
+
+:where(section, [data-glass])[data-sky='light'] {
+  --card-ink: theme('colors.head.dark');
+  --card-accent: theme('colors.head.indigo');
+  --card-underline: theme('colors.head.purple');
+  --card-field: theme('colors.head.light');
 }
 
 @layer base {
   h1 {
-    background: var(--black) linear-gradient(
-      80deg, 
-      var(--yellow) 4%, 
-      var(--pink) 8%, 
-      var(--cyan) 20%, 
-      var(--blue) 85%
+    background: var(--head-dark) linear-gradient(
+      80deg,
+      var(--head-peach) 4%,
+      var(--head-rose) 8%,
+      var(--head-purple) 20%,
+      var(--head-blue) 85%
     );
     
     @apply font-medium tracking-wider uppercase bg-clip-text text-transparent font-sans;
@@ -26,43 +77,69 @@
   }
 
   h2 {
-    @apply text-white tracking-wide uppercase font-thin font-display;
+    @apply text-head-light tracking-wide uppercase font-thin font-display;
     @apply text-2xl lg:text-4xl;
   }
 
   h3 {
-    @apply text-white tracking-wide uppercase font-sans font-normal;
+    @apply text-head-light tracking-wide uppercase font-sans font-normal;
     @apply text-2xl xl:text-3xl;
   }
 
   h4 {
-    @apply text-gray-lightest tracking-wide uppercase font-sans font-normal;
+    @apply text-head-light/60 tracking-wide uppercase font-sans font-normal;
     @apply text-xl md:text-3xl;
   }
 
   h5 {
-    @apply text-gray-lightest tracking-wide uppercase font-sans font-normal;
+    @apply text-head-light/60 tracking-wide uppercase font-sans font-normal;
     @apply text-2xl md:text-lg;
   }
 
   h6 {
-    @apply text-white tracking-wide font-thin leading-8 font-display;
+    @apply text-head-light tracking-wide font-thin leading-8 font-display;
     @apply text-xl md:text-2xl;
   }
 
   p, label {
-    @apply text-gray-lightest leading-6 font-sans font-normal;
+    @apply text-head-light/80 leading-6 font-sans font-normal;
     @apply text-lg;
   }
 
   small {
-    @apply text-gray-light font-display font-normal tracking-wider;
+    @apply text-head-light/70 font-display font-normal tracking-wider;
     @apply text-sm;
   }
 
   a {
     @apply no-underline;
-    @apply text-cyan hover:text-pink active:text-gray focus:text-cyan;
+    color: inherit;
+  }
+
+  /* A link in running text is underlined in the theme's accent: over the
+     sky the sky's own (--sky-accent and --sky-underline, components/SkyText),
+     as the footer's Contact me link is; on a glass card the card's accent
+     (tailwind.config.js). Hovered or focused, its underline takes the accent
+     too. */
+  :is(p, small) a {
+    --link: var(--sky-accent);
+    --link-underline: var(--sky-underline);
+    color: var(--link);
+    text-decoration-color: var(--link-underline);
+    @apply underline underline-offset-4 transition-[text-decoration-color];
+  }
+
+  :where(section, [data-glass]) :is(p, small) a {
+    --link: var(--card-ink);
+    --link-underline: var(--card-underline);
+  }
+
+  :is(p, small) a:is(:hover, :focus-visible) {
+    text-decoration-color: var(--link);
+  }
+
+  :where(section, [data-glass]) :is(p, small) a:is(:hover, :focus-visible) {
+    text-decoration-color: var(--card-accent);
   }
 
   button {
@@ -76,26 +153,68 @@
 
   input {
     @apply text-lg font-sans font-normal; 
-    @apply outline-none;
-    @apply bg-black hover:bg-black focus:bg-black;
-    @apply text-gray-light hover:text-gray-light focus:text-gray-light placeholder-gray;
+    @apply outline-none rounded-md;
+    @apply bg-head-dark/40 text-head-light/80 placeholder-head-light/40;
     @apply px-3 py-2 shadow-none;
   }
 
   textarea {
     @apply text-lg font-sans font-normal;
-    @apply outline-none;
-    @apply bg-black hover:bg-black focus:bg-black;
-    @apply text-gray-light hover:text-gray-light focus:text-gray-light placeholder-gray;
+    @apply outline-none rounded-md;
+    @apply bg-head-dark/40 text-head-light/80 placeholder-head-light/40;
     @apply px-3 py-2 shadow-none;
   }
 
   img {
-    @apply h-auto w-full bg-black;
+    @apply h-auto w-full bg-transparent;
   }
 
+  /* Over the photos under a card, the glass is a backdrop-filter on a layer
+     behind the card's text (components/Background/photoLens.ts sets
+     --photo-lens while a photo is within its reach, and --glass-reach, how
+     far past the card the layer reaches). The filter itself fades the glass
+     out toward the layer's edge. */
+  :where(section, [data-glass]) {
+    isolation: isolate;
+  }
+
+  :where(section, [data-glass])::before {
+    content: '';
+    position: absolute;
+    inset: calc(-1 * var(--glass-reach, 0px));
+    z-index: -1;
+    pointer-events: none;
+    backdrop-filter: var(--photo-lens, none);
+  }
+
+  /* Text and fields on a glass card take the card's text colour (above), at
+     full strength. */
+  :where(section, [data-glass]) :is(h2, h3, h6) {
+    color: var(--card-ink);
+  }
+
+  :where(section, [data-glass]) :is(p, label, small) {
+    color: var(--card-ink);
+  }
+
+  :where(section, [data-glass]) :is(input, textarea) {
+    background-color: color-mix(in srgb, var(--card-field) 40%, transparent);
+    color: var(--card-ink);
+  }
+
+  :where(section, [data-glass]) :is(input, textarea)::placeholder {
+    color: color-mix(in srgb, var(--card-ink) 40%, transparent);
+  }
+
+  /* Every card is frosted glass with the posts' rounded corners
+     (components/Post.tsx). The glass, the 3D scene blurred and tinted behind
+     it with a soft edge, is drawn in the scene (components/Background/
+     glass.ts frosts every section, and anything marked data-glass), so a
+     card has no background of its own; nor does it clip, so the glass over
+     the photos under it (::before, above) can reach as far as the scene's
+     glass fades. */
   section {
-    @apply bg-gray-darkest relative shadow-xl;
+    @apply relative rounded-3xl;
     @apply flex w-full max-w-4xl self-start;      
   }
 
@@ -103,37 +222,24 @@
     @apply p-6 md:p-12 w-full;
   }
 
-  .bg-gradient {
-    background: var(--black) linear-gradient(60deg,
-    var(--yellow) 5%,
-    var(--pink),
-    var(--cyan) 30%,
-    var(--blue) 40%,
-    var(--black) 50%,
-    var(--blue) 60%,
-    var(--cyan) 70%,
-    var(--pink) 85%,
-    var(--yellow) 95%);
-  }
-
+  /* The theme's colours (the head's, tailwind.config.js): its brightest
+     highlight at rest and its near-black navy on hover, each with the other
+     as its text.
+     As on the head, the light falls off fast: peach, rose, dusky purple and
+     deep blue are packed close together, so the hover is one sudden sweep
+     from the lightest colour to the darkest. */
   .bg-gradient-button {
-    background: var(--black) linear-gradient(60deg,
-    var(--white),
-    var(--white) 25%,
-    var(--yellow) 30%,
-    var(--pink) 45%,
-    var(--cyan) 60%,
-    var(--blue) 75%,
-    var(--black) 90%,
-    var(--black));
-  }
-
-  .youtube {
-    @apply relative pb-[50%];
-  }
-
-  .youtube iframe {
-    @apply absolute top-0 left-0 w-full h-full;
+    background: var(--head-dark) linear-gradient(60deg,
+    var(--head-light),
+    var(--head-light) 22%,
+    var(--head-peach) 28%,
+    var(--head-rose) 36%,
+    var(--head-purple) 46%,
+    var(--head-blue) 58%,
+    var(--head-indigo) 66%,
+    var(--head-navy) 74%,
+    var(--head-dark) 80%,
+    var(--head-dark));
   }
 }
 
@@ -142,4 +248,172 @@
    lingering across client-side navigation after the contact page loads it. */
 .grecaptcha-badge {
   visibility: hidden;
+}
+/* A post's image tiles (components/PostCollage.tsx). Out of view a tile waits
+   hidden, wholly off the window's right side (past the 15rem a card's glass
+   reaches beyond it, and the 64px of photo glass past that, so a waiting
+   tile never counts as under a card: photoLens.ts); in view it slides in
+   from there after its own wait (--wait), slowing gently into place, then
+   drifts on its own beat (--drift). Leaving, it gathers speed back off to the right and
+   hides. No bounce, spin or fade. The slide is `transform`, the drift
+   `translate` and the hover `scale`, so none of them stops another. */
+.collage-tile {
+  visibility: hidden;
+  transform: translateX(calc(100vw + 20rem)) rotate(var(--tilt));
+  transition:
+    transform 0.6s cubic-bezier(0.32, 0, 0.67, 0) var(--wait, 0s),
+    visibility 0s calc(var(--wait, 0s) + 0.6s),
+    scale 0.3s ease-out;
+}
+
+.collage[data-shown] .collage-tile {
+  /* Shown as the page is (hidden with it under the open phone menu). */
+  visibility: inherit;
+  transform: rotate(var(--tilt));
+  transition:
+    transform 0.9s cubic-bezier(0.22, 1, 0.36, 1) var(--wait, 0s),
+    visibility 0s var(--wait, 0s),
+    scale 0.3s ease-out,
+    filter 0.3s ease-out,
+    opacity 0.3s ease-out;
+  animation: collage-drift var(--drift, 6s) ease-in-out var(--drift-at, 0s)
+    infinite;
+}
+
+.collage-tile:hover {
+  z-index: 10;
+  scale: 1.04;
+}
+
+/* A video's tile sits over the others, so none covers its controls, and
+   while it plays it stops drifting, grows to the post's width (PostCollage)
+   and the other tiles blur behind it. */
+.collage .collage-tile[data-video] {
+  z-index: 20;
+}
+.collage[data-shown] .collage-tile[data-video] {
+  transition:
+    transform 0.9s cubic-bezier(0.22, 1, 0.36, 1) var(--wait, 0s),
+    visibility 0s var(--wait, 0s),
+    scale 0.3s ease-out,
+    left 0.6s cubic-bezier(0.65, 0, 0.35, 1),
+    top 0.6s cubic-bezier(0.65, 0, 0.35, 1),
+    width 0.6s cubic-bezier(0.65, 0, 0.35, 1),
+    height 0.6s cubic-bezier(0.65, 0, 0.35, 1);
+}
+.collage[data-playing] .collage-tile[data-video] {
+  scale: 1;
+  animation: none;
+}
+.collage[data-playing] .collage-tile:not([data-video]) {
+  filter: blur(6px);
+  opacity: 0.5;
+}
+/* Its card, faded away while it plays (PostCollage), takes no clicks. */
+[data-post]:has(.collage[data-playing]) section {
+  pointer-events: none;
+}
+
+@keyframes collage-drift {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -8px; }
+}
+
+/* As the site goes to another page (components/PageLeave.tsx), the tiles
+   slide off to the right as when their post leaves, after shorter waits, and
+   the scroll arrows fade. */
+body[data-leaving] .collage[data-shown] .collage-tile {
+  visibility: hidden;
+  transform: translateX(calc(100vw + 20rem)) rotate(var(--tilt));
+  transition:
+    transform 0.6s cubic-bezier(0.32, 0, 0.67, 0) calc(var(--wait, 0s) * 0.4),
+    visibility 0s calc(var(--wait, 0s) * 0.4 + 0.6s),
+    scale 0.3s ease-out;
+}
+body[data-leaving] [data-scroll-arrows] button {
+  visibility: hidden;
+  opacity: 0;
+}
+
+/* The page's scroll arrows (components/PageScroller/ScrollArrows.tsx, on the
+   body) fade in whenever they appear, as when the head comes back and the
+   down arrow leaves the footer, rather than popping in. */
+@starting-style {
+  body > [data-scroll-arrows] button {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .collage-tile {
+    transform: rotate(var(--tilt));
+    opacity: 0;
+    transition:
+      opacity 0.3s,
+      visibility 0s 0.3s;
+    animation: none;
+  }
+  .collage[data-shown] .collage-tile {
+    transform: rotate(var(--tilt));
+    opacity: 1;
+    transition:
+      opacity 0.3s,
+      visibility 0s;
+    animation: none;
+  }
+}
+
+/* Until data-page-in on <html> (the 3D scene ready, or half a second into
+   the page's load, components/Background/sceneReady.ts), what a page moves
+   in as it loads waits where it starts: the page's CSS animations (the home
+   title, the contact card) pause, a post's card waits unseen off the left
+   with its text faded, its image tiles off the right, and the header, footer
+   and scroll arrows are hidden, fading in once it is set. Pages without the
+   scene ([data-scene]) don't wait. */
+html:not([data-page-in]):has([data-scene]) #page * {
+  animation-play-state: paused;
+}
+html:not([data-page-in]):has([data-scene]) .post-card {
+  visibility: hidden;
+  translate: calc(-100vw - 20rem) 0;
+}
+html:not([data-page-in]):has([data-scene]) .post-card article {
+  opacity: 0;
+}
+html:not([data-page-in]):has([data-scene])
+  .collage[data-shown]
+  .collage-tile {
+  visibility: hidden;
+  transform: translateX(calc(100vw + 20rem)) rotate(var(--tilt));
+}
+[data-site-chrome],
+[data-scroll-arrows] {
+  transition: opacity 0.8s ease-out;
+}
+html:not([data-page-in]):has([data-scene])
+  :is([data-site-chrome], [data-scroll-arrows]) {
+  opacity: 0;
+}
+
+/* Where WebGL is drawn in software (data-software on <html>,
+   components/Background/index.tsx) the scene loads only after the page has
+   moved in, so until it draws its first frame the titles it draws in 3D (the
+   home page's name, a page's title in the header) show as text instead,
+   moving with the page (--title-fallback, else the sky's text colour). */
+html[data-software]:not([data-scene-drawn]) [data-scene-title] {
+  color: var(--title-fallback, var(--sky-text)) !important;
+}
+
+/* While the phone menu is open (components/Header/MobileNav), its glass pane
+   covers the page: the page's own text and cards would show through it, so
+   they hide, with the portfolio's scroll arrows (ScrollArrows.tsx). */
+body:has(.mobile-menu.fixed) #page,
+body:has(.mobile-menu.fixed) [data-scroll-arrows] {
+  visibility: hidden;
+}
+/* At once: a shown image tile would otherwise take its own wait to hide
+   (.collage-tile's visibility transition). */
+body:has(.mobile-menu.fixed) .collage-tile {
+  visibility: hidden;
+  transition: none;
 }
