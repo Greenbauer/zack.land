@@ -96,7 +96,7 @@ jobs:
         # Its `shards` output is the explore job's matrix: one explorer, unless max-shards allows more
         # and the criteria are more walks than one is sized for (harnesses/qae/README.md).
         id: criteria
-        uses: Greenbauer/vibe-verifier/actions/criteria@48bd2a31ea0bdb1bed947244fbcc2ab55cc560b3 # main 2026-10-21
+        uses: Greenbauer/vibe-verifier/actions/criteria@a996377d26f76ed69bcce23701038a62373b0661 # main 2026-10-29
         with:
           path: qae-inputs/pr-body.md
           changed-files: qae-inputs/changed-files
@@ -183,7 +183,7 @@ jobs:
         # Of several explorers only the first re-walks. Every one runs this step all the same: each
         # counts the selection, so that they share the criteria out alike, and the references step
         # below then takes qae-inputs/features away from every explorer but the first.
-        uses: Greenbauer/vibe-verifier/actions/features@48bd2a31ea0bdb1bed947244fbcc2ab55cc560b3 # main 2026-10-21
+        uses: Greenbauer/vibe-verifier/actions/features@a996377d26f76ed69bcce23701038a62373b0661 # main 2026-10-29
         with:
           changed-files: qae-inputs/changed-files
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
@@ -339,7 +339,7 @@ jobs:
         # explorer's load starts at the feature re-walk's walks, so it takes fewer criteria and reaches
         # the re-walk in its time: a selected feature with no walked step fails the gate.
         id: references
-        uses: Greenbauer/vibe-verifier/actions/qae-inputs@48bd2a31ea0bdb1bed947244fbcc2ab55cc560b3 # main 2026-10-21
+        uses: Greenbauer/vibe-verifier/actions/qae-inputs@a996377d26f76ed69bcce23701038a62373b0661 # main 2026-10-29
         with:
           shard: ${{ matrix.shard || 1 }}
           shards: ${{ strategy.job-total }}
@@ -348,7 +348,7 @@ jobs:
         # integrity fixed by tools/qae-browser/package-lock.json in the catalog. Nothing here is
         # resolved from the registry at run time: this job holds the account-level token.
         id: browser
-        uses: Greenbauer/vibe-verifier/actions/qae-browser@48bd2a31ea0bdb1bed947244fbcc2ab55cc560b3 # main 2026-10-21
+        uses: Greenbauer/vibe-verifier/actions/qae-browser@a996377d26f76ed69bcce23701038a62373b0661 # main 2026-10-29
       - name: Explore the acceptance criteria in a real browser
         # --max-turns is the turn cap the references step sized to this run's walks: a fixed 80 cut off
         # a correct run of two criteria at two widths (harnesses/qae/README.md, "The turn cap").
@@ -473,7 +473,7 @@ jobs:
             # the Read rules never see that read, and any other path would post whatever file it names.
       - name: Collect numeric usage
         if: always()
-        uses: Greenbauer/vibe-verifier/actions/usage@48bd2a31ea0bdb1bed947244fbcc2ab55cc560b3 # main 2026-10-21
+        uses: Greenbauer/vibe-verifier/actions/usage@a996377d26f76ed69bcce23701038a62373b0661 # main 2026-10-29
         with:
           source-file: ${{ steps.explorer.outputs.execution_file }}
           source-ran: true
@@ -594,6 +594,8 @@ jobs:
     permissions:
       contents: read
       pull-requests: write   # the QA review comment, and nothing else
+      actions: read    # the explore jobs of this run, and
+      checks: read     # their failure annotations: a model usage limit gets its own QA review (actions/qa-review)
     steps:
       - name: Require a finished criteria job
         # The explore job is skipped when the criteria job found nothing to walk, and also when that
@@ -643,14 +645,23 @@ jobs:
           printf '%s' "$CARRY" > qae-inputs/carry.json
       - name: Read the criteria
         id: criteria
-        uses: Greenbauer/vibe-verifier/actions/criteria@48bd2a31ea0bdb1bed947244fbcc2ab55cc560b3 # main 2026-10-21
+        uses: Greenbauer/vibe-verifier/actions/criteria@a996377d26f76ed69bcce23701038a62373b0661 # main 2026-10-29
         with:
           path: qae-inputs/pr-body.md
           changed-files: qae-inputs/changed-files
           ticket: qae-inputs/ticket.md
           carry: qae-inputs/carry.json   # the criteria job's facts, so both jobs decide a carry alike
+      - name: Tell a model usage limit from a failure
+        # A failed explore job whose every explorer hit its model usage limit walked nothing. This step reads
+        # their failure annotations and, when that is so, warns with each limit and its reset: the steps below
+        # that judge a walk are skipped, so this job passes with the warning, and the QA review records the head
+        # as limited, never as walked (operator, 2026-10-29). An explorer that succeeded or failed any other way,
+        # or annotations it cannot read, leave `limited` false and the job judges as before.
+        id: limit
+        if: needs.explore.result == 'failure'
+        uses: Greenbauer/vibe-verifier/actions/qa-limit@a996377d26f76ed69bcce23701038a62373b0661 # main 2026-10-29
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        if: steps.criteria.outputs.count != '0'
+        if: steps.criteria.outputs.count != '0' && steps.limit.outputs.limited != 'true'
         # Every explorer's evidence, of every attempt of this run, each in a directory named for its
         # artifact: qae-evidence/qae-artifacts-<attempt>[-<explorer>]/ in the runner's temporary directory,
         # outside the checkout, so a directory the pull request commits is never one of them. The next
@@ -673,7 +684,7 @@ jobs:
         # A qae-artifacts/ the checkout already has came from the pull request (Git makes no empty
         # directory), so the step stops before writing anything: a link there could send the copies
         # anywhere on the runner. The gates refuse such evidence too (gates/_contract.py, planted).
-        if: steps.criteria.outputs.count != '0'
+        if: steps.criteria.outputs.count != '0' && steps.limit.outputs.limited != 'true'
         env:
           SHARDS: ${{ needs.criteria.outputs.shards }}
           EXPLORE_ATTEMPT: ${{ needs.explore.outputs.attempt }}
@@ -730,8 +741,8 @@ jobs:
           echo "verdict lines: $(grep -c 'acceptance-check:' qae-inputs/verdict.md || true)"
       - name: Run the QA gates
         id: gates
-        if: steps.criteria.outputs.declared-none == ''
-        uses: Greenbauer/vibe-verifier/actions/gates@48bd2a31ea0bdb1bed947244fbcc2ab55cc560b3 # main 2026-10-21
+        if: steps.criteria.outputs.declared-none == '' && steps.limit.outputs.limited != 'true'
+        uses: Greenbauer/vibe-verifier/actions/gates@a996377d26f76ed69bcce23701038a62373b0661 # main 2026-10-29
         with:
           manifest: .vibe-verifier-qae
       - name: Require every explorer of a split run
@@ -739,7 +750,7 @@ jobs:
         # can require it. The others, that name with (2), (3), ..., exist only on a large pull request,
         # and no rule can name them. So on a split run this job fails unless every explorer's job
         # succeeded, after the gates have said what they found. A run with one explorer is not touched.
-        if: ${{ !cancelled() && needs.criteria.outputs.shards != '[""]' && needs.explore.result != 'success' && needs.explore.result != 'skipped' }}
+        if: ${{ !cancelled() && needs.criteria.outputs.shards != '[""]' && needs.explore.result != 'success' && needs.explore.result != 'skipped' && steps.limit.outputs.limited != 'true' }}
         env:
           EXPLORE_RESULT: ${{ needs.explore.result }}
         run: |
@@ -748,7 +759,7 @@ jobs:
         # One comment per pull request, edited in place on every run: passed, changes needed, not
         # required, or could not run, from what the jobs and gates concluded, never the explorer's prose.
         if: ${{ !cancelled() }}
-        uses: Greenbauer/vibe-verifier/actions/qa-review@48bd2a31ea0bdb1bed947244fbcc2ab55cc560b3 # main 2026-10-21
+        uses: Greenbauer/vibe-verifier/actions/qa-review@a996377d26f76ed69bcce23701038a62373b0661 # main 2026-10-29
         with:
           criteria: qae-inputs/pr-body.md
           verdict: qae-inputs/verdict.md
@@ -757,4 +768,5 @@ jobs:
           gates-outcome: ${{ steps.gates.outcome }}
           not-required: ${{ steps.criteria.outputs.declared-none }}
           carried-from: ${{ steps.criteria.outputs.carried-from }}
+          limits: ${{ steps.limit.outputs.limits }}
           token: ${{ secrets.GITHUB_TOKEN }}
