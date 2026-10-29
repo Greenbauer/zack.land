@@ -126,9 +126,10 @@ jobs:
       matrix:
         shard: ${{ fromJSON(needs.criteria.outputs.shards) }}
     runs-on: ubuntu-latest   # CONSUMER
-    # 40: an explorer walking five of PR 113's sampled criteria at two widths ran past 30 minutes
-    # (92d6659, walks 5 and 8); twelve explorers give about three each, well inside it.
-    timeout-minutes: 40
+    # 60: an explorer walking five of PR 113's sampled criteria at two widths ran past 30 minutes
+    # (92d6659, walks 5 and 8), and one walking three (a sampled page turn, four posts' pills and
+    # the site's icons) reached the icons and ran out at 40, twice (32f4070, walk 11).
+    timeout-minutes: 60
     permissions:
       contents: read
       pull-requests: write
