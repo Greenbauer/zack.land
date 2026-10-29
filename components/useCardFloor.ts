@@ -26,6 +26,26 @@ export const isTooShortFor = (
   hasPhotos: boolean,
 ) => floor + (hasPhotos ? MIN_PHOTOS_PX : 0) > post + 1;
 
+// The height of a card's text column with its description cut to one line:
+// `parts` are its shown parts' heights in order, the description's as one
+// line and its More, if shown, as 'more'. It always keeps room for More
+// (`moreHeight`, with its gap above): a card is closed only where More then
+// fits, so laying it open, which takes More away, must not lower its floor,
+// or it would close again and bring More back.
+export function textFloor(
+  parts: readonly (number | 'more')[],
+  gap: number,
+  moreHeight: number,
+) {
+  const shown = parts.filter((part) => part !== 'more');
+  return (
+    shown.reduce((sum, part) => sum + part, 0) +
+    gap * Math.max(0, shown.length - 1) +
+    gap +
+    moreHeight
+  );
+}
+
 export default function useCardFloor(
   articleRef: RefObject<HTMLElement | null>,
   linksRef: RefObject<HTMLElement | null>,
@@ -52,21 +72,35 @@ export default function useCardFloor(
     };
     const description = descriptionRef.current;
     const text = description?.parentElement;
-    // The text column with its description cut to one line.
+    // The height of the text column's More, kept from when it last showed
+    // (a wide card's More is about 20 pixels).
+    let moreHeight = 20;
+    // The text column with its description cut to one line, and room for
+    // More (textFloor).
     const textHeight = () => {
       if (!description || !text) return 0;
-      const parts = [...text.children] as HTMLElement[];
+      // Its shown parts: on a phone its More is hidden (it sits with the
+      // links there).
+      const parts = ([...text.children] as HTMLElement[]).filter(
+        (part) => part === description || part.offsetHeight > 0,
+      );
       const gap = parseFloat(getComputedStyle(text).rowGap) || 0;
       const line = parseFloat(
         getComputedStyle(description.querySelector('p') ?? description)
           .lineHeight,
       );
-      return parts.reduce(
-        (sum, part, k) =>
-          sum +
-          (part === description ? line : part.offsetHeight) +
-          (k ? gap : 0),
-        0,
+      const more = parts.find((part) => part.tagName === 'BUTTON');
+      if (more) moreHeight = more.offsetHeight;
+      return textFloor(
+        parts.map((part) =>
+          part === description
+            ? line
+            : more === part
+              ? 'more'
+              : part.offsetHeight,
+        ),
+        gap,
+        moreHeight,
       );
     };
     const measure = () => {
@@ -83,9 +117,26 @@ export default function useCardFloor(
       );
     };
     measure();
-    const resize = new ResizeObserver(measure);
+    // Measured again a frame after anything changes, once every other
+    // watcher has run: the footer's height reaches --post-height through
+    // the footer's own watcher (Footer/index.tsx), which may run after this
+    // one.
+    let frame = 0;
+    const remeasure = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(measure);
+    };
+    const resize = new ResizeObserver(remeasure);
     resize.observe(links);
     resize.observe(card);
+    // The post too: its height between the page's fades settles after the
+    // first measure (the footer's own height comes later), and a card held
+    // at its floor does not change with it. And the footer itself, whose
+    // height that is: a post laid open taller than the window does not
+    // change size when it does.
+    resize.observe(post);
+    const footer = document.querySelector('footer');
+    if (footer) resize.observe(footer);
     // The text column stretches to the card, so its own size does not
     // change as its title wraps or More comes and goes: each of its parts
     // is watched instead, and so is which parts it has.
@@ -95,14 +146,15 @@ export default function useCardFloor(
     watchText();
     const parts = new MutationObserver(() => {
       watchText();
-      measure();
+      remeasure();
     });
     if (text) parts.observe(text, { childList: true });
-    addEventListener('resize', measure);
+    addEventListener('resize', remeasure);
     return () => {
+      cancelAnimationFrame(frame);
       resize.disconnect();
       parts.disconnect();
-      removeEventListener('resize', measure);
+      removeEventListener('resize', remeasure);
     };
   }, [articleRef, linksRef, descriptionRef, hasPhotos]);
 
