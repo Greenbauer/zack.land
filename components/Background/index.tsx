@@ -15,7 +15,13 @@ import HeadFraming from './HeadFraming';
 import { lookOrigin } from './headPlace';
 import MyHead, { Point } from './MyHead';
 import { drawsInSoftware, renderQuality } from './quality';
-import { frameSettler, markSceneReady, READY_AT_MOST_MS } from './sceneReady';
+import {
+  frameSettler,
+  markPageIn,
+  markSceneReady,
+  pageInDelay,
+  READY_AT_MOST_MS,
+} from './sceneReady';
 import Sky from './Sky';
 import TitleName from './TitleName';
 
@@ -31,11 +37,16 @@ export default function Background() {
     y: (mousePosition.y - height / 2) * 0.5,
   });
 
-  // The page's load motion waits for the scene (sceneReady.ts), but no longer
-  // than this, as without WebGL it never draws.
+  // The page's own motion waits for the scene only briefly, and the scene's
+  // ready mark no longer than READY_AT_MOST_MS, as without WebGL it never
+  // draws (sceneReady.ts).
   useEffect(() => {
+    const pageIn = setTimeout(markPageIn, pageInDelay(performance.now()));
     const wait = setTimeout(markSceneReady, READY_AT_MOST_MS);
-    return () => clearTimeout(wait);
+    return () => {
+      clearTimeout(pageIn);
+      clearTimeout(wait);
+    };
   }, []);
 
   const handleCameraUpdate = (camera: PerspectiveCameraType): void => {

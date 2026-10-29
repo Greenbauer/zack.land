@@ -34,7 +34,7 @@ export function swapTo(
 
 // The footer's look as the scroll arrow comes and goes in `slotRef` (its
 // arrow slot, data-footer-arrow). While the site is still loading (its
-// header and footer hidden, data-scene-ready not yet set) it goes straight
+// header and footer hidden, data-page-in not yet set) it goes straight
 // to the arrow, with nothing to fade.
 export function useArrowSwap(slotRef: RefObject<HTMLElement | null>) {
   const [phase, setPhase] = useState<Swap>('text');
@@ -56,7 +56,7 @@ export function useArrowSwap(slotRef: RefObject<HTMLElement | null>) {
       phaseRef.current = next;
       setPhase(next);
     };
-    if (hasArrow && !document.documentElement.hasAttribute('data-scene-ready'))
+    if (hasArrow && !document.documentElement.hasAttribute('data-page-in'))
       return go('arrow');
     const { now, then, after } = swapTo(phaseRef.current, hasArrow);
     go(now);

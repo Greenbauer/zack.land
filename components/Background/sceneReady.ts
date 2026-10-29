@@ -1,8 +1,13 @@
-// When the page's 3D scene is ready: loaded and drawing frames smoothly. Its
-// load stalls the page for a second or more (more on a phone), and motion a
-// page starts as it loads would be spent behind those stalls, so until then
-// styles/globals.css holds it where it starts and keeps the header and
-// footer hidden. Marked by data-scene-ready on <html> (index.tsx).
+// When the page's 3D scene is ready: loaded and drawing frames smoothly
+// (data-scene-ready on <html>, index.tsx), which the head's first placement
+// waits for (HeadFraming.tsx). Its load takes a second or more (more on a
+// phone). The page's own motion as it opens (the home title, the contact
+// card, a post's card, the header and footer fading in) waits for it only
+// briefly: styles/globals.css holds it where it starts until data-page-in,
+// set once the scene is ready or PAGE_IN_AT_MOST_MS after the page began to
+// load, whichever is first, so it rests within 2 seconds of the page opening.
+// That motion is CSS translate and opacity, which the browser runs off the
+// main thread, so the scene's load does not make it stutter.
 
 // How many frames in a row must each come within SMOOTH_SECONDS of the last.
 export const SMOOTH_FRAMES = 3;
@@ -10,6 +15,15 @@ export const SMOOTH_SECONDS = 0.1;
 // The longest the page waits for the scene, in milliseconds (no WebGL, or a
 // very slow load).
 export const READY_AT_MOST_MS = 6000;
+// The longest the page's own motion waits for the scene, in milliseconds
+// from the start of the page's load (a slide of 1.4 s then rests by 1.9 s).
+export const PAGE_IN_AT_MOST_MS = 500;
+
+// How long from `now` (milliseconds since the page began to load) until the
+// page's own motion starts at the latest: none once that time has passed, as
+// on every page after the first.
+export const pageInDelay = (now: number) =>
+  Math.max(0, PAGE_IN_AT_MOST_MS - now);
 
 // Takes each frame's time since the last, in seconds; true once
 // `frames` quick ones have come in a row.
@@ -21,5 +35,10 @@ export function frameSettler(frames = SMOOTH_FRAMES, quick = SMOOTH_SECONDS) {
   };
 }
 
-export const markSceneReady = () =>
+export const markPageIn = () =>
+  document.documentElement.setAttribute('data-page-in', '');
+
+export function markSceneReady() {
+  markPageIn();
   document.documentElement.setAttribute('data-scene-ready', '');
+}

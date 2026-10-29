@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { frameSettler, SMOOTH_FRAMES } from './sceneReady';
+import {
+  frameSettler,
+  PAGE_IN_AT_MOST_MS,
+  pageInDelay,
+  SMOOTH_FRAMES,
+} from './sceneReady';
 
 describe('frameSettler', () => {
   it('settles once enough quick frames come in a row', () => {
@@ -18,5 +23,17 @@ describe('frameSettler', () => {
     expect(settled(0.016)).toBe(false);
     expect(settled(0.016)).toBe(false);
     expect(settled(0.016)).toBe(true);
+  });
+});
+
+describe('pageInDelay', () => {
+  it('starts the page moving half a second into its load at the latest', () => {
+    expect(PAGE_IN_AT_MOST_MS).toBe(500);
+    expect(pageInDelay(120)).toBe(380);
+  });
+
+  it('starts it at once once that time has passed, as on a later page', () => {
+    expect(pageInDelay(500)).toBe(0);
+    expect(pageInDelay(42_000)).toBe(0);
   });
 });
