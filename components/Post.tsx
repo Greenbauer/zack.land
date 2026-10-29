@@ -9,6 +9,7 @@ import { Content } from '@/types';
 import EdgeCard from './EdgeCard';
 import FitText from './FitText';
 import PostCollage from './PostCollage';
+import { phoneParts, showsMore } from './postParts';
 import useCardFloor from './useCardFloor';
 import useCardOnTop from './useCardOnTop';
 import useClipped from './useClipped';
@@ -86,18 +87,25 @@ export default function Post({ content }: PostProps) {
   // Opened, the card takes the whole post in place of its images, and if
   // that is still too short the post grows and the page scrolls through it
   // (SnapPager.tsx). On a wide window too short for even the card's floor
-  // (its links and a line of its text, useCardFloor), as a phone on its
-  // side, the card is laid out open that way from the start, with no More.
+  // (its links and a line of its text, useCardFloor) with its photos kept
+  // to more than a strip, as a phone on its side, the card is laid out open
+  // that way from the start, with no More.
   const articleRef = useRef<HTMLElement | null>(null);
   const descriptionRef = useRef<HTMLDivElement | null>(null);
   const linksRef = useRef<HTMLDivElement | null>(null);
-  const isTooShort = useCardFloor(articleRef, linksRef, descriptionRef);
+  const isTooShort = useCardFloor(
+    articleRef,
+    linksRef,
+    descriptionRef,
+    hasMedia,
+  );
   const isLaidOpen = isExpanded || isTooShort;
   const isClamped = hasMedia && !isLaidOpen && !isWhole;
   const isArticleCut = useClipped(articleRef, !isLaidOpen);
   const isDescriptionCut = useClipped(descriptionRef, !isLaidOpen);
   const isCut = !isLaidOpen && (isArticleCut || isDescriptionCut);
   const hasMore = showsMore(isExpanded, isTooShort, isCut);
+  const phone = phoneParts(isClamped, isDescriptionCut);
   useHeadClear(postRef);
   // A post with no images, on a wide window with no room for its card
   // beside the head: the card sits at the top of the post instead of the
@@ -130,6 +138,7 @@ export default function Post({ content }: PostProps) {
     <div
       ref={postRef}
       data-post
+      data-laid-open={isTooShort || undefined}
       className={`relative flex min-h-[var(--post-height)] w-full shrink-0 snap-start scroll-mt-[var(--page-top)] flex-col ${
         isLaidOpen ? '' : 'h-[var(--post-height)] justify-end'
       }`}
@@ -200,18 +209,18 @@ export default function Post({ content }: PostProps) {
           >
             {!!coded && <CodedBadge coded={coded} className="max-md:hidden" />}
             {!!technology && (
-              <p className={isClamped ? 'hidden md:block' : ''}>
+              <p className={phone.technologyClass}>
                 Technology used:
                 <br />
                 <small>{technology}</small>
               </p>
             )}
-            {(isClamped || hasMore) && (
+            {(phone.isMore || hasMore) && (
               <MoreButton
                 isExpanded={isExpanded}
                 onToggle={toggle}
                 className={`md:hidden ${
-                  isClamped ? 'max-md:mr-auto max-md:self-center' : ''
+                  phone.isMore ? 'max-md:mr-auto max-md:self-center' : ''
                 }`}
               />
             )}
@@ -230,13 +239,6 @@ export default function Post({ content }: PostProps) {
       </EdgeCard>
     </div>
   );
-}
-
-// Whether a card shows More (or Less): when its text is cut short or it is
-// open, never when it is laid open because its post is too short for it
-// (useCardFloor), as there is nothing to close.
-function showsMore(isExpanded: boolean, isTooShort: boolean, isCut: boolean) {
-  return !isTooShort && (isExpanded || isCut);
 }
 
 // Where a post's card is: opened, in the post; else fixed at the bottom of
@@ -306,13 +308,13 @@ function CodedBadge({
     <span
       className={`inline-flex items-center gap-2 self-start rounded-full px-3 py-1 font-display text-xs uppercase tracking-widest text-[color:var(--card-ink)] ${className} ${
         isHand
-          ? 'bg-[color-mix(in_srgb,var(--card-accent)_15%,transparent)]'
+          ? 'bg-[color-mix(in_srgb,var(--card-underline)_15%,transparent)]'
           : 'bg-[color-mix(in_srgb,var(--card-ink)_10%,transparent)]'
       }`}
     >
       <Icon
         aria-hidden
-        className={`size-3.5 ${isHand ? 'text-[color:var(--card-accent)]' : ''}`}
+        className={`size-3.5 ${isHand ? 'text-[color:var(--card-underline)]' : ''}`}
       />
       {isHand ? 'Hand Coded' : 'Vibe Coded'}
     </span>

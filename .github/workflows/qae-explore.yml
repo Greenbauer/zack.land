@@ -126,10 +126,12 @@ jobs:
       matrix:
         shard: ${{ fromJSON(needs.criteria.outputs.shards) }}
     runs-on: ubuntu-latest   # CONSUMER
-    # 60: an explorer walking five of PR 113's sampled criteria at two widths ran past 30 minutes
-    # (92d6659, walks 5 and 8), and one walking three (a sampled page turn, four posts' pills and
-    # the site's icons) reached the icons and ran out at 40, twice (32f4070, walk 11).
-    timeout-minutes: 60
+    # 30, the template's: PR 113's walks ran out of time for causes now fixed, not for want of
+    # minutes: a CPU-drawn scene froze the page for seconds a frame (84fed81 draws it at a quarter
+    # of the pixels), an explorer could not load /favicon.ico (e8f5824) and one could not sample
+    # a page from navigation (d82820d), both now in the site notes. Walks at 84fed81 took 11 to
+    # 24 minutes, apart from those two.
+    timeout-minutes: 30
     permissions:
       contents: read
       pull-requests: write

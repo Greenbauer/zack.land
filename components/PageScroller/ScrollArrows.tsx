@@ -72,8 +72,8 @@ const DOWN_TOP = `min(calc(${FOOTER_TOP} - 0.25rem - ${ARROW_HEIGHT}), max(calc(
 // frame (arrowInk.ts), else in the cards' text colour, which the glass keeps
 // readable (--card-ink, styles/globals.css). On a phone, or wherever the head
 // has stepped off the screen to leave a card the room (framedHead.x below 0,
-// headPlace.ts), only the down arrow, in the footer, at the left of its text
-// (data-footer-arrow, Footer) and in the footer's colours. Each glides to the
+// headPlace.ts), only the down arrow, in the footer, alone and centred while
+// its text and links hide (data-footer-arrow, Footer) and in the footer's colours. Each glides to the
 // post before or after, and shows only while there is a post that way; on a
 // wide screen they fade out as the page turns and back in once the arriving
 // card has passed (SETTLE_MS). On a wide screen they sit on the body, outside

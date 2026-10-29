@@ -31,7 +31,8 @@ const THROUGH_STEP = 0.8;
 // while the last turn's next card is still coming in is let go, a turn back
 // goes at once (turnGate). A post that More has opened taller than the
 // page (Post.tsx) is scrolled through first, and turns only at its end
-// (throughPost). Renders nothing.
+// (throughPost), except by a scroll arrow on a post laid open for a short
+// window. Renders nothing.
 export default function SnapPager() {
   useEffect(() => {
     const scroller = document.getElementById(PAGE_SCROLLER_ID);
@@ -96,8 +97,18 @@ export default function SnapPager() {
     };
 
     // A key or a scroll arrow (`pressed`) scrolls most of a window through a
-    // tall post, or else turns the page.
+    // tall post, or else turns the page. A scroll arrow on a post laid open
+    // because its window is too short for its card (data-laid-open,
+    // Post.tsx) turns the page at once: there the keys, the wheel and a
+    // finger scroll through it.
+    const isOnLaidOpen = () => {
+      const posts = scroller.querySelectorAll('[data-post]');
+      return !!posts[postAt(spans(), scroller.scrollTop)]?.hasAttribute(
+        'data-laid-open',
+      );
+    };
     const step = (direction: 1 | -1, pressed = false) => {
+      if (pressed && isOnLaidOpen()) return glide(direction, pressed);
       const to = throughPost(
         spans(),
         scroller.scrollTop,
