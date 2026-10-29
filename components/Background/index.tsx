@@ -53,9 +53,11 @@ export default function Background() {
   // Whether the scene has started loading (sceneDelay).
   const [isSceneOn, setIsSceneOn] = useState(false);
   useEffect(() => {
+    const software = drawsInSoftware();
+    if (software) document.documentElement.setAttribute('data-software', '');
     const start = setTimeout(
       () => setIsSceneOn(true),
-      sceneDelay(performance.now(), drawsInSoftware()),
+      sceneDelay(performance.now(), software),
     );
     return () => clearTimeout(start);
   }, []);

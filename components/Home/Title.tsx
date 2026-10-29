@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { CSSProperties, useEffect, useRef, useState } from 'react';
 
 import { watchBackdrop } from '@/components/Background/backdrop';
 import { titleWords } from '@/components/Background/titleWords';
@@ -73,7 +73,19 @@ export default function Title() {
 
   return (
     <>
-      <h1 className="!bg-transparent !bg-none !text-transparent max-md:text-[length:calc((100vw_-_1.5rem)/10.34*0.97)] max-md:leading-[1.15] md:max-lg:text-5xl">
+      {/* Where WebGL is drawn in software the scene loads only after the
+          page has moved in (Background/sceneReady.ts), so until it is ready
+          this heading shows the name itself, in the subtitle's colour
+          (data-scene-title in styles/globals.css). */}
+      <h1
+        data-scene-title
+        className="!bg-transparent !bg-none !text-transparent max-md:text-[length:calc((100vw_-_1.5rem)/10.34*0.97)] max-md:leading-[1.15] md:max-lg:text-5xl"
+        style={
+          {
+            '--title-fallback': `rgb(${subtitleColour.join(' ')})`,
+          } as CSSProperties
+        }
+      >
         {NAME.map((text, index) => (
           <span key={text}>
             {index > 0 && ' '}
