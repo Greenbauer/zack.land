@@ -2,11 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
+import { watchBackdrop } from '@/components/Background/backdrop';
 import useSkyColours from '@/components/SkyText/useSkyColours';
 
 import { Swap, useArrowSwap } from './arrowSwap';
+import { needsBacking } from './backing';
 import SocialLinks from './SocialLinks';
 
 // Shown only when reCAPTCHA is active — required by Google's terms when the
@@ -89,11 +91,19 @@ export default function Footer() {
   // The footer sits on the sky, not on the cards' glass, on every screen:
   // the glass takes no colour of its own (components/Background/Grading.tsx),
   // so a card above it has no tint to match, and glass under the footer only
-  // showed as a tinted pill while the phone menu's tint pass ran. What keeps
-  // it readable where it crosses the head (its chest, on a phone) is a soft
-  // halo of the other side's theme colour behind its text and icons
-  // (--sky-halo, skyColours.ts): a light glow behind dark text, a dark one
-  // behind light.
+  // showed as a tinted pill while the phone menu's tint pass ran. Where its
+  // text crosses both the pale sky and the head's dark chest (a phone),
+  // which no one text colour reads over, the text sits on a flat backing of
+  // the other side's theme colour instead (--sky-backing, skyColours.ts;
+  // needsBacking in backing.ts): the light behind dark text, the dark behind
+  // light. No blur or glass.
+  const [isBacked, setIsBacked] = useState(false);
+  useEffect(() => {
+    if (!textRef.current) return;
+    return watchBackdrop(textRef.current, (samples) =>
+      setIsBacked((was) => needsBacking(samples, was)),
+    );
+  }, []);
 
   // The page's bottom fade sits on the footer's top edge (see
   // components/PageScroller/edgeFade.ts), so it follows the footer's height.
@@ -123,7 +133,7 @@ export default function Footer() {
       <div
         ref={iconsRef}
         data-footer-extra
-        className={`order-last flex-none md:order-first [&_svg]:[filter:drop-shadow(0_0_0.2em_var(--sky-halo))] ${EXTRA[phase]}`}
+        className={`order-last flex-none md:order-first ${EXTRA[phase]}`}
       >
         <SocialLinks />
       </div>
@@ -144,7 +154,7 @@ export default function Footer() {
         />
         <div
           data-footer-extra
-          className={`[text-shadow:0_0_0.1em_var(--sky-halo),0_0_0.25em_var(--sky-halo),0_0_0.6em_var(--sky-halo)] max-md:flex-1 ${EXTRA[phase]}`}
+          className={`max-md:flex-1 ${isBacked ? 'rounded-lg bg-[color:var(--sky-backing)] px-3 py-1' : ''} ${EXTRA[phase]}`}
         >
           {pathname === '/contact' ? <ContactPageText /> : <DefaultText />}
         </div>

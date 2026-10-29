@@ -8,7 +8,7 @@ import { skyBehind, skyColours } from './skyColours';
 // Keeps the colours of what sits over the sky inside `ref` readable as the
 // sky behind it turns (skyColours.ts). They are written to the element as
 // --sky-text, --sky-muted, --sky-faint, --sky-accent, --sky-underline and
-// --sky-halo, which its children use, without re-rendering; each change fades
+// --sky-backing, which its children use, without re-rendering; each change fades
 // (the .sky-colours class in styles/globals.css). Until the sky is first
 // measured, the defaults there apply. While the sky rests at its view's home (skyState) the
 // text takes that sky's side, light or dark, whatever the pointer or the head
@@ -36,7 +36,7 @@ export default function useSkyColours(ref: RefObject<HTMLElement | null>) {
         'faint',
         'accent',
         'underline',
-        'halo',
+        'backing',
       ] as const)
         element.style.setProperty(`--sky-${name}`, colours[name]);
     });

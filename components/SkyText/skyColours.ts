@@ -113,9 +113,9 @@ export function skyColours(
         : rgb(head.indigo),
     ),
     underline: css(rgb(onDark ? head.rose : head.purple)),
-    // A soft glow of the other side's theme colour behind text that can
-    // cross something darker or lighter than the sky it was picked for, as
-    // the footer's crosses the head's chest on a phone.
-    halo: css(onDark ? DARK : LIGHT),
+    // A flat backing of the other side's theme colour, for text that crosses
+    // both the sky and something much darker or lighter than it, as the
+    // footer's crosses the head's chest on a phone (Footer/backing.ts).
+    backing: css(onDark ? DARK : LIGHT),
   };
 }

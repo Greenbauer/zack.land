@@ -95,10 +95,10 @@ describe('the theme colour that reads', () => {
   });
 });
 
-describe('the halo behind text that crosses the head', () => {
+describe('the backing behind text that crosses the head', () => {
   it("is the other side's theme colour: dark behind light text, light behind dark", () => {
-    expect(hex(skyColours(0.03).halo)).toBe(head.dark);
-    expect(hex(skyColours(0.45).halo)).toBe(head.light);
+    expect(hex(skyColours(0.03).backing)).toBe(head.dark);
+    expect(hex(skyColours(0.45).backing)).toBe(head.light);
   });
 });
 
