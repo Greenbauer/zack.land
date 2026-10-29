@@ -213,7 +213,8 @@ jobs:
           # spent most of its turns probing the page for the head's turn and ran out of turns before its
           # last criterion (PR 113, 2026-10-28). A screenshot must be taken with the scene stopped: told
           # it was not needed (true on a Mac, not on this runner), an explorer retried timed-out
-          # screenshots until it ran out of turns.
+          # screenshots until it ran out of turns. Unable to load /favicon.ico any way it tried, an
+          # explorer stalled until the job's time ran out (PR 113, 2026-10-29).
           cat > qae-inputs/site.md <<'MD'
           # The site under test
           - No sign-in: every page is public, and there is one theme.
@@ -241,6 +242,10 @@ jobs:
             sky turns slowly with the head.
           - Focusing a form field blurs the scene behind the form within a few seconds here: focus it,
             wait 4 seconds, stop the scene, and take a screenshot.
+          - This browser fails every request for exactly `/favicon.ico` (as an image or a fetch), as
+            Playwright's Chromium does once a page has a route, which this harness sets; any other
+            address loads. To look at the favicon, open `/favicon.ico?v=1`, which the site answers with
+            the same file.
           MD
           # Design references for criteria that name [ref: <key>], read from the base branch so a pull
           # request cannot supply the image it is judged against. Each is a 1x screenshot of the design.
