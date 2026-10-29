@@ -52,7 +52,13 @@ export default function useCardFloor(
     };
     const description = descriptionRef.current;
     const text = description?.parentElement;
-    // The text column with its description cut to one line.
+    // The height of the text column's More, kept from when it last showed
+    // (a wide card's More is about 20 pixels).
+    let moreHeight = 20;
+    // The text column with its description cut to one line, and always with
+    // room for More: a card is closed only where More then fits, so laying
+    // it open (which takes More away) must not lower its floor, or it would
+    // close again and bring More back.
     const textHeight = () => {
       if (!description || !text) return 0;
       const parts = [...text.children] as HTMLElement[];
@@ -61,13 +67,16 @@ export default function useCardFloor(
         getComputedStyle(description.querySelector('p') ?? description)
           .lineHeight,
       );
-      return parts.reduce(
+      const more = parts.find((part) => part.tagName === 'BUTTON');
+      if (more) moreHeight = more.offsetHeight;
+      const shown = parts.reduce(
         (sum, part, k) =>
           sum +
           (part === description ? line : part.offsetHeight) +
           (k ? gap : 0),
         0,
       );
+      return more ? shown : shown + gap + moreHeight;
     };
     const measure = () => {
       const { paddingTop, paddingBottom } = getComputedStyle(article);
@@ -86,6 +95,10 @@ export default function useCardFloor(
     const resize = new ResizeObserver(measure);
     resize.observe(links);
     resize.observe(card);
+    // The post too: its height between the page's fades settles after the
+    // first measure (the footer's own height comes later), and a card held
+    // at its floor does not change with it.
+    resize.observe(post);
     // The text column stretches to the card, so its own size does not
     // change as its title wraps or More comes and goes: each of its parts
     // is watched instead, and so is which parts it has.
