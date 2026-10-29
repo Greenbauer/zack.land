@@ -80,27 +80,30 @@ export default function Post({ content }: PostProps) {
   // while Less brings it down, it kept a wrong answer and Less left the card
   // tall and the images small.
   const isWhole = usePhoneWhole(postRef, mediaSources, hasMedia && isClosed);
-  const isClamped = hasMedia && !isExpanded && !isWhole;
   // The card never scrolls inside: on any screen, text that doesn't fit is
   // cut after its last whole line, with an ellipsis (FitText), and More
   // shows under it.
   // Opened, the card takes the whole post in place of its images, and if
   // that is still too short the post grows and the page scrolls through it
-  // (SnapPager.tsx).
+  // (SnapPager.tsx). On a wide window too short for even the card's floor
+  // (its links and a line of its text, useCardFloor), as a phone on its
+  // side, the card is laid out open that way from the start, with no More.
   const articleRef = useRef<HTMLElement | null>(null);
   const descriptionRef = useRef<HTMLDivElement | null>(null);
-  const isArticleCut = useClipped(articleRef, !isExpanded);
-  const isDescriptionCut = useClipped(descriptionRef, !isExpanded);
   const linksRef = useRef<HTMLDivElement | null>(null);
-  useCardFloor(articleRef, linksRef, descriptionRef);
-  const isCut = !isExpanded && (isArticleCut || isDescriptionCut);
-  const hasMore = isExpanded || isCut;
+  const isTooShort = useCardFloor(articleRef, linksRef, descriptionRef);
+  const isLaidOpen = isExpanded || isTooShort;
+  const isClamped = hasMedia && !isLaidOpen && !isWhole;
+  const isArticleCut = useClipped(articleRef, !isLaidOpen);
+  const isDescriptionCut = useClipped(descriptionRef, !isLaidOpen);
+  const isCut = !isLaidOpen && (isArticleCut || isDescriptionCut);
+  const hasMore = !isTooShort && (isExpanded || isCut);
   useHeadClear(postRef);
   // A post with no images, on a wide window with no room for its card
   // beside the head: the card sits at the top of the post instead of the
   // bottom, where it ends above the head's brows, and the head stays centred
   // under it, so the post isn't empty (useCardOnTop).
-  const isOnTop = useCardOnTop(postRef, !hasMedia && !isExpanded);
+  const isOnTop = useCardOnTop(postRef, !hasMedia && !isLaidOpen);
 
   // Each post fills the space between the page's fades (--post-height, from
   // PageScroller), and the page snaps from post to post (data-post, found by
@@ -128,10 +131,10 @@ export default function Post({ content }: PostProps) {
       ref={postRef}
       data-post
       className={`relative flex min-h-[var(--post-height)] w-full shrink-0 snap-start scroll-mt-[var(--page-top)] flex-col ${
-        isExpanded ? '' : 'h-[var(--post-height)] justify-end'
+        isLaidOpen ? '' : 'h-[var(--post-height)] justify-end'
       }`}
       style={{
-        paddingBottom: isExpanded ? undefined : 'var(--card-height, 0px)',
+        paddingBottom: isLaidOpen ? undefined : 'var(--card-height, 0px)',
       }}
     >
       {hasMedia && (
@@ -139,20 +142,20 @@ export default function Post({ content }: PostProps) {
           mediaSources={mediaSources}
           isShown={isCurrent}
           style={{ marginLeft: 'var(--head-clear, 0px)' }}
-          className={`-mb-2 min-h-0 flex-1 ${isOpen ? 'hidden' : 'block'}`}
+          className={`-mb-2 min-h-0 flex-1 ${isOpen || isTooShort ? 'hidden' : 'block'}`}
         />
       )}
       <EdgeCard
         isAboveHead={isOnTop}
-        style={cardStyle(isExpanded, isOnTop)}
+        style={cardStyle(isLaidOpen, isOnTop)}
         className={`post-card z-20 flex w-auto max-w-none flex-col md:[--card-max:calc(var(--post-height)*0.55)] ${
-          isExpanded ? 'flex-1' : ''
+          isLaidOpen ? 'flex-1' : ''
         } ${CARD[place]}`}
       >
         <article
           ref={articleRef}
           className={`flex min-h-0 flex-col gap-3 overflow-hidden p-5 md:flex-row md:gap-8 md:p-8 max-md:[&_h2]:text-xl [&_p]:text-base [&_p]:leading-6 lg:[&_p]:text-lg lg:[&_p]:leading-7 [@media(max-height:800px)]:md:p-6 md:[@media(max-height:800px)]:[&_h2]:text-3xl [@media(max-height:800px)]:[&_p]:text-base [@media(max-height:800px)]:[&_p]:leading-6 ${
-            isExpanded ? 'flex-1' : ''
+            isLaidOpen ? 'flex-1' : ''
           } ${isCurrent ? CONTENT_IN : CONTENT_OUT}`}
         >
           <div className="flex min-h-0 min-w-0 flex-col gap-3 md:flex-1 md:gap-4">
@@ -168,7 +171,7 @@ export default function Post({ content }: PostProps) {
             {!!description && (
               <FitText
                 ref={descriptionRef}
-                isOn={!isExpanded}
+                isOn={!isLaidOpen}
                 className={`min-h-0 overflow-hidden ${
                   isClamped
                     ? 'line-clamp-4 md:line-clamp-none max-md:[@media(max-height:700px)]:line-clamp-2'

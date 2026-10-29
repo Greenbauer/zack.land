@@ -1,4 +1,4 @@
-import { RefObject, useEffect } from 'react';
+import { RefObject, useEffect, useState } from 'react';
 
 // The least height a post's card can take and still show its two columns
 // whole, as --card-floor on the card: its own edges, the article's padding
@@ -10,17 +10,32 @@ import { RefObject, useEffect } from 'react';
 // capped at 55% of the post's height on a wide screen (Post.tsx), and never
 // below this, so on a short window a button is never cut by the card's
 // bottom edge and the description always shows a line; the rest of the text
-// is cut to fit (FitText).
+// is cut to fit (FitText). True when, on a wide screen, the post is too
+// short for even that floor, as a phone on its side is: the post then lays
+// its card out open (Post.tsx).
 export default function useCardFloor(
   articleRef: RefObject<HTMLElement | null>,
   linksRef: RefObject<HTMLElement | null>,
   descriptionRef: RefObject<HTMLElement | null>,
 ) {
+  const [isTooShort, setIsTooShort] = useState(false);
   useEffect(() => {
     const article = articleRef.current;
     const links = linksRef.current;
     const card = article?.parentElement;
-    if (!article || !links || !card) return;
+    const post = card?.parentElement;
+    if (!article || !links || !card || !post) return;
+    const wide = matchMedia('(min-width: 768px)');
+    // The post's height between the page's fades, whatever its own is now.
+    const postHeight = () => {
+      const probe = document.createElement('div');
+      probe.style.cssText =
+        'position:absolute;visibility:hidden;height:var(--post-height)';
+      post.append(probe);
+      const height = probe.offsetHeight;
+      probe.remove();
+      return height;
+    };
     const description = descriptionRef.current;
     const text = description?.parentElement;
     // The text column with its description cut to one line.
@@ -49,12 +64,19 @@ export default function useCardFloor(
         parseFloat(paddingBottom) +
         Math.max(links.offsetHeight, textHeight());
       card.style.setProperty('--card-floor', `${floor}px`);
+      setIsTooShort(wide.matches && floor > postHeight() + 1);
     };
     measure();
     const resize = new ResizeObserver(measure);
     resize.observe(links);
     resize.observe(card);
     if (text) resize.observe(text);
-    return () => resize.disconnect();
+    addEventListener('resize', measure);
+    return () => {
+      resize.disconnect();
+      removeEventListener('resize', measure);
+    };
   }, [articleRef, linksRef, descriptionRef]);
+
+  return isTooShort;
 }

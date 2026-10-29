@@ -13,11 +13,11 @@ describe('videoFill', () => {
     });
   });
 
-  it('keeps to the height of a box too short for the width, centred across', () => {
+  it('still spans the whole width of a box too short for 16:9, at its height', () => {
     expect(videoFill(1000, 360)).toEqual({
-      x: 180,
+      x: 0,
       y: 0,
-      width: 640,
+      width: 1000,
       height: 360,
       tilt: 0,
     });

@@ -1,15 +1,15 @@
 import type { Tile } from './collageLayout';
 
-// Where a post's video tile goes while it plays (PostCollage.tsx): as large
-// as its 16:9 fits a box `width` by `height` (the post), across its whole
-// width unless that would be too tall, centred and untilted.
+// Where a post's video tile goes while it plays (PostCollage.tsx): across
+// the whole width of a box `width` by `height` (the post), 16:9 tall, or the
+// box's whole height where that is less (the player then shows the video
+// within it), centred down it and untilted.
 export function videoFill(width: number, height: number): Tile {
-  const across = Math.min(width, (height * 16) / 9);
-  const down = (across * 9) / 16;
+  const down = Math.min(height, (width * 9) / 16);
   return {
-    x: (width - across) / 2,
+    x: 0,
     y: (height - down) / 2,
-    width: across,
+    width,
     height: down,
     tilt: 0,
   };
