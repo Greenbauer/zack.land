@@ -24,9 +24,9 @@ import { themeText } from '@/components/SkyText/skyColours';
 // Below lg both sit at the top of the screen, above the head
 // (app/(root)/page.tsx). On a phone the name fills the window's width on one
 // line: its width is 10.34 times its font size (its letter spacing is in
-// em, so it scales too), so the font is the width between the page's 0.75rem
-// margins over that, a little under so it never wraps; the subtitle keeps
-// its size to the name's (18px to 27.2px). Their line heights are in em too,
+// em, so it scales too), so the font is the width between a phone's 2rem
+// margins (the header's and footer's, and a card's text) over that, a little
+// under so it never wraps; the subtitle keeps its size to the name's. Their line heights are in em too,
 // so the gap between the lines stays in proportion at every width.
 
 const NAME = ['Zack', "Greenbauer's"];
@@ -79,7 +79,7 @@ export default function Title() {
           (data-scene-title in styles/globals.css). */}
       <h1
         data-scene-title
-        className="!bg-transparent !bg-none !text-transparent max-md:text-[length:calc((100vw_-_1.5rem)/10.34*0.97)] max-md:leading-[1.15] md:max-lg:text-5xl"
+        className="!bg-transparent !bg-none !text-transparent max-md:text-[length:calc((100vw_-_4rem)/10.34*0.97)] max-md:leading-[1.15] md:max-lg:text-5xl"
         style={
           {
             '--title-fallback': `rgb(${subtitleColour.join(' ')})`,
@@ -95,7 +95,7 @@ export default function Title() {
       </h1>
       <h2
         ref={subtitle}
-        className="transition-colors duration-300 max-md:text-[length:calc((100vw_-_1.5rem)/10.34*0.97*0.662)] max-md:leading-[1.2]"
+        className="transition-colors duration-300 max-md:text-[length:calc((100vw_-_4rem)/10.34*0.97*0.662)] max-md:leading-[1.2]"
         style={{ color: `rgb(${subtitleColour.join(' ')})` }}
       >
         Portfolio and Sandbox

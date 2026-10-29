@@ -17,7 +17,7 @@ export default function HeaderTitle({ title }: { title: string }) {
   return (
     <h4
       data-scene-title
-      className="text-right font-medium tracking-wider !text-transparent [word-spacing:0.2em]"
+      className="text-right font-medium tracking-wider !text-transparent [word-spacing:0.2em] max-md:text-2xl"
     >
       {title.split(' ').map((word, k) => (
         <span key={word}>
