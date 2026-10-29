@@ -8,10 +8,9 @@ Each file has four sections. **Surfaces** lists the pages and route handlers the
 |---|---|
 | [Home and the site frame](home.md) | `/` (and the header, footer, background and 404 on every page) |
 | [Portfolio](portfolio.md) | `/portfolio`, `/portfolio/web-apps`, `/portfolio/miscellaneous` |
-| [Digital Art](digital-art.md) | `/portfolio/art` |
 | [Contact form](contact.md) | `/contact`, `/api/email` |
 
-The site has no sign-in and no roles: every page is public, so Verify names no role. It has no seed data either: the portfolio content is in the repository, Digital Art reads the Behance API, and the contact form needs the SMTP variables in `.env.example`.
+The site has no sign-in and no roles: every page is public, so Verify names no role. It has no seed data either: the portfolio content is in the repository, and the contact form needs the SMTP variables in `.env.example`.
 
 ## Keeping it true
 
@@ -21,7 +20,7 @@ The `feature-map` line in `.vibe-verifier` fails a pull request that adds a page
 feature-map --surface page 'app/**/page.tsx' --surface route 'app/**/route.ts'
 ```
 
-The surfaces come from the code: every tracked `app/**/page.tsx` is a `page` and every tracked `app/**/route.ts` is a `route`. The gate names a surface by its file path, so a feature lists `app/(root)/contact/page.tsx`, not `/contact`; Reach and the table above give the URL. `app/robots.ts`, `app/sitemap.ts` and `app/not-found.tsx` are not page or route files, so the gate does not count them; [home](home.md) lists them as sources.
+The surfaces come from the code: every tracked `app/**/page.tsx` is a `page` and every tracked `app/**/route.ts` is a `route`. The gate names a surface by its file path, so a feature lists `app/(root)/contact/page.tsx`, not `/contact`; Reach and the table above give the URL. `app/robots.ts`, `app/sitemap.ts` and `app/(root)/not-found.tsx` are not page or route files (the catch-all `app/(root)/[...missing]/page.tsx` that shows the 404 page is), so the gate does not count them; [home](home.md) lists them as sources.
 
 ## Changing the map
 

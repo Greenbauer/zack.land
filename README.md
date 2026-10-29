@@ -23,7 +23,6 @@
 | `FROM_EMAIL` / `TO_EMAIL` | Sender + recipient for contact submissions |
 | `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` | reCAPTCHA v3 public site key (client) |
 | `RECAPTCHA_SECRET_KEY` | reCAPTCHA v3 secret key (server verification) |
-| `BEHANCE_API_KEY` | Behance API for the "Digital Art" page |
 
 ### reCAPTCHA v3 (contact form)
 

@@ -20,13 +20,6 @@ export default describe('Navigation', () => {
     cy.get('.navbar h5').contains('Web Apps');
     cy.get('.section').should('exist');
 
-    // art
-    goToNav('/portfolio');
-    cy.get('li a[href*="/portfolio/art"]').click();
-
-    cy.get('.navbar h5').contains('Digital Art');
-    cy.get('.card').should('exist');
-
     // misc
     goToNav('/portfolio');
     cy.get('li a[href*="/portfolio/miscellaneous"]').click();

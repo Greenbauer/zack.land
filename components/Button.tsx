@@ -3,14 +3,19 @@ import { ButtonHTMLAttributes, ReactElement } from 'react';
 
 import Spinner from './Spinner';
 
+// A button rests on the light end of its gradient and sweeps to the dark
+// end on hover; on a light glass card (data-sky, styles/globals.css) the
+// other way round ([[data-sky=light]_&]), so it always stands out from
+// the glass.
 const buttonStyle = cva(
-  'max-w-fit bg-[length:500%_100%] bg-left px-6 py-2 font-sans text-lg font-normal uppercase tracking-wider text-black',
+  'max-w-fit rounded-md bg-[length:500%_100%] bg-left px-6 py-2 font-sans text-lg font-normal uppercase tracking-wider text-head-dark [[data-sky=light]_&]:bg-right [[data-sky=light]_&]:text-head-light',
   {
     variants: {
       disabled: {
-        true: 'cursor-not-allowed bg-gray text-gray-light opacity-50',
+        // The button as it rests, only see-through: no grey.
+        true: 'bg-gradient-button cursor-not-allowed opacity-40',
         false:
-          'bg-gradient-button focus-within:text-white hover:bg-right hover:text-white focus:text-black active:text-white',
+          'bg-gradient-button focus-within:text-head-light hover:bg-right hover:text-head-light focus:text-head-dark active:text-head-light [[data-sky=light]_&]:hover:bg-left [[data-sky=light]_&]:hover:text-head-dark [[data-sky=light]_&]:focus:text-head-light [[data-sky=light]_&]:active:text-head-dark',
       },
     },
     defaultVariants: {
@@ -51,7 +56,7 @@ export default function Button({
         target={target}
         rel={target === '_blank' ? 'noreferrer' : undefined}
         style={{
-          transition: 'transform 0.8s, color 0.3s, background-position-x 0.7s',
+          transition: 'transform 0.8s, color 0.3s, background-position-x 1.1s',
           transitionDelay: '0s, 0.2s, 0s',
         }}
       >
@@ -64,7 +69,7 @@ export default function Button({
     <button
       className={buttonStyle({ disabled })}
       style={{
-        transition: 'transform 0.8s, color 0.3s, background-position-x 0.7s',
+        transition: 'transform 0.8s, color 0.3s, background-position-x 1.1s',
         transitionDelay: '0s, 0.2s, 0s',
       }}
       disabled={disabled}
