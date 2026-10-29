@@ -306,13 +306,13 @@ function CodedBadge({
     <span
       className={`inline-flex items-center gap-2 self-start rounded-full px-3 py-1 font-display text-xs uppercase tracking-widest text-[color:var(--card-ink)] ${className} ${
         isHand
-          ? 'bg-[color-mix(in_srgb,var(--card-accent)_15%,transparent)]'
+          ? 'bg-[color-mix(in_srgb,var(--card-underline)_15%,transparent)]'
           : 'bg-[color-mix(in_srgb,var(--card-ink)_10%,transparent)]'
       }`}
     >
       <Icon
         aria-hidden
-        className={`size-3.5 ${isHand ? 'text-[color:var(--card-accent)]' : ''}`}
+        className={`size-3.5 ${isHand ? 'text-[color:var(--card-underline)]' : ''}`}
       />
       {isHand ? 'Hand Coded' : 'Vibe Coded'}
     </span>

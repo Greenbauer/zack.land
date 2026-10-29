@@ -40,12 +40,13 @@
    and a dark field; on a light sky, dark text and a light field. Every word
    on a card is in its text colour at full strength, so the glass only has
    to change where the sky behind is near the middle (glassTint.ts); links
-   are told apart by their underline, in the accent (peach on a dark card,
-   purple on a light one) and the brighter accent when hovered. They are
+   are told apart by their underline (peach on a dark card, purple on a
+   light one), which turns the brighter accent when hovered (the theme's
+   light on a dark card, indigo on a light one). They are
    registered as colours so a card fades from one side to the other along
    with its glass (glassTint.ts's CHANGE_SECONDS). */
 @property --card-ink { syntax: '<color>'; inherits: true; initial-value: #ede4e3; }
-@property --card-accent { syntax: '<color>'; inherits: true; initial-value: #eebdaf; }
+@property --card-accent { syntax: '<color>'; inherits: true; initial-value: #ede4e3; }
 @property --card-underline { syntax: '<color>'; inherits: true; initial-value: #d3aba0; }
 @property --card-field { syntax: '<color>'; inherits: true; initial-value: #010018; }
 
