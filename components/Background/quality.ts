@@ -41,3 +41,34 @@ export function drawsInSoftware() {
   gl?.getExtension('WEBGL_lose_context')?.loseContext();
   return software;
 }
+
+// The same, asked off the page's main thread, from a worker's OffscreenCanvas:
+// a browser drawing in software takes long enough to open a WebGL context
+// that, asked on the main thread as the page opens, it stalls the page's own
+// motion. Once answered, drawsInSoftware gives the same answer without
+// asking again. Where a worker cannot draw it asks on the main thread.
+const PROBE = `const gl = new OffscreenCanvas(1, 1).getContext('webgl');
+const info = gl && gl.getExtension('WEBGL_debug_renderer_info');
+postMessage(gl && info ? String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL)) : '');`;
+let asked: Promise<boolean> | undefined;
+export function askDrawsInSoftware(): Promise<boolean> {
+  if (software !== undefined) return Promise.resolve(software);
+  if (typeof Worker === 'undefined' || typeof OffscreenCanvas === 'undefined')
+    return Promise.resolve(drawsInSoftware());
+  asked ??= new Promise((resolve) => {
+    const url = URL.createObjectURL(
+      new Blob([PROBE], { type: 'text/javascript' }),
+    );
+    const worker = new Worker(url);
+    const answer = (renderer: string | null) => {
+      worker.terminate();
+      URL.revokeObjectURL(url);
+      software ??=
+        renderer === null ? drawsInSoftware() : isSoftwareRenderer(renderer);
+      resolve(software);
+    };
+    worker.onmessage = (event) => answer(String(event.data));
+    worker.onerror = () => answer(null);
+  });
+  return asked;
+}

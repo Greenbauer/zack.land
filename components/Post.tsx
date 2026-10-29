@@ -245,9 +245,10 @@ function cardStyle(isExpanded: boolean, isOnTop: boolean): CSSProperties {
     ...(isOnTop
       ? { top: 'var(--page-top)' }
       : { bottom: 'var(--page-bottom)' }),
-    // Never so low that it cuts the column of links (useCardFloor).
+    // Never so low that it cuts the column of links (useCardFloor), and
+    // never past the post, where it would run under the header.
     maxHeight:
-      'max(var(--card-max, var(--post-height)), var(--card-floor, 0px))',
+      'min(max(var(--card-max, var(--post-height)), var(--card-floor, 0px)), var(--post-height))',
   };
 }
 

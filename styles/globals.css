@@ -397,10 +397,10 @@ html:not([data-page-in]):has([data-scene])
 
 /* Where WebGL is drawn in software (data-software on <html>,
    components/Background/index.tsx) the scene loads only after the page has
-   moved in, so until it is ready the titles it draws in 3D (the home page's
-   name, a page's title in the header) show as text instead, moving with the
-   page (--title-fallback, else the sky's text colour). */
-html[data-software]:not([data-scene-ready]) [data-scene-title] {
+   moved in, so until it draws its first frame the titles it draws in 3D (the
+   home page's name, a page's title in the header) show as text instead,
+   moving with the page (--title-fallback, else the sky's text colour). */
+html[data-software]:not([data-scene-drawn]) [data-scene-title] {
   color: var(--title-fallback, var(--sky-text)) !important;
 }
 

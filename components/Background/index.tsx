@@ -14,10 +14,11 @@ import Grading from './Grading';
 import HeadFraming from './HeadFraming';
 import { lookOrigin } from './headPlace';
 import MyHead, { Point } from './MyHead';
-import { drawsInSoftware, renderQuality } from './quality';
+import { askDrawsInSoftware, drawsInSoftware, renderQuality } from './quality';
 import {
   frameSettler,
   markPageIn,
+  markSceneDrawn,
   markSceneReady,
   pageInDelay,
   READY_AT_MOST_MS,
@@ -50,16 +51,26 @@ export default function Background() {
     };
   }, []);
 
-  // Whether the scene has started loading (sceneDelay).
+  // Whether the scene has started loading, its canvas and WebGL context
+  // included (sceneDelay): where WebGL is drawn in software, only once the
+  // page has moved in, as opening the context stalls the page. Which it is
+  // is asked off the main thread (askDrawsInSoftware), for the same reason.
   const [isSceneOn, setIsSceneOn] = useState(false);
   useEffect(() => {
-    const software = drawsInSoftware();
-    if (software) document.documentElement.setAttribute('data-software', '');
-    const start = setTimeout(
-      () => setIsSceneOn(true),
-      sceneDelay(performance.now(), software),
-    );
-    return () => clearTimeout(start);
+    let start: ReturnType<typeof setTimeout> | undefined;
+    let isGone = false;
+    askDrawsInSoftware().then((software) => {
+      if (isGone) return;
+      if (software) document.documentElement.setAttribute('data-software', '');
+      start = setTimeout(
+        () => setIsSceneOn(true),
+        sceneDelay(performance.now(), software),
+      );
+    });
+    return () => {
+      isGone = true;
+      clearTimeout(start);
+    };
   }, []);
 
   const handleCameraUpdate = (camera: PerspectiveCameraType): void => {
@@ -72,24 +83,25 @@ export default function Background() {
   return (
     <div
       data-scene
-      className="fixed left-0 top-0 -z-50 flex size-full overflow-hidden"
+      className="fixed left-0 top-0 -z-50 flex size-full overflow-hidden bg-[#6864a8]"
     >
       {isLoading && (
         <div className="fixed flex size-full items-center justify-center">
           <Spinner />
         </div>
       )}
-      {/* Before the sky loads, the canvas shows a lavender near the dawn sky's
-          middle, so the title over it reads the same from the first frame. */}
+      {/* Before the sky loads, the canvas (and before it, the scene's own
+          box) shows a lavender near the dawn sky's middle, so the title over
+          it reads the same from the first frame. */}
       {/* No smoothing on the canvas itself: the scene is drawn and smoothed
           in the colour grading's targets (Grading.tsx), and the canvas only
           receives its last full-screen pass. */}
-      <Canvas
-        className="bg-[#6864a8]"
-        dpr={renderQuality(width, height, drawsInSoftware()).dpr}
-        gl={{ antialias: false }}
-      >
-        {isSceneOn && (
+      {isSceneOn && (
+        <Canvas
+          className="bg-[#6864a8]"
+          dpr={renderQuality(width, height, drawsInSoftware()).dpr}
+          gl={{ antialias: false }}
+        >
           <Suspense fallback={null}>
             <ambientLight intensity={Math.PI} />
             <spotLight
@@ -116,23 +128,25 @@ export default function Background() {
               backgroundIntensity={0.45}
             />
           </Suspense>
-        )}
-        <PerspectiveCamera
-          makeDefault
-          position={[0, 0, 250]}
-          onUpdate={handleCameraUpdate}
-        />
-      </Canvas>
+          <PerspectiveCamera
+            makeDefault
+            position={[0, 0, 250]}
+            onUpdate={handleCameraUpdate}
+          />
+        </Canvas>
+      )}
     </div>
   );
 }
 
-// Marks the scene ready once it has loaded (inside the Suspense) and drawn a
-// few smooth frames (sceneReady.ts).
+// Marks the scene drawn at its first frame once it has loaded (inside the
+// Suspense), and ready once it has drawn a few smooth frames
+// (sceneReady.ts).
 function SceneReady() {
   const settled = useMemo(() => frameSettler(), []);
   const isDone = useRef(false);
   useFrame((_, delta) => {
+    markSceneDrawn();
     if (isDone.current || !settled(delta)) return;
     isDone.current = true;
     markSceneReady();

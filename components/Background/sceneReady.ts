@@ -49,7 +49,14 @@ export function frameSettler(frames = SMOOTH_FRAMES, quick = SMOOTH_SECONDS) {
 export const markPageIn = () =>
   document.documentElement.setAttribute('data-page-in', '');
 
+// When the scene has drawn its first frame, the 3D titles with it: until
+// then, where WebGL is drawn in software, the page's own titles show as text
+// (data-scene-drawn on <html>, styles/globals.css).
+export const markSceneDrawn = () =>
+  document.documentElement.setAttribute('data-scene-drawn', '');
+
 export function markSceneReady() {
   markPageIn();
+  markSceneDrawn();
   document.documentElement.setAttribute('data-scene-ready', '');
 }

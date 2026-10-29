@@ -74,7 +74,7 @@ export default function Title() {
   return (
     <>
       {/* Where WebGL is drawn in software the scene loads only after the
-          page has moved in (Background/sceneReady.ts), so until it is ready
+          page has moved in (Background/sceneReady.ts), so until it first draws
           this heading shows the name itself, in the subtitle's colour
           (data-scene-title in styles/globals.css). */}
       <h1

@@ -8,8 +8,8 @@ import { NameWord } from '@/components/Home/Title';
 // stays here, transparent, for screen readers and selection, and marks where
 // each word sits, in the name's weight and spacing so the 3D letters fit
 // over it. Its words register after the name's (from FIRST_WORD), and
-// the name and a header title are never on one page. Until the scene is
-// ready where WebGL is drawn in software it shows the title itself
+// the name and a header title are never on one page. Until the scene first
+// draws, where WebGL is drawn in software, it shows the title itself
 // (data-scene-title in styles/globals.css).
 const FIRST_WORD = 100;
 
