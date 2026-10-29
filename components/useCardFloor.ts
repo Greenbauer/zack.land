@@ -61,7 +61,11 @@ export default function useCardFloor(
     // close again and bring More back.
     const textHeight = () => {
       if (!description || !text) return 0;
-      const parts = [...text.children] as HTMLElement[];
+      // Its shown parts: on a phone its More is hidden (it sits with the
+      // links there).
+      const parts = ([...text.children] as HTMLElement[]).filter(
+        (part) => part === description || part.offsetHeight > 0,
+      );
       const gap = parseFloat(getComputedStyle(text).rowGap) || 0;
       const line = parseFloat(
         getComputedStyle(description.querySelector('p') ?? description)
@@ -92,13 +96,26 @@ export default function useCardFloor(
       );
     };
     measure();
-    const resize = new ResizeObserver(measure);
+    // Measured again a frame after anything changes, once every other
+    // watcher has run: the footer's height reaches --post-height through
+    // the footer's own watcher (Footer/index.tsx), which may run after this
+    // one.
+    let frame = 0;
+    const remeasure = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(measure);
+    };
+    const resize = new ResizeObserver(remeasure);
     resize.observe(links);
     resize.observe(card);
     // The post too: its height between the page's fades settles after the
     // first measure (the footer's own height comes later), and a card held
-    // at its floor does not change with it.
+    // at its floor does not change with it. And the footer itself, whose
+    // height that is: a post laid open taller than the window does not
+    // change size when it does.
     resize.observe(post);
+    const footer = document.querySelector('footer');
+    if (footer) resize.observe(footer);
     // The text column stretches to the card, so its own size does not
     // change as its title wraps or More comes and goes: each of its parts
     // is watched instead, and so is which parts it has.
@@ -108,14 +125,15 @@ export default function useCardFloor(
     watchText();
     const parts = new MutationObserver(() => {
       watchText();
-      measure();
+      remeasure();
     });
     if (text) parts.observe(text, { childList: true });
-    addEventListener('resize', measure);
+    addEventListener('resize', remeasure);
     return () => {
+      cancelAnimationFrame(frame);
       resize.disconnect();
       parts.disconnect();
-      removeEventListener('resize', measure);
+      removeEventListener('resize', remeasure);
     };
   }, [articleRef, linksRef, descriptionRef, hasPhotos]);
 
