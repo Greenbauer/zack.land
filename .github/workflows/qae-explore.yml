@@ -214,7 +214,8 @@ jobs:
           # last criterion (PR 113, 2026-10-28). A screenshot must be taken with the scene stopped: told
           # it was not needed (true on a Mac, not on this runner), an explorer retried timed-out
           # screenshots until it ran out of turns. Unable to load /favicon.ico any way it tried, an
-          # explorer stalled until the job's time ran out (PR 113, 2026-10-29).
+          # explorer stalled until the job's time ran out (PR 113, 2026-10-29); so did one that could not
+          # start sampling a page before it loaded.
           cat > qae-inputs/site.md <<'MD'
           # The site under test
           - No sign-in: every page is public, and there is one theme.
@@ -246,6 +247,13 @@ jobs:
             Playwright's Chromium does once a page has a route, which this harness sets; any other
             address loads. To look at the favicon, open `/favicon.ico?v=1`, which the site answers with
             the same file.
+          - A criterion sampled "from navigation" needs sampling to run while the page loads, which an
+            evaluate started after navigating cannot do. Instead, open `/robots.txt` (a plain page with
+            no scene), then in one evaluate add an iframe of the criterion's width and height, set its
+            `src` to the page under test, and sample it every so many milliseconds from setting `src`,
+            reading `iframe.contentDocument` afresh at each sample and skipping samples until it has
+            `#page` and its `readyState` is no longer `loading` (before that its styles have not
+            applied and nothing is drawn). Inside the iframe the page's window is the iframe's size.
           MD
           # Design references for criteria that name [ref: <key>], read from the base branch so a pull
           # request cannot supply the image it is judged against. Each is a 1x screenshot of the design.
