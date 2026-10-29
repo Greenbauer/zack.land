@@ -407,9 +407,12 @@ html[data-software]:not([data-scene-drawn]) [data-scene-title] {
 
 /* While the phone menu is open (components/Header/MobileNav), its glass pane
    covers the page: the page's own text and cards would show through it, so
-   they hide, with the portfolio's scroll arrows (ScrollArrows.tsx). */
+   they hide, with the portfolio's scroll arrows (ScrollArrows.tsx) and the
+   footer, which sits above the header in the page and would draw over the
+   pane. */
 body:has(.mobile-menu.fixed) #page,
-body:has(.mobile-menu.fixed) [data-scroll-arrows] {
+body:has(.mobile-menu.fixed) [data-scroll-arrows],
+body:has(.mobile-menu.fixed) footer {
   visibility: hidden;
 }
 /* At once: a shown image tile would otherwise take its own wait to hide

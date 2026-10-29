@@ -86,18 +86,25 @@ export default function Post({ content }: PostProps) {
   // Opened, the card takes the whole post in place of its images, and if
   // that is still too short the post grows and the page scrolls through it
   // (SnapPager.tsx). On a wide window too short for even the card's floor
-  // (its links and a line of its text, useCardFloor), as a phone on its
-  // side, the card is laid out open that way from the start, with no More.
+  // (its links and a line of its text, useCardFloor) with its photos kept
+  // to more than a strip, as a phone on its side, the card is laid out open
+  // that way from the start, with no More.
   const articleRef = useRef<HTMLElement | null>(null);
   const descriptionRef = useRef<HTMLDivElement | null>(null);
   const linksRef = useRef<HTMLDivElement | null>(null);
-  const isTooShort = useCardFloor(articleRef, linksRef, descriptionRef);
+  const isTooShort = useCardFloor(
+    articleRef,
+    linksRef,
+    descriptionRef,
+    hasMedia,
+  );
   const isLaidOpen = isExpanded || isTooShort;
   const isClamped = hasMedia && !isLaidOpen && !isWhole;
   const isArticleCut = useClipped(articleRef, !isLaidOpen);
   const isDescriptionCut = useClipped(descriptionRef, !isLaidOpen);
   const isCut = !isLaidOpen && (isArticleCut || isDescriptionCut);
   const hasMore = showsMore(isExpanded, isTooShort, isCut);
+  const phone = phoneParts(isClamped, isDescriptionCut);
   useHeadClear(postRef);
   // A post with no images, on a wide window with no room for its card
   // beside the head: the card sits at the top of the post instead of the
@@ -130,6 +137,7 @@ export default function Post({ content }: PostProps) {
     <div
       ref={postRef}
       data-post
+      data-laid-open={isTooShort || undefined}
       className={`relative flex min-h-[var(--post-height)] w-full shrink-0 snap-start scroll-mt-[var(--page-top)] flex-col ${
         isLaidOpen ? '' : 'h-[var(--post-height)] justify-end'
       }`}
@@ -200,18 +208,18 @@ export default function Post({ content }: PostProps) {
           >
             {!!coded && <CodedBadge coded={coded} className="max-md:hidden" />}
             {!!technology && (
-              <p className={isClamped ? 'hidden md:block' : ''}>
+              <p className={phone.technologyClass}>
                 Technology used:
                 <br />
                 <small>{technology}</small>
               </p>
             )}
-            {(isClamped || hasMore) && (
+            {(phone.isMore || hasMore) && (
               <MoreButton
                 isExpanded={isExpanded}
                 onToggle={toggle}
                 className={`md:hidden ${
-                  isClamped ? 'max-md:mr-auto max-md:self-center' : ''
+                  phone.isMore ? 'max-md:mr-auto max-md:self-center' : ''
                 }`}
               />
             )}
@@ -230,6 +238,17 @@ export default function Post({ content }: PostProps) {
       </EdgeCard>
     </div>
   );
+}
+
+// On a phone a card with images shows a few lines of its text and keeps its
+// technology behind More (`isClamped`). When those lines already hold its
+// whole description, only the technology is left behind More, so the card
+// shows it, on a line of its own above its links, and no More.
+function phoneParts(isClamped: boolean, isDescriptionCut: boolean) {
+  if (!isClamped) return { technologyClass: '', isMore: false };
+  return isDescriptionCut
+    ? { technologyClass: 'hidden md:block', isMore: true }
+    : { technologyClass: 'max-md:basis-full', isMore: false };
 }
 
 // Whether a card shows More (or Less): when its text is cut short or it is

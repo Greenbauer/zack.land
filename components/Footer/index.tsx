@@ -131,10 +131,11 @@ export default function Footer() {
       >
         <SocialLinks />
       </div>
-      {/* On a phone the portfolio's down scroll arrow shares the text's row,
-          at its left, a little in from the window's edge (data-footer-arrow,
-          filled by ScrollArrows.tsx; empty and taking no room on every other
-          page). */}
+      {/* The portfolio's down scroll arrow (data-footer-arrow, filled by
+          ScrollArrows.tsx on a phone, or wherever the head has stepped off
+          the window; empty and taking no room otherwise). It shows only
+          while the text and links are hidden (phase 'arrow', arrowSwap.ts),
+          so it always sits alone, centred. */}
       <div
         ref={textRef}
         className={`order-first flex flex-1 items-center justify-end gap-4 text-center md:order-last md:text-right ${
@@ -144,7 +145,7 @@ export default function Footer() {
         <div
           ref={slotRef}
           data-footer-arrow
-          className={`ml-2 flex-none empty:hidden ${ARROW[phase]}`}
+          className={`flex-none empty:hidden ${ARROW[phase]}`}
         />
         <div data-footer-extra className={`max-md:flex-1 ${EXTRA[phase]}`}>
           {pathname === '/contact' ? <ContactPageText /> : <DefaultText />}

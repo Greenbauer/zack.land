@@ -13,10 +13,24 @@ import { RefObject, useEffect, useState } from 'react';
 // is cut to fit (FitText). True when, on a wide screen, the post is too
 // short for even that floor, as a phone on its side is: the post then lays
 // its card out open (Post.tsx).
+// The least height a post's photos are kept to above its card: under it
+// they are only a strip (about 50 pixels at 900 by 560), so the card is laid
+// out open instead.
+export const MIN_PHOTOS_PX = 64;
+
+// Whether a post `post` pixels tall is too short for a card whose floor is
+// `floor`, with the room its photos need above it when it has any.
+export const isTooShortFor = (
+  floor: number,
+  post: number,
+  hasPhotos: boolean,
+) => floor + (hasPhotos ? MIN_PHOTOS_PX : 0) > post + 1;
+
 export default function useCardFloor(
   articleRef: RefObject<HTMLElement | null>,
   linksRef: RefObject<HTMLElement | null>,
   descriptionRef: RefObject<HTMLElement | null>,
+  hasPhotos: boolean,
 ) {
   const [isTooShort, setIsTooShort] = useState(false);
   useEffect(() => {
@@ -64,19 +78,33 @@ export default function useCardFloor(
         parseFloat(paddingBottom) +
         Math.max(links.offsetHeight, textHeight());
       card.style.setProperty('--card-floor', `${floor}px`);
-      setIsTooShort(wide.matches && floor > postHeight() + 1);
+      setIsTooShort(
+        wide.matches && isTooShortFor(floor, postHeight(), hasPhotos),
+      );
     };
     measure();
     const resize = new ResizeObserver(measure);
     resize.observe(links);
     resize.observe(card);
-    if (text) resize.observe(text);
+    // The text column stretches to the card, so its own size does not
+    // change as its title wraps or More comes and goes: each of its parts
+    // is watched instead, and so is which parts it has.
+    const watchText = () => {
+      for (const part of text?.children ?? []) resize.observe(part);
+    };
+    watchText();
+    const parts = new MutationObserver(() => {
+      watchText();
+      measure();
+    });
+    if (text) parts.observe(text, { childList: true });
     addEventListener('resize', measure);
     return () => {
       resize.disconnect();
+      parts.disconnect();
       removeEventListener('resize', measure);
     };
-  }, [articleRef, linksRef, descriptionRef]);
+  }, [articleRef, linksRef, descriptionRef, hasPhotos]);
 
   return isTooShort;
 }
