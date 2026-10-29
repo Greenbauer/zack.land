@@ -21,7 +21,7 @@ type NavDropdownProps = {
 // fades with it); it fades out quickly, and closes on a choice, a click
 // outside or Escape. Its links keep the header links' colours, read from the
 // sky behind the header (useSkyColours, Header): the current page's in the
-// accent, the other in the muted colour, as in the top row.
+// accent, the other in the text colour, as in the top row.
 // While it is open everything under it blurs, as the scene does behind a
 // focused form field: a backdrop over the whole window, below the header's
 // links, blurs the 3D scene and the page alike (FOCUS_BLUR_PX, over

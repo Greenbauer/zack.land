@@ -7,7 +7,7 @@ import { restingSide, skyBehind, skyColours, WORD_SHARE } from './skyColours';
 
 // Keeps the colours of what sits over the sky inside `ref` readable as the
 // sky behind it turns (skyColours.ts). They are written to the element as
-// --sky-text, --sky-muted, --sky-faint, --sky-accent and --sky-underline,
+// --sky-text, --sky-faint, --sky-accent and --sky-underline,
 // which its children use, without re-rendering; each change fades (the
 // .sky-colours class in styles/globals.css). Until the sky is first measured,
 // the defaults there apply. While the sky rests at its view's home (skyState)
@@ -37,13 +37,7 @@ export default function useSkyColours(
       const key = colours.text + colours.accent;
       if (key === last) return;
       last = key;
-      for (const name of [
-        'text',
-        'muted',
-        'faint',
-        'accent',
-        'underline',
-      ] as const)
+      for (const name of ['text', 'faint', 'accent', 'underline'] as const)
         element.style.setProperty(`--sky-${name}`, colours[name]);
     });
   }, [ref, ownSide]);

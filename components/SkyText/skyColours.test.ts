@@ -12,7 +12,6 @@ import {
   darkText,
   FAINT_ALPHA,
   isOnDark,
-  MUTED_ALPHA,
   restingSide,
   skyBehind,
   skyColours,
@@ -69,13 +68,14 @@ describe('text and icons over the sky', () => {
       ).toBeGreaterThanOrEqual(Math.min(TEXT_RATIO, best(sky)) - 0.05);
   });
 
-  it('makes grey items and lines the same colour, partly see-through', () => {
-    const { text, muted, faint } = skyColours(0.1);
-    expect(parse(muted).rgb).toEqual(parse(text).rgb);
-    expect(parse(muted).alpha).toBe(MUTED_ALPHA);
-    expect(parse(faint).rgb).toEqual(parse(text).rgb);
-    expect(parse(faint).alpha).toBe(FAINT_ALPHA);
-    expect(MUTED_ALPHA).toBeLessThan(1);
+  it('gives text no see-through grey, only a faint line in its colour', () => {
+    for (const sky of [0.02, 0.1, 0.5, 0.9]) {
+      const colours = skyColours(sky);
+      expect(colours).not.toHaveProperty('muted');
+      expect(parse(colours.text).alpha).toBe(1);
+      expect(parse(colours.faint).rgb).toEqual(parse(colours.text).rgb);
+      expect(parse(colours.faint).alpha).toBe(FAINT_ALPHA);
+    }
   });
 });
 

@@ -281,4 +281,12 @@ describe('spacing page turns out', () => {
     expect(gate.ask(1, 500)).toBeNull();
     expect(gate.ask(1, 1500)).toEqual({ direction: 1, quick: false });
   });
+
+  it('lets a scroll arrow pressed as the page loads turn at once', () => {
+    const gate = turnGate({ ...options, playingFrom: 100 });
+    expect(gate.ask(1, 600, true)).toEqual({ direction: 1, quick: false });
+    // Once it has turned, the hold after that turn applies to it too.
+    expect(gate.ask(1, 900, true)).toBeNull();
+    expect(gate.ask(1, 2100, true)).toEqual({ direction: 1, quick: false });
+  });
 });

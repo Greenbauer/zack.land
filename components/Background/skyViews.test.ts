@@ -26,6 +26,12 @@ describe('the sky for each view of the site', () => {
     }
   });
 
+  it('moves the sky on a reload too, off the station the last load left', () => {
+    for (const left of STATIONS)
+      for (let seed = 1; seed < 20; seed++)
+        expect(which(planSkies(seeded(seed), left)('/'))).not.toBe(which(left));
+  });
+
   it('moves the sky on every change of view, pages included', () => {
     const random = seeded(7);
     const pages = ['/', '/contact', '/portfolio/web-apps#0', '/no-such-page'];

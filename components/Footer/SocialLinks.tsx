@@ -27,7 +27,7 @@ export default function SocialLinks() {
       {socialRoutes.map(({ Icon, url }) => (
         <Link
           key={url}
-          className="text-[color:var(--sky-muted)] hover:text-[color:var(--sky-accent)] active:text-[color:var(--sky-text)]"
+          className="text-[color:var(--sky-text)] hover:text-[color:var(--sky-accent)] active:text-[color:var(--sky-text)]"
           target="_blank"
           href={url}
           rel="noreferrer"

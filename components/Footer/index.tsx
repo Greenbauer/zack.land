@@ -41,7 +41,7 @@ function ContactPageText() {
         <SkyWords text="Please fill out this form. I will respond as soon as I can." />
       </h6>
       {recaptchaEnabled && (
-        <small className="mt-4 block text-[color:var(--sky-muted)]">
+        <small className="mt-4 block text-[color:var(--sky-text)]">
           This site is protected by reCAPTCHA and the Google{' '}
           <a
             href="https://policies.google.com/privacy"

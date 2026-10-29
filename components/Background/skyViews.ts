@@ -60,10 +60,14 @@ export function currentView(): string {
 // Between the posts of one page light and dark skies take turns; a page
 // starts on either. A view asked again while it is on screen keeps its sky,
 // and a view come back to later gets a new one, so the skies differ on every
-// load and on every visit.
-export function planSkies(random: () => number = Math.random) {
+// load and on every visit. `left` is the station the last load of the tab
+// ended on, so a reload moves the sky too.
+export function planSkies(
+  random: () => number = Math.random,
+  left: Station | null = null,
+) {
   let view: string | null = null;
-  let station: Station | null = null;
+  let station: Station | null = left;
   return (next: string): Station => {
     if (next === view && station) return station;
     const samePage = view !== null && view.split('#')[0] === next.split('#')[0];
@@ -83,5 +87,25 @@ export function planSkies(random: () => number = Math.random) {
   };
 }
 
-// The skies for this visit to the site.
-export const stationFor = planSkies();
+// The tab's last station, kept for its next load (sessionStorage, which a
+// private window or blocked storage may refuse: then a reload is a fresh
+// pick, as a first load is).
+const LAST_SKY = 'sky-station';
+function lastStation(): Station | null {
+  try {
+    return STATIONS[Number(sessionStorage.getItem(LAST_SKY) ?? NaN)] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// The skies for this visit to the site, each remembered for a reload.
+let plan: ReturnType<typeof planSkies> | undefined;
+export function stationFor(view: string): Station {
+  plan ??= planSkies(Math.random, lastStation());
+  const station = plan(view);
+  try {
+    sessionStorage.setItem(LAST_SKY, String(STATIONS.indexOf(station)));
+  } catch {}
+  return station;
+}

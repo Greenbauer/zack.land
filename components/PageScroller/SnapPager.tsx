@@ -90,21 +90,21 @@ export default function SnapPager() {
 
     // A turn goes now, or not at all while the last turn's next card is
     // still coming in (turnGate).
-    const glide = (direction: 1 | -1) => {
-      const next = gate.ask(direction, performance.now());
+    const glide = (direction: 1 | -1, pressed = false) => {
+      const next = gate.ask(direction, performance.now(), pressed);
       if (next) move(next.direction, next.quick);
     };
 
-    // A key or a scroll arrow scrolls most of a window through a tall post,
-    // or else turns the page.
-    const step = (direction: 1 | -1) => {
+    // A key or a scroll arrow (`pressed`) scrolls most of a window through a
+    // tall post, or else turns the page.
+    const step = (direction: 1 | -1, pressed = false) => {
       const to = throughPost(
         spans(),
         scroller.scrollTop,
         direction,
         scroller.clientHeight * THROUGH_STEP,
       );
-      if (to === null) glide(direction);
+      if (to === null) glide(direction, pressed);
       else {
         fitSnap();
         scroller.scrollTo({
@@ -197,7 +197,7 @@ export default function SnapPager() {
     };
 
     const onRequest = (event: Event) =>
-      step((event as CustomEvent<1 | -1>).detail);
+      step((event as CustomEvent<1 | -1>).detail, true);
 
     scroller.addEventListener('wheel', onWheel, { passive: false });
     scroller.addEventListener('touchstart', onTouchStart, { passive: true });

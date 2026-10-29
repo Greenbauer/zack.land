@@ -15,7 +15,6 @@
      over a dark sky, as at load; each group over the sky overwrites them
      with what the sky behind it needs. */
   --sky-text: theme('colors.head.light');
-  --sky-muted: theme('colors.head.light / 70%');
   --sky-faint: theme('colors.head.light / 30%');
   --sky-accent: theme('colors.head.peach');
   --sky-underline: theme('colors.head.rose');
@@ -26,13 +25,12 @@
    text over a second and a half (.sky-colours), while hover changes, which swap
    which variable a colour uses, stay instant. */
 @property --sky-text { syntax: '<color>'; inherits: true; initial-value: #ede4e3; }
-@property --sky-muted { syntax: '<color>'; inherits: true; initial-value: rgb(237 228 227 / 0.7); }
 @property --sky-faint { syntax: '<color>'; inherits: true; initial-value: rgb(237 228 227 / 0.3); }
 @property --sky-accent { syntax: '<color>'; inherits: true; initial-value: #d3aba0; }
 @property --sky-underline { syntax: '<color>'; inherits: true; initial-value: #a57374; }
 
 .sky-colours {
-  transition-property: --sky-text, --sky-muted, --sky-faint, --sky-accent, --sky-underline;
+  transition-property: --sky-text, --sky-faint, --sky-accent, --sky-underline;
   transition-duration: 1.5s;
   transition-timing-function: ease-in-out;
 }

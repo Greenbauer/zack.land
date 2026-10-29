@@ -33,14 +33,16 @@ export const GESTURE_GAP_MS = 300;
 // are, and is `quick` inside `quickMs`: the card it turns away from has not
 // set off, so the card it brings back need not wait for it. `ask` says
 // whether to turn now. Given `playingFrom`, it starts as if a turn began
-// then (the first card arriving as the page loads).
+// then (the first card arriving as the page loads), so the wheel's or a
+// swipe's push left over from the last page lets go; a `pressed` ask (a
+// scroll arrow, shown and enabled) is not held by that, only by real turns.
 export function turnGate({
   holdMs = HOLD_MS,
   quickMs = QUICK_MS,
   gapMs = GESTURE_GAP_MS,
   playingFrom = -Infinity,
 } = {}) {
-  let turnedAt = playingFrom;
+  let turnedAt = -Infinity;
   let askedAt = -Infinity;
   let last: 1 | -1 | 0 = 0;
   const go = (direction: 1 | -1, now: number, quick: boolean) => {
@@ -49,11 +51,12 @@ export function turnGate({
     return { direction, quick };
   };
   return {
-    ask(direction: 1 | -1, now: number) {
+    ask(direction: 1 | -1, now: number, pressed = false) {
       const lastAsked = askedAt;
       askedAt = now;
       if (last && direction !== last)
         return go(direction, now, now - turnedAt < quickMs);
+      if (!last && !pressed && now - playingFrom < holdMs) return null;
       if (now - turnedAt < holdMs || now - lastAsked < gapMs) return null;
       return go(direction, now, false);
     },

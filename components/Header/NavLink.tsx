@@ -12,7 +12,7 @@ export const linkStyle = cva(
     variants: {
       isActive: {
         true: 'text-[color:var(--sky-accent)] underline decoration-[color:var(--sky-underline)] group-hover:decoration-[color:var(--sky-accent)] group-focus-visible:decoration-[color:var(--sky-accent)]',
-        false: 'text-[color:var(--sky-muted)]',
+        false: 'text-[color:var(--sky-text)]',
       },
       isFirst: {
         true: 'border-t',
@@ -29,7 +29,7 @@ export const linkStyle = cva(
 // the one colour the glass keeps readable, which follows the glass
 // (globals.css); the current page keeps its underline.
 export const ON_GLASS =
-  '[--sky-accent:var(--card-ink)] [--sky-faint:color-mix(in_srgb,var(--card-ink)_30%,transparent)] [--sky-muted:var(--card-ink)] [--sky-text:var(--card-ink)] [--sky-underline:var(--card-underline)]';
+  '[--sky-accent:var(--card-ink)] [--sky-faint:color-mix(in_srgb,var(--card-ink)_30%,transparent)] [--sky-text:var(--card-ink)] [--sky-underline:var(--card-underline)]';
 
 // Whether a route's link is the current page's: home only at /, any other
 // at its path or a page under it.

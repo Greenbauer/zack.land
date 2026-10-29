@@ -8,8 +8,9 @@ import head from '@/theme/head.json';
 // sky (and head) behind them, as BackdropSampler measures it. Like
 // the home page's subtitle, text is always one of the theme's own colours
 // (theme/head.json): its light over a dark sky, and over a light one the
-// lightest of its darker colours that reads (WCAG AA). Grey items are that
-// same colour, partly see-through. Links that used to
+// lightest of its darker colours that reads (WCAG AA), at full strength, so
+// none is ever a blend with the sky (only the faint line between the phone
+// menu's links is see-through). Links that used to
 // turn a colour on hover, or that were coloured, take a theme colour: peach
 // over a dark sky (the light where peach falls short of 3:1), deep indigo
 // over a light one.
@@ -20,8 +21,7 @@ type Rgb = [number, number, number];
 export const TEXT_RATIO = 4.5;
 // Coloured accents (hover, the open menu item, a link), held to 3:1.
 export const ACCENT_RATIO = 3;
-// How see-through grey items and lines are.
-export const MUTED_ALPHA = 0.7;
+// How see-through the faint line between links is.
 export const FAINT_ALPHA = 0.3;
 
 // The share of what is behind that text is held against: the lightest, less
@@ -99,7 +99,7 @@ export const restingSide = (
   ownSide: boolean,
 ) => (sky.settled && !ownSide ? !sky.light : undefined);
 
-// The colours as CSS values: text, its see-through grey and faint line,
+// The colours as CSS values: text, its see-through faint line,
 // the accent, and the underline under a coloured link. `wasOnDark` is the
 // side the text was on last, so it only switches once the sky is clearly
 // past the crossover. `restingOnDark`, while the sky rests at its view's
@@ -117,7 +117,6 @@ export function skyColours(
   return {
     onDark,
     text: css(text),
-    muted: css(text, MUTED_ALPHA),
     faint: css(text, FAINT_ALPHA),
     accent: css(
       onDark
