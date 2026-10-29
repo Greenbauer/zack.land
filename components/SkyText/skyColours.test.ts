@@ -13,11 +13,13 @@ import {
   FAINT_ALPHA,
   isOnDark,
   MUTED_ALPHA,
+  restingSide,
   skyBehind,
   skyColours,
   SWITCH_MARGIN,
   TEXT_RATIO,
   themeText,
+  WORD_SHARE,
 } from './skyColours';
 
 // A CSS rgb() value's channels and alpha.
@@ -92,13 +94,6 @@ describe('the theme colour that reads', () => {
   it('keeps the light wherever it reads, as the home subtitle does', () => {
     expect(themeText(0.05, TEXT_RATIO)).toEqual([237, 228, 227]);
     expect(themeText(0.6, TEXT_RATIO)).toEqual([89, 77, 105]);
-  });
-});
-
-describe('the backing behind text that crosses the head', () => {
-  it("is the other side's theme colour: dark behind light text, light behind dark", () => {
-    expect(hex(skyColours(0.03).backing)).toBe(head.dark);
-    expect(hex(skyColours(0.45).backing)).toBe(head.light);
   });
 });
 
@@ -186,5 +181,30 @@ describe('text held to its side while the sky rests at home', () => {
   it('follows the sky while it moves', () => {
     expect(skyColours(0.9, true).onDark).toBe(false);
     expect(skyColours(0.01, false).onDark).toBe(true);
+  });
+});
+
+describe('which side text takes while the sky rests', () => {
+  it("takes the resting sky's side, but a word that follows what is behind it does not", () => {
+    expect(restingSide({ settled: true, light: true }, false)).toBe(false);
+    expect(restingSide({ settled: true, light: false }, false)).toBe(true);
+    // The footer's words, over the dark head on a light sky: their own side.
+    expect(restingSide({ settled: true, light: true }, true)).toBeUndefined();
+    expect(restingSide({ settled: false, light: true }, false)).toBeUndefined();
+  });
+
+  it('gives a word over the dark head light text, though the sky is light', () => {
+    const own = restingSide({ settled: true, light: true }, true);
+    expect(skyColours(0.02, false, own).onDark).toBe(true);
+  });
+});
+
+describe('what a single word is held against', () => {
+  it('is the middle of what is behind it: a bright streak across the head does not turn it dark', () => {
+    const behind = [...Array(28).fill(0.02), ...Array(20).fill(0.6)];
+    expect(skyBehind(behind, WORD_SHARE)).toBe(0.02);
+    expect(skyColours(skyBehind(behind, WORD_SHARE)).onDark).toBe(true);
+    // Held against the lighter share, as other text is, it would go dark.
+    expect(skyColours(skyBehind(behind)).onDark).toBe(false);
   });
 });

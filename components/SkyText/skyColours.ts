@@ -29,10 +29,15 @@ export const FAINT_ALPHA = 0.3;
 // text can cross without losing much of itself.
 export const BEHIND_SHARE = 0.85;
 
+// The share of what is behind a single word that it is held against: its
+// middle, so a word over the dark head with a bright reflection crossing it
+// goes light, and a word over the sky dark (SkyWords.tsx).
+export const WORD_SHARE = 0.5;
+
 // The luminance the colours are picked against, from the samples behind.
-export function skyBehind(samples: readonly number[]) {
+export function skyBehind(samples: readonly number[], share = BEHIND_SHARE) {
   const sorted = [...samples].sort((a, b) => a - b);
-  return sorted[Math.floor(BEHIND_SHARE * (sorted.length - 1))]!;
+  return sorted[Math.floor(share * (sorted.length - 1))]!;
 }
 
 const rgb = (hex: string): Rgb => [
@@ -85,6 +90,15 @@ export function themeText(background: number, ratio: number) {
     : LIGHT;
 }
 
+// The side text takes whatever the sky behind it reads, as `restingOnDark`
+// for skyColours: the resting sky's own side (skyState: settled, and light
+// or not), unless the text follows only what is right behind it (`ownSide`,
+// as each word of the footer does over the head), or the sky is moving.
+export const restingSide = (
+  sky: { settled: boolean; light: boolean },
+  ownSide: boolean,
+) => (sky.settled && !ownSide ? !sky.light : undefined);
+
 // The colours as CSS values: text, its see-through grey and faint line,
 // the accent, and the underline under a coloured link. `wasOnDark` is the
 // side the text was on last, so it only switches once the sky is clearly
@@ -113,9 +127,5 @@ export function skyColours(
         : rgb(head.indigo),
     ),
     underline: css(rgb(onDark ? head.rose : head.purple)),
-    // A flat backing of the other side's theme colour, for text that crosses
-    // both the sky and something much darker or lighter than it, as the
-    // footer's crosses the head's chest on a phone (Footer/backing.ts).
-    backing: css(onDark ? DARK : LIGHT),
   };
 }

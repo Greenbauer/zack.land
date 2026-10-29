@@ -2,13 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
-import { watchBackdrop } from '@/components/Background/backdrop';
+import SkyWords, { SkyWord } from '@/components/SkyText/SkyWords';
 import useSkyColours from '@/components/SkyText/useSkyColours';
 
 import { Swap, useArrowSwap } from './arrowSwap';
-import { needsBacking } from './backing';
 import SocialLinks from './SocialLinks';
 
 // Shown only when reCAPTCHA is active — required by Google's terms when the
@@ -18,14 +17,16 @@ const recaptchaEnabled = !!process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 function DefaultText() {
   return (
     <h6>
-      I can make almost anything and would love to help develop your idea.{' '}
-      <Link
-        className="whitespace-nowrap text-[color:var(--sky-accent)] underline decoration-[color:var(--sky-underline)] underline-offset-4 hover:decoration-[color:var(--sky-accent)]"
-        href="/contact"
-      >
-        Contact me
-      </Link>
-      .
+      <SkyWords text="I can make almost anything and would love to help develop your idea." />{' '}
+      <SkyWord>
+        <Link
+          className="whitespace-nowrap text-[color:var(--sky-accent)] underline decoration-[color:var(--sky-underline)] underline-offset-4 hover:decoration-[color:var(--sky-accent)]"
+          href="/contact"
+        >
+          Contact me
+        </Link>
+        .
+      </SkyWord>
     </h6>
   );
 }
@@ -36,7 +37,9 @@ function ContactPageText() {
   // bare fragment would lay the two out side by side.
   return (
     <div>
-      <h6>Please fill out this form. I will respond as soon as I can.</h6>
+      <h6>
+        <SkyWords text="Please fill out this form. I will respond as soon as I can." />
+      </h6>
       {recaptchaEnabled && (
         <small className="mt-4 block text-[color:var(--sky-muted)]">
           This site is protected by reCAPTCHA and the Google{' '}
@@ -92,18 +95,9 @@ export default function Footer() {
   // the glass takes no colour of its own (components/Background/Grading.tsx),
   // so a card above it has no tint to match, and glass under the footer only
   // showed as a tinted pill while the phone menu's tint pass ran. Where its
-  // text crosses both the pale sky and the head's dark chest (a phone),
-  // which no one text colour reads over, the text sits on a flat backing of
-  // the other side's theme colour instead (--sky-backing, skyColours.ts;
-  // needsBacking in backing.ts): the light behind dark text, the dark behind
-  // light. No blur or glass.
-  const [isBacked, setIsBacked] = useState(false);
-  useEffect(() => {
-    if (!textRef.current) return;
-    return watchBackdrop(textRef.current, (samples) =>
-      setIsBacked((was) => needsBacking(samples, was)),
-    );
-  }, []);
+  // text crosses both the pale sky and the head's dark chest (a phone), each
+  // word takes its own colour from what is behind it (SkyWords.tsx): light
+  // over the head, dark over the sky. Only the colour changes.
 
   // The page's bottom fade sits on the footer's top edge (see
   // components/PageScroller/edgeFade.ts), so it follows the footer's height.
@@ -152,10 +146,7 @@ export default function Footer() {
           data-footer-arrow
           className={`ml-2 flex-none empty:hidden ${ARROW[phase]}`}
         />
-        <div
-          data-footer-extra
-          className={`max-md:flex-1 ${isBacked ? 'rounded-lg bg-[color:var(--sky-backing)] px-3 py-1' : ''} ${EXTRA[phase]}`}
-        >
+        <div data-footer-extra className={`max-md:flex-1 ${EXTRA[phase]}`}>
           {pathname === '/contact' ? <ContactPageText /> : <DefaultText />}
         </div>
       </div>
