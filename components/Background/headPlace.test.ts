@@ -9,6 +9,7 @@ import {
   GLIDE_SECONDS,
   headCentre,
   lookOrigin,
+  stepHead,
 } from './headPlace';
 
 describe("the head's place across the window", () => {
@@ -106,5 +107,19 @@ describe("the head's place across the window", () => {
     state = glide(state, 200, 1 / 60);
     // The next step bends the motion rather than restarting or jerking it.
     expect(state.speed).toBeGreaterThan(before * 0.9);
+  });
+
+  it('takes its first place at once, then glides', () => {
+    const head = { x: 450, speed: 0 };
+    // Until it has been placed, however slow the frames: straight there.
+    expect(stepHead(head, -300, 1, false)).toEqual({ x: -300, speed: 0 });
+    expect(stepHead({ x: Number.NaN, speed: 0 }, 80, 0.5, true)).toEqual({
+      x: 80,
+      speed: 0,
+    });
+    // Once placed, a glide: part of the way in a frame.
+    const step = stepHead(head, -300, 1 / 60, true);
+    expect(step.x).toBeLessThan(450);
+    expect(step.x).toBeGreaterThan(-300);
   });
 });

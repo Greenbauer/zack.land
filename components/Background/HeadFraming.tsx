@@ -5,7 +5,7 @@ import { useEffect, useRef } from 'react';
 import { PerspectiveCamera } from 'three';
 
 import { menuOpen } from './focusBlur';
-import { framedHead, glide, headCentre } from './headPlace';
+import { framedHead, headCentre, stepHead } from './headPlace';
 
 // How often the page is measured for the head's place, in milliseconds.
 const MEASURE_MS = 300;
@@ -19,6 +19,9 @@ const MEASURE_MS = 300;
 // the head stays where it is. Renders nothing.
 export default function HeadFraming() {
   const target = useRef<number | null>(null);
+  // Whether the head has taken its first place on the page (stepHead): until
+  // the scene is ready and that place is known, it takes it at once.
+  const placed = useRef(false);
 
   useEffect(() => {
     const still = matchMedia('(prefers-reduced-motion: reduce)');
@@ -71,12 +74,12 @@ export default function HeadFraming() {
 
   useFrame(({ camera, size }, delta) => {
     const goal = target.current ?? size.width / 2;
+    const ready = document.documentElement.hasAttribute('data-scene-ready');
     Object.assign(
       framedHead,
-      Number.isNaN(framedHead.x)
-        ? { x: goal, speed: 0 }
-        : glide(framedHead, goal, Math.min(delta, 0.1)),
+      stepHead(framedHead, goal, delta, ready && placed.current),
     );
+    if (ready && target.current !== null) placed.current = true;
     const { width, height } = size;
     (camera as PerspectiveCamera).setViewOffset(
       width,

@@ -70,6 +70,29 @@ export function glide(
   };
 }
 
+// The most of the glide one frame takes, in seconds: enough that a device
+// drawing a few frames a second still finishes it in about its time, while a
+// frame after a long pause (a hidden tab) does not leap straight there.
+export const MAX_STEP_SECONDS = 0.5;
+
+// The head's place this frame, toward `goal`, `seconds` after the last: it
+// takes its place at once until it has been placed on the page (`placed`:
+// the page's scene is ready, sceneReady.ts, as the page's other load motion
+// waits for it, and the cards beside it have been measured, HeadFraming.tsx),
+// so the page opens with the head already where it belongs rather than
+// gliding there over the first frames (which a slow device draws seconds
+// apart); from then on it glides.
+export function stepHead(
+  head: { x: number; speed: number },
+  goal: number,
+  seconds: number,
+  placed: boolean,
+) {
+  return Number.isNaN(head.x) || !placed
+    ? { x: goal, speed: 0 }
+    : glide(head, goal, Math.min(seconds, MAX_STEP_SECONDS));
+}
+
 // The point the pointer's look is measured from (index.tsx, and back again in
 // MyHead.tsx): a twelfth of the window right of the head's middle, which
 // keeps the head's turn toward the pointer as it was tuned with the head a

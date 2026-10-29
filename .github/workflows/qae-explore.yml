@@ -222,7 +222,10 @@ jobs:
             time out. So before every screenshot, stop the scene where it is: run
             `() => { window.requestAnimationFrame = () => 0; }` with the evaluate tool, then take the
             screenshot. The scene stays stopped until the page loads again, so navigate to (or reload)
-            the page before the next step that needs it moving. Do not retry a screenshot that timed out
+            the page before the next step that needs it moving. After loading a page, wait until
+            `<html>` has the `data-scene-ready` attribute (at most 6 seconds), then 6 seconds more
+            before stopping the scene: the header, footer and cards come in then, and the head
+            takes its place beside them. Do not retry a screenshot that timed out
             without stopping the scene first. Reading the canvas's pixels or React or three.js internals
             is not needed to check anything a user sees.
           - The head turns toward the pointer, read from `mousemove` events on the document, and settles
