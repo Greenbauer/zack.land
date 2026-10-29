@@ -97,7 +97,7 @@ export default function Post({ content }: PostProps) {
   const isArticleCut = useClipped(articleRef, !isLaidOpen);
   const isDescriptionCut = useClipped(descriptionRef, !isLaidOpen);
   const isCut = !isLaidOpen && (isArticleCut || isDescriptionCut);
-  const hasMore = !isTooShort && (isExpanded || isCut);
+  const hasMore = showsMore(isExpanded, isTooShort, isCut);
   useHeadClear(postRef);
   // A post with no images, on a wide window with no room for its card
   // beside the head: the card sits at the top of the post instead of the
@@ -230,6 +230,13 @@ export default function Post({ content }: PostProps) {
       </EdgeCard>
     </div>
   );
+}
+
+// Whether a card shows More (or Less): when its text is cut short or it is
+// open, never when it is laid open because its post is too short for it
+// (useCardFloor), as there is nothing to close.
+function showsMore(isExpanded: boolean, isTooShort: boolean, isCut: boolean) {
+  return !isTooShort && (isExpanded || isCut);
 }
 
 // Where a post's card is: opened, in the post; else fixed at the bottom of
