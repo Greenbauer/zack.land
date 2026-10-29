@@ -26,6 +26,26 @@ export const isTooShortFor = (
   hasPhotos: boolean,
 ) => floor + (hasPhotos ? MIN_PHOTOS_PX : 0) > post + 1;
 
+// The height of a card's text column with its description cut to one line:
+// `parts` are its shown parts' heights in order, the description's as one
+// line and its More, if shown, as 'more'. It always keeps room for More
+// (`moreHeight`, with its gap above): a card is closed only where More then
+// fits, so laying it open, which takes More away, must not lower its floor,
+// or it would close again and bring More back.
+export function textFloor(
+  parts: readonly (number | 'more')[],
+  gap: number,
+  moreHeight: number,
+) {
+  const shown = parts.filter((part) => part !== 'more');
+  return (
+    shown.reduce((sum, part) => sum + part, 0) +
+    gap * Math.max(0, shown.length - 1) +
+    gap +
+    moreHeight
+  );
+}
+
 export default function useCardFloor(
   articleRef: RefObject<HTMLElement | null>,
   linksRef: RefObject<HTMLElement | null>,
@@ -55,10 +75,8 @@ export default function useCardFloor(
     // The height of the text column's More, kept from when it last showed
     // (a wide card's More is about 20 pixels).
     let moreHeight = 20;
-    // The text column with its description cut to one line, and always with
-    // room for More: a card is closed only where More then fits, so laying
-    // it open (which takes More away) must not lower its floor, or it would
-    // close again and bring More back.
+    // The text column with its description cut to one line, and room for
+    // More (textFloor).
     const textHeight = () => {
       if (!description || !text) return 0;
       // Its shown parts: on a phone its More is hidden (it sits with the
@@ -73,14 +91,17 @@ export default function useCardFloor(
       );
       const more = parts.find((part) => part.tagName === 'BUTTON');
       if (more) moreHeight = more.offsetHeight;
-      const shown = parts.reduce(
-        (sum, part, k) =>
-          sum +
-          (part === description ? line : part.offsetHeight) +
-          (k ? gap : 0),
-        0,
+      return textFloor(
+        parts.map((part) =>
+          part === description
+            ? line
+            : more === part
+              ? 'more'
+              : part.offsetHeight,
+        ),
+        gap,
+        moreHeight,
       );
-      return more ? shown : shown + gap + moreHeight;
     };
     const measure = () => {
       const { paddingTop, paddingBottom } = getComputedStyle(article);
