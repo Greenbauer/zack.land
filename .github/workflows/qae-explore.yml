@@ -102,12 +102,13 @@ jobs:
           changed-files: qae-inputs/changed-files
           ticket: qae-inputs/ticket.md
           manifest: qae-inputs/manifest
-          # Eight: the 3D pages render in software on a runner with no GPU, a few frames a second, so a
-          # walk here is slow; four criteria at two widths (8 walks) left one explorer at its 30
-          # minutes with no verdict (PR 113, 2026-10-27), and with four explorers about ten criteria
-          # each ran one out of its 240 turns (PR 113, 8186fd7), so PR 113's 38 need eight, about
-          # five each. GitHub-hosted runners run them at once.
-          max-shards: 8   # CONSUMER: the most explorers one pull request's criteria are split across
+          # Twelve: the 3D pages render in software on a runner with no GPU, a few frames a second, so
+          # a walk here is slow; four criteria at two widths (8 walks) left one explorer at its 30
+          # minutes with no verdict (PR 113, 2026-10-27), about ten criteria each ran one out of its
+          # 240 turns (8186fd7), and five each still ran one out of turns and two past 30 minutes
+          # (92d6659), so PR 113's 38 get twelve, about three each. GitHub-hosted runners run them at
+          # once.
+          max-shards: 12   # CONSUMER: the most explorers one pull request's criteria are split across
           token: ${{ secrets.GITHUB_TOKEN }}   # carries a passing walk's verdict across an update no browser can see
 
   explore:
@@ -125,7 +126,9 @@ jobs:
       matrix:
         shard: ${{ fromJSON(needs.criteria.outputs.shards) }}
     runs-on: ubuntu-latest   # CONSUMER
-    timeout-minutes: 30
+    # 40: an explorer walking five of PR 113's sampled criteria at two widths ran past 30 minutes
+    # (92d6659, walks 5 and 8); twelve explorers give about three each, well inside it.
+    timeout-minutes: 40
     permissions:
       contents: read
       pull-requests: write
