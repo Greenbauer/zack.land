@@ -229,6 +229,10 @@ jobs:
             takes its place beside them. Do not retry a screenshot that timed out
             without stopping the scene first. Reading the canvas's pixels or React or three.js internals
             is not needed to check anything a user sees.
+          - On this runner the site sees that WebGL is drawn on the CPU and draws the scene at a quarter
+            of its pixels, so the page keeps up (about 10 frames a second). For a criterion that samples
+            motion every so many milliseconds, keep the scene running while sampling (stopping it stops
+            what the scene drives, such as the glass over photos), and stop it only for screenshots.
           - The head turns toward the pointer, read from `mousemove` events on the document, and settles
             within a few seconds here. To check it, load the page, move the mouse (or dispatch a
             `mousemove` with clientX and clientY on the document), wait 4 seconds, stop the scene, and

@@ -27,7 +27,7 @@ import { findCards, findFields, pageFade } from './glassCards';
 import { CardTints, Rgb, skyOf, skyPoints } from './glassTint';
 import { photoLenses } from './photoLens';
 import { TrailPass } from './pointerTrail';
-import { renderQuality } from './quality';
+import { drawsInSoftware, renderQuality } from './quality';
 import { isSmall } from './smallScreen';
 import usePixelReader from './usePixelReader';
 
@@ -57,7 +57,7 @@ export default function Grading() {
   // by the window's size as the scene loads.
   const [samples] = useState(() => {
     const { width, height } = get().size;
-    return renderQuality(width, height).samples;
+    return renderQuality(width, height, drawsInSoftware()).samples;
   });
   const [across] = useState(() => new ShaderPass(HorizontalBlurShader));
   const [down] = useState(() => new ShaderPass(VerticalBlurShader));

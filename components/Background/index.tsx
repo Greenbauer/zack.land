@@ -14,7 +14,7 @@ import Grading from './Grading';
 import HeadFraming from './HeadFraming';
 import { lookOrigin } from './headPlace';
 import MyHead, { Point } from './MyHead';
-import { renderQuality } from './quality';
+import { drawsInSoftware, renderQuality } from './quality';
 import { frameSettler, markSceneReady, READY_AT_MOST_MS } from './sceneReady';
 import Sky from './Sky';
 import TitleName from './TitleName';
@@ -62,7 +62,7 @@ export default function Background() {
           receives its last full-screen pass. */}
       <Canvas
         className="bg-[#6864a8]"
-        dpr={renderQuality(width, height).dpr}
+        dpr={renderQuality(width, height, drawsInSoftware()).dpr}
         gl={{ antialias: false }}
       >
         <Suspense fallback={null}>
