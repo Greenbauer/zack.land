@@ -281,13 +281,16 @@ for (const size of [UPRIGHT, SIDEWAYS, DESKTOP, SMALL_DESKTOP])
   });
 
 // With reduced motion, the keys jump instead of gliding, and the browser's
-// own snapping is left on as a visitor has it: paging down from the top of a
-// phone on its side, where posts are laid open taller than the page, each
-// press rests on a post, and the page comes to each such post's end before
-// it turns to the next (snapping must not pull it back to a post's top).
+// own snapping is left on as a visitor has it: paging down from the top of
+// Web Apps on a phone on its side, each press rests on a post, and the page
+// comes to the end of each of the first two posts (laid open, taller than the
+// page) before it turns to the next (snapping must not pull it back to a
+// post's top).
 test.describe('phone on its side, reduced motion, snapping on', () => {
   test.use({ isMobile: true, hasTouch: true });
-  test('keys page through each laid open post to its end', async ({ page }) => {
+  test('keys page through the first two laid open posts to their ends', async ({
+    page,
+  }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.setViewportSize({
       width: SIDEWAYS.width,
