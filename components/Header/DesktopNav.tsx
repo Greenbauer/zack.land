@@ -10,7 +10,10 @@ type DesktopNavProps = {
 export default function DesktopNav({ pathname, routes }: DesktopNavProps) {
   return (
     <div className="pointer-events-auto hidden md:flex">
-      <div className="relative m-3 flex w-auto flex-row focus:outline-none">
+      {/* Pulled left by a link's own padding (px-6, NavLink.tsx), so the
+          first link's word starts at the frame's edge, in line with the
+          footer's icons and the page below. */}
+      <div className="relative -ml-6 flex w-auto flex-row focus:outline-none">
         {routes.map(({ label, path, children }) => {
           if (!label) return null;
           const isActive = isRouteActive(path, pathname);
