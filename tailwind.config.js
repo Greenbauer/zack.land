@@ -75,6 +75,10 @@ module.exports = {
           '20%': { opacity: '0' },
           '100%': { translate: '0 0', opacity: '1' },
         },
+        'menu-out': {
+          '0%': { translate: '0 0', opacity: '1' },
+          '100%': { translate: '0 -4rem', opacity: '0' },
+        },
       },
       animation: {
         'arrow-l': 'arrow-l 2.5s ease-in-out infinite',
@@ -83,6 +87,7 @@ module.exports = {
         'content-in': 'content-in 1.4s cubic-bezier(0.22, 1, 0.36, 1) both',
         'from-right': 'from-right 1.4s cubic-bezier(0.22, 1, 0.36, 1) both',
         'menu-in': 'menu-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) both',
+        'menu-out': 'menu-out 0.5s ease-out both',
       },
     },
   },

@@ -164,28 +164,28 @@ describe('switching between light and dark text', () => {
   });
 });
 
-describe('text held to its side while the sky rests at home', () => {
-  it("takes the resting sky's side, whatever the sky reads", () => {
+describe('text held to its side once the sky’s side is settled', () => {
+  it("takes its view's side, whatever the sky reads", () => {
     expect(skyColours(0.9, true, true).onDark).toBe(true);
     expect(skyColours(0.01, false, false).onDark).toBe(false);
   });
 
-  it('drops a side it took while the sky glided in', () => {
+  it('drops a side it took before the sky was drawn', () => {
     // Light text, kept by the switch margin on a light sky just past the
-    // crossover, turns dark once that light sky is at rest.
+    // crossover, turns dark once that light sky's side is settled.
     const between = CROSSOVER + SWITCH_MARGIN / 2;
     expect(skyColours(between, true).onDark).toBe(true);
     expect(skyColours(between, true, false).onDark).toBe(false);
   });
 
-  it('follows the sky while it moves', () => {
+  it('follows the sky until its side is settled', () => {
     expect(skyColours(0.9, true).onDark).toBe(false);
     expect(skyColours(0.01, false).onDark).toBe(true);
   });
 });
 
-describe('which side text takes while the sky rests', () => {
-  it("takes the resting sky's side, but a word that follows what is behind it does not", () => {
+describe('which side text takes once settled', () => {
+  it("takes its view's side, but a word that follows what is behind it does not", () => {
     expect(restingSide({ settled: true, light: true }, false)).toBe(false);
     expect(restingSide({ settled: true, light: false }, false)).toBe(true);
     // The footer's words, over the dark head on a light sky: their own side.

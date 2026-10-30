@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 
+import { viewBound } from '../Background/skyViews';
 import { PAGE_SCROLLER_ID } from './edgeFade';
 import { GLIDE_EVENT, postSpans } from './pageGlide';
 import {
@@ -144,6 +145,7 @@ export default function SnapPager() {
       scroller.style.setProperty('--turn-delay', quick ? '0s' : '');
       const from = scroller.scrollTop;
       const next = turnIndex(at, from, direction);
+      if (next !== null) viewBound(`${location.pathname}#${next}`);
       slide(() => {
         const span = next === null ? undefined : spans()[next];
         return span ? landing(span, direction) : from;

@@ -2,7 +2,7 @@ name: Code
 
 # Runs the unit tests (npm test: Vitest over every *.test.ts file) on every pull request and on every
 # push to master, and against the built site the phone More/Less spec (cypress/e2e/more-less.cy.ts)
-# and the moving views (e2e/moving-views.e2e.ts, Playwright).
+# and the Playwright specs (e2e/*.e2e.ts: the moving views, the phone menu).
 # Target: GitHub's ubuntu-latest, with the Node version .nvmrc names, its installed Chrome for
 # Cypress, and Playwright's own Chromium and WebKit for the moving views.
 #

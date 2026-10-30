@@ -91,9 +91,9 @@ export function themeText(background: number, ratio: number) {
 }
 
 // The side text takes whatever the sky behind it reads, as `restingOnDark`
-// for skyColours: the resting sky's own side (skyState: settled, and light
-// or not), unless the text follows only what is right behind it (`ownSide`,
-// as each word of the footer does over the head), or the sky is moving.
+// for skyColours: the side of the sky's view (skyState: settled, and light or
+// not), unless the text follows only what is right behind it (`ownSide`, as
+// each word of the footer does over the head), or the scene has yet to draw.
 export const restingSide = (
   sky: { settled: boolean; light: boolean },
   ownSide: boolean,
@@ -102,9 +102,9 @@ export const restingSide = (
 // The colours as CSS values: text, its see-through faint line,
 // the accent, and the underline under a coloured link. `wasOnDark` is the
 // side the text was on last, so it only switches once the sky is clearly
-// past the crossover. `restingOnDark`, while the sky rests at its view's
-// home (components/Background/skyState.ts), is the side its station reads on,
-// which the text takes whatever the sky does.
+// past the crossover. `restingOnDark`, once the sky's side is settled
+// (components/Background/skyState.ts), is the side its station reads on, which
+// the text takes whatever the sky does.
 export function skyColours(
   background: number,
   wasOnDark?: boolean,

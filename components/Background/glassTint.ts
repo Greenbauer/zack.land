@@ -71,7 +71,7 @@ export class CardTints {
   aim(card: HTMLElement, sky: Rgb) {
     const state = this.cards.get(card);
     // A card above the head stays on the dark side; any other takes the
-    // side of the sky's station while the sky rests at its view's home.
+    // side of the view's station once that is settled (skyState.ts).
     const light =
       card.dataset.headAvoid !== 'above' &&
       (skyState.settled

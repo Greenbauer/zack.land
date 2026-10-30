@@ -20,6 +20,7 @@ import {
   FOCUS_BLUR_SECONDS,
   formFocused,
   menuOpen,
+  menuShown,
   TitlePass,
 } from './focusBlur';
 import { GlassPass, GlassTintPass, tintStrength } from './glass';
@@ -99,7 +100,7 @@ export default function Grading() {
     // its lenses show; the page under it is hidden. So the tint pass runs
     // only while that menu is open, and otherwise the graded frame goes out
     // as is.
-    const deep = menuOpen();
+    const deep = menuShown();
     Object.assign(tint, {
       enabled: deep,
       glasses: deep

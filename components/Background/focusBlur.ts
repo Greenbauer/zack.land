@@ -28,6 +28,10 @@ export const formFocused = () =>
 export const menuOpen = () =>
   document.querySelector('.mobile-menu.fixed') !== null;
 
+// Whether its glass is on screen: open, or fading away as it closes.
+export const menuShown = () =>
+  document.querySelector('.mobile-menu:not(.hidden)') !== null;
+
 // Draws the titles' layer over the frame so far, without the sky behind it,
 // with the scene and camera `world` gives as it draws (the camera can change
 // after the pass is made).

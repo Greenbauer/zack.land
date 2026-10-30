@@ -1,0 +1,276 @@
+import { expect, Page, test } from '@playwright/test';
+
+// Choosing a page in the phone menu (components/Header/MobileNav): the page it
+// leaves never comes back, the menu stays until the next page is in and then
+// fades away evenly, and the sky sets off with the tap, ahead of the next
+// page; and so it does for every other way the view changes. Against a built site: `npx playwright test`.
+
+test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+// The sky has its first home once the scene is up.
+const sceneUp = (page: Page) =>
+  page.waitForFunction(() => sessionStorage.getItem('sky-station'));
+
+const openMenu = async (page: Page) => {
+  await sceneUp(page);
+  await page.locator('[id^="headlessui-menu-button"]').tap();
+  await expect(page.locator('.mobile-menu.fixed')).toBeVisible();
+  // Where the slide in ends, so the tap finds its link.
+  await page.waitForFunction(() =>
+    document
+      .querySelector('.mobile-menu')!
+      .getAnimations()
+      .every(({ playState }) => playState === 'finished'),
+  );
+};
+
+type Step = {
+  path: string;
+  menu: 'open' | 'closing' | 'closed';
+  pageShows: boolean;
+  sky: string | null;
+  // The colour the header's text is turning to.
+  ink: string;
+};
+
+// What the page shows, frame by frame, from here on.
+const record = (page: Page) =>
+  page.evaluate(() => {
+    const steps: Step[] = [];
+    Object.assign(window, { steps });
+    const step = () => {
+      const pane = document.querySelector('.mobile-menu')!;
+      steps.push({
+        path: location.pathname,
+        menu: pane.classList.contains('fixed')
+          ? 'open'
+          : pane.classList.contains('hidden')
+            ? 'closed'
+            : 'closing',
+        pageShows:
+          getComputedStyle(document.getElementById('page')!).visibility !==
+          'hidden',
+        sky: sessionStorage.getItem('sky-station'),
+        ink: document
+          .querySelector<HTMLElement>('[data-site-chrome] .sky-colours')!
+          .style.getPropertyValue('--sky-text'),
+      });
+      requestAnimationFrame(step);
+    };
+    step();
+  });
+const steps = (page: Page) =>
+  page.evaluate(() => (window as unknown as { steps: Step[] }).steps);
+
+// What the sky has been told as the view changes, read as it hears (`event`):
+// its station, and where the page is then.
+const watchSky = (page: Page, event: string) =>
+  page.evaluate((event) => {
+    addEventListener(event, () =>
+      Object.assign(window, {
+        heard: {
+          path: location.pathname,
+          top: document.getElementById('page')!.scrollTop,
+          sky: sessionStorage.getItem('sky-station'),
+        },
+      }),
+    );
+  }, event);
+const heard = (page: Page) =>
+  page.evaluate(
+    () =>
+      (
+        window as unknown as {
+          heard: { path: string; top: number; sky: string };
+        }
+      ).heard,
+  );
+const skyNow = (page: Page) =>
+  page.evaluate(() => sessionStorage.getItem('sky-station'));
+
+test('the page a menu link leaves never comes back', async ({ page }) => {
+  await page.goto('/contact');
+  await openMenu(page);
+  await record(page);
+  await page.locator('.mobile-menu a', { hasText: 'Home' }).tap();
+  await page.waitForURL('/');
+  await expect
+    .poll(async () => (await steps(page)).at(-1))
+    .toMatchObject({ menu: 'closed', pageShows: true });
+
+  const seen = await steps(page);
+  // The old page stays hidden, the menu open over it, until the new one is in.
+  const onOldPage = seen.filter(({ path }) => path === '/contact');
+  expect(onOldPage.length).toBeGreaterThan(0);
+  for (const { menu, pageShows } of onOldPage) {
+    expect(menu).toBe('open');
+    expect(pageShows).toBe(false);
+  }
+  // Then it fades away, over the new page.
+  expect(seen.some(({ menu }) => menu === 'closing')).toBe(true);
+  expect(
+    seen.filter(({ menu }) => menu === 'closing').every((s) => s.pageShows),
+  ).toBe(true);
+});
+
+test('the sky sets off with the tap, ahead of the next page', async ({
+  page,
+}) => {
+  await page.goto('/contact');
+  await openMenu(page);
+  const before = await skyNow(page);
+  // Read as the sky hears of it: the next page can be in by the next frame.
+  await watchSky(page, 'sky-view-bound');
+  await page.locator('.mobile-menu a', { hasText: 'Home' }).tap();
+  await page.waitForURL('/');
+
+  const { path, sky } = await heard(page);
+  expect(path).toBe('/contact');
+  expect(sky).not.toBe(before);
+});
+
+test('text turns with the sky, not after it lands', async ({ page }) => {
+  await page.goto('/contact');
+  await sceneUp(page);
+  // From a dark sky (the stations after the three light ones), whose text the
+  // menu's dark glass would keep light until it had gone. A reload always
+  // crosses to the other side (skyViews.ts).
+  const first = await skyNow(page);
+  if (Number(first) < 3) {
+    await page.reload();
+    await page.waitForFunction(
+      (first) => sessionStorage.getItem('sky-station') !== first,
+      first,
+    );
+  }
+  await page.waitForTimeout(2000);
+  await openMenu(page);
+  await record(page);
+  await page.locator('.mobile-menu a', { hasText: 'Home' }).tap();
+  await page.waitForURL('/');
+  await expect
+    .poll(async () => (await steps(page)).at(-1)?.menu)
+    .toBe('closed');
+
+  const seen = await steps(page);
+  const turned = seen.find(({ ink }) => ink !== seen[0]!.ink);
+  expect(turned?.menu).not.toBe('closed');
+  expect(turned?.menu).toBeDefined();
+});
+
+test('a portfolio page keeps the sky it set off with', async ({ page }) => {
+  await page.goto('/contact');
+  await openMenu(page);
+  await record(page);
+  await page.locator('.mobile-menu button', { hasText: 'Portfolio' }).tap();
+  await page.locator('.mobile-menu a', { hasText: 'Web Apps' }).tap();
+  await page.waitForURL('/portfolio/web-apps');
+  await expect(page.locator('.mobile-menu.hidden')).toBeAttached();
+  await page.waitForTimeout(500);
+
+  const skies = new Set((await steps(page)).map(({ sky }) => sky));
+  expect(skies.size).toBe(2);
+});
+
+test('the menu closes at once with reduced motion', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/contact');
+  await openMenu(page);
+  await record(page);
+  await page.locator('.mobile-menu a', { hasText: 'Home' }).tap();
+  await page.waitForURL('/');
+  await expect(page.locator('.mobile-menu.hidden')).toBeAttached();
+
+  const seen = await steps(page);
+  expect(seen.some(({ menu }) => menu === 'closing')).toBe(false);
+  expect(
+    seen.filter(({ path }) => path === '/contact').some((s) => s.pageShows),
+  ).toBe(false);
+});
+
+test('the menu button fades the menu away and reopens it on its links', async ({
+  page,
+}) => {
+  await page.goto('/contact');
+  await openMenu(page);
+  await page.locator('.mobile-menu button', { hasText: 'Portfolio' }).tap();
+  await expect(page.locator('.mobile-menu a')).toHaveCount(2);
+  await record(page);
+  await page.locator('[id^="headlessui-menu-button"]').tap();
+  await expect(page.locator('.mobile-menu.hidden')).toBeAttached();
+  expect((await steps(page)).some(({ menu }) => menu === 'closing')).toBe(true);
+
+  await openMenu(page);
+  await expect(
+    page.locator('.mobile-menu button', { hasText: 'Portfolio' }),
+  ).toBeVisible();
+});
+
+test('the menu fades evenly, leaving no tint for a sudden end', async ({
+  page,
+}) => {
+  await page.goto('/contact');
+  await openMenu(page);
+  await page.locator('[id^="headlessui-menu-button"]').tap();
+  const halfway = await page.evaluate(async () => {
+    const pane = document.querySelector<HTMLElement>('.mobile-menu')!;
+    const [fade] = pane.getAnimations();
+    fade!.pause();
+    fade!.currentTime = 250;
+    return parseFloat(getComputedStyle(pane).opacity);
+  });
+  expect(halfway).toBeLessThan(0.5);
+});
+
+test.describe('at a desktop size', () => {
+  test.use({ viewport: { width: 1280, height: 720 }, hasTouch: false });
+
+  test('the sky sets off as a post turn starts, ahead of the scroll', async ({
+    page,
+  }) => {
+    await page.goto('/portfolio/web-apps');
+    await sceneUp(page);
+    // The first card is still arriving for a moment (turnGate).
+    await page.waitForTimeout(1600);
+    const before = await skyNow(page);
+    await watchSky(page, 'sky-view-bound');
+    await page.keyboard.press('ArrowDown');
+    await expect.poll(() => heard(page)).toBeTruthy();
+
+    const { sky, top } = await heard(page);
+    expect(top).toBe(0);
+    expect(sky).not.toBe(before);
+  });
+
+  test('the sky sets off as a link is clicked, ahead of the next page', async ({
+    page,
+  }) => {
+    await page.goto('/contact');
+    await sceneUp(page);
+    const before = await skyNow(page);
+    await watchSky(page, 'sky-view-bound');
+    await page.locator('a[href="/"]').first().click();
+    await expect.poll(() => heard(page)).toBeTruthy();
+
+    const { sky, path } = await heard(page);
+    expect(path).toBe('/contact');
+    expect(sky).not.toBe(before);
+    await page.waitForURL('/');
+    expect(await skyNow(page)).toBe(sky);
+  });
+
+  test('the sky sets off as the browser goes back', async ({ page }) => {
+    await page.goto('/contact');
+    await sceneUp(page);
+    await page.locator('a[href="/"]').first().click();
+    await page.waitForURL('/');
+    const before = await skyNow(page);
+    await watchSky(page, 'popstate');
+    await page.goBack();
+    await expect.poll(() => heard(page)).toBeTruthy();
+
+    const { sky, path } = await heard(page);
+    expect(path).toBe('/contact');
+    expect(sky).not.toBe(before);
+  });
+});
