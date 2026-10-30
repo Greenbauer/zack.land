@@ -7,8 +7,9 @@ import { expect, Page, test } from '@playwright/test';
 // post, the page is on it (not part way into the post beside it), its card is
 // closed, and no photo lies over the card's text; an open card on a phone ends
 // at its bottom right with its links. Run in Chrome and WebKit
-// (playwright.config.ts) with the browser's own snapping off (goTo), against
-// a built site: `npx playwright test`.
+// (playwright.config.ts) with the browser's own snapping off (goTo), but for
+// one case with reduced motion that keeps it on, against a built site:
+// `npx playwright test`.
 
 type Size = {
   name: string;
