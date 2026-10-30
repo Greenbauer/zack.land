@@ -118,6 +118,13 @@ export function turnIndex(
 export const landing = (span: readonly [number, number], direction: 1 | -1) =>
   direction > 0 ? span[0] : span[1];
 
+// Where the page goes when the posts change height under it (the footer's
+// text coming or going changes --post-height, a window resized or turned, a
+// post opened by More closing above it): back on the post it was on,
+// `offset` pixels down it as it was, no further than its end.
+export const keptPlace = (span: readonly [number, number], offset: number) =>
+  Math.min(span[0] + Math.max(0, offset), span[1]);
+
 // Turns a stream of wheel events into page turns. Once the scroll in one
 // direction adds up to `threshold` pixels it turns a page; it turns another
 // as soon as the wheel is pushed afresh, with no wait for the glide: a new

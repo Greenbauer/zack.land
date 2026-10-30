@@ -1,8 +1,10 @@
 name: Code
 
 # Runs the unit tests (npm test: Vitest over every *.test.ts file) on every pull request and on every
-# push to master, and the phone More/Less spec (cypress/e2e/more-less.cy.ts) against the built site.
-# Target: GitHub's ubuntu-latest, with the Node version .nvmrc names and its installed Chrome.
+# push to master, and against the built site the phone More/Less spec (cypress/e2e/more-less.cy.ts)
+# and the moving views (e2e/moving-views.e2e.ts, Playwright).
+# Target: GitHub's ubuntu-latest, with the Node version .nvmrc names, its installed Chrome for
+# Cypress, and Playwright's own Chromium and WebKit for the moving views.
 #
 # The other Cypress specs in cypress/e2e are not run here.
 
@@ -64,3 +66,33 @@ jobs:
           npm start -- --port 3000 > server.log 2>&1 &
           for _ in $(seq 60); do curl -fsS -o /dev/null http://localhost:3000/ && break; sleep 1; done
           npx cypress run --browser chrome --spec cypress/e2e/more-less.cy.ts --config baseUrl=http://localhost:3000
+
+  # Every way a post moves and comes back (e2e/moving-views.e2e.ts): each kind of post, left open or
+  # closed, down or up and back, upright and sideways phones and a desktop, and the window resized
+  # while a post is open, in Chromium and WebKit (playwright.config.ts). Playwright's browsers are
+  # downloaded here only; installing the site (Vercel's build too) never fetches them.
+  moving-views:
+    name: Moving views
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version-file: .nvmrc
+      - name: Install dependencies
+        run: npm ci
+        env:
+          # This job runs Playwright, not Cypress.
+          CYPRESS_INSTALL_BINARY: '0'
+      - name: Chromium and WebKit for Playwright
+        run: npx playwright install --with-deps chromium webkit
+      - name: Build
+        run: npm run build
+      - name: Every moving view, in Chromium and WebKit
+        run: |
+          npm start -- --port 3000 > server.log 2>&1 &
+          for _ in $(seq 60); do curl -fsS -o /dev/null http://localhost:3000/ && break; sleep 1; done
+          npx playwright test

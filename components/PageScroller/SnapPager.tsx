@@ -7,6 +7,7 @@ import { GLIDE_EVENT, postSpans } from './pageGlide';
 import {
   easeOutCubic,
   GLIDE_MS,
+  keptPlace,
   keyDirection,
   landing,
   postAt,
@@ -46,6 +47,48 @@ export default function SnapPager() {
     let throughAt = -Infinity;
 
     const spans = () => postSpans(scroller);
+
+    // The post the page is on and how far down it, kept as the page scrolls
+    // (but not while a glide runs, which looks up its landing every frame).
+    // When the posts change height under it (the footer's text coming or
+    // going at the last post changes --post-height, a window resized or
+    // turned, a post opened by More closing above it) the page is put back
+    // there (keptPlace). Chrome snaps back onto a post by itself; Safari
+    // does not, and left the page part way between posts, a post's images
+    // over its card, which is fixed at the bottom of the window. A scroll
+    // the browser makes as the posts change (holding the page inside its
+    // new length) is not one to remember: the place is taken only while the
+    // posts are the heights it was last kept at (`heights`).
+    let isGliding = false;
+    const heights = () =>
+      [...scroller.querySelectorAll<HTMLElement>('[data-post]')]
+        .map((post) => post.offsetHeight)
+        .join();
+    let place = { index: 0, offset: 0, heights: '' };
+    const take = () => {
+      const at = spans();
+      const index = postAt(at, scroller.scrollTop);
+      place = {
+        index,
+        offset: scroller.scrollTop - (at[index]?.[0] ?? 0),
+        heights: heights(),
+      };
+    };
+    const remember = () => {
+      if (!isGliding && heights() === place.heights) take();
+    };
+    const keep = () => {
+      const span = spans()[place.index];
+      if (isGliding || !span) return;
+      const to = keptPlace(span, place.offset);
+      if (Math.abs(to - scroller.scrollTop) > 0.5) scroller.scrollTop = to;
+      place.heights = heights();
+    };
+    take();
+    const resize = new ResizeObserver(keep);
+    scroller
+      .querySelectorAll('[data-post]')
+      .forEach((post) => resize.observe(post));
     // The browser's snapping would pull the page back to a post's top, so it
     // is off while the page is on a post taller than the page.
     const fitSnap = () => {
@@ -71,8 +114,11 @@ export default function SnapPager() {
       cancelAnimationFrame(frame);
       if (still.matches) {
         scroller.scrollTop = to();
+        isGliding = false;
+        take();
         return;
       }
+      isGliding = true;
       // The browser's snapping would pull each step back, so it is off
       // until the glide lands (on a post, where it agrees).
       scroller.style.scrollSnapType = 'none';
@@ -84,7 +130,11 @@ export default function SnapPager() {
         const t = Math.min((now - start) / GLIDE_MS, 1);
         scroller.scrollTop = to() - way * (1 - easeOutCubic(t));
         if (t < 1) frame = requestAnimationFrame(step);
-        else fitSnap();
+        else {
+          isGliding = false;
+          take();
+          fitSnap();
+        }
       };
       frame = requestAnimationFrame(step);
     };
@@ -210,6 +260,7 @@ export default function SnapPager() {
     const onRequest = (event: Event) =>
       step((event as CustomEvent<1 | -1>).detail, true);
 
+    scroller.addEventListener('scroll', remember, { passive: true });
     scroller.addEventListener('wheel', onWheel, { passive: false });
     scroller.addEventListener('touchstart', onTouchStart, { passive: true });
     scroller.addEventListener('touchmove', onTouchMove, { passive: false });
@@ -218,6 +269,8 @@ export default function SnapPager() {
     window.addEventListener(GLIDE_EVENT, onRequest);
     return () => {
       cancelAnimationFrame(frame);
+      resize.disconnect();
+      scroller.removeEventListener('scroll', remember);
       scroller.style.scrollSnapType = '';
       scroller.style.removeProperty('--turn-delay');
       scroller.removeEventListener('wheel', onWheel);

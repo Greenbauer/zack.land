@@ -48,7 +48,7 @@ Roles: none; the page is public. Mail: the QAE container points the five SMTP va
 
 ## Gotchas
 
-- `.github/workflows/tests.yml` runs `npm test` (the `route.test.ts` and `recaptcha.test.ts` cases above) on every pull request and every push to `master`. No workflow runs Cypress, so the two `contact-form.cy.ts` cases run only by hand.
+- `.github/workflows/tests.yml` runs `npm test` (the `route.test.ts` and `recaptcha.test.ts` cases above) on every pull request and every push to `master`. No workflow runs `contact-form.cy.ts` (the workflow's only Cypress run is the portfolio's `more-less.cy.ts`), so its two cases run only by hand.
 - reCAPTCHA fails open: with no `RECAPTCHA_SECRET_KEY` every submission is accepted, and with no `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` the form sends no token. The public key is inlined at build, so setting it needs a redeploy (README).
 - The route re-checks every field the browser checks (required, the email pattern, 100 characters for Name and Email, 1000 for Message) from the one set of rules in `utils/contact-fields.ts`; change a limit there, not in either caller. A value the browser lets through but the route refuses shows as "An error has occurred".
 - Every typed value is HTML-escaped before it goes into the mail, and the sender's name travels as a nodemailer address object, so markup or a `<`/`,` in Name cannot add markup or an address.

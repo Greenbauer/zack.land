@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   easeOutCubic,
   GLIDE_MS,
+  keptPlace,
   keyDirection,
   landing,
   postAt,
@@ -288,5 +289,29 @@ describe('spacing page turns out', () => {
     // Once it has turned, the hold after that turn applies to it too.
     expect(gate.ask(1, 900, true)).toBeNull();
     expect(gate.ask(1, 2100, true)).toEqual({ direction: 1, quick: false });
+  });
+});
+
+describe('keeping the page on its post', () => {
+  it('puts it back on its post when the posts change height', () => {
+    // On the third post's top (offset 0) as every post grows from 708 to
+    // 778 (the footer's text going at the last post): back on its top, not
+    // left 140px up the post above it.
+    const grown: [number, number][] = [
+      [0, 0],
+      [778, 778],
+      [1556, 1556],
+      [2334, 2334],
+    ];
+    expect(keptPlace(grown[2]!, 0)).toBe(1556);
+  });
+
+  it('keeps how far down a tall post it was, no further than its end', () => {
+    // Part way through a post More opened to run 500px past the page, then
+    // the same post 200px past it.
+    expect(keptPlace([708, 1208], 300)).toBe(1008);
+    expect(keptPlace([708, 908], 300)).toBe(908);
+    // Closed to one page: its top.
+    expect(keptPlace([708, 708], 300)).toBe(708);
   });
 });
