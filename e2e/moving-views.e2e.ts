@@ -143,11 +143,19 @@ const goTo = async (page: Page, size: Size, path: string, index: number) => {
 };
 
 // Pages down (1) or up (-1) until the page is on another post (through an
-// open post first, a key at a time).
+// open post first, a key at a time). After each press it waits for the page
+// to rest on a post: where the 3D scene is drawn in software (a CI runner's
+// WebKit) frames come slowly, and the 0.3s glide can take a second or more.
 const turnFrom = async (page: Page, from: number, way: 1 | -1) => {
   for (let k = 0; k < 10; k++) {
     await page.keyboard.press(way > 0 ? 'PageDown' : 'PageUp');
     await page.waitForTimeout(1200);
+    await expect
+      .poll(async () => (await look(page, from)).on, {
+        message: 'the page rests on a post',
+        timeout: 10_000,
+      })
+      .not.toBe(-1);
     if ((await look(page, from)).on !== from) return;
   }
 };
