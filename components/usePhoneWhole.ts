@@ -11,19 +11,22 @@ import { layOut } from './PostCollage';
 export const KEEP = 0.97;
 
 // Whether images laid out by `tilesAt` (the tiles in a box of a given
-// height) keep at least KEEP of their widest tile's width when their box,
-// `height` tall, gives up `shrink` pixels of it to the card. (Their width,
-// not their area: with room to spare a picture takes a taller crop, which
-// losing that room undoes at no cost to how large it shows.)
+// height) each keep at least KEEP of their width when their box, `height`
+// tall, gives up `shrink` pixels of it to the card. (Their width, not their
+// area: with room to spare a picture takes a taller crop, which losing that
+// room undoes at no cost to how large it shows. Every tile's, not only the
+// widest's: a video can keep its width while the squares beside it halve.)
 export function keepsImages(
   tilesAt: (_height: number) => readonly Tile[],
   height: number,
   shrink: number,
 ) {
-  const widest = (h: number) =>
-    Math.max(0, ...tilesAt(h).map((tile) => tile.width));
-  const full = widest(height);
-  return full > 0 && widest(height - shrink) >= KEEP * full;
+  const full = tilesAt(height);
+  const less = tilesAt(height - shrink);
+  return (
+    full.length > 0 &&
+    full.every((tile, k) => (less[k]?.width ?? 0) >= KEEP * tile.width)
+  );
 }
 
 type Step = 'short' | 'trying' | 'whole';
@@ -49,7 +52,7 @@ export const frameChanged = (was: Frame | null, now: Frame) =>
 // card out short, as usual (a few lines, More), measures it and the
 // images' box, then tries it whole and measures the card again, all before
 // the page paints, and keeps it whole only if the images keep their size
-// (keepsImages: their widest tile no narrower). It tries again when the
+// (keepsImages: no tile narrower). It tries again when the
 // post's whole box changes (frameChanged), not when the card changes its
 // padding.
 export default function usePhoneWhole(

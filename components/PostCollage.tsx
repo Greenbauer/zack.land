@@ -8,18 +8,19 @@ import { collage, cropFor, Tile } from './collageLayout';
 import Media from './Media';
 import { videoFill } from './videoFill';
 
-// A post's images as separate tiles above its card (laid out by
-// collageLayout.ts). When the post is the one in view (`isShown`, as its card
-// arrives) each tile slides in from off the window's right side after its own
-// random wait, then drifts gently on its own beat; when the post leaves, each
-// slides back off to the right. The motion is in .collage in
-// styles/globals.css. A video's tile sits over the others, so none covers
-// its controls. While it plays it takes the whole post, as More does for the
-// card: it grows to the post's full width (videoFill), straightens, and its
+// A post's images as a block of tiles above its card, touching along their
+// edges (laid out by collageLayout.ts). When the post is the one in view
+// (`isShown`, as its card arrives) each tile slides in from off the window's
+// right side after its own random wait, and rests there; when the post
+// leaves, each slides back off to the right. The motion is in .collage in
+// styles/globals.css. While a video plays it takes the whole post, as More
+// does for the card: it grows to the post's full width (videoFill) and its
 // card fades away until it stops; the other tiles blur, and the scene
 // behind blurs as it does behind a focused contact field (data-focus-blur,
 // Background/focusBlur.ts). A press outside it pauses it, which puts it
 // back, and so does the post leaving.
+
+const CORNER = '1rem';
 
 export default function PostCollage({
   mediaSources,
@@ -127,19 +128,16 @@ export default function PostCollage({
             data-video={isVideo || undefined}
             data-focus-blur={isVideo || undefined}
             data-playing={(isVideo && isPlaying) || undefined}
-            className="collage-tile absolute overflow-hidden rounded-2xl"
-            style={
-              {
-                left: tile.x,
-                top: tile.y,
-                width: tile.width,
-                height: tile.height,
-                '--tilt': `${tile.tilt}deg`,
-                // Its own drift: 5 to 8 seconds a cycle, started part way in.
-                '--drift': `${5 + ((k * 7) % 4)}s`,
-                '--drift-at': `${-k * 1.3}s`,
-              } as CSSProperties
-            }
+            className="collage-tile absolute overflow-hidden"
+            style={{
+              left: tile.x,
+              top: tile.y,
+              width: tile.width,
+              height: tile.height,
+              borderRadius: tile.round
+                .map((isRound) => (isRound ? CORNER : '0'))
+                .join(' '),
+            }}
           >
             <Media
               mediaSource={sources[k]!}
@@ -172,7 +170,6 @@ export function layOut(
   const sources = [...mediaSources].sort((a, b) => leads(b) - leads(a));
   const tiles = collage(
     sources.map(cropFor),
-    sources.map(({ key }) => key),
     width,
     height,
     sources[0] && leads(sources[0]) ? 0 : undefined,

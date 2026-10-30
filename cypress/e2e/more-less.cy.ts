@@ -1,7 +1,6 @@
 // On a phone, More then Less on any post puts it back exactly as it was:
-// the same card, its images the same size (and in the same place, give or
-// take their gentle drift), and More back where it was. Then it holds
-// still. Runs against a built site: `npx cypress run --spec
+// the same card, its images the same size and in the same place, and More
+// back where it was. Then it holds still. Runs against a built site: `npx cypress run --spec
 // cypress/e2e/more-less.cy.ts --config baseUrl=http://localhost:3000`.
 
 type Look = { card: number[]; tiles: number[][]; button: string | null };

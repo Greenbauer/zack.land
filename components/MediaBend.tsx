@@ -67,14 +67,13 @@ export default function MediaBend() {
     const now = () => performance.now() / 1000;
 
     // Draws `media` bent into its overlay, in the CSS pixels of the box it
-    // sits in (a tile's slight tilt is left out).
+    // sits in.
     const bend = (media: Picture, overlay: HTMLCanvasElement, t: number) => {
       const box = media.parentElement!;
       const around = box.getBoundingClientRect();
-      const scale = box.clientWidth / (around.width || 1);
       const local = ({ x, y }: { x: number; y: number }) => ({
-        x: (x - around.left) * scale,
-        y: (y - around.top) * scale,
+        x: x - around.left,
+        y: y - around.top,
       });
       const dpr = Math.min(devicePixelRatio, 2);
       const width = Math.round(box.clientWidth * dpr);
@@ -85,8 +84,8 @@ export default function MediaBend() {
       const at = local({ x: rect.left, y: rect.top });
       const place: Box = {
         ...at,
-        width: rect.width * scale,
-        height: rect.height * scale,
+        width: rect.width,
+        height: rect.height,
       };
       bender ??= new MediaBender();
       bender.draw(

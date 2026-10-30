@@ -115,7 +115,7 @@ export default function Post({ content }: PostProps) {
 
   // Each post fills the space between the page's fades (--post-height, from
   // PageScroller), and the page snaps from post to post (data-post, found by
-  // SnapPager). Its images are separate tiles (PostCollage) above its
+  // SnapPager). Its images are a block of tiles (PostCollage) above its
   // frosted card, which spans the bottom: wide and short, its title and
   // description beside its technology and links on a wide screen, and only
   // as tall as its text. On a wide screen both start just right of the 3D
