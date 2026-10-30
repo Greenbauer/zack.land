@@ -51,7 +51,8 @@ const POSTS = [
 
 // What the page shows of a post: which post the page is on (its span of
 // scroll positions, as the pager reads them, pageGlide.ts, holds the scroll
-// position), how far the page is from the post's top or end, whether its card
+// position), how far the page is from the post's top or end, whether it is at
+// the end of a post taller than the page, whether its card
 // is open (Less) or laid open for a short window (with no More), whether
 // anything on its card is cut short, how far its photos run past its card's
 // top, and how far each of its links (Visit Site, View Code) is from the
@@ -59,6 +60,7 @@ const POSTS = [
 type Look = {
   on: number;
   offPost: number;
+  atEnd: boolean;
   button: string;
   isLaidOpen: boolean;
   isCut: boolean;
@@ -113,6 +115,7 @@ const look = (page: Page, index: number) =>
     return {
       on,
       offPost: Math.min(Math.abs(top - start), Math.abs(top - end)),
+      atEnd: end > start && Math.abs(top - end) <= 1,
       button,
       isLaidOpen: post.hasAttribute('data-laid-open'),
       isCut: [article, ...article.querySelectorAll('*')].some(
@@ -275,6 +278,43 @@ for (const size of [UPRIGHT, SIDEWAYS, DESKTOP, SMALL_DESKTOP])
         ).not.toBe(-1);
       });
   });
+
+// With reduced motion, the keys jump instead of gliding, and the browser's
+// own snapping is left on as a visitor has it: paging down from the top of a
+// phone on its side, where posts are laid open taller than the page, each
+// press rests on a post, and the page comes to each such post's end before
+// it turns to the next (snapping must not pull it back to a post's top).
+test.describe('phone on its side, reduced motion, snapping on', () => {
+  test.use({ isMobile: true, hasTouch: true });
+  test('keys page through each laid open post to its end', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.setViewportSize({
+      width: SIDEWAYS.width,
+      height: SIDEWAYS.height,
+    });
+    await page.goto('/portfolio/web-apps');
+    await page
+      .locator('html[data-scene-ready]')
+      .waitFor({ state: 'attached', timeout: 20_000 });
+    await page.waitForTimeout(1500);
+    for (const index of [0, 1]) {
+      expect((await look(page, index)).isLaidOpen, 'laid open').toBe(true);
+      let reachedEnd = false;
+      for (let k = 0; k < 10; k++) {
+        await page.keyboard.press('PageDown');
+        await page.waitForTimeout(800);
+        const now = await look(page, index);
+        expect(now.on, 'the page rests on a post').not.toBe(-1);
+        if (now.on !== index) break;
+        reachedEnd ||= now.atEnd;
+      }
+      expect(reachedEnd, `the page came to post ${index}'s end`).toBe(true);
+      expect((await look(page, index)).on, 'turned to the next').toBe(
+        index + 1,
+      );
+    }
+  });
+});
 
 for (const [from, to] of [
   [UPRIGHT, SIDEWAYS],

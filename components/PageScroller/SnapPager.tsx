@@ -106,16 +106,18 @@ export default function SnapPager() {
     // once.
     const slide = (to: () => number) => {
       cancelAnimationFrame(frame);
+      // The browser's snapping would pull the page back (each step of a
+      // glide, or a jump part way through a tall post to its top), so it is
+      // off until the page lands, then as fits there (fitSnap).
+      scroller.style.scrollSnapType = 'none';
       if (still.matches) {
         scroller.scrollTop = to();
         isGliding = false;
         take();
+        fitSnap();
         return;
       }
       isGliding = true;
-      // The browser's snapping would pull each step back, so it is off
-      // until the glide lands (on a post, where it agrees).
-      scroller.style.scrollSnapType = 'none';
       // The way still to go, kept relative to where it lands, so if that
       // moves the glide moves with it.
       const from = scroller.scrollTop;
