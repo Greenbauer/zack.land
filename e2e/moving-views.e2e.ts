@@ -65,8 +65,15 @@ type Look = {
   photosOver: number;
   linksFromRight: number[];
 };
+// It is read after the next two frames: a post's height can change between
+// frames (a post left open closing once the page has moved on), and the
+// pager puts the page back on its post before the frame is painted
+// (SnapPager.tsx), so a read in between would see a moment no one does.
 const look = (page: Page, index: number) =>
-  page.evaluate((index): Look => {
+  page.evaluate(async (index): Promise<Look> => {
+    await new Promise<void>((done) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => done())),
+    );
     const scroller = document.getElementById('page')!;
     const posts = [...document.querySelectorAll<HTMLElement>('[data-post]')];
     const pageTop = parseFloat(
