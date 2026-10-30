@@ -52,14 +52,16 @@ const POSTS = [
 // What the page shows of a post: which post the page is on (its span of
 // scroll positions, as the pager reads them, pageGlide.ts, holds the scroll
 // position), how far the page is from the post's top or end, whether its card
-// is open (Less) or laid open for a short window (with no More), how far its
-// photos run past its card's top, and how far each of its links (Visit Site,
-// View Code) is from the card's right edge.
+// is open (Less) or laid open for a short window (with no More), whether
+// anything on its card is cut short, how far its photos run past its card's
+// top, and how far each of its links (Visit Site, View Code) is from the
+// card's right edge.
 type Look = {
   on: number;
   offPost: number;
   button: string;
   isLaidOpen: boolean;
+  isCut: boolean;
   photosOver: number;
   linksFromRight: number[];
 };
@@ -113,6 +115,9 @@ const look = (page: Page, index: number) =>
       offPost: Math.min(Math.abs(top - start), Math.abs(top - end)),
       button,
       isLaidOpen: post.hasAttribute('data-laid-open'),
+      isCut: [article, ...article.querySelectorAll('*')].some(
+        (el) => el.scrollHeight > el.clientHeight + 1,
+      ),
       photosOver,
       linksFromRight,
     };
@@ -148,15 +153,17 @@ const turnFrom = async (page: Page, from: number, way: 1 | -1) => {
 };
 
 // Opens the card with More. A card laid open for a short window has none: it
-// is open already. A card that shows whole (on a phone, the text-only post's
-// or one whose photos are held by the phone's width; on a desktop, one whose
-// text fits) has nothing to open at this size, so the test is skipped there,
-// said so in the report, rather than run again as the closed case.
+// is open already. A card that shows whole, nothing on it cut short (on a
+// phone, the text-only post's or one whose photos are held by the phone's
+// width; on a desktop, one whose text fits), has nothing to open at this
+// size, so the test is skipped there, said so in the report, rather than run
+// again as the closed case. A card cut short with no More fails.
 const openCard = async (page: Page, index: number) => {
   const now = await look(page, index);
   if (now.button !== 'More') {
-    test.skip(!now.isLaidOpen, 'the card shows whole here: nothing to open');
-    return;
+    if (now.isLaidOpen) return;
+    expect(now.isCut, 'a card cut short has More').toBe(false);
+    test.skip(true, 'the card shows whole here: nothing to open');
   }
   await page
     .locator('[data-post]')

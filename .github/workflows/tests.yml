@@ -68,7 +68,7 @@ jobs:
           npx cypress run --browser chrome --spec cypress/e2e/more-less.cy.ts --config baseUrl=http://localhost:3000
 
   # Every way a post moves and comes back (e2e/moving-views.e2e.ts): each kind of post, left open or
-  # closed, down or up and back, upright and sideways phones and a desktop, and the window resized
+  # closed, down or up and back, upright and sideways phones and two desktop sizes, and the window resized
   # while a post is open, in Chromium and WebKit (playwright.config.ts). Playwright's browsers are
   # downloaded here only; installing the site (Vercel's build too) never fetches them.
   moving-views:
