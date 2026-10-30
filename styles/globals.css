@@ -277,6 +277,19 @@
     opacity 0.3s ease-out;
 }
 
+/* Where the tiles melt (data-melts, components/MediaMelt.tsx) they don't
+   slide: each waits hidden in its place while its melt is drawn, and shows
+   once it is whole, so the page's scroll never carries one. */
+html[data-melts] .collage-tile,
+html[data-melts] .collage[data-shown] .collage-tile {
+  transition:
+    filter 0.3s ease-out,
+    opacity 0.3s ease-out;
+}
+html[data-melts] .collage[data-shown]:not([data-whole]) .collage-tile {
+  visibility: hidden;
+}
+
 /* While a video plays its tile grows over the others to the post's width
    (PostCollage) and they blur behind it. */
 .collage .collage-tile[data-video] {
@@ -286,6 +299,14 @@
   transition:
     transform 0.9s cubic-bezier(0.22, 1, 0.36, 1) var(--wait, 0s),
     visibility 0s var(--wait, 0s),
+    border-radius 0.6s cubic-bezier(0.65, 0, 0.35, 1),
+    left 0.6s cubic-bezier(0.65, 0, 0.35, 1),
+    top 0.6s cubic-bezier(0.65, 0, 0.35, 1),
+    width 0.6s cubic-bezier(0.65, 0, 0.35, 1),
+    height 0.6s cubic-bezier(0.65, 0, 0.35, 1);
+}
+html[data-melts] .collage[data-shown] .collage-tile[data-video] {
+  transition:
     border-radius 0.6s cubic-bezier(0.65, 0, 0.35, 1),
     left 0.6s cubic-bezier(0.65, 0, 0.35, 1),
     top 0.6s cubic-bezier(0.65, 0, 0.35, 1),

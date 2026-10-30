@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 
+import MediaMelt from '@/components/MediaMelt';
 import ScrollArrows from '@/components/PageScroller/ScrollArrows';
 import SnapPager from '@/components/PageScroller/SnapPager';
 import Post from '@/components/Post';
@@ -17,6 +18,7 @@ export default function Miscellaneous() {
       <ScrollArrows />
       <div className="flex min-w-0 flex-1 flex-col gap-[var(--post-gap)]">
         <SnapPager />
+        <MediaMelt />
         {Contents.map((content) => (
           <Post key={content.name} content={content} />
         ))}

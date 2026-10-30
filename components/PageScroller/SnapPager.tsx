@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 
 import { PAGE_SCROLLER_ID } from './edgeFade';
-import { GLIDE_EVENT, postSpans } from './pageGlide';
+import { announceTurn, GLIDE_EVENT, postSpans } from './pageGlide';
 import {
   easeOutCubic,
   GLIDE_MS,
@@ -144,6 +144,7 @@ export default function SnapPager() {
       scroller.style.setProperty('--turn-delay', quick ? '0s' : '');
       const from = scroller.scrollTop;
       const next = turnIndex(at, from, direction);
+      if (next !== null) announceTurn({ to: next, quick });
       slide(() => {
         const span = next === null ? undefined : spans()[next];
         return span ? landing(span, direction) : from;

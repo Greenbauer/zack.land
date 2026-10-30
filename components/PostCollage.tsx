@@ -6,14 +6,15 @@ import { MediaSource } from '@/types';
 
 import { collage, cropFor, Tile } from './collageLayout';
 import Media from './Media';
+import { melt } from './MediaMelt';
 import { videoFill } from './videoFill';
 
 // A post's images as a block of tiles above its card, touching along their
 // edges (laid out by collageLayout.ts). When the post is the one in view
-// (`isShown`, as its card arrives) each tile slides in from off the window's
-// right side after its own random wait, and rests there; when the post
-// leaves, each slides back off to the right. The motion is in .collage in
-// styles/globals.css. While a video plays it takes the whole post, as More
+// (`isShown`, as its card arrives) each tile melts in from off the window's
+// right side after its own random wait (MediaMelt.tsx), and rests there; when
+// the post leaves, each melts back off to the right. Where it can't melt it
+// slides (.collage in styles/globals.css). While a video plays it takes the whole post, as More
 // does for the card: it grows to the post's full width (videoFill) and its
 // card fades away until it stops; the other tiles blur, and the scene
 // behind blurs as it does behind a focused contact field (data-focus-blur,
@@ -108,6 +109,7 @@ export default function PostCollage({
       );
     }
     box.toggleAttribute('data-shown', isShown);
+    melt(box, isShown ? 1 : -1);
   }, [isLaidOut, isShown]);
 
   const { sources, tiles } = layOut(mediaSources, size.width, size.height);
@@ -125,7 +127,7 @@ export default function PostCollage({
         return (
           <div
             key={sources[k]!.key}
-            data-video={isVideo || undefined}
+            data-video={isVideo ? sources[k]!.key : undefined}
             data-focus-blur={isVideo || undefined}
             data-playing={(isVideo && isPlaying) || undefined}
             className="collage-tile absolute overflow-hidden"

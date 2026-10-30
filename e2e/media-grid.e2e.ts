@@ -1,8 +1,8 @@
 import { expect, Page, test } from '@playwright/test';
 
 // A post's images as the page shows them: one still block, rounded only at
-// its outer corners, that no hover resizes, and that still slides in tile by
-// tile. (Where the tiles go is collageLayout.test.ts; this is what the styles
+// its outer corners, that no hover resizes, and that still comes in tile by
+// tile, melting or, with no GPU, sliding. (Where the tiles go is collageLayout.test.ts; this is what the styles
 // do with it.) Against a built site: `npx playwright test`.
 
 const SIZES = [
@@ -22,6 +22,7 @@ async function atRest(page: Page) {
         (tile) =>
           tile.closest('[data-shown]') &&
           tile.getAnimations().length === 0 &&
+          getComputedStyle(tile).visibility === 'visible' &&
           getComputedStyle(tile).transform === 'none',
       )
     );
@@ -94,7 +95,11 @@ test.describe('under a mouse', () => {
     const [x, y, w, h] = before[0]!;
     await page.mouse.move(x! + w! / 4, y! + h! / 2);
     await page.mouse.move(x! + w! / 2, y! + h! / 2, { steps: 8 });
-    await expect(page.locator('[data-media-bend]').first()).toBeVisible();
+    // Laid over the picture once the trail reaches it; it hides again as the
+    // trail fades, and a software-drawn runner can be seconds behind.
+    await expect(page.locator('[data-media-bend]').first()).toBeAttached({
+      timeout: 30_000,
+    });
     await page.waitForTimeout(500);
     const after = await tilesOf(page);
     expect(after.map((tile) => tile.box)).toEqual(before);
@@ -105,11 +110,33 @@ test.describe('under a mouse', () => {
 test.describe('paging', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  test('the next post slides in from the right, each tile on its own wait', async ({
+  test('the next post comes in from the right, each tile on its own wait', async ({
     page,
   }) => {
     await atRest(page);
-    await page.keyboard.press('PageDown');
+    const melts = await page.evaluate(() =>
+      document.documentElement.hasAttribute('data-melts'),
+    );
+    // As a scroll arrow turns, at once: a key is let go while the page's first
+    // card is still arriving.
+    await page.evaluate(() =>
+      dispatchEvent(new CustomEvent('page-glide', { detail: 1 })),
+    );
+    if (melts) {
+      // Drawn on the canvas while they melt: the tiles leaving hide, and the
+      // tiles arriving show once they are whole.
+      await page.waitForFunction(() => {
+        const [leaving, next] = document.querySelectorAll('.collage');
+        const tile = next!.querySelector('.collage-tile')!;
+        return (
+          !leaving!.hasAttribute('data-whole') &&
+          next!.hasAttribute('data-shown') &&
+          next!.hasAttribute('data-whole') &&
+          getComputedStyle(tile).visibility === 'visible'
+        );
+      });
+      return;
+    }
     const start = await page.waitForFunction(() => {
       const next = document.querySelectorAll('.collage')[1]!;
       if (!next.hasAttribute('data-shown')) return false;

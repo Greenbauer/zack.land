@@ -20,6 +20,14 @@ export function postSpans(scroller: HTMLElement): [number, number][] {
   );
 }
 
+// Says a turn has begun: the page is leaving for post `to` (-1 for another
+// page), straight back (`quick`) if it never left. The page has not moved yet
+// (MediaMelt.tsx).
+export type Turn = { to: number; quick: boolean };
+export const TURN_EVENT = 'page-turn';
+export const announceTurn = (turn: Turn) =>
+  dispatchEvent(new CustomEvent(TURN_EVENT, { detail: turn }));
+
 // Asks the pager to glide one post down (1) or up (-1).
 export const GLIDE_EVENT = 'page-glide';
 export const requestGlide = (direction: 1 | -1) =>
