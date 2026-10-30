@@ -225,12 +225,20 @@ export default function Post({ content }: PostProps) {
               />
             )}
             {!!siteUrl && (
-              <Button href={siteUrl} target="_blank">
+              <Button
+                href={siteUrl}
+                target="_blank"
+                className={phone.linkClass}
+              >
                 Visit Site
               </Button>
             )}
             {!!repositoryUrl && (
-              <Button href={repositoryUrl} target="_blank">
+              <Button
+                href={repositoryUrl}
+                target="_blank"
+                className={phone.linkClass}
+              >
                 View Code
               </Button>
             )}

@@ -1,7 +1,5 @@
 import { RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
-import { PAGE_SCROLLER_ID } from './PageScroller/edgeFade';
-
 // How long More and Less take, in milliseconds, and how long after its post
 // has left the middle of the window an opened card closes again.
 const OPEN_MS = 600;
@@ -19,8 +17,9 @@ type Phase = 'closed' | 'opening' | 'open' | 'closing';
 // motion runs from where things were: the card from its old top, the images
 // held where they were, out of the layout, until they are gone. A post left
 // open closes again, at once, a little after the page has moved on from it,
-// so it is closed when the page comes back; a closed post above the window
-// keeps what is in view still. With reduced motion it just opens and closes.
+// so it is closed when the page comes back (the pager keeps what is in view
+// still as a post above it closes, SnapPager.tsx). With reduced motion it
+// just opens and closes.
 // `isExpanded` is whether the post is laid out open; `toggle` opens or
 // closes it.
 export default function useMoreMotion(
@@ -30,9 +29,6 @@ export default function useMoreMotion(
   const [phase, setPhase] = useState<Phase>('closed');
   // Where the card and the images were as the change began.
   const from = useRef<{ card: DOMRect; images: DOMRect | null } | null>(null);
-  // The post's height and place as it was closed from away, to keep the
-  // page still.
-  const away = useRef<{ height: number; above: boolean } | null>(null);
 
   const still = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -136,33 +132,14 @@ export default function useMoreMotion(
   // arrives, so it is always closed when the page comes back (closeOnReturn).
   const hasLeft = useRef(false);
   useEffect(() => {
-    const close = () => {
-      const post = postRef.current;
-      if (post) {
-        const box = post.getBoundingClientRect();
-        away.current = { height: box.height, above: box.bottom <= 0 };
-      }
-      setPhase('closed');
-    };
+    const close = () => setPhase('closed');
     const now = closeOnReturn(phase !== 'closed', isCurrent, hasLeft.current);
     hasLeft.current = now.hasLeft;
     if (now.close) return close();
     if (!now.wait) return;
     const timer = setTimeout(close, CLOSE_AWAY_MS);
     return () => clearTimeout(timer);
-  }, [isCurrent, phase, postRef]);
-
-  // A post closed above the window gives back the height it lost to the
-  // page's scroll, so what is in view stays put.
-  useLayoutEffect(() => {
-    const was = away.current;
-    const post = postRef.current;
-    if (phase !== 'closed' || !was || !post) return;
-    away.current = null;
-    const scroller = document.getElementById(PAGE_SCROLLER_ID);
-    if (was.above && scroller)
-      scroller.scrollTop -= was.height - post.getBoundingClientRect().height;
-  }, [phase, postRef]);
+  }, [isCurrent, phase]);
 
   return {
     isExpanded: phase === 'opening' || phase === 'open',

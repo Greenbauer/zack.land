@@ -38,7 +38,7 @@ export default function Button({
   target,
   disabled,
   showSpinner = false,
-
+  className,
   ...props
 }: ButtonProps) {
   if (showSpinner)
@@ -51,7 +51,7 @@ export default function Button({
   if (!!href) {
     return (
       <a
-        className={buttonStyle({ disabled })}
+        className={buttonStyle({ disabled, className })}
         href={href}
         target={target}
         rel={target === '_blank' ? 'noreferrer' : undefined}
@@ -67,7 +67,7 @@ export default function Button({
 
   return (
     <button
-      className={buttonStyle({ disabled })}
+      className={buttonStyle({ disabled, className })}
       style={{
         transition: 'transform 0.8s, color 0.3s, background-position-x 1.1s',
         transitionDelay: '0s, 0.2s, 0s',

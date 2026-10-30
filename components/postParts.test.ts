@@ -7,6 +7,7 @@ describe('phoneParts', () => {
     expect(phoneParts(true, true)).toEqual({
       technologyClass: 'hidden md:block',
       isMore: true,
+      linkClass: '',
     });
   });
 
@@ -14,14 +15,19 @@ describe('phoneParts', () => {
     expect(phoneParts(true, false)).toEqual({
       technologyClass: 'max-md:basis-full',
       isMore: false,
+      linkClass: '',
     });
   });
 
-  it('leaves a card that is not clamped as it is', () => {
+  it("sets an open or whole card's links at its bottom right", () => {
+    // Opened by More (a phone shows it whole then too), or a card with no
+    // images: its links stand in a column, each set to the right.
     expect(phoneParts(false, true)).toEqual({
       technologyClass: '',
       isMore: false,
+      linkClass: 'max-md:self-end',
     });
+    expect(phoneParts(false, false).linkClass).toBe('max-md:self-end');
   });
 });
 
