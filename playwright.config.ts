@@ -13,7 +13,13 @@ export default defineConfig({
   timeout: 90_000,
   workers: 2,
   reporter: 'list',
-  use: { baseURL: process.env.BASE_URL ?? 'http://localhost:3000' },
+  use: {
+    baseURL: process.env.BASE_URL ?? 'http://localhost:3000',
+    // A failing test keeps its trace and video (test-results/), which CI
+    // uploads, so a failure on the runner can be looked at, not guessed at.
+    trace: 'retain-on-failure',
+    video: 'retain-on-failure',
+  },
   projects: [
     {
       name: 'chrome',

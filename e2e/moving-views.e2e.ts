@@ -248,6 +248,34 @@ for (const size of [UPRIGHT, SIDEWAYS, DESKTOP, SMALL_DESKTOP])
           });
   });
 
+// Down at once as More opens the card, before its motion settles (the post
+// is taller for a moment as the card rises): the page stays on the post or
+// turns to the next, never stopping between them.
+for (const size of [UPRIGHT, SIDEWAYS, DESKTOP, SMALL_DESKTOP])
+  test.describe(`${size.name}, down as More opens`, () => {
+    test.use({ isMobile: size.isPhone, hasTouch: size.isPhone });
+    for (const { kind, page: path, index } of POSTS)
+      test(`${kind} post`, async ({ page }) => {
+        await goTo(page, size, path, index);
+        const now = await look(page, index);
+        test.skip(now.button !== 'More', 'no More to open at this size');
+        await page
+          .locator('[data-post]')
+          .nth(index)
+          .getByRole('button', { name: /^more$/i })
+          .filter({ visible: true })
+          .click();
+        await page.keyboard.press('PageDown');
+        await page.waitForTimeout(2500);
+        await settled(
+          page,
+          index,
+          (look) => look.on,
+          'the page on a post',
+        ).not.toBe(-1);
+      });
+  });
+
 for (const [from, to] of [
   [UPRIGHT, SIDEWAYS],
   [SIDEWAYS, UPRIGHT],

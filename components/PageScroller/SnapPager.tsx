@@ -97,20 +97,13 @@ export default function SnapPager() {
       scroller.style.scrollSnapType = end > start ? 'none' : '';
     };
 
-    const move = (direction: 1 | -1, quick: boolean) => {
-      const at = spans();
-      if (!at.length) return;
-      // A quick turn back brings its card straight back (Post.tsx): the card
-      // it turns away from never set off.
-      scroller.style.setProperty('--turn-delay', quick ? '0s' : '');
-      const from = scroller.scrollTop;
-      const next = turnIndex(at, from, direction);
-      // Where it lands, looked up again each frame: a post opened by More
-      // that closes as the page comes back to it (useMoreMotion) moves it.
-      const to = () => {
-        const span = next === null ? undefined : spans()[next];
-        return span ? landing(span, direction) : from;
-      };
+    // Moves the page to `to`, looked up again each frame, in a short glide:
+    // where the page is going can move under it (a post opened by More that
+    // closes as the page comes back to it, useMoreMotion; a post whose height
+    // is still settling as More opens it), and the glide follows it there
+    // rather than run on to where it was. With reduced motion it goes at
+    // once.
+    const slide = (to: () => number) => {
       cancelAnimationFrame(frame);
       if (still.matches) {
         scroller.scrollTop = to();
@@ -124,6 +117,7 @@ export default function SnapPager() {
       scroller.style.scrollSnapType = 'none';
       // The way still to go, kept relative to where it lands, so if that
       // moves the glide moves with it.
+      const from = scroller.scrollTop;
       const way = to() - from;
       const start = performance.now();
       const step = (now: number) => {
@@ -137,6 +131,20 @@ export default function SnapPager() {
         }
       };
       frame = requestAnimationFrame(step);
+    };
+
+    const move = (direction: 1 | -1, quick: boolean) => {
+      const at = spans();
+      if (!at.length) return;
+      // A quick turn back brings its card straight back (Post.tsx): the card
+      // it turns away from never set off.
+      scroller.style.setProperty('--turn-delay', quick ? '0s' : '');
+      const from = scroller.scrollTop;
+      const next = turnIndex(at, from, direction);
+      slide(() => {
+        const span = next === null ? undefined : spans()[next];
+        return span ? landing(span, direction) : from;
+      });
     };
 
     // A turn goes now, or not at all while the last turn's next card is
@@ -165,14 +173,18 @@ export default function SnapPager() {
         direction,
         scroller.clientHeight * THROUGH_STEP,
       );
-      if (to === null) glide(direction, pressed);
-      else {
-        fitSnap();
-        scroller.scrollTo({
-          top: to,
-          behavior: still.matches ? 'instant' : 'smooth',
-        });
-      }
+      if (to === null) return glide(direction, pressed);
+      // As far down the post the page is on as it goes, no further than the
+      // post's end as it is then (keptPlace): a post still settling as More
+      // opens it is taller for a moment, and a scroll set off for its old
+      // end ran on past it, and left the page between posts.
+      const at = spans();
+      const index = postAt(at, scroller.scrollTop);
+      const offset = to - (at[index]?.[0] ?? 0);
+      slide(() => {
+        const span = spans()[index];
+        return span ? keptPlace(span, offset) : to;
+      });
     };
 
     const onWheel = (event: WheelEvent) => {
