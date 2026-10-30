@@ -156,6 +156,10 @@ function pack(
   return best;
 }
 
+// The whole pixel nearest `at`, ignoring the last digits of its arithmetic, so
+// two edges meant to line up at exactly half a pixel round the same way.
+const wholePixel = (at: number) => Math.round(Math.round(at * 1e6) / 1e6);
+
 // The tiles for images of crops `crops` (each tile takes its crop or one
 // shape taller) in a box `width` by `height`, touching along their edges,
 // centred across the box and down at its bottom, by the card, so the gap
@@ -174,10 +178,10 @@ export function collage(
   const boxes = pack(crops, width, height, main);
   const drop = height - Math.max(...boxes.map((box) => box.y + box.height));
   const edges = boxes.map((box) => ({
-    left: Math.round(box.x),
-    right: Math.round(box.x + box.width),
-    top: Math.round(box.y + drop),
-    bottom: Math.round(box.y + box.height + drop),
+    left: wholePixel(box.x),
+    right: wholePixel(box.x + box.width),
+    top: wholePixel(box.y + drop),
+    bottom: wholePixel(box.y + box.height + drop),
   }));
   const left = Math.min(...edges.map((edge) => edge.left));
   const right = Math.max(...edges.map((edge) => edge.right));

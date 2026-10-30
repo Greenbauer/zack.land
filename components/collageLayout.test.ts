@@ -130,6 +130,23 @@ describe("a post's collage", () => {
     }
   });
 
+  it('stays one solid block in a box of a fractional size', () => {
+    // Heights end in .5 on a window whose height is odd.
+    for (const [w, h] of [
+      [776, 453.5],
+      [384.5, 600.5],
+      [389.25, 320.75],
+    ] as const) {
+      for (const aspects of POSTS) {
+        const tiles = collage(aspects, w, h);
+        const { left, right, top, bottom } = outline(tiles);
+        const area = tiles.reduce((sum, t) => sum + t.width * t.height, 0);
+        expect(area).toBe((right - left) * (bottom - top));
+        expect(tiles.flatMap((t) => t.round).filter(Boolean)).toHaveLength(4);
+      }
+    }
+  });
+
   it('sits at the bottom of its box, by the card, at any height', () => {
     // Perf Sealers' one square, limited by a phone's width, in boxes of
     // three heights: no gap under it.
