@@ -137,7 +137,8 @@ describe("a post's collage", () => {
       [384.5, 600.5],
       [389.25, 320.75],
     ] as const) {
-      for (const aspects of POSTS) {
+      // Two squares side by side too: their bottoms land on .5 exactly.
+      for (const aspects of [...POSTS, [1, 1]]) {
         const tiles = collage(aspects, w, h);
         const { left, right, top, bottom } = outline(tiles);
         const area = tiles.reduce((sum, t) => sum + t.width * t.height, 0);

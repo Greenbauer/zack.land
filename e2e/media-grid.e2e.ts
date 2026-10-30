@@ -116,7 +116,7 @@ test.describe('paging', () => {
       return [...next.querySelectorAll<HTMLElement>('.collage-tile')].map(
         (tile) => ({
           x: new DOMMatrix(getComputedStyle(tile).transform).m41,
-          wait: tile.style.getPropertyValue('--wait'),
+          wait: getComputedStyle(tile).transitionDelay,
         }),
       );
     });
