@@ -10,6 +10,7 @@ import {
   keptPlace,
   keyDirection,
   landing,
+  placeIn,
   postAt,
   throughPost,
   turnGate,
@@ -70,7 +71,7 @@ export default function SnapPager() {
       const index = postAt(at, scroller.scrollTop);
       place = {
         index,
-        offset: scroller.scrollTop - (at[index]?.[0] ?? 0),
+        offset: placeIn(at[index] ?? [0, 0], scroller.scrollTop),
         heights: heights(),
       };
     };

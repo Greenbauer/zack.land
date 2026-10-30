@@ -6,6 +6,7 @@ import {
   keptPlace,
   keyDirection,
   landing,
+  placeIn,
   postAt,
   throughPost,
   turnGate,
@@ -313,5 +314,18 @@ describe('keeping the page on its post', () => {
     expect(keptPlace([708, 908], 300)).toBe(908);
     // Closed to one page: its top.
     expect(keptPlace([708, 708], 300)).toBe(708);
+  });
+
+  it('keeps a page at the end of a tall post at its end', () => {
+    // Come back up onto a post 500px taller than the page: it lands on its
+    // end, and stays there when the post grows 8px.
+    const offset = placeIn([708, 1208], 1208);
+    expect(offset).toBe(Infinity);
+    expect(keptPlace([708, 1216], offset)).toBe(1216);
+    // Part way down it, or on a one-page post (even as More opens it), the
+    // distance from its top is kept.
+    expect(placeIn([708, 1208], 1000)).toBe(292);
+    expect(placeIn([708, 708], 708)).toBe(0);
+    expect(keptPlace([708, 1208], placeIn([708, 708], 708))).toBe(708);
   });
 });
