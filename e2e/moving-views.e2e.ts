@@ -339,6 +339,10 @@ test.describe('phone on its side, a card at every stop', () => {
       test(`${path}, ${reducedMotion === 'reduce' ? 'reduced motion' : 'moving'}`, async ({
         page,
       }) => {
+        // Every post of a page twice, down and back up: about 18 stops, each
+        // 4 to 5 seconds where Chrome draws the scene in software (CI), past
+        // the 90 seconds a test is given (playwright.config.ts).
+        test.slow();
         await page.emulateMedia({ reducedMotion });
         await page.setViewportSize({
           width: SIDEWAYS.width,

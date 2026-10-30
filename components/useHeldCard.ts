@@ -10,10 +10,11 @@ export type PostPlace = 'before' | 'current' | 'after';
 // `pageTop` (--page-top) and is `postHeight` tall (--post-height, a post's
 // min-height). A post at rest always covers that space, at its top or, laid
 // open taller than the page, at its end, so it always crosses the line. The
-// window's middle is not always in the space: the footer can be taller than
-// the header's fade, and on a phone on its side the space runs from 160 to
-// 192 pixels down a window 390 tall, so at the end of a tall post no post
-// crossed the window's middle and every card hid.
+// window's middle is not always in the space: the fade at the bottom can run
+// deeper than the one at the top (it follows the footer's height), and on a
+// phone on its side the space runs from 160 to 192 pixels down a window 390
+// tall, so at the end of a tall post no post crossed the window's middle and
+// every card hid.
 export const viewLine = (pageTop: number, postHeight: number) =>
   pageTop + postHeight / 2;
 
@@ -56,7 +57,12 @@ export default function useHeldCard(ref: RefObject<HTMLElement | null>) {
         parseFloat(style.getPropertyValue('--page-top')) || 0,
         parseFloat(style.minHeight) || 0,
       );
-      const at = `${-line}px 0px ${line - innerHeight}px 0px`;
+      // A band a pixel deep from the line down, measured against the
+      // viewport the observer uses (the root element's height; innerHeight
+      // also counts a scrollbar): a band with no depth leaves no slack, and
+      // a root even a little shorter than measured has nothing to cross, so
+      // every card hides.
+      const at = `${-line}px 0px ${line + 1 - document.documentElement.clientHeight}px 0px`;
       if (at === margin) return;
       margin = at;
       view?.disconnect();
