@@ -65,15 +65,8 @@ type Look = {
   photosOver: number;
   linksFromRight: number[];
 };
-// It is read after the next two frames: a post's height can change between
-// frames (a post left open closing once the page has moved on), and the
-// pager puts the page back on its post before the frame is painted
-// (SnapPager.tsx), so a read in between would see a moment no one does.
 const look = (page: Page, index: number) =>
-  page.evaluate(async (index): Promise<Look> => {
-    await new Promise<void>((done) =>
-      requestAnimationFrame(() => requestAnimationFrame(() => done())),
-    );
+  page.evaluate((index): Look => {
     const scroller = document.getElementById('page')!;
     const posts = [...document.querySelectorAll<HTMLElement>('[data-post]')];
     const pageTop = parseFloat(
@@ -129,6 +122,22 @@ const look = (page: Page, index: number) =>
       linksFromRight,
     };
   }, index);
+
+// Where the page comes to rest is what is checked, polled for a few seconds:
+// a post's height can change between frames (a post left open closing once
+// the page has moved on), and for a moment, before the pager puts it back
+// (SnapPager.tsx), a read can find the page between posts. A page that stays
+// off its post still fails.
+const settled = <T>(
+  page: Page,
+  index: number,
+  read: (_: Look) => T,
+  message: string,
+) =>
+  expect.poll(async () => read(await look(page, index)), {
+    message,
+    timeout: 5_000,
+  });
 
 const goTo = async (page: Page, size: Size, path: string, index: number) => {
   await page.setViewportSize({ width: size.width, height: size.height });
@@ -202,8 +211,13 @@ const expectLinksAtRight = async (page: Page, size: Size, index: number) => {
 // above its card (they may tuck 8px under its top edge, Post.tsx's -mb-2).
 const expectSettledOn = async (page: Page, index: number) => {
   await page.waitForTimeout(2500);
+  await settled(
+    page,
+    index,
+    (now) => now.offPost,
+    'the page on the post',
+  ).toBeLessThanOrEqual(1);
   const now = await look(page, index);
-  expect(now.offPost, 'the page on the post').toBeLessThanOrEqual(1);
   expect(now.button, 'the card closed').not.toBe('Less');
   expect(now.photosOver, 'its photos above its card').toBeLessThanOrEqual(8);
 };
@@ -223,7 +237,7 @@ for (const size of [UPRIGHT, SIDEWAYS, DESKTOP, SMALL_DESKTOP])
               await expectLinksAtRight(page, size, index);
             }
             await turnFrom(page, index, way);
-            expect((await look(page, index)).on, 'left the post').toBe(
+            await settled(page, index, (now) => now.on, 'left the post').toBe(
               index + way,
             );
             // A look at that post first, long enough for what changes there
@@ -252,7 +266,9 @@ for (const [from, to] of [
             height: size.height,
           });
           await page.waitForTimeout(1500);
-          expect((await look(page, index)).on, 'still on the post').toBe(index);
+          await settled(page, index, (now) => now.on, 'still on the post').toBe(
+            index,
+          );
         }
         await expectLinksAtRight(page, from, index);
         // Closed with Less, if it is still open, it is as a closed card is.
