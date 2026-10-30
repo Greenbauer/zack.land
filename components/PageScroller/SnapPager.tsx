@@ -53,8 +53,8 @@ export default function SnapPager() {
     // When the posts change height under it (the footer's text coming or
     // going at the last post changes --post-height, a window resized or
     // turned, a post opened by More closing above it) the page is put back
-    // there (keptPlace). Chrome snaps back onto a post by itself; Safari
-    // does not, and left the page part way between posts, a post's images
+    // there (keptPlace). Chrome snaps back onto a post by itself; Safari on
+    // an iPhone does not, and left the page part way between posts, a post's images
     // over its card, which is fixed at the bottom of the window. A scroll
     // the browser makes as the posts change (holding the page inside its
     // new length) is not one to remember: the place is taken only while the

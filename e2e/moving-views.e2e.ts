@@ -1,7 +1,7 @@
 import { expect, Page, test } from '@playwright/test';
 
 // Every way the portfolio's posts move, on a phone held upright and on its
-// side and on a desktop: a post of each kind (a video with photos, photos,
+// side and on two desktop sizes: a post of each kind (a video with photos, photos,
 // text only), left open or closed, down to the next post or up to the one
 // before, and back; and the window resized while a post is open. Back on the
 // post, the page is on it (not part way into the post beside it), its card is
@@ -52,12 +52,14 @@ const POSTS = [
 // What the page shows of a post: which post the page is on (its span of
 // scroll positions, as the pager reads them, pageGlide.ts, holds the scroll
 // position), how far the page is from the post's top or end, whether its card
-// is open (Less), how far its photos run past its card's top, and how far
-// each of its links (Visit Site, View Code) is from the card's right edge.
+// is open (Less) or laid open for a short window (with no More), how far its
+// photos run past its card's top, and how far each of its links (Visit Site,
+// View Code) is from the card's right edge.
 type Look = {
   on: number;
   offPost: number;
   button: string;
+  isLaidOpen: boolean;
   photosOver: number;
   linksFromRight: number[];
 };
@@ -110,6 +112,7 @@ const look = (page: Page, index: number) =>
       on,
       offPost: Math.min(Math.abs(top - start), Math.abs(top - end)),
       button,
+      isLaidOpen: post.hasAttribute('data-laid-open'),
       photosOver,
       linksFromRight,
     };
@@ -144,10 +147,17 @@ const turnFrom = async (page: Page, from: number, way: 1 | -1) => {
   }
 };
 
-// Opens the card with More, if it has one (a card laid open for a short
-// window has none: it is open already).
+// Opens the card with More. A card laid open for a short window has none: it
+// is open already. A card that shows whole (on a phone, the text-only post's
+// or one whose photos are held by the phone's width; on a desktop, one whose
+// text fits) has nothing to open at this size, so the test is skipped there,
+// said so in the report, rather than run again as the closed case.
 const openCard = async (page: Page, index: number) => {
-  if ((await look(page, index)).button !== 'More') return;
+  const now = await look(page, index);
+  if (now.button !== 'More') {
+    test.skip(!now.isLaidOpen, 'the card shows whole here: nothing to open');
+    return;
+  }
   await page
     .locator('[data-post]')
     .nth(index)
@@ -176,7 +186,7 @@ const expectSettledOn = async (page: Page, index: number) => {
   expect(now.photosOver, 'its photos above its card').toBeLessThanOrEqual(8);
 };
 
-for (const size of [UPRIGHT, SIDEWAYS, DESKTOP])
+for (const size of [UPRIGHT, SIDEWAYS, DESKTOP, SMALL_DESKTOP])
   test.describe(size.name, () => {
     test.use({ isMobile: size.isPhone, hasTouch: size.isPhone });
     for (const { kind, page: path, index, ways } of POSTS)
@@ -206,6 +216,7 @@ for (const [from, to] of [
   [UPRIGHT, SIDEWAYS],
   [SIDEWAYS, UPRIGHT],
   [DESKTOP, SMALL_DESKTOP],
+  [SMALL_DESKTOP, DESKTOP],
 ] as const)
   test.describe(`${from.name} to ${to.name} and back`, () => {
     test.use({ isMobile: from.isPhone, hasTouch: from.isPhone });
