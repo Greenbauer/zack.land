@@ -44,8 +44,12 @@ When the secret is unset, submissions skip verification; when set, a submission 
 
 Every pull request and every push to `master` runs the unit tests (`npm test`: Vitest over every
 `*.test.ts` file) through `.github/workflows/tests.yml`, as the check `Unit tests` (shown as `Code / Unit tests`). The workflow has no
-path filter and the job no condition, so the check always reports. The Cypress specs in
-`cypress/e2e` need the site built and started and are not part of it.
+path filter and the job no condition, so the check always reports. The same workflow builds and
+starts the site and runs two end-to-end checks against it: the Cypress spec
+`cypress/e2e/more-less.cy.ts` in Chrome (the check `Phone More/Less`), and the Playwright tests in
+`e2e/` in Chromium and WebKit (the check `Moving views`; `playwright.config.ts`, run locally with
+`npx playwright test` against `BASE_URL`, default `http://localhost:3000`). The other specs in
+`cypress/e2e` are not run.
 
 Every pull request runs the [Vibe Verifier](https://github.com/Greenbauer/vibe-verifier) gates listed
 in `.vibe-verifier` through `.github/workflows/vibe-verifier.yml`, pinned to a catalog commit: the
