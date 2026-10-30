@@ -109,7 +109,11 @@ test.describe('paging', () => {
     page,
   }) => {
     await atRest(page);
-    await page.keyboard.press('PageDown');
+    // As a scroll arrow turns, at once: a key is let go while the page's first
+    // card is still arriving.
+    await page.evaluate(() =>
+      dispatchEvent(new CustomEvent('page-glide', { detail: 1 })),
+    );
     const start = await page.waitForFunction(() => {
       const next = document.querySelectorAll('.collage')[1]!;
       if (!next.hasAttribute('data-shown')) return false;
