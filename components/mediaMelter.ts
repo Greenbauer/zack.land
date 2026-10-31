@@ -21,6 +21,8 @@ export const MELT_OUT_S = 1;
 const SPREAD = 0.4;
 // How many times its own width a picture stretches on the way out.
 const STRETCH = 5.0;
+// How far past the window's right side a picture runs, in shares of the way.
+const OVERSHOOT = 1.6;
 // How much of its height a picture narrows to in the streak.
 const NARROW = 0.3;
 
@@ -145,14 +147,16 @@ const FRAGMENT = `
     float narrow = mix(1.0, ${NARROW}, smoothstep(0.0, 0.7, gone));
     float y = p.y + liquid * ripple * uDpr * (20.0 + gone * 70.0);
     vec2 t = (vec2(p.x, line + (y - line) / narrow) - uRest.xy) / uRest.zw;
-    // Off to the window's right side, gathering speed, drawn out as it goes.
-    float far = (uSize.x - uRest.x) / uRest.z;
+    // Off to the window's right side, gathering speed, drawn out as it goes,
+    // and well past it, so its slowest band has gone before its melt ends
+    // rather than lingering at the edge.
+    float far = ${OVERSHOOT} * (uSize.x - uRest.x) / uRest.z;
     float stretch = 1.0 + gone * ${STRETCH.toFixed(1)};
     vec2 at = vec2((t.x - gone * gone * far) / stretch, t.y);
     at.x += liquid * ripple * 0.05;
     float split = liquid * (0.012 + gone * 0.05);
     float soft = uDpr * (0.5 + liquid * (3.0 + gone * 20.0));
-    float shown = outline(at, soft);
+    float shown = outline(at, soft) * (1.0 - smoothstep(0.8, 1.0, gone));
     vec3 colour = vec3(
       picture(at + vec2(split, 0.0)).r,
       picture(at).g,
