@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  COMING_AT,
   easeMelt,
   MELT_IN_S,
   MELT_OUT_S,
   restingBox,
   stepMelt,
+  stirOf,
 } from './mediaMelter';
 
 describe("a tile's melt", () => {
@@ -28,6 +30,20 @@ describe("a tile's melt", () => {
     expect(easeMelt(0.9) - easeMelt(0.8)).toBeLessThan(
       easeMelt(0.2) - easeMelt(0.1),
     );
+  });
+});
+
+describe('how a turn mixes', () => {
+  it('stirs only while both are there', () => {
+    expect(stirOf(0, 0.5)).toBe(0);
+    expect(stirOf(0.5, 0)).toBe(0);
+    expect(stirOf(0.5, 0.5)).toBe(1);
+    expect(stirOf(0, 1)).toBe(0);
+  });
+
+  it('sets the next pictures off while the last are still going', () => {
+    expect(COMING_AT).toBeGreaterThan(0.5);
+    expect(COMING_AT).toBeLessThan(1);
   });
 });
 

@@ -37,11 +37,19 @@ export function shownPart(
 export const uploadsAgain = (was: string, src: string, isVideo: boolean) =>
   was !== src || isVideo;
 
-// Whether a picture can be bent. Not an animated GIF: a page reading an
-// animated image (WebGL's texImage2D, as a canvas's drawImage) only ever gets
-// its first frame (the HTML standard's rule for animated images), so under
-// the bend it would freeze; left alone it keeps moving.
-export const bendable = (src: string) => !/\.gif\b/i.test(src);
+// An image or video the page can draw. (Keep a moving picture a video, never a
+// GIF: a page reading an animated image only ever gets its first frame.)
+export type Picture = HTMLImageElement | HTMLVideoElement;
+
+export const ready = (media: Picture) =>
+  media instanceof HTMLImageElement
+    ? media.complete && media.naturalWidth > 0
+    : media.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA;
+
+export const naturalSize = (media: Picture) =>
+  media instanceof HTMLImageElement
+    ? { width: media.naturalWidth, height: media.naturalHeight }
+    : { width: media.videoWidth, height: media.videoHeight };
 
 const VERTEX = `
   attribute vec2 position;

@@ -118,6 +118,56 @@ test.describe('under a mouse', () => {
   });
 });
 
+test.describe('every kind of media', () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test('a photo, a silent loop and a YouTube thumbnail all bend', async ({
+    page,
+  }) => {
+    await atRest(page);
+    for (let k = 0; k < 2; k++) {
+      await page.evaluate(() =>
+        dispatchEvent(new CustomEvent('page-glide', { detail: 1 })),
+      );
+      await page.waitForTimeout(2500);
+    }
+    const tiles = page.locator('.collage').nth(2).locator('.collage-tile');
+    await expect(tiles).toHaveCount(3);
+    await expect(tiles.nth(0).locator('button')).toBeVisible();
+    await expect(tiles.nth(1).locator('video')).toBeVisible();
+    for (let k = 0; k < 3; k++) {
+      const box = (await tiles.nth(k).boundingBox())!;
+      await page.mouse.move(box.x + 20, box.y + 20);
+      await page.mouse.move(box.x + box.width / 2, box.y + 30, { steps: 6 });
+      await expect(tiles.nth(k).locator('[data-media-bend]')).toBeAttached({
+        timeout: 30_000,
+      });
+    }
+  });
+});
+
+test.describe('More and Less', () => {
+  test.use({ viewport: { width: 1280, height: 720 } });
+
+  test('the images melt away and back', async ({ page }) => {
+    await page.goto('/portfolio/miscellaneous');
+    const box = page.locator('.collage').first();
+    await expect(box.locator('.collage-tile').first()).toBeVisible();
+    const melts = await page.evaluate(() =>
+      document.documentElement.hasAttribute('data-melts'),
+    );
+    test.skip(!melts, 'no GPU here: they fly instead');
+    await page.getByRole('button', { name: 'More' }).first().click();
+    await expect(page.getByRole('button', { name: 'Less' })).toBeVisible();
+    await expect(box.locator('.collage-tile')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Less' }).click();
+    await expect(box).not.toHaveAttribute('data-whole', /.*/);
+    await expect(box).toHaveAttribute('data-whole', '');
+    await expect(box.locator('.collage-tile').first()).toBeVisible();
+    await expect(page.locator('canvas.fixed')).toBeHidden();
+  });
+});
+
 test.describe('paging', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -125,6 +175,15 @@ test.describe('paging', () => {
     page,
   }) => {
     await atRest(page);
+    // They wait wholly off the window's right side, so that is where they come
+    // from. (Read now: a slow browser may first look once they have landed.)
+    const waiting = await page.evaluate(() =>
+      [
+        ...document
+          .querySelectorAll('.collage')[1]!
+          .querySelectorAll('.collage-tile'),
+      ].map((tile) => new DOMMatrix(getComputedStyle(tile).transform).m41),
+    );
     const melts = await page.evaluate(() =>
       document.documentElement.hasAttribute('data-melts'),
     );
@@ -148,21 +207,18 @@ test.describe('paging', () => {
       });
       return;
     }
+    for (const x of waiting) expect(x).toBeGreaterThan(1000);
     const start = await page.waitForFunction(() => {
       const next = document.querySelectorAll('.collage')[1]!;
       if (!next.hasAttribute('data-shown')) return false;
       return [...next.querySelectorAll<HTMLElement>('.collage-tile')].map(
-        (tile) => ({
-          x: new DOMMatrix(getComputedStyle(tile).transform).m41,
-          wait: getComputedStyle(tile).transitionDelay,
-        }),
+        (tile) => getComputedStyle(tile).transitionDelay,
       );
     });
-    const tiles = await start.jsonValue();
-    if (!tiles) throw new Error('the next post never showed');
-    expect(tiles.length).toBeGreaterThan(1);
-    expect(new Set(tiles.map((tile) => tile.wait)).size).toBe(tiles.length);
-    expect(Math.max(...tiles.map((tile) => tile.x))).toBeGreaterThan(1000);
+    const delays = await start.jsonValue();
+    if (!delays) throw new Error('the next post never showed');
+    expect(delays.length).toBeGreaterThan(1);
+    expect(new Set(delays).size).toBe(delays.length);
     await page.waitForFunction(() =>
       [
         ...document

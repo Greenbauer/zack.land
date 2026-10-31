@@ -103,10 +103,7 @@ export default function PostCollage({
     const box = boxRef.current;
     if (!box || !isLaidOut) return;
     for (const tile of box.querySelectorAll<HTMLElement>('.collage-tile')) {
-      tile.style.setProperty(
-        '--wait',
-        `${Math.random() * (isShown ? 0.6 : 0.25)}s`,
-      );
+      tile.style.setProperty('--wait', `${Math.random() * 0.25}s`);
     }
     box.toggleAttribute('data-shown', isShown);
     melt(box, isShown ? 1 : -1);
@@ -127,7 +124,7 @@ export default function PostCollage({
         return (
           <div
             key={sources[k]!.key}
-            data-video={isVideo ? sources[k]!.key : undefined}
+            data-video={isVideo || undefined}
             data-focus-blur={isVideo || undefined}
             data-playing={(isVideo && isPlaying) || undefined}
             className="collage-tile absolute overflow-hidden"

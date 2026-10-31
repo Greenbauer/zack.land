@@ -1,22 +1,34 @@
-import { Box } from './mediaBender';
+import { Box, Picture, uploadsAgain } from './mediaBender';
 
-// Draws a post's picture melting: on its way in it runs in from the window's
-// right side as streaks, a band of the picture at a time, and pools into its
-// place; on its way out it runs back the same way. The streaks are the
-// pointer's bend (mediaBender.ts) made to order, its colours parting the same
-// way, but across the picture's whole height rather than along the pointer's
-// trail. At `melt` 1 it draws the picture exactly where it rests, so the
-// picture itself can take over with no jump, and at 0 it draws nothing.
+// Draws a post's pictures melting: going in they run in from the window's
+// right side as streaks, a band of the picture at a time, and pool into
+// place; going out they run back the same way. The streaks are the pointer's
+// bend (mediaBender.ts) made to order, its colours parting the same way, but
+// across a picture's whole height rather than along the pointer's trail. At
+// `melt` 1 it draws the picture exactly where it rests, so the picture itself
+// can take over with no jump, and at 0 it draws nothing.
+// Pictures going out and coming in are drawn to a layer each, then mixed: one
+// flow of liquid carries both, and where they meet they marble together, so a
+// turn reads as one picture stirred into the next.
 
 // How long a picture takes, in seconds, on its way in and out.
-export const MELT_IN_S = 1.3;
-export const MELT_OUT_S = 0.85;
+export const MELT_IN_S = 0.95;
+export const MELT_OUT_S = 0.8;
 
 // How far ahead of each other the bands of a picture go, as a share of the
 // melt: more leaves longer streaks.
 const SPREAD = 0.75;
 // How many times its own width a picture stretches at the height of the melt.
 const STRETCH = 2.5;
+
+// How much of the pictures going out are left when those coming in set off,
+// so the two overlap.
+export const COMING_AT = 0.85;
+// How hard the flow stirs the pictures, 0 to 1, with `leaving` of those going
+// out left and `coming` of those coming in arrived: most while there is plenty
+// of both, and not at all with only one, so a picture alone melts as it is.
+export const stirOf = (leaving: number, coming: number) =>
+  Math.min(6 * leaving * coming, 1);
 
 // Slows to a stop at 1, so run backward it gathers speed from there.
 export const easeMelt = (melt: number) => 1 - (1 - melt) ** 3;
@@ -54,6 +66,20 @@ const VERTEX = `
     gl_Position = vec4(position, 0.0, 1.0);
   }`;
 
+const NOISE = `
+  float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+  }
+  float noise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+    return mix(
+      mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x),
+      mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x),
+      f.y);
+  }`;
+
 const FRAGMENT = `
   precision highp float;
   uniform sampler2D tMedia;
@@ -66,18 +92,7 @@ const FRAGMENT = `
   uniform float uDpr;
   varying vec2 vUv;
 
-  float hash(vec2 p) {
-    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
-  }
-  float noise(vec2 p) {
-    vec2 i = floor(p);
-    vec2 f = fract(p);
-    f = f * f * (3.0 - 2.0 * f);
-    return mix(
-      mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x),
-      mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x),
-      f.y);
-  }
+  ${NOISE}
 
   vec3 picture(vec2 at) {
     return texture2D(tMedia, uShown.xy + clamp(at, 0.0, 1.0) * uShown.zw).rgb;
@@ -126,11 +141,72 @@ const FRAGMENT = `
     gl_FragColor = vec4(colour * shown, shown);
   }`;
 
+// The two layers stirred together: the same flow carries both, and where both
+// have liquid a marbling pattern says which shows. With nothing to stir, each
+// passes through as drawn.
+const MIX = `
+  precision highp float;
+  uniform sampler2D tLeaving;
+  uniform sampler2D tComing;
+  uniform vec2 uSize;
+  uniform float uDpr;
+  uniform float uStir;
+  uniform float uTime;
+  varying vec2 vUv;
+
+  ${NOISE}
+
+  float fbm(vec2 p) {
+    float sum = 0.0;
+    float amount = 0.5;
+    for (int i = 0; i < 3; i++) {
+      sum += amount * noise(p);
+      p = p * 2.03 + 7.1;
+      amount *= 0.5;
+    }
+    return sum / 0.875;
+  }
+
+  vec4 layer(sampler2D tLayer, vec2 at) {
+    return texture2D(tLayer, vec2(at.x, 1.0 - at.y));
+  }
+
+  void main() {
+    vec2 at = vUv;
+    float marble = 0.5;
+    if (uStir > 0.0) {
+      vec2 q = vUv * uSize / uDpr / 200.0;
+      vec2 first = vec2(
+        fbm(q + vec2(0.0, uTime * 0.5)),
+        fbm(q + vec2(5.2, 1.3 - uTime * 0.4))) - 0.5;
+      vec2 flow = vec2(
+        fbm(q + 3.0 * first + vec2(1.7, 9.2)),
+        fbm(q + 3.0 * first + vec2(8.3, 2.8))) - 0.5;
+      at += flow * uStir * 260.0 * uDpr / uSize;
+      marble = smoothstep(0.4, 0.6, fbm(q * 1.4 + 5.0 * flow + uTime * 0.2));
+    }
+    vec4 leaving = layer(tLeaving, at);
+    vec4 coming = layer(tComing, at);
+    // Each alone shows as it is; both, as the marbling says.
+    float share = coming.a / max(leaving.a + coming.a, 0.001);
+    gl_FragColor = mix(leaving, coming, mix(share, marble, leaving.a * coming.a));
+  }`;
+
+type Layer = { frame: WebGLFramebuffer; texture: WebGLTexture };
+type Uniforms = Record<string, WebGLUniformLocation | null>;
+
 // The melt's shared canvas: `canvas` fills the window behind the post cards.
 export class MediaMelter {
   private readonly gl: WebGLRenderingContext;
-  private readonly textures = new WeakMap<HTMLImageElement, WebGLTexture>();
-  private readonly at: Record<string, WebGLUniformLocation | null> = {};
+  private readonly textures = new WeakMap<
+    Picture,
+    { texture: WebGLTexture; src: string }
+  >();
+  private readonly melting: WebGLProgram;
+  private readonly mixing: WebGLProgram;
+  private readonly at: Uniforms;
+  private readonly mixAt: Uniforms;
+  private readonly layers: [Layer, Layer];
 
   // None where WebGL is missing or drawn in software, where this would crawl:
   // the tiles then slide (styles/globals.css).
@@ -144,20 +220,9 @@ export class MediaMelter {
 
   private constructor(gl: WebGLRenderingContext) {
     this.gl = gl;
-    const shader = (type: number, source: string) => {
-      const s = gl.createShader(type)!;
-      gl.shaderSource(s, source);
-      gl.compileShader(s);
-      return s;
-    };
-    const program = gl.createProgram()!;
-    gl.attachShader(program, shader(gl.VERTEX_SHADER, VERTEX));
-    gl.attachShader(program, shader(gl.FRAGMENT_SHADER, FRAGMENT));
-    gl.linkProgram(program);
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS))
-      console.error(gl.getProgramInfoLog(program));
-    gl.useProgram(program);
-    for (const name of [
+    this.melting = this.program(FRAGMENT);
+    this.mixing = this.program(MIX);
+    this.at = this.uniforms(this.melting, [
       'tMedia',
       'uSize',
       'uRest',
@@ -166,55 +231,144 @@ export class MediaMelter {
       'uMelt',
       'uSeed',
       'uDpr',
-    ])
-      this.at[name] = gl.getUniformLocation(program, name);
+    ]);
+    this.mixAt = this.uniforms(this.mixing, [
+      'tLeaving',
+      'tComing',
+      'uSize',
+      'uDpr',
+      'uStir',
+      'uTime',
+    ]);
+    this.layers = [this.layer(), this.layer()];
     gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
     gl.bufferData(
       gl.ARRAY_BUFFER,
       new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]),
       gl.STATIC_DRAW,
     );
-    const position = gl.getAttribLocation(program, 'position');
-    gl.enableVertexAttribArray(position);
-    gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
-    gl.enable(gl.BLEND);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
   }
 
-  private texture(media: HTMLImageElement) {
+  private program(fragment: string) {
     const { gl } = this;
-    let texture = this.textures.get(media);
-    if (texture) return gl.bindTexture(gl.TEXTURE_2D, texture);
-    texture = gl.createTexture()!;
+    const shader = (type: number, source: string) => {
+      const s = gl.createShader(type)!;
+      gl.shaderSource(s, source);
+      gl.compileShader(s);
+      return s;
+    };
+    const program = gl.createProgram()!;
+    gl.attachShader(program, shader(gl.VERTEX_SHADER, VERTEX));
+    gl.attachShader(program, shader(gl.FRAGMENT_SHADER, fragment));
+    gl.bindAttribLocation(program, 0, 'position');
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS))
+      console.error(gl.getProgramInfoLog(program));
+    return program;
+  }
+
+  private uniforms(program: WebGLProgram, names: string[]) {
+    const { gl } = this;
+    return Object.fromEntries(
+      names.map((name) => [name, gl.getUniformLocation(program, name)]),
+    );
+  }
+
+  private layer(): Layer {
+    const { gl } = this;
+    const texture = gl.createTexture()!;
     gl.bindTexture(gl.TEXTURE_2D, texture);
     for (const wrap of [gl.TEXTURE_WRAP_S, gl.TEXTURE_WRAP_T])
       gl.texParameteri(gl.TEXTURE_2D, wrap, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, media);
-    this.textures.set(media, texture);
+    for (const filter of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER])
+      gl.texParameteri(gl.TEXTURE_2D, filter, gl.LINEAR);
+    return { frame: gl.createFramebuffer()!, texture };
   }
 
-  // Starts a frame `width` by `height` CSS pixels at `dpr`, cleared.
+  private texture(media: Picture) {
+    const { gl } = this;
+    const src = media.currentSrc;
+    let held = this.textures.get(media);
+    if (!held) {
+      const texture = gl.createTexture()!;
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      for (const wrap of [gl.TEXTURE_WRAP_S, gl.TEXTURE_WRAP_T])
+        gl.texParameteri(gl.TEXTURE_2D, wrap, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      held = { texture, src: '' };
+      this.textures.set(media, held);
+    }
+    gl.bindTexture(gl.TEXTURE_2D, held.texture);
+    if (uploadsAgain(held.src, src, media instanceof HTMLVideoElement)) {
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        media,
+      );
+      held.src = src;
+    }
+  }
+
+  // Starts a frame `width` by `height` CSS pixels at `dpr`, both layers clear.
   begin(width: number, height: number, dpr: number) {
-    const { gl, at } = this;
+    const { gl, at, layers } = this;
     const { canvas } = gl;
     const w = Math.round(width * dpr);
     const h = Math.round(height * dpr);
-    if (canvas.width !== w || canvas.height !== h)
-      Object.assign(canvas, { width: w, height: h });
+    const resized = canvas.width !== w || canvas.height !== h;
+    if (resized) Object.assign(canvas, { width: w, height: h });
     gl.viewport(0, 0, w, h);
     gl.clearColor(0, 0, 0, 0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.activeTexture(gl.TEXTURE0);
+    for (const { frame, texture } of layers) {
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      if (resized)
+        gl.texImage2D(
+          gl.TEXTURE_2D,
+          0,
+          gl.RGBA,
+          w,
+          h,
+          0,
+          gl.RGBA,
+          gl.UNSIGNED_BYTE,
+          null,
+        );
+      gl.bindFramebuffer(gl.FRAMEBUFFER, frame);
+      if (resized)
+        gl.framebufferTexture2D(
+          gl.FRAMEBUFFER,
+          gl.COLOR_ATTACHMENT0,
+          gl.TEXTURE_2D,
+          texture,
+          0,
+        );
+      gl.clear(gl.COLOR_BUFFER_BIT);
+    }
+    gl.useProgram(this.melting);
+    gl.enable(gl.BLEND);
     gl.uniform1i(at.tMedia!, 0);
     gl.uniform2f(at.uSize!, w, h);
     gl.uniform1f(at.uDpr!, dpr);
+  }
+
+  // Draws from here on go to the layer of pictures going out or coming in.
+  drawTo(isComing: boolean) {
+    const { gl, layers } = this;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, layers[isComing ? 1 : 0].frame);
   }
 
   // Draws `media` melting (eased by easeMelt) toward `rest` (CSS pixels),
   // showing its part `shown`, with corners of `radii` (CSS pixels, as CSS
   // orders them), at `dpr`, its bands set by `seed`.
   draw(
-    media: HTMLImageElement,
+    media: Picture,
     rest: Box,
     shown: [number, number, number, number],
     radii: readonly [number, number, number, number],
@@ -241,6 +395,27 @@ export class MediaMelter {
     );
     gl.uniform1f(at.uMelt!, easeMelt(melt));
     gl.uniform1f(at.uSeed!, seed);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  }
+
+  // Mixes the layers onto the canvas, stirred `stir` (stirOf) by a flow at
+  // `time` seconds.
+  finish(stir: number, time: number, dpr: number) {
+    const { gl, layers, mixAt } = this;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.disable(gl.BLEND);
+    gl.useProgram(this.mixing);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, layers[1].texture);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, layers[0].texture);
+    gl.uniform1i(mixAt.tLeaving!, 0);
+    gl.uniform1i(mixAt.tComing!, 1);
+    gl.uniform2f(mixAt.uSize!, gl.canvas.width, gl.canvas.height);
+    gl.uniform1f(mixAt.uDpr!, dpr);
+    gl.uniform1f(mixAt.uStir!, stir);
+    gl.uniform1f(mixAt.uTime!, time);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
 }

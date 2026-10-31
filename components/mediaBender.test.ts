@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { bendable, shownPart, uploadsAgain } from './mediaBender';
+import { shownPart, uploadsAgain } from './mediaBender';
 
 describe('the part of a picture its box shows', () => {
   it('shows all of a picture drawn to fill its box', () => {
@@ -41,18 +41,5 @@ describe('when a picture is uploaded again', () => {
     expect(uploadsAgain(still, still, false)).toBe(false);
     expect(uploadsAgain('', still, false)).toBe(true);
     expect(uploadsAgain('/v.mp4', '/v.mp4', true)).toBe(true);
-  });
-});
-
-describe('which pictures bend', () => {
-  it('bends stills and videos, not animated GIFs, whose frames cannot be read', () => {
-    expect(
-      bendable('/_next/image?url=%2Fweb-apps%2Fselfie-ig.jpg&w=1080'),
-    ).toBe(true);
-    expect(bendable('/not-found/hello-is-it-me.mp4')).toBe(true);
-    expect(
-      bendable('/_next/image?url=%2Fmiscellaneous%2Fgears.gif&w=1080'),
-    ).toBe(false);
-    expect(bendable('/web-apps/create-your-own-square.gif')).toBe(false);
   });
 });

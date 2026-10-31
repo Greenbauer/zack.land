@@ -1,43 +1,45 @@
 'use client';
 
 import Image from 'next/image';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { HiPlay } from 'react-icons/hi2';
 import YouTube, { YouTubePlayer } from 'react-youtube';
 
 import { MediaSource } from '@/types';
 
-// One image or video, filling its box (an image is cropped to cover it). A
-// video tells `onPlaying` when it starts and stops, and pauses while `paused`
-// (its post has left the window).
-export default function Media({
-  mediaSource,
-  onPlaying,
-  paused = false,
-}: {
+type MediaProps = {
   mediaSource: MediaSource;
   onPlaying?: (_isPlaying: boolean) => void;
   paused?: boolean;
-}) {
-  const { key, alt, type, width = 800, height = 800 } = mediaSource;
-  const player = useRef<YouTubePlayer | null>(null);
+};
 
-  useEffect(() => {
-    if (paused) player.current?.pauseVideo();
-  }, [paused]);
+// One image or video, filling its box (cropped to cover it): a silent loop, or
+// a YouTube video, which tells `onPlaying` when it starts and stops, and
+// pauses while `paused` (its post has left the window).
+export default function Media({ mediaSource, onPlaying, paused }: MediaProps) {
+  const { key, alt, type, width = 800, height = 800 } = mediaSource;
 
   switch (type) {
     case 'YouTube':
       return (
-        <YouTube
-          videoId={key}
-          className="size-full"
-          iframeClassName="size-full"
-          onReady={({ target }) => {
-            player.current = target;
-          }}
-          onPlay={() => onPlaying?.(true)}
-          onPause={() => onPlaying?.(false)}
-          onEnd={() => onPlaying?.(false)}
+        <YouTubeVideo
+          mediaSource={mediaSource}
+          onPlaying={onPlaying}
+          paused={paused}
+        />
+      );
+    case 'video':
+      return (
+        <video
+          src={key}
+          aria-label={alt}
+          width={width}
+          height={height}
+          className="size-full object-cover"
+          autoPlay
+          loop
+          muted
+          playsInline
         />
       );
     default:
@@ -52,4 +54,73 @@ export default function Media({
         />
       );
   }
+}
+
+// YouTube's largest thumbnail every video has is 480 by 360: the video between
+// black bars, which its crop to a wide tile leaves out.
+const THUMBNAIL = { width: 480, height: 360 };
+
+// A YouTube video's thumbnail and a play button until it is played, and again
+// when it stops: the page can draw the thumbnail and see the pointer over it,
+// so it bends and melts as any picture does, as an embed cannot. The player
+// loads on the first press and stays, hidden, so a later press goes on from
+// where it stopped. (`isStarting` lets the player show, in case the browser
+// asks for a press on the player itself.)
+function YouTubeVideo({ mediaSource, onPlaying, paused = false }: MediaProps) {
+  const { key, alt } = mediaSource;
+  const player = useRef<YouTubePlayer | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
+
+  useEffect(() => {
+    if (paused) player.current?.pauseVideo();
+  }, [paused]);
+
+  const stopped = () => {
+    setIsStarting(false);
+    onPlaying?.(false);
+  };
+
+  return (
+    <>
+      <Image
+        src={`https://i.ytimg.com/vi/${key}/hqdefault.jpg`}
+        alt={alt}
+        {...THUMBNAIL}
+        className="size-full object-cover"
+        preload
+      />
+      {!isStarting && (
+        <button
+          type="button"
+          aria-label={`Play ${alt}`}
+          className="absolute inset-0 grid place-items-center"
+          onClick={() => {
+            setIsStarting(true);
+            setIsLoaded(true);
+            player.current?.playVideo();
+          }}
+        >
+          <span className="rounded-full bg-head-dark/60 p-3 text-head-light backdrop-blur-sm">
+            <HiPlay aria-hidden className="size-8" />
+          </span>
+        </button>
+      )}
+      {isLoaded && (
+        <YouTube
+          videoId={key}
+          opts={{ playerVars: { autoplay: 1 } }}
+          className={`absolute inset-0 ${isStarting ? '' : 'invisible'}`}
+          iframeClassName="size-full"
+          onReady={({ target }) => {
+            player.current = target;
+            target.playVideo();
+          }}
+          onPlay={() => onPlaying?.(true)}
+          onPause={stopped}
+          onEnd={stopped}
+        />
+      )}
+    </>
+  );
 }
