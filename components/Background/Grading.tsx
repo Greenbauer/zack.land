@@ -73,7 +73,7 @@ export default function Grading() {
   const blur = useRef(0);
 
   // New cards take the sky's side as they are added, ahead of their first
-  // paint (a MutationObserver runs before it).
+  // paint (a MutationObserver runs before it), with no fade to it.
   useEffect(() => {
     const observer = new MutationObserver(() => {
       for (const card of document.querySelectorAll<HTMLElement>(

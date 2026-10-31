@@ -86,11 +86,17 @@ export class CardTints {
     if (card.dataset.sky !== side) card.dataset.sky = side;
   }
 
-  // Puts a card new to the page straight on the settled side, before it is
-  // first drawn, so it arrives on it rather than turning over once it is in.
-  // (The sky around it does not count once the side is settled.)
+  // Puts a card new to the page straight on the settled side, so it arrives
+  // on it rather than turning over once it is in. (The sky around it does not
+  // count once the side is settled.) Its colours' fade is skipped: the site's
+  // router can have styled the card on the default side by now, so setting
+  // its side alone would start that fade.
   place(card: HTMLElement) {
-    if (skyState.settled && !this.cards.has(card)) this.aim(card, [0, 0, 0]);
+    if (!skyState.settled || this.cards.has(card)) return;
+    this.aim(card, [0, 0, 0]);
+    for (const fade of card.getAnimations())
+      if ((fade as CSSTransition).transitionProperty?.startsWith('--card'))
+        fade.finish();
   }
 
   // The glass `card` shows now, `delta` seconds after the last call (the

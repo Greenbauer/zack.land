@@ -15,7 +15,8 @@ const PINK_DAWN: Rgb = [214, 160, 190];
 const BLUE_NIGHT: Rgb = [40, 60, 140];
 
 // A card element: only its data attributes are used.
-const card = () => ({ dataset: {} }) as HTMLElement;
+const card = () =>
+  ({ dataset: {}, getAnimations: () => [] }) as unknown as HTMLElement;
 
 describe('glass tints', () => {
   it('put a card on the side of the sky around it, its text following', () => {
@@ -55,6 +56,20 @@ describe('glass tints', () => {
     tints.place(element);
     expect(element.dataset.sky).toBe('light');
     expect(tints.shown(element, 0).light).toBe(1);
+  });
+
+  it('skip the fade of a new card’s colours, and leave its other motion', () => {
+    Object.assign(skyState, { settled: true, light: true });
+    const finished: string[] = [];
+    const fade = (transitionProperty: string) => ({
+      transitionProperty,
+      finish: () => finished.push(transitionProperty),
+    });
+    const element = card();
+    element.getAnimations = () =>
+      [fade('--card-ink'), fade('--card-field'), fade('translate')] as never;
+    new CardTints().place(element);
+    expect(finished).toEqual(['--card-ink', '--card-field']);
   });
 
   it('leave a card it knows, and every card before the side is settled, alone', () => {

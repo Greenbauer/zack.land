@@ -31,7 +31,7 @@ type Step = {
   sky: string | null;
   // The colour the header's text is turning to.
   ink: string;
-  // The side of the page's card, if it has one, as glassTint.ts sets it.
+  // The ink the page's card shows now, if it has one.
   card: string;
 };
 
@@ -57,7 +57,9 @@ const record = (page: Page) =>
           .querySelector<HTMLElement>('[data-site-chrome] .sky-colours')!
           .style.getPropertyValue('--sky-text'),
         card: document.querySelector('section')
-          ? (document.querySelector('section')!.getAttribute('data-sky') ?? '')
+          ? getComputedStyle(
+              document.querySelector('section')!,
+            ).getPropertyValue('--card-ink')
           : 'none',
       });
       requestAnimationFrame(step);
@@ -134,12 +136,12 @@ test('the sky sets off with the tap, ahead of the next page', async ({
   expect(sky).not.toBe(before);
 });
 
-test('text turns with the sky, not after it lands', async ({ page }) => {
-  await page.goto('/contact');
+// On a page on a dark sky (the stations after the three light ones), with its
+// side settled, so a change of view ends on a light sky. A reload always
+// crosses to the other side (skyViews.ts).
+const onDarkSky = async (page: Page, path: string) => {
+  await page.goto(path);
   await sceneUp(page);
-  // From a dark sky (the stations after the three light ones), whose text the
-  // menu's dark glass would keep light until it had gone. A reload always
-  // crosses to the other side (skyViews.ts).
   const first = await skyNow(page);
   if (Number(first) < 3) {
     await page.reload();
@@ -149,6 +151,12 @@ test('text turns with the sky, not after it lands', async ({ page }) => {
     );
   }
   await page.waitForTimeout(2000);
+};
+
+test('text turns with the sky, not after it lands', async ({ page }) => {
+  // The menu's dark glass would otherwise keep this text light until it had
+  // gone.
+  await onDarkSky(page, '/contact');
   await openMenu(page);
   await record(page);
   await page.locator('.mobile-menu a', { hasText: 'Home' }).tap();
@@ -163,11 +171,10 @@ test('text turns with the sky, not after it lands', async ({ page }) => {
   expect(turned?.menu).toBeDefined();
 });
 
-test('a card arrives on the new sky’s side', async ({ page }) => {
-  await page.goto('/');
-  await sceneUp(page);
-  // Until the sky's side is settled, a card reads the sky around it.
-  await page.waitForTimeout(1500);
+test('a card arrives in the new sky’s colours, with no fade to them', async ({
+  page,
+}) => {
+  await onDarkSky(page, '/');
   await openMenu(page);
   await record(page);
   await page.locator('.mobile-menu a', { hasText: 'Contact' }).tap();
@@ -177,10 +184,17 @@ test('a card arrives on the new sky’s side', async ({ page }) => {
     .toBe('closed');
 
   const seen = await steps(page);
-  const withCard = seen.filter(({ card }) => card !== 'none');
-  expect(withCard.length).toBeGreaterThan(0);
-  const side = Number(seen.at(-1)!.sky) < 3 ? 'light' : 'dark';
-  for (const { card } of withCard) expect(card).toBe(side);
+  expect(Number(seen.at(-1)!.sky)).toBeLessThan(3);
+  const inks = new Set(
+    seen.map(({ card }) => card).filter((card) => card !== 'none'),
+  );
+  // One ink from its first frame on: the light side's, not the default.
+  expect(inks.size).toBe(1);
+  expect([...inks][0]).not.toBe(
+    await page.evaluate(() =>
+      getComputedStyle(document.documentElement).getPropertyValue('--card-ink'),
+    ),
+  );
 });
 
 test('a portfolio page keeps the sky it set off with', async ({ page }) => {
