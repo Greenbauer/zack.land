@@ -21,9 +21,8 @@ export function postSpans(scroller: HTMLElement): [number, number][] {
 }
 
 // Says a turn has begun: the page is leaving for post `to` (-1 for another
-// page), straight back (`quick`) if it never left. The page has not moved yet
-// (MediaMelt.tsx).
-export type Turn = { to: number; quick: boolean };
+// page). The page has not moved yet (MediaMelt.tsx).
+export type Turn = { to: number };
 export const TURN_EVENT = 'page-turn';
 export const announceTurn = (turn: Turn) =>
   dispatchEvent(new CustomEvent(TURN_EVENT, { detail: turn }));

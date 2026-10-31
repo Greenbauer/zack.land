@@ -47,7 +47,7 @@ export default function PageLeave() {
       if (leaving) return;
       leaving = true;
       document.body.toggleAttribute('data-leaving', true);
-      announceTurn({ to: -1, quick: false });
+      announceTurn({ to: -1 });
       const out = (kind: 'card' | 'title') => ({
         duration: kind === 'title' ? TITLE_MS : CARD_MS,
         easing: GATHER,

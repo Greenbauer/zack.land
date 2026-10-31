@@ -86,6 +86,17 @@ for (const { name, width, height } of SIZES)
     });
   });
 
+test.describe('at rest', () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  // The canvas lying over a resting tile hid the bend, froze a GIF and covered
+  // a video.
+  test('nothing lies over the tiles', async ({ page }) => {
+    await atRest(page);
+    await expect(page.locator('canvas.fixed')).toBeHidden();
+  });
+});
+
 test.describe('under a mouse', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 

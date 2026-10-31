@@ -10,15 +10,14 @@ import { Turn, TURN_EVENT } from './PageScroller/pageGlide';
 // (mediaMelter.ts) on one canvas over the page, behind the cards. While a
 // tile melts it is drawn here, at the place it rests, so it never moves with
 // the page as the page glides; the tile itself waits hidden until it is whole
-// (.collage[data-whole], styles/globals.css). A tile starts on its way out as
-// a turn begins, not when its post leaves the window's middle: by then the
-// page has moved it. A video melts as its thumbnail, an animated GIF as its
+// (.collage[data-whole], styles/globals.css), and the canvas hides whenever
+// nothing is melting, so it never lies over a tile at rest. A tile starts on
+// its way out as a turn begins, not when its post leaves the window's middle:
+// by then the page has moved it, and tiles coming in wait until every tile
+// going out has gone. A video melts as its thumbnail, an animated GIF as its
 // first frame. Where the melt can't run (data-melts unset on <html>: reduced
 // motion, or no real GPU) the tiles slide instead.
 
-// How long the next post's tiles wait for the last to go, in seconds, unless
-// a quick turn back brings them straight back.
-const AFTER_TURN_S = 0.5;
 // How long a tile waits for its picture before it just shows.
 const LOAD_LIMIT_S = 3;
 
@@ -66,16 +65,16 @@ const seconds = () => performance.now() / 1000;
 const waitOf = (tile: HTMLElement) =>
   parseFloat(tile.style.getPropertyValue('--wait')) || 0;
 
-// Sends `box`'s tiles in (`direction` 1) or out (-1), after `delay` seconds
-// and each tile's own --wait, from wherever they are.
-export function melt(box: HTMLElement, direction: 1 | -1, delay = 0) {
+// Sends `box`'s tiles in (`direction` 1) or out (-1), after each tile's own
+// --wait, from wherever they are.
+export function melt(box: HTMLElement, direction: 1 | -1) {
   if (!wake) return;
   const run = runs.get(box);
   if (run) {
     if (run.direction === direction) return;
     run.direction = direction;
     run.began = seconds();
-    for (const piece of run.pieces) piece.wait = delay + waitOf(piece.tile);
+    for (const piece of run.pieces) piece.wait = waitOf(piece.tile);
     return;
   }
   if (box.hasAttribute('data-whole') === direction > 0) return;
@@ -88,7 +87,7 @@ export function melt(box: HTMLElement, direction: 1 | -1, delay = 0) {
             tile,
             picture,
             melt: direction > 0 ? 0 : 1,
-            wait: delay + waitOf(tile),
+            wait: waitOf(tile),
             seed: k * 3.1 + box.offsetTop * 0.01,
           },
         ]
@@ -178,32 +177,35 @@ export default function MediaMelt() {
       const held = isHeld();
       const dpr = Math.min(devicePixelRatio, 2);
       melter.begin(canvas.clientWidth, canvas.clientHeight, dpr);
+      const isLeaving = [...runs.values()].some((run) => run.direction < 0);
       for (const run of runs.values()) {
-        if (held) run.began = now;
+        const waits = held || (isLeaving && run.direction > 0);
+        if (waits) run.began = now;
         const isDone =
           !run.box.isConnected ||
-          advance(melter, run, held ? 0 : now - last, dpr);
+          advance(melter, run, waits ? 0 : now - last, dpr);
         if (!isDone) continue;
         runs.delete(run.box);
         if (run.direction > 0) run.box.toggleAttribute('data-whole', true);
       }
       last = now;
       frame = runs.size ? requestAnimationFrame(step) : 0;
+      canvas.hidden = !frame;
     };
     wake = () => {
       if (frame) return;
+      canvas.hidden = false;
       last = seconds();
       frame = requestAnimationFrame(step);
     };
     const turn = (event: Event) => {
-      const { to, quick } = (event as CustomEvent<Turn>).detail;
+      const { to } = (event as CustomEvent<Turn>).detail;
       const boxes = document.querySelectorAll<HTMLElement>(
         '[data-post] .collage',
       );
       for (const box of boxes) {
         const post = box.closest('[data-post]')!;
-        if (post === document.querySelectorAll('[data-post]')[to])
-          melt(box, 1, quick ? 0 : AFTER_TURN_S);
+        if (post === document.querySelectorAll('[data-post]')[to]) melt(box, 1);
         else melt(box, -1);
       }
     };
@@ -221,6 +223,7 @@ export default function MediaMelt() {
     <canvas
       ref={canvasRef}
       aria-hidden
+      hidden
       className="pointer-events-none fixed inset-0 z-10 size-full"
     />
   );
