@@ -11,6 +11,7 @@ import {
   shownPart,
 } from './mediaBender';
 import {
+  easeLine,
   measuresRest,
   MediaMelter,
   restingBox,
@@ -69,6 +70,8 @@ type Run = {
 
 const runs = new Map<HTMLElement, Run>();
 let wake: (() => void) | null = null;
+// Where the streak runs now, once anything is melting (CSS pixels).
+let line: number | null = null;
 
 const seconds = () => performance.now() / 1000;
 const waitFor = (direction: 1 | -1) =>
@@ -86,7 +89,10 @@ export function melt(box: HTMLElement, direction: 1 | -1) {
     if (run.direction === direction) return;
     run.direction = direction;
     run.began = seconds();
-    for (const piece of run.pieces) piece.wait = waitFor(direction);
+    for (const piece of run.pieces) {
+      piece.wait = waitFor(direction);
+      piece.pace = paceOf(direction);
+    }
     return;
   }
   const isAtRest =
@@ -194,6 +200,13 @@ function advance(melter: MediaMelter, run: Run, step: number, dpr: number) {
   return run.pieces.every((piece) => piece.melt === end);
 }
 
+// Moves the streak's line `step` seconds on, toward the middle of `rests`.
+function moveLine(rests: Box[], step: number) {
+  if (!rests.length) return;
+  const target = streakLine(rests);
+  line = line === null ? target : easeLine(line, target, step);
+}
+
 // Draws every melting box at `now` seconds, `step` seconds on from the last
 // frame, unless the page is still held back from moving in.
 function drawFrame(
@@ -215,13 +228,11 @@ function drawFrame(
       piece.rest = restOf(run, piece);
     piece.shown = shownOf(piece.picture, piece.tile, piece.rest!);
   }
-  melter.begin(
-    canvas.clientWidth,
-    canvas.clientHeight,
-    dpr,
-    now,
-    streakLine(pieces.flatMap(({ piece }) => piece.rest ?? [])),
+  moveLine(
+    pieces.flatMap(({ piece }) => piece.rest ?? []),
+    step,
   );
+  melter.begin(canvas.clientWidth, canvas.clientHeight, dpr, now, line ?? 0);
   const leaving = share(-1);
   for (const run of runs.values()) {
     if (held) run.began = now;
@@ -234,6 +245,7 @@ function drawFrame(
   }
   const coming = share(1);
   melter.finish(stirOf(leaving, coming), coming, now, dpr);
+  if (!runs.size) line = null;
 }
 
 export default function MediaMelt() {

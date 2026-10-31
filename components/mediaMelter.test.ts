@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  easeLine,
   measuresRest,
   MELT_IN_S,
   MELT_OUT_S,
@@ -46,6 +47,17 @@ describe('the streak of a turn', () => {
     expect(streakLine([box(100, 200)])).toBe(200);
     expect(streakLine([box(100, 100), box(300, 100)])).toBe(250);
     expect(streakLine([])).toBe(0);
+  });
+});
+
+describe("the streak's line", () => {
+  it('follows the pictures rather than jumping to them', () => {
+    expect(easeLine(100, 100, 0.016)).toBe(100);
+    expect(easeLine(100, 200, 0)).toBe(100);
+    const soon = easeLine(100, 200, 0.016);
+    expect(soon).toBeGreaterThan(100);
+    expect(soon).toBeLessThan(110);
+    expect(easeLine(100, 200, 5)).toBeCloseTo(200, 3);
   });
 });
 

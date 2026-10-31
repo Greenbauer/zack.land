@@ -170,13 +170,27 @@ test.describe('More and Less', () => {
     });
     await page.goto('/portfolio/miscellaneous');
     const box = page.locator('.collage').first();
-    await expect(box.locator('.collage-tile').first()).toBeVisible();
+    await expect(box.locator('.collage-tile').first()).toHaveCSS(
+      'opacity',
+      '1',
+    );
     const melts = await page.evaluate(() =>
       document.documentElement.hasAttribute('data-melts'),
     );
-    test.skip(!melts, 'no GPU here: they fly instead');
+    test.skip(!melts, 'no GPU here: they slide instead');
+    await expect(box).toHaveAttribute('data-whole', '');
+    // Watched, not polled: a busy runner can look only once it has gone.
+    const melted = page.evaluate(
+      () =>
+        new Promise<boolean>((resolve) => {
+          const canvas = document.querySelector<HTMLElement>('canvas.fixed')!;
+          new MutationObserver(() => {
+            if (!canvas.hidden) resolve(true);
+          }).observe(canvas, { attributes: true });
+        }),
+    );
     await page.getByRole('button', { name: 'More' }).first().click();
-    await expect(page.locator('canvas.fixed')).toBeVisible();
+    expect(await melted).toBe(true);
     await expect(page.getByRole('button', { name: 'Less' })).toBeVisible();
     await expect(box.locator('.collage-tile')).toHaveCount(0);
     await expect(page.locator('canvas.fixed')).toBeHidden();
@@ -244,6 +258,27 @@ test.describe('the 404 page', () => {
       .click();
     await expect(page.locator('canvas.fixed')).toBeVisible();
     await expect(page).toHaveURL(/contact/);
+  });
+});
+
+test.describe('a turn taken straight back', () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  // The first post has nothing above it, so the push back goes nowhere; what
+  // had set off for the next post still has to come back.
+  test('leaves the first post whole', async ({ page }) => {
+    await atRest(page);
+    await page.evaluate(() => {
+      const push = (detail: number) =>
+        dispatchEvent(new CustomEvent('page-glide', { detail }));
+      push(1);
+      push(-1);
+    });
+    const tile = page.locator('.collage').first().locator('.collage-tile');
+    await page.waitForTimeout(2500);
+    for (let k = 0; k < 4; k++)
+      await expect(tile.nth(k)).toHaveCSS('opacity', '1');
+    await expect(page.locator('canvas.fixed')).toBeHidden();
   });
 });
 

@@ -21,6 +21,8 @@ export const MELT_OUT_S = 1;
 const SPREAD = 0.4;
 // How many times its own width a picture stretches on the way out.
 const STRETCH = 5.0;
+// How fast the streak's line follows the pictures, per second.
+const LINE_EASE = 5;
 // How far past the window's right side a picture runs, in shares of the way.
 const OVERSHOOT = 1.6;
 // How much of its height a picture narrows to in the streak.
@@ -34,6 +36,12 @@ export function streakLine(boxes: readonly Box[]) {
   const bottom = Math.max(...boxes.map((box) => box.y + box.height));
   return (top + bottom) / 2;
 }
+
+// The streak's line `seconds` on, easing from `line` to `target`: a group
+// finishing moves the middle of what is left, and the streak follows rather
+// than jumps.
+export const easeLine = (line: number, target: number, seconds: number) =>
+  target + (line - target) * Math.exp(-seconds * LINE_EASE);
 
 // How hard the flow stirs the pictures, 0 to 1, with `leaving` of those going
 // out left and `coming` of those coming in arrived: most while there is plenty

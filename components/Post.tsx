@@ -127,7 +127,8 @@ export default function Post({ content }: PostProps) {
   // space between the fades (the post keeps room for it, --card-height), and
   // only the card of the post in view shows. Paging, one card slides off
   // and, after a pause, the next slides in (CARD), each card's text fading
-  // as it goes, while the images move with their posts.
+  // as it goes, while the images melt on their own (MediaMelt.tsx), or where
+  // they can't melt move with their posts.
   // The images lie behind the card, never over its text. On a wide screen
   // the card takes at most 55% of the post's height (but never so little
   // that its links or a line of its description are cut, useCardFloor), so
