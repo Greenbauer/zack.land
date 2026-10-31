@@ -47,9 +47,9 @@ const Contents: Content[] = [
         main: true,
       },
       {
-        key: '/web-apps/create-your-own-square.gif',
+        key: '/web-apps/create-your-own-square.mp4',
         alt: 'Banner Eyewear',
-        type: 'img',
+        type: 'video',
         width: 428,
         height: 428,
       },

@@ -1,14 +1,13 @@
 // How a post's images lie beside its card: each one its own tile, cropped to
-// whichever of a few shapes its picture is nearest, the tiles packed to fill
-// as much of their space as they can and then scattered a little (nudged,
-// tilted, slightly overlapping), so they read as separate objects rather than
-// a grid.
+// whichever of a few shapes its picture is nearest, the tiles packed edge to
+// edge into one solid block that fills as much of their space as it can. Only
+// the block's outer corners are rounded.
 
 // The crops a tile can take, as width over height: wide, landscape, square
 // and portrait.
 export const CROPS = [16 / 9, 4 / 3, 1, 3 / 4] as const;
 
-// The crop nearest a picture's shape. A video is wide.
+// The crop nearest a picture's shape. A YouTube video is wide.
 export function cropFor({
   type,
   width = 1,
@@ -27,36 +26,16 @@ export function cropFor({
   );
 }
 
-// A tile's place in its box, in pixels from the box's top left, and its tilt
-// in degrees.
+// A tile's place in its box, in pixels from the box's top left, and which of
+// its corners are rounded, in CSS's order: top left, top right, bottom right,
+// bottom left.
 export type Tile = {
   x: number;
   y: number;
   width: number;
   height: number;
-  tilt: number;
+  round: readonly [boolean, boolean, boolean, boolean];
 };
-
-// How far the tiles are scattered: each grows by GROW (so neighbours overlap
-// a little), moves up to NUDGE of its size either way, and tilts up to TILT
-// degrees either way.
-export const GROW = 1.04;
-export const NUDGE = 0.06;
-export const TILT = 3;
-
-// A repeatable random sequence (0 to 1) from some text: the scatter is the
-// same on every load, and on the server and in the browser.
-export function seeded(text: string) {
-  let seed = 2166136261;
-  for (const char of text)
-    seed = Math.imul(seed ^ char.charCodeAt(0), 16777619);
-  return () => {
-    seed = (seed + 0x6d2b79f5) | 0;
-    let t = Math.imul(seed ^ (seed >>> 15), seed | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 // The ways to split n tiles, in order, into runs: [1, 2] is one, then two.
 function* runs(n: number): Generator<number[]> {
@@ -177,17 +156,20 @@ function pack(
   return best;
 }
 
+// The whole pixel nearest `at`, ignoring the last digits of its arithmetic, so
+// two edges meant to line up at exactly half a pixel round the same way.
+const wholePixel = (at: number) => Math.round(Math.round(at * 1e6) / 1e6);
+
 // The tiles for images of crops `crops` (each tile takes its crop or one
-// shape taller) in a box `width` by `height`, each scattered by its own
-// `seeds` (one per tile, such as its image's path), centred across the box
-// and down at its bottom, by the card, so the gap between them and the card
-// is the same at any size (centred down the box too, a group limited by the
-// box's width left a gap above the card that grew with the window's height).
-// A `main` tile (by index; a video) is laid out as the largest, in its own
-// shape.
+// shape taller) in a box `width` by `height`, touching along their edges,
+// centred across the box and down at its bottom, by the card, so the gap
+// between them and the card is the same at any size (centred down the box too,
+// a group limited by the box's width left a gap above the card that grew with
+// the window's height). A `main` tile (by index; a video) is laid out as the
+// largest, in its own shape. Edges fall on whole pixels, so neighbours share
+// theirs exactly and no hairline of the sky shows between them.
 export function collage(
   crops: readonly number[],
-  seeds: readonly string[],
   width: number,
   height: number,
   main?: number,
@@ -195,23 +177,28 @@ export function collage(
   if (!crops.length || width <= 0 || height <= 0) return [];
   const boxes = pack(crops, width, height, main);
   const drop = height - Math.max(...boxes.map((box) => box.y + box.height));
-  return boxes.map((box, k) => {
-    const random = seeded(seeds[k] ?? String(k));
-    const spread = () => random() * 2 - 1;
-    // Grown, but never past the box.
-    const grow = Math.min(GROW, width / box.width, height / box.height);
-    const w = box.width * grow;
-    const h = box.height * grow;
-    const x = box.x + (box.width - w) / 2 + spread() * NUDGE * w;
-    const y = box.y + drop + (box.height - h) / 2 + spread() * NUDGE * h;
-    return {
-      x: Math.min(Math.max(x, 0), width - w),
-      y: Math.min(Math.max(y, 0), height - h),
-      width: w,
-      height: h,
-      tilt: spread() * TILT,
-    };
-  });
+  const edges = boxes.map((box) => ({
+    left: wholePixel(box.x),
+    right: wholePixel(box.x + box.width),
+    top: wholePixel(box.y + drop),
+    bottom: wholePixel(box.y + box.height + drop),
+  }));
+  const left = Math.min(...edges.map((edge) => edge.left));
+  const right = Math.max(...edges.map((edge) => edge.right));
+  const top = Math.min(...edges.map((edge) => edge.top));
+  const bottom = Math.max(...edges.map((edge) => edge.bottom));
+  return edges.map((edge) => ({
+    x: edge.left,
+    y: edge.top,
+    width: edge.right - edge.left,
+    height: edge.bottom - edge.top,
+    round: [
+      edge.top === top && edge.left === left,
+      edge.top === top && edge.right === right,
+      edge.bottom === bottom && edge.right === right,
+      edge.bottom === bottom && edge.left === left,
+    ],
+  }));
 }
 
 // How much of a post's left side it keeps free for the head
