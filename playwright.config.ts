@@ -12,6 +12,10 @@ export default defineConfig({
   testDir: 'e2e',
   testMatch: '*.e2e.ts',
   timeout: 90_000,
+  // Each test opens its own page, so tests of one file run side by side
+  // too, and CI's shards (tests.yml) split by test, not by file: run file
+  // by file, Chrome's moving views alone took 35 minutes on the runner.
+  fullyParallel: true,
   workers: 2,
   reporter: 'list',
   use: {
