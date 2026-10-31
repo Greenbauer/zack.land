@@ -94,7 +94,11 @@ test.describe('under a mouse', () => {
     const [x, y, w, h] = before[0]!;
     await page.mouse.move(x! + w! / 4, y! + h! / 2);
     await page.mouse.move(x! + w! / 2, y! + h! / 2, { steps: 8 });
-    await expect(page.locator('[data-media-bend]').first()).toBeVisible();
+    // Laid over the picture once the trail reaches it; it hides again as the
+    // trail fades, and a software-drawn runner can be seconds behind.
+    await expect(page.locator('[data-media-bend]').first()).toBeAttached({
+      timeout: 30_000,
+    });
     await page.waitForTimeout(500);
     const after = await tilesOf(page);
     expect(after.map((tile) => tile.box)).toEqual(before);
