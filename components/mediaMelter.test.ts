@@ -23,12 +23,15 @@ describe("a tile's melt", () => {
     expect(stepMelt(halfWay, -1, MELT_OUT_S / 4)).toBeCloseTo(0.25, 5);
   });
 
-  it('draws nothing at the start and the picture at the end, easing to a stop', () => {
+  it('draws nothing at the start and the picture at the end', () => {
     expect(easeMelt(0)).toBe(0);
     expect(easeMelt(1)).toBe(1);
-    expect(easeMelt(0.9) - easeMelt(0.8)).toBeLessThan(
-      easeMelt(0.2) - easeMelt(0.1),
-    );
+  });
+
+  it('crosses the other way at the same pace, meeting halfway', () => {
+    expect(easeMelt(0.5)).toBe(0.5);
+    for (const t of [0.1, 0.3, 0.7])
+      expect(easeMelt(1 - t)).toBeCloseTo(1 - easeMelt(t), 10);
   });
 });
 

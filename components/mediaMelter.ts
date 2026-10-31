@@ -8,14 +8,13 @@ import { Box, Picture, uploadsAgain } from './mediaBender';
 // `melt` 1 it draws the picture exactly where it rests, so the picture itself
 // can take over with no jump, and at 0 it draws nothing.
 // Pictures going out and coming in are drawn to a layer each, then mixed: the
-// old ones stay pooled where they are while the new ones pour in, one flow of
-// liquid carries both, and the new spreads through the old in veins until it
-// has taken over, so a turn reads as one liquid changing from picture to
-// picture.
+// two move as mirror images of each other, the old stretching out to the right
+// as the new stretches in from it, so halfway they lie in the same place, and
+// one flow of liquid carries both as they cross, marbling them together.
 
 // How long a picture takes, in seconds, on its way in and out.
-export const MELT_IN_S = 1.05;
-export const MELT_OUT_S = 1.05;
+export const MELT_IN_S = 1;
+export const MELT_OUT_S = 1;
 
 // How far ahead of each other the bands of a picture go, as a share of the
 // melt: more leaves longer streaks.
@@ -29,8 +28,9 @@ const STRETCH = 2.5;
 export const stirOf = (leaving: number, coming: number) =>
   Math.min(6 * leaving * coming, 1);
 
-// Slows to a stop at 1, so run backward it gathers speed from there.
-export const easeMelt = (melt: number) => 1 - (1 - melt) ** 3;
+// Gathers speed and slows to a stop, the same either way, so what goes out and
+// what comes in cross at the same pace.
+export const easeMelt = (melt: number) => melt * melt * (3 - 2 * melt);
 
 // One step of a picture's melt: `melt` after `seconds`, going in (`direction`
 // 1) or out (-1).
@@ -126,7 +126,9 @@ const FRAGMENT = `
     // The way to the window's right side, in picture widths.
     float far = (uSize.x - uRest.x) / uRest.z;
     float stretch = 1.0 + gone * ${STRETCH};
-    float across = (t.x - gone * far) / stretch;
+    // It leaves the picture's place at once but stays in view while it
+    // crosses, rather than running straight off the window.
+    float across = (t.x - gone * gone * far) / stretch;
     float sag = noise(vec2(t.x * 2.5 - uMelt * 3.0, row / 90.0 + uSeed)) - 0.5;
     float down = t.y + gone * sag * 0.35;
     vec2 at = vec2(across, down);
@@ -182,7 +184,7 @@ const MIX = `
       vec2 flow = vec2(
         fbm(q + 3.0 * first + vec2(1.7, 9.2)),
         fbm(q + 3.0 * first + vec2(8.3, 2.8))) - 0.5;
-      at += flow * uStir * 460.0 * uDpr / uSize;
+      at += flow * uStir * 200.0 * uDpr / uSize;
       // The veins of the new widen until it has taken over.
       float vein = fbm(q * 1.2 + 4.0 * flow + uTime * 0.2);
       float front = mix(0.85, 0.15, uComing);

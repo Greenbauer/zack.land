@@ -103,7 +103,10 @@ export default function PostCollage({
     const box = boxRef.current;
     if (!box || !isLaidOut) return;
     for (const tile of box.querySelectorAll<HTMLElement>('.collage-tile')) {
-      tile.style.setProperty('--wait', `${Math.random() * 0.25}s`);
+      tile.style.setProperty(
+        '--wait',
+        `${Math.random() * (isShown ? 0.5 : 0.3)}s`,
+      );
     }
     box.toggleAttribute('data-shown', isShown);
     melt(box, isShown ? 1 : -1);

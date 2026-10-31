@@ -23,6 +23,9 @@ import { Turn, TURN_EVENT } from './PageScroller/pageGlide';
 // two mix as one liquid on the way (mediaMelter.ts). Where the melt can't run (data-melts unset on <html>: reduced
 // motion, or no real GPU) the tiles slide instead.
 
+// Each tile melts at its own pace, up to this much either side of the rest,
+// on top of its own --wait and its own bands, so each reads as its own.
+const PACE_SPREAD = 0.15;
 // How long a tile waits for its picture before it just shows.
 const LOAD_LIMIT_S = 3;
 
@@ -30,6 +33,7 @@ type Piece = {
   tile: HTMLElement;
   picture: Picture;
   rest: Box | null;
+  pace: number;
   radii: [number, number, number, number];
   melt: number;
   wait: number;
@@ -73,6 +77,7 @@ export function melt(box: HTMLElement, direction: 1 | -1) {
             rest: null,
             radii: radiiOf(tile),
             melt: direction > 0 ? 0 : 1,
+            pace: 1 + (Math.random() * 2 - 1) * PACE_SPREAD,
             wait: waitOf(tile),
             seed: k * 3.1 + Math.random() * 50,
           },
@@ -140,7 +145,7 @@ function advance(melter: MediaMelter, run: Run, step: number, dpr: number) {
     if (!rest && isHidden && direction < 0) piece.melt = end;
     else if (!canDraw && elapsed > LOAD_LIMIT_S) piece.melt = end;
     else if (canDraw && elapsed >= piece.wait)
-      piece.melt = stepMelt(piece.melt, direction, step);
+      piece.melt = stepMelt(piece.melt, direction, step * piece.pace);
     if (canDraw && piece.melt > 0)
       melter.draw(
         picture,
