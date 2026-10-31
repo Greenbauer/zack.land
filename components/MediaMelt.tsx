@@ -4,20 +4,21 @@ import { useEffect, useRef } from 'react';
 
 import { Box, naturalSize, Picture, ready, shownPart } from './mediaBender';
 import {
-  easeMelt,
   MediaMelter,
   restingBox,
   stepMelt,
   stirOf,
+  streakLine,
 } from './mediaMelter';
 import { Turn, TURN_EVENT } from './PageScroller/pageGlide';
 
 // A post's image tiles melt in and out of the window's right side
 // (mediaMelter.ts) on one canvas over the page, behind the cards. While a
 // tile melts it is drawn here, at the place it rests, so it never moves with
-// the page as the page glides; the tile itself waits hidden until it is whole
-// (.collage[data-whole], styles/globals.css), and the canvas hides whenever
-// nothing is melting, so it never lies over a tile at rest. A tile starts on
+// the page as the page glides; the tile itself shows only while it is at rest
+// (.collage-tile[data-rest], styles/globals.css), each on its own, and the
+// canvas hides whenever nothing is melting, so it never lies over a tile at
+// rest. A tile starts on
 // its way out as a turn begins, not when its post leaves the window's middle:
 // by then the page has moved it. Tiles coming in set off with them, and the
 // two mix as one liquid on the way (mediaMelter.ts). Where the melt can't run (data-melts unset on <html>: reduced
@@ -68,6 +69,7 @@ export function melt(box: HTMLElement, direction: 1 | -1) {
   if (box.hasAttribute('data-whole') === direction > 0) return;
   const tiles = box.querySelectorAll<HTMLElement>('.collage-tile');
   const pieces = [...tiles].flatMap((tile, k) => {
+    if (direction > 0) tile.removeAttribute('data-rest');
     const picture = tile.querySelector<Picture>('img, video');
     return picture
       ? [
@@ -139,14 +141,17 @@ function advance(melter: MediaMelter, run: Run, step: number, dpr: number) {
   const isHidden = !box.offsetWidth;
   if (direction < 0) box.removeAttribute('data-whole');
   for (const piece of run.pieces) {
-    if (!isHidden) piece.rest = restOf(run, piece);
     const { picture, radii, rest } = piece;
     const canDraw = ready(picture) && !!rest;
     if (!rest && isHidden && direction < 0) piece.melt = end;
     else if (!canDraw && elapsed > LOAD_LIMIT_S) piece.melt = end;
     else if (canDraw && elapsed >= piece.wait)
       piece.melt = stepMelt(piece.melt, direction, step * piece.pace);
-    if (canDraw && piece.melt > 0)
+    // Going, it leaves the page at once, so the page's glide can't carry it
+    // while it waits its turn.
+    const isAtRest = direction > 0 && piece.melt === 1;
+    piece.tile.toggleAttribute('data-rest', isAtRest);
+    if (canDraw && piece.melt > 0 && !isAtRest)
       melter.draw(
         picture,
         rest,
@@ -177,7 +182,20 @@ export default function MediaMelt() {
       const now = seconds();
       const held = isHeld();
       const dpr = Math.min(devicePixelRatio, 2);
-      melter.begin(canvas.clientWidth, canvas.clientHeight, dpr);
+      for (const run of runs.values())
+        for (const piece of run.pieces)
+          if (run.box.offsetWidth) piece.rest = restOf(run, piece);
+      melter.begin(
+        canvas.clientWidth,
+        canvas.clientHeight,
+        dpr,
+        now,
+        streakLine(
+          [...runs.values()].flatMap((run) =>
+            run.pieces.flatMap((piece) => piece.rest ?? []),
+          ),
+        ),
+      );
       const leaving = share(-1);
       for (const run of runs.values()) {
         if (held) run.began = now;
@@ -190,7 +208,7 @@ export default function MediaMelt() {
         if (run.direction > 0) run.box.toggleAttribute('data-whole', true);
       }
       const coming = share(1);
-      melter.finish(stirOf(leaving, coming), easeMelt(coming), now, dpr);
+      melter.finish(stirOf(leaving, coming), coming, now, dpr);
       last = now;
       frame = runs.size ? requestAnimationFrame(step) : 0;
       canvas.hidden = !frame;

@@ -279,14 +279,14 @@
 
 /* Where the tiles melt (data-melts, components/MediaMelt.tsx) they don't
    slide: each waits hidden in its place while its melt is drawn, and shows
-   once it is whole, so the page's scroll never carries one. */
+   once it has come to rest, so the page's scroll never carries one. */
 html[data-melts] .collage-tile,
 html[data-melts] .collage[data-shown] .collage-tile {
   transition:
     filter 0.3s ease-out,
     opacity 0.3s ease-out;
 }
-html[data-melts] .collage[data-shown]:not([data-whole]) .collage-tile {
+html[data-melts] .collage[data-shown] .collage-tile:not([data-rest]) {
   visibility: hidden;
 }
 

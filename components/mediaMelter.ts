@@ -1,26 +1,37 @@
 import { Box, Picture, uploadsAgain } from './mediaBender';
 
-// Draws a post's pictures melting: going in they run in from the window's
-// right side as streaks, a band of the picture at a time, and pool into
-// place; going out they run back the same way. The streaks are the pointer's
-// bend (mediaBender.ts) made to order, its colours parting the same way, but
-// across a picture's whole height rather than along the pointer's trail. At
-// `melt` 1 it draws the picture exactly where it rests, so the picture itself
-// can take over with no jump, and at 0 it draws nothing.
-// Pictures going out and coming in are drawn to a layer each, then mixed: the
-// two move as mirror images of each other, the old stretching out to the right
-// as the new stretches in from it, so halfway they lie in the same place, and
-// one flow of liquid carries both as they cross, marbling them together.
+// Draws a post's pictures melting: going out each turns to liquid at once and
+// runs off to the window's right side, narrowing into a streak, a band at a
+// time; coming in it runs back the same way and settles into place. The look
+// is the pointer's bend (mediaBender.ts) made to order, its colours parting
+// the same way, across a whole picture rather than along the pointer's trail.
+// At `melt` 1 it draws the picture exactly where it rests, so the picture
+// itself can take over with no jump, and at 0 it draws nothing.
+// Every picture of a turn narrows onto one line, so what goes and what comes
+// share a streak. They are drawn to a layer each, then interleaved in fine
+// lanes along it, so the streak reads as one liquid of both. With nothing to
+// mix with, a group streams by itself.
 
 // How long a picture takes, in seconds, on its way in and out.
 export const MELT_IN_S = 1;
 export const MELT_OUT_S = 1;
 
 // How far ahead of each other the bands of a picture go, as a share of the
-// melt: more leaves longer streaks.
-const SPREAD = 0.75;
-// How many times its own width a picture stretches at the height of the melt.
-const STRETCH = 2.5;
+// melt: more leaves longer streaks, but holds back the last to leave.
+const SPREAD = 0.4;
+// How many times its own width a picture stretches on the way out.
+const STRETCH = 5.0;
+// How much of its height a picture narrows to in the streak.
+const NARROW = 0.3;
+
+// Where the streak of a turn runs, the middle (CSS pixels down the window) of
+// the pictures going `boxes`: halfway down their outlines' tops and bottoms.
+export function streakLine(boxes: readonly Box[]) {
+  if (!boxes.length) return 0;
+  const top = Math.min(...boxes.map((box) => box.y));
+  const bottom = Math.max(...boxes.map((box) => box.y + box.height));
+  return (top + bottom) / 2;
+}
 
 // How hard the flow stirs the pictures, 0 to 1, with `leaving` of those going
 // out left and `coming` of those coming in arrived: most while there is plenty
@@ -28,16 +39,16 @@ const STRETCH = 2.5;
 export const stirOf = (leaving: number, coming: number) =>
   Math.min(6 * leaving * coming, 1);
 
-// Gathers speed and slows to a stop, the same either way, so what goes out and
-// what comes in cross at the same pace.
-export const easeMelt = (melt: number) => melt * melt * (3 - 2 * melt);
-
 // One step of a picture's melt: `melt` after `seconds`, going in (`direction`
 // 1) or out (-1).
 export function stepMelt(melt: number, direction: 1 | -1, seconds: number) {
   const whole = direction > 0 ? MELT_IN_S : MELT_OUT_S;
   return Math.min(Math.max(melt + (direction * seconds) / whole, 0), 1);
 }
+
+// The power of two at least `side`, up to 2048.
+export const squareSide = (side: number) =>
+  Math.min(2 ** Math.ceil(Math.log2(Math.max(side, 1))), 2048);
 
 // Where a tile rests in the window, whatever the page's scroll: the place in
 // `post` of a tile at `tile` in `box`, with the post's top at `pageTop`, so a
@@ -89,6 +100,8 @@ const FRAGMENT = `
   uniform float uMelt;
   uniform float uSeed;
   uniform float uDpr;
+  uniform float uStreak;
+  uniform float uTime;
   varying vec2 vUv;
 
   ${NOISE}
@@ -112,28 +125,33 @@ const FRAGMENT = `
 
   void main() {
     vec2 p = vUv * uSize;
-    vec2 t = (p - uRest.xy) / uRest.zw;
-    // Each band of the picture has its own moment: broad bands that wander
-    // up and down along their length, as water runs down glass, with no hard
-    // step between one and the next.
+    float across = p.x / uDpr;
     float row = p.y / uDpr;
-    row += 50.0 * noise(vec2(p.x / uDpr / 160.0, row / 130.0 + uSeed));
-    float band = 0.75 * noise(vec2(row / 70.0, uSeed))
-      + 0.25 * noise(vec2(row / 26.0, uSeed + 7.0));
+    // Liquid at once: it ripples from the moment it leaves its place, and only
+    // settles in the last moments of coming to rest.
+    float liquid = 1.0 - smoothstep(0.9, 1.0, uMelt);
+    float ripple = noise(vec2(across / 110.0 - uTime * 1.6, row / 70.0 + uSeed)) - 0.5;
+    // Each band of the picture goes at its own moment: broad bands that wander
+    // along their length, as water runs down glass.
+    float wander = row + 50.0 * noise(vec2(across / 160.0, row / 130.0 + uSeed));
+    float band = 0.75 * noise(vec2(wander / 70.0, uSeed))
+      + 0.25 * noise(vec2(wander / 26.0, uSeed + 7.0));
     float melt = clamp(uMelt * (1.0 + ${SPREAD}) - band * ${SPREAD}, 0.0, 1.0);
     float gone = 1.0 - melt;
-    gone = gone * gone * (3.0 - 2.0 * gone);
-    // The way to the window's right side, in picture widths.
+    // Every picture narrows onto the same line as it goes, so what is going and
+    // what is coming run in one streak. It sways as a whole.
+    float line = uStreak * uDpr
+      + gone * uDpr * 110.0 * (noise(vec2(across / 300.0 - uTime * 0.7, 3.0)) - 0.5);
+    float narrow = mix(1.0, ${NARROW}, smoothstep(0.0, 0.7, gone));
+    float y = p.y + liquid * ripple * uDpr * (20.0 + gone * 70.0);
+    vec2 t = (vec2(p.x, line + (y - line) / narrow) - uRest.xy) / uRest.zw;
+    // Off to the window's right side, gathering speed, drawn out as it goes.
     float far = (uSize.x - uRest.x) / uRest.z;
-    float stretch = 1.0 + gone * ${STRETCH};
-    // It leaves the picture's place at once but stays in view while it
-    // crosses, rather than running straight off the window.
-    float across = (t.x - gone * gone * far) / stretch;
-    float sag = noise(vec2(t.x * 2.5 - uMelt * 3.0, row / 90.0 + uSeed)) - 0.5;
-    float down = t.y + gone * sag * 0.35;
-    vec2 at = vec2(across, down);
-    float split = gone * 0.05;
-    float soft = uDpr * (0.5 + gone * 24.0);
+    float stretch = 1.0 + gone * ${STRETCH.toFixed(1)};
+    vec2 at = vec2((t.x - gone * gone * far) / stretch, t.y);
+    at.x += liquid * ripple * 0.05;
+    float split = liquid * (0.012 + gone * 0.05);
+    float soft = uDpr * (0.5 + liquid * (3.0 + gone * 20.0));
     float shown = outline(at, soft);
     vec3 colour = vec3(
       picture(at + vec2(split, 0.0)).r,
@@ -177,18 +195,20 @@ const MIX = `
     vec2 at = vUv;
     float marble = 0.5;
     if (uStir > 0.0) {
-      vec2 q = vUv * uSize / uDpr / 260.0;
+      vec2 css = vUv * uSize / uDpr;
+      vec2 q = css / 260.0;
       vec2 first = vec2(
         fbm(q + vec2(0.0, uTime * 0.5)),
         fbm(q + vec2(5.2, 1.3 - uTime * 0.4))) - 0.5;
       vec2 flow = vec2(
         fbm(q + 3.0 * first + vec2(1.7, 9.2)),
         fbm(q + 3.0 * first + vec2(8.3, 2.8))) - 0.5;
-      at += flow * uStir * 200.0 * uDpr / uSize;
-      // The veins of the new widen until it has taken over.
-      float vein = fbm(q * 1.2 + 4.0 * flow + uTime * 0.2);
-      float front = mix(0.85, 0.15, uComing);
-      marble = smoothstep(front - 0.16, front + 0.16, vein);
+      at += flow * uStir * 110.0 * uDpr / uSize;
+      // Fine lanes along the streak, swept along it: the lanes of the new widen
+      // until it has taken over.
+      float lane = fbm(vec2(css.x / 480.0 - uTime * 0.8, css.y / 16.0) + 2.0 * flow);
+      float front = mix(0.8, 0.2, uComing);
+      marble = smoothstep(front - 0.2, front + 0.2, lane);
     }
     vec4 leaving = layer(tLeaving, at);
     vec4 coming = layer(tComing, at);
@@ -196,6 +216,16 @@ const MIX = `
     float share = coming.a / max(leaving.a + coming.a, 0.001);
     gl_FragColor = mix(leaving, coming, mix(share, marble, leaving.a * coming.a));
   }`;
+
+// `image` on a canvas with sides of a power of two, which WebGL 1 needs to
+// smooth it (squareSide).
+function squared(image: HTMLImageElement) {
+  const canvas = document.createElement('canvas');
+  canvas.width = squareSide(image.naturalWidth);
+  canvas.height = squareSide(image.naturalHeight);
+  canvas.getContext('2d')!.drawImage(image, 0, 0, canvas.width, canvas.height);
+  return canvas;
+}
 
 type Layer = { frame: WebGLFramebuffer; texture: WebGLTexture };
 type Uniforms = Record<string, WebGLUniformLocation | null>;
@@ -236,6 +266,8 @@ export class MediaMelter {
       'uMelt',
       'uSeed',
       'uDpr',
+      'uStreak',
+      'uTime',
     ]);
     this.mixAt = this.uniforms(this.mixing, [
       'tLeaving',
@@ -303,26 +335,34 @@ export class MediaMelter {
       gl.bindTexture(gl.TEXTURE_2D, texture);
       for (const wrap of [gl.TEXTURE_WRAP_S, gl.TEXTURE_WRAP_T])
         gl.texParameteri(gl.TEXTURE_2D, wrap, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
       held = { texture, src: '' };
       this.textures.set(media, held);
     }
     gl.bindTexture(gl.TEXTURE_2D, held.texture);
-    if (uploadsAgain(held.src, src, media instanceof HTMLVideoElement)) {
-      gl.texImage2D(
-        gl.TEXTURE_2D,
-        0,
-        gl.RGBA,
-        gl.RGBA,
-        gl.UNSIGNED_BYTE,
-        media,
-      );
-      held.src = src;
-    }
+    const isVideo = media instanceof HTMLVideoElement;
+    if (!uploadsAgain(held.src, src, isVideo)) return;
+    held.src = src;
+    const source = isVideo ? media : squared(media);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+    // A still is smoothed as it shrinks, as the page's own picture is, or the
+    // two differ visibly where the picture takes over.
+    if (!isVideo) gl.generateMipmap(gl.TEXTURE_2D);
+    gl.texParameteri(
+      gl.TEXTURE_2D,
+      gl.TEXTURE_MIN_FILTER,
+      isVideo ? gl.LINEAR : gl.LINEAR_MIPMAP_LINEAR,
+    );
   }
 
-  // Starts a frame `width` by `height` CSS pixels at `dpr`, both layers clear.
-  begin(width: number, height: number, dpr: number) {
+  // Starts a frame `width` by `height` CSS pixels at `dpr`, both layers clear,
+  // at `time` seconds, its streak along `streak` (CSS pixels).
+  begin(
+    width: number,
+    height: number,
+    dpr: number,
+    time: number,
+    streak: number,
+  ) {
     const { gl, at, layers } = this;
     const { canvas } = gl;
     const w = Math.round(width * dpr);
@@ -362,6 +402,8 @@ export class MediaMelter {
     gl.uniform1i(at.tMedia!, 0);
     gl.uniform2f(at.uSize!, w, h);
     gl.uniform1f(at.uDpr!, dpr);
+    gl.uniform1f(at.uTime!, time);
+    gl.uniform1f(at.uStreak!, streak);
   }
 
   // Draws from here on go to the layer of pictures going out or coming in.
@@ -370,7 +412,7 @@ export class MediaMelter {
     gl.bindFramebuffer(gl.FRAMEBUFFER, layers[isComing ? 1 : 0].frame);
   }
 
-  // Draws `media` melting (eased by easeMelt) toward `rest` (CSS pixels),
+  // Draws `media` melting toward `rest` (CSS pixels),
   // showing its part `shown`, with corners of `radii` (CSS pixels, as CSS
   // orders them), at `dpr`, its bands set by `seed`.
   draw(
@@ -399,7 +441,7 @@ export class MediaMelter {
       radii[2] * dpr,
       radii[3] * dpr,
     );
-    gl.uniform1f(at.uMelt!, easeMelt(melt));
+    gl.uniform1f(at.uMelt!, melt);
     gl.uniform1f(at.uSeed!, seed);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }

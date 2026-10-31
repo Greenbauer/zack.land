@@ -12,8 +12,8 @@ const CARD_MS = 800;
 const CONTENT_MS = 650;
 const TITLE_MS = 600;
 // The image tiles' melt out (components/mediaMelter.ts) ends by then: up to
-// 1.2s, after a wait of up to 0.3s.
-const TILES_MS = 1500;
+// 1.2s, after a wait of up to 0.2s.
+const TILES_MS = 1400;
 const GATHER = 'cubic-bezier(0.32, 0, 0.67, 0)';
 
 // When a link to another page of the site is clicked, the page moves out

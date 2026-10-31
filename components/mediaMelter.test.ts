@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  easeMelt,
   MELT_IN_S,
   MELT_OUT_S,
   restingBox,
+  squareSide,
   stepMelt,
   stirOf,
+  streakLine,
 } from './mediaMelter';
 
 describe("a tile's melt", () => {
@@ -22,17 +23,6 @@ describe("a tile's melt", () => {
     expect(halfWay).toBeCloseTo(0.5, 5);
     expect(stepMelt(halfWay, -1, MELT_OUT_S / 4)).toBeCloseTo(0.25, 5);
   });
-
-  it('draws nothing at the start and the picture at the end', () => {
-    expect(easeMelt(0)).toBe(0);
-    expect(easeMelt(1)).toBe(1);
-  });
-
-  it('crosses the other way at the same pace, meeting halfway', () => {
-    expect(easeMelt(0.5)).toBe(0.5);
-    for (const t of [0.1, 0.3, 0.7])
-      expect(easeMelt(1 - t)).toBeCloseTo(1 - easeMelt(t), 10);
-  });
 });
 
 describe('how a turn mixes', () => {
@@ -41,6 +31,28 @@ describe('how a turn mixes', () => {
     expect(stirOf(0.5, 0)).toBe(0);
     expect(stirOf(0.5, 0.5)).toBe(1);
     expect(stirOf(0, 1)).toBe(0);
+  });
+});
+
+describe('the streak of a turn', () => {
+  it('runs through the middle of every picture going or coming', () => {
+    const box = (y: number, height: number) => ({
+      x: 0,
+      y,
+      width: 100,
+      height,
+    });
+    expect(streakLine([box(100, 200)])).toBe(200);
+    expect(streakLine([box(100, 100), box(300, 100)])).toBe(250);
+    expect(streakLine([])).toBe(0);
+  });
+});
+
+describe('a still picture on the canvas', () => {
+  it('sits on sides of a power of two, capped', () => {
+    expect(squareSide(600)).toBe(1024);
+    expect(squareSide(1024)).toBe(1024);
+    expect(squareSide(5000)).toBe(2048);
   });
 });
 
