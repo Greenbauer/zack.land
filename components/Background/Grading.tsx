@@ -72,6 +72,19 @@ export default function Grading() {
   // How far the focus blur has come in, from 0 to 1.
   const blur = useRef(0);
 
+  // New cards take the sky's side as they are added, ahead of their first
+  // paint (a MutationObserver runs before it).
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      for (const card of document.querySelectorAll<HTMLElement>(
+        'section, [data-glass]',
+      ))
+        tints.place(card);
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [tints]);
+
   // The pointer's trail through the scene (pointerTrail.ts).
   useEffect(() => {
     const move = (event: PointerEvent) => {
@@ -97,8 +110,8 @@ export default function Grading() {
     // The cards' glass is never tinted, not even to keep its text within the
     // card's bounds: it shows no colour the sky behind it does not. Only
     // the open phone menu's pane (data-glass-deep) takes its deep tint, so
-    // its lenses show; the page under it is hidden. So the tint pass runs
-    // only while that menu is open, and otherwise the graded frame goes out
+    // its lenses show. So the tint pass runs only while that pane is on
+    // screen, open or fading away, and otherwise the graded frame goes out
     // as is.
     const deep = menuShown();
     Object.assign(tint, {

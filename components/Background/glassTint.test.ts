@@ -48,6 +48,29 @@ describe('glass tints', () => {
     Object.assign(skyState, { settled: false, light: false });
   });
 
+  it('put a card new to the page on the settled side at once, whole', () => {
+    Object.assign(skyState, { settled: true, light: true });
+    const tints = new CardTints();
+    const element = card();
+    tints.place(element);
+    expect(element.dataset.sky).toBe('light');
+    expect(tints.shown(element, 0).light).toBe(1);
+  });
+
+  it('leave a card it knows, and every card before the side is settled, alone', () => {
+    const tints = new CardTints();
+    const unsettled = card();
+    tints.place(unsettled);
+    expect(unsettled.dataset.sky).toBeUndefined();
+
+    Object.assign(skyState, { settled: true, light: true });
+    const known = card();
+    tints.place(known);
+    skyState.light = false;
+    tints.place(known);
+    expect(known.dataset.sky).toBe('light');
+  });
+
   it('change a card’s side over CHANGE_SECONDS, eased in and out', () => {
     // As the sky glides to another view's home.
     skyState.settled = false;
@@ -85,7 +108,7 @@ describe('glass tints', () => {
     Object.assign(skyState, { settled: true, light: false });
     tints.aim(element, PINK_DAWN);
     expect(element.dataset.sky).toBe('dark');
-    // At rest on a light sky, a side taken on the way in is dropped.
+    // Settled on a light sky, a side read before then is dropped.
     Object.assign(skyState, { settled: true, light: true });
     tints.aim(element, BLUE_NIGHT);
     expect(element.dataset.sky).toBe('light');

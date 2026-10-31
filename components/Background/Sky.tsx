@@ -135,6 +135,8 @@ export default function Sky() {
   useEffect(() => {
     const check = () => {
       station.current = stationFor(currentView());
+      // At once, not on the next frame: a card can arrive ahead of that.
+      skyState.light = LIGHT_SKIES.includes(station.current);
     };
     check();
     const timer = setInterval(check, VIEW_MS);
@@ -212,7 +214,6 @@ export default function Sky() {
     // after it.
     drawnSince.current ??= clock.elapsedTime;
     skyState.settled = clock.elapsedTime - drawnSince.current >= DRAWN_SECONDS;
-    skyState.light = LIGHT_SKIES.includes(view);
     for (const rotation of [
       scene.backgroundRotation,
       scene.environmentRotation,

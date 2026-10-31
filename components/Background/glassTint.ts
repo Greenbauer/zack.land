@@ -86,6 +86,13 @@ export class CardTints {
     if (card.dataset.sky !== side) card.dataset.sky = side;
   }
 
+  // Puts a card new to the page straight on the settled side, before it is
+  // first drawn, so it arrives on it rather than turning over once it is in.
+  // (The sky around it does not count once the side is settled.)
+  place(card: HTMLElement) {
+    if (skyState.settled && !this.cards.has(card)) this.aim(card, [0, 0, 0]);
+  }
+
   // The glass `card` shows now, `delta` seconds after the last call (the
   // dark side until it is first aimed).
   shown(card: HTMLElement, delta: number): Glass {
