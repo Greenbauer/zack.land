@@ -2,7 +2,7 @@ name: Code
 
 # Runs the unit tests (npm test: Vitest over every *.test.ts file) on every pull request and on every
 # push to master, and against the built site the phone More/Less spec (cypress/e2e/more-less.cy.ts)
-# and the Playwright specs (e2e/*.e2e.ts: the moving views, the phone menu).
+# and the Playwright specs (e2e/*.e2e.ts: the moving views, the phone menu, a card's content).
 # Target: GitHub's ubuntu-latest, with the Node version .nvmrc names, its installed Chrome for
 # Cypress, and Playwright's own Chromium and WebKit for the moving views.
 #
@@ -69,9 +69,9 @@ jobs:
 
   # Every way a post moves and comes back (e2e/moving-views.e2e.ts): each kind of post, left open or
   # closed, down or up and back, upright and sideways phones and two desktop sizes, and the window resized
-  # while a post is open, and the phone menu's hand-over to the next page (e2e/mobile-menu.e2e.ts), in
-  # Chromium and WebKit (playwright.config.ts). Playwright's browsers are downloaded here only; installing
-  # the site (Vercel's build too) never fetches them. Split by test across two runners (about 70 minutes
+  # while a post is open, the phone menu's hand-over to the next page (e2e/mobile-menu.e2e.ts) and what
+  # fades on a card as it slides (e2e/card-content.e2e.ts), in Chromium and WebKit
+  # (playwright.config.ts). Playwright's browsers are downloaded here only; installing the site (Vercel's build too) never fetches them. Split by test across two runners (about 70 minutes
   # of tests in all, past one job's 40-minute limit), as the checks `Moving views (1/2)` and `(2/2)`.
   moving-views:
     name: Moving views (${{ matrix.shard }}/2)

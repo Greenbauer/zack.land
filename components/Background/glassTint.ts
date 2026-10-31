@@ -2,19 +2,18 @@ import { isOnDark } from '@/components/SkyText/skyColours';
 
 import { skyState } from './skyState';
 
-// The glass cards' tint (glass.ts): the colour of the sky around each card,
-// so the card matches its sky, with its text dark on a light sky and light
-// on a dark one, as the text over the sky is (components/SkyText). The tint
-// itself is worked out in the glass's shader every frame, from the sky
-// around the card, so it follows the sky at once: on a dark sky the sky's
-// colour darkened (keeping its hue) to TINT_LUMINANCE, the glass kept no
-// brighter than BRIGHTEST; on a light sky the sky's colour, lightened toward
-// head-light to LIGHT_TINT_LUMINANCE if need be, the glass kept no dimmer
-// than DIMMEST. Either way the cards' text (all at full strength,
-// styles/globals.css) keeps WCAG AA's 4.5:1, with a little to spare. Which side a card is on is decided here, a
-// few times a second from the sky read back around it, and changes only
-// once the sky is clearly past the crossover (isOnDark), over
-// CHANGE_SECONDS, as its text does (styles/globals.css).
+// Which side of the sky a glass card is on, so its text is dark on a light sky
+// and light on a dark one, as the text over the sky is (components/SkyText);
+// and the phone menu's tint (glass.ts), the only glass that has one: the colour
+// of the sky around it, worked out in the glass's shader every frame, so it
+// follows the sky at once: on a dark sky the sky's colour darkened (keeping its
+// hue) to TINT_LUMINANCE, the glass kept no brighter than BRIGHTEST; on a light
+// sky the sky's colour, lightened toward head-light to LIGHT_TINT_LUMINANCE if
+// need be, the glass kept no dimmer than DIMMEST. A card takes the side of the
+// view the sky is bound for once that is settled (skyState.ts), as the sky sets
+// off; until then a few times a second from the sky read back around it, and
+// only once the sky is clearly past the crossover (isOnDark). Either way it
+// changes over CHANGE_SECONDS, as its text does (styles/globals.css).
 
 // sRGB channels, 0 to 255.
 export type Rgb = [number, number, number];
@@ -70,10 +69,15 @@ export class CardTints {
   // head's dark crown.
   aim(card: HTMLElement, sky: Rgb) {
     const state = this.cards.get(card);
-    // A card on its way out (a post's as the page turns, Post.tsx's LEAVING;
-    // any as the site goes to another page) keeps its side: the sky has set
-    // off, and what is fading on it would turn over and show again.
-    if (state && card.matches('.invisible, body[data-leaving] *')) return;
+    // A card on its way out keeps its side: the sky has set off, and what is
+    // fading on it would turn over and show again. That is any as the site
+    // goes to another page, or a post's from the page's turn starting
+    // (data-turning, SnapPager.tsx) until it is hidden (Post.tsx's LEAVING).
+    if (
+      state &&
+      card.matches('.invisible, [data-turning] *, body[data-leaving] *')
+    )
+      return;
     // A card above the head stays on the dark side; any other takes the
     // side of the view's station once that is settled (skyState.ts).
     const light =

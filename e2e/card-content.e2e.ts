@@ -84,3 +84,36 @@ test('going to another page, a card’s content fades for as long as it slides',
   expect(fade).toEqual(card);
   expect(card.delay).toBe(0);
 });
+
+for (const [name, width, height] of [
+  ['a desktop', 1280, 720],
+  ['a phone', 390, 844],
+] as const)
+  test(`on ${name}, a post’s card keeps its colours as the page turns`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height });
+    await page.goto('/portfolio/web-apps');
+    await page.waitForFunction(() => sessionStorage.getItem('sky-station'));
+    // Until the sky's side is settled, a card reads the sky around it.
+    await page.waitForTimeout(2600);
+    await page.evaluate(() => {
+      const card = document.querySelector('.post-card')!;
+      const sides: (string | null)[] = [];
+      Object.assign(window, { sides });
+      const step = () => {
+        sides.push(card.getAttribute('data-sky'));
+        requestAnimationFrame(step);
+      };
+      step();
+    });
+    await page.keyboard.press('PageDown');
+    await expect(page.locator('.post-card').first()).toHaveClass(/invisible/);
+    await page.waitForTimeout(900);
+
+    const sides = await page.evaluate(
+      () => (window as unknown as { sides: string[] }).sides,
+    );
+    expect(sides.length).toBeGreaterThan(1);
+    expect(new Set(sides).size).toBe(1);
+  });
