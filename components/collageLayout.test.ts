@@ -178,7 +178,7 @@ describe('a collage in the room the head leaves', () => {
   });
 
   it('makes a main tile, such as a video, the largest, in its own shape', () => {
-    // The Buoyancy Sorting Robot's video, a square GIF and a square photo.
+    // The Buoyancy Sorting Robot's video, a square loop and a square photo.
     for (const [w, h] of SIZES as [number, number][]) {
       const tiles = collage([16 / 9, 1, 1], w, h, 0);
       const areas = tiles.map((tile) => tile.width * tile.height);

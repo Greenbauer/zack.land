@@ -7,6 +7,8 @@ import { melt } from './MediaMelt';
 const OPEN_MS = 600;
 const CLOSE_AWAY_MS = 900;
 const SMOOTH = 'cubic-bezier(0.65, 0, 0.35, 1)';
+// Where images that can't melt go, wholly past the window's right side.
+const OFF_RIGHT = 'calc(100vw + 20rem) 0';
 
 type Phase = 'closed' | 'opening' | 'open' | 'closing';
 
@@ -14,8 +16,8 @@ type Phase = 'closed' | 'opening' | 'open' | 'closing';
 // More: the card's top rises to the top of the post, growing it upward over
 // its text, while the post's images melt out of the window's right side
 // (MediaMelt.tsx). Less: the card's top comes back down to just over its
-// cut-short text while the images melt back in. Where they can't melt they fly
-// up out of the window and back in from above. Either way the post takes its new layout at
+// cut-short text while the images melt back in. Where they can't melt they
+// slide off the window's right side and back. Either way the post takes its new layout at
 // once (an opened card lies in the post, in place of its images) and the
 // motion runs from where things were: the card from its old top, the images
 // held where they were, out of the layout, until they are gone. A post left
@@ -78,11 +80,8 @@ export default function useMoreMotion(
         else
           flights.push(
             images.animate(
-              [
-                { translate: '0 0' },
-                { translate: `0 ${-was.images.bottom - 32}px` },
-              ],
-              // Held at the end, gone above the window, until the post drops
+              [{ translate: '0 0' }, { translate: OFF_RIGHT }],
+              // Held at the end, gone off the window, until the post drops
               // them (`open`): without it they show back in place for a frame.
               {
                 duration: OPEN_MS,
@@ -113,12 +112,11 @@ export default function useMoreMotion(
       );
       // (Melting, the tiles come back with their box: PostCollage.tsx.)
       if (images && !melts()) {
-        const box = images.getBoundingClientRect();
         flights.push(
-          images.animate(
-            [{ translate: `0 ${-box.bottom - 32}px` }, { translate: '0 0' }],
-            { duration: OPEN_MS, easing: 'cubic-bezier(0.33, 1, 0.68, 1)' },
-          ),
+          images.animate([{ translate: OFF_RIGHT }, { translate: '0 0' }], {
+            duration: OPEN_MS,
+            easing: 'cubic-bezier(0.33, 1, 0.68, 1)',
+          }),
         );
       }
     }

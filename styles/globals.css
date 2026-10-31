@@ -322,10 +322,10 @@ html[data-melts] .collage[data-shown] .collage-tile[data-video] {
   pointer-events: none;
 }
 
-/* As the site goes to another page (components/PageLeave.tsx), the tiles
-   slide off to the right as when their post leaves, after shorter waits, and
-   the scroll arrows fade. */
-body[data-leaving] .collage[data-shown] .collage-tile {
+/* As the site goes to another page (components/PageLeave.tsx), tiles that
+   can't melt slide off to the right as when their post leaves, after shorter
+   waits, and the scroll arrows fade. */
+html:not([data-melts]) body[data-leaving] .collage[data-shown] .collage-tile {
   visibility: hidden;
   transform: translateX(calc(100vw + 20rem));
   transition:

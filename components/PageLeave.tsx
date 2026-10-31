@@ -12,7 +12,7 @@ const CARD_MS = 800;
 const CONTENT_MS = 650;
 const TITLE_MS = 600;
 // The image tiles' melt out (components/mediaMelter.ts) ends by then: up to
-// 0.95s, after a wait of up to 0.12s.
+// about 0.95s, after a wait of up to 0.08s.
 const TILES_MS = 1100;
 const GATHER = 'cubic-bezier(0.32, 0, 0.67, 0)';
 
@@ -21,8 +21,8 @@ const GATHER = 'cubic-bezier(0.32, 0, 0.67, 0)';
 // every card showing (the contact form, a post's card) slides on off the
 // window's right side, its glass whole, while what is on it fades; anything
 // marked data-leave (the home page's title) slides off to the right; and the
-// image tiles slide off to the right and the scroll arrows fade
-// (body[data-leaving], styles/globals.css). Then the next page arrives as it
+// image tiles melt off to the right (MediaMelt.tsx, or slide where they can't:
+// body[data-leaving], styles/globals.css) and the scroll arrows fade. Then the next page arrives as it
 // does on opening. A click with a modifier key, a link to another site or a
 // new tab, the browser's back and forward, and reduced motion go at once.
 export default function PageLeave() {

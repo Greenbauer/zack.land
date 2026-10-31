@@ -105,7 +105,7 @@ export default function PostCollage({
     for (const tile of box.querySelectorAll<HTMLElement>('.collage-tile')) {
       tile.style.setProperty(
         '--wait',
-        `${Math.random() * (isShown ? 0.35 : 0.12)}s`,
+        `${Math.random() * (isShown ? 0.6 : 0.25)}s`,
       );
     }
     box.toggleAttribute('data-shown', isShown);

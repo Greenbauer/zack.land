@@ -32,6 +32,10 @@ const paceOf = (direction: 1 | -1) =>
   direction > 0
     ? 1 + (Math.random() * 2 - 1) * PACE_SPREAD
     : 1.05 + Math.random() * 2 * PACE_SPREAD;
+// The longest a tile waits to set off, in seconds: coming, enough for each to
+// arrive on its own; going, hardly at all, as it turns to liquid at once.
+const COME_WAIT_S = 0.35;
+const GO_WAIT_S = 0.08;
 // How long a tile waits for its picture before it just shows.
 const LOAD_LIMIT_S = 3;
 
@@ -56,24 +60,28 @@ const runs = new Map<HTMLElement, Run>();
 let wake: (() => void) | null = null;
 
 const seconds = () => performance.now() / 1000;
-const waitOf = (tile: HTMLElement) =>
-  parseFloat(tile.style.getPropertyValue('--wait')) || 0;
+const waitFor = (direction: 1 | -1) =>
+  Math.random() * (direction > 0 ? COME_WAIT_S : GO_WAIT_S);
 
-// Sends `box`'s tiles in (`direction` 1) or out (-1), after each tile's own
-// --wait, from wherever they are.
+// Sends `box`'s tiles in (`direction` 1) or out (-1), each after its own wait,
+// from wherever they are. A post drops its tiles while its images are hidden
+// and makes new ones when they show, so a run on tiles since dropped gives way
+// to the new, and whether the box is at rest is read from its tiles.
 export function melt(box: HTMLElement, direction: 1 | -1) {
   if (!wake) return;
   const run = runs.get(box);
-  if (run) {
+  const tiles = [...box.querySelectorAll<HTMLElement>('.collage-tile')];
+  if (run && (direction < 0 || run.pieces.every((p) => p.tile.isConnected))) {
     if (run.direction === direction) return;
     run.direction = direction;
     run.began = seconds();
-    for (const piece of run.pieces) piece.wait = waitOf(piece.tile);
+    for (const piece of run.pieces) piece.wait = waitFor(direction);
     return;
   }
-  if (box.hasAttribute('data-whole') === direction > 0) return;
-  const tiles = box.querySelectorAll<HTMLElement>('.collage-tile');
-  const pieces = [...tiles].flatMap((tile, k) => {
+  const isAtRest =
+    tiles.length > 0 && tiles.every((tile) => tile.hasAttribute('data-rest'));
+  if (!run && isAtRest === direction > 0) return;
+  const pieces = tiles.flatMap((tile, k) => {
     if (direction > 0) tile.removeAttribute('data-rest');
     const picture = tile.querySelector<Picture>('img, video');
     return picture
@@ -85,12 +93,13 @@ export function melt(box: HTMLElement, direction: 1 | -1) {
             radii: radiiOf(tile),
             melt: direction > 0 ? 0 : 1,
             pace: paceOf(direction),
-            wait: waitOf(tile),
+            wait: waitFor(direction),
             seed: k * 3.1 + Math.random() * 50,
           },
         ]
       : [];
   });
+  if (direction > 0) box.removeAttribute('data-whole');
   if (!pieces.length) return;
   runs.set(box, { box, direction, began: seconds(), pieces });
   wake();
@@ -189,7 +198,8 @@ export default function MediaMelt() {
       const dpr = Math.min(devicePixelRatio, 2);
       for (const run of runs.values())
         for (const piece of run.pieces)
-          if (run.box.offsetWidth) piece.rest = restOf(run, piece);
+          if (run.box.offsetWidth && piece.tile.isConnected)
+            piece.rest = restOf(run, piece);
       melter.begin(
         canvas.clientWidth,
         canvas.clientHeight,

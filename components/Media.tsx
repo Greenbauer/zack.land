@@ -71,8 +71,12 @@ function YouTubeVideo({ mediaSource, onPlaying, paused = false }: MediaProps) {
   const player = useRef<YouTubePlayer | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
+  // Read as the player readies and starts, which can come after its post has
+  // left the window.
+  const isPaused = useRef(paused);
 
   useEffect(() => {
+    isPaused.current = paused;
     if (paused) player.current?.pauseVideo();
   }, [paused]);
 
@@ -114,9 +118,14 @@ function YouTubeVideo({ mediaSource, onPlaying, paused = false }: MediaProps) {
           iframeClassName="size-full"
           onReady={({ target }) => {
             player.current = target;
-            target.playVideo();
+            if (isPaused.current) target.pauseVideo();
+            else target.playVideo();
           }}
-          onPlay={() => onPlaying?.(true)}
+          onPlay={({ target }) => {
+            if (isPaused.current) return target.pauseVideo();
+            setIsStarting(true);
+            onPlaying?.(true);
+          }}
           onPause={stopped}
           onEnd={stopped}
         />

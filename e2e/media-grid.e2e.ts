@@ -161,10 +161,33 @@ test.describe('More and Less', () => {
     await expect(page.getByRole('button', { name: 'Less' })).toBeVisible();
     await expect(box.locator('.collage-tile')).toHaveCount(0);
     await page.getByRole('button', { name: 'Less' }).click();
-    await expect(box).not.toHaveAttribute('data-whole', /.*/);
     await expect(box).toHaveAttribute('data-whole', '');
     await expect(box.locator('.collage-tile').first()).toBeVisible();
     await expect(page.locator('canvas.fixed')).toBeHidden();
+  });
+});
+
+test.describe('tiles made anew', () => {
+  test('come back after a window too short for images', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await atRest(page);
+    await page.setViewportSize({ width: 844, height: 390 });
+    await expect(page.locator('.collage').first()).toBeHidden();
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await expect(
+      page.locator('.collage').first().locator('.collage-tile').first(),
+    ).toBeVisible();
+  });
+
+  test('come back from More then a quick Less', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await atRest(page);
+    await page.getByRole('button', { name: 'More' }).first().click();
+    await page.waitForTimeout(700);
+    await page.getByRole('button', { name: 'Less' }).click();
+    const tile = page.locator('.collage').first().locator('.collage-tile');
+    await expect(tile).toHaveCount(4);
+    for (let k = 0; k < 4; k++) await expect(tile.nth(k)).toBeVisible();
   });
 });
 
