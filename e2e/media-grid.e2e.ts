@@ -113,6 +113,16 @@ test.describe('paging', () => {
     page,
   }) => {
     await atRest(page);
+    // They wait wholly off the window's right side, so that is where they come
+    // from. (Read now: a slow browser may first look once they have landed.)
+    const waiting = await page.evaluate(() =>
+      [
+        ...document
+          .querySelectorAll('.collage')[1]!
+          .querySelectorAll('.collage-tile'),
+      ].map((tile) => new DOMMatrix(getComputedStyle(tile).transform).m41),
+    );
+    for (const x of waiting) expect(x).toBeGreaterThan(1000);
     // As a scroll arrow turns, at once: a key is let go while the page's first
     // card is still arriving.
     await page.evaluate(() =>
@@ -122,17 +132,13 @@ test.describe('paging', () => {
       const next = document.querySelectorAll('.collage')[1]!;
       if (!next.hasAttribute('data-shown')) return false;
       return [...next.querySelectorAll<HTMLElement>('.collage-tile')].map(
-        (tile) => ({
-          x: new DOMMatrix(getComputedStyle(tile).transform).m41,
-          wait: getComputedStyle(tile).transitionDelay,
-        }),
+        (tile) => getComputedStyle(tile).transitionDelay,
       );
     });
-    const tiles = await start.jsonValue();
-    if (!tiles) throw new Error('the next post never showed');
-    expect(tiles.length).toBeGreaterThan(1);
-    expect(new Set(tiles.map((tile) => tile.wait)).size).toBe(tiles.length);
-    expect(Math.max(...tiles.map((tile) => tile.x))).toBeGreaterThan(1000);
+    const delays = await start.jsonValue();
+    if (!delays) throw new Error('the next post never showed');
+    expect(delays.length).toBeGreaterThan(1);
+    expect(new Set(delays).size).toBe(delays.length);
     await page.waitForFunction(() =>
       [
         ...document
