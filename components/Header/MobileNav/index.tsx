@@ -13,10 +13,11 @@ import MobileNavButton from './MobileNavButton';
 // reaches 15rem past every edge of the screen, its padding putting the links
 // back where they were: its corners fall off screen and the menu stays square.
 // It slides down from above as it opens, fading in on the way
-// (animate-menu-in), and closing it fades out evenly as it rises a little
-// (animate-menu-out): it is far taller than the screen, so a slide away would
-// hold its deep tint over the page until a sudden reveal at the end. Its links
-// take the card's ink (ON_GLASS). Portfolio is a button: it turns the menu to a second view of its
+// (animate-menu-in), its links fading in as it stops (animate-menu-content-in),
+// and closing it fades out evenly as it rises a little (animate-menu-out): it
+// is far taller than the screen, so a slide away would hold its deep tint over
+// the page until a sudden reveal at the end. Its links take the card's ink
+// (ON_GLASS). Portfolio is a button: it turns the menu to a second view of its
 // pages, with a way back (MenuViews). The page behind it hides while it is
 // open (.mobile-menu there). A page chosen from it comes in under it
 // (PageLeave.tsx), and it closes once that page is in.
@@ -94,7 +95,7 @@ function MenuPane({ isOpen, close, pathname, routes }: MenuPaneProps) {
     >
       <Menu.Items
         static
-        className="relative flex w-auto flex-col focus:outline-none"
+        className="relative flex w-auto flex-col focus:outline-none motion-safe:animate-menu-content-in"
       >
         {state !== 'closed' && (
           <MenuViews pathname={pathname} routes={routes} />

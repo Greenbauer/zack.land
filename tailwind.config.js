@@ -45,7 +45,8 @@ module.exports = {
         // window's left side (its glass reaches 15rem past the right edge, so
         // a window's width and 20rem) over 1.4 seconds, slowing gently to a
         // stop, its glass whole all the way, as a post's card does (Post.tsx);
-        // the form on it fades in alongside (content-in).
+        // the form on it fades in once the card has all but stopped (content-in:
+        // about 99% of the way there at 0.9 seconds), finishing as it does.
         'card-in': {
           '0%': { translate: 'calc(-100vw - 20rem) 0' },
           '100%': { translate: '0 0' },
@@ -56,11 +57,6 @@ module.exports = {
         // (Footer/arrowSwap.ts).
         'fade-in': {
           '0%': { opacity: '0' },
-          '100%': { opacity: '1' },
-        },
-        'content-in': {
-          '0%': { opacity: '0' },
-          '20%': { opacity: '0' },
           '100%': { opacity: '1' },
         },
         // The home page's title arriving: it slides in from wholly off the
@@ -84,7 +80,8 @@ module.exports = {
         'arrow-l': 'arrow-l 2.5s ease-in-out infinite',
         'card-in': 'card-in 1.4s cubic-bezier(0.22, 1, 0.36, 1) both',
         'fade-in': 'fade-in 0.4s ease-out both',
-        'content-in': 'content-in 1.4s cubic-bezier(0.22, 1, 0.36, 1) both',
+        'content-in': 'fade-in 0.5s ease-out 0.9s both',
+        'menu-content-in': 'fade-in 0.3s ease-out 0.5s both',
         'from-right': 'from-right 1.4s cubic-bezier(0.22, 1, 0.36, 1) both',
         'menu-in': 'menu-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) both',
         'menu-out': 'menu-out 0.5s ease-out both',

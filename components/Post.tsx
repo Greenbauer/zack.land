@@ -31,8 +31,8 @@ type PostProps = { content: Content };
 // hides; arriving, after a pause for the last to leave (--turn-delay, 0.7
 // seconds unless a quick turn back sets it to 0, SnapPager.tsx), it slows
 // gently into place (1.4 seconds). Its glass stays whole; only what is on it
-// fades, in from a quarter of a second into the slide and out by the time it
-// leaves. With reduced motion the card just shows or hides, and what is on it
+// fades, in over the slide's last half second, once the card has all but
+// stopped, and out by the time it leaves. With reduced motion the card just shows or hides, and what is on it
 // fades.
 // Arriving slows gently to a stop, cubic-bezier(0.22,1,0.36,1); leaving
 // gathers speed, cubic-bezier(0.32,0,0.67,0). (Written out whole, as
@@ -46,7 +46,7 @@ const CARD: Record<PostPlace, string> = {
   after: `motion-safe:[translate:calc(-100vw-20rem)_0] ${LEAVING}`,
 };
 const CONTENT_IN =
-  'motion-safe:[transition:opacity_1.2s_cubic-bezier(0.22,1,0.36,1)_calc(var(--turn-delay,0.7s)+0.25s)] motion-reduce:[transition:opacity_1.2s_ease-out_0.7s]';
+  'motion-safe:[transition:opacity_0.5s_ease-out_calc(var(--turn-delay,0.7s)+0.9s)] motion-reduce:[transition:opacity_1.2s_ease-out_0.7s]';
 const CONTENT_OUT =
   'opacity-0 [transition:opacity_0.65s_cubic-bezier(0.32,0,0.67,0)] motion-reduce:[transition:opacity_0.4s_ease-in]';
 
