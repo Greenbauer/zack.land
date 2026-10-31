@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  measuresRest,
   MELT_IN_S,
   MELT_OUT_S,
   restingBox,
@@ -53,6 +54,19 @@ describe('a still picture on the canvas', () => {
     expect(squareSide(600)).toBe(1024);
     expect(squareSide(1024)).toBe(1024);
     expect(squareSide(5000)).toBe(2048);
+  });
+});
+
+describe('reading where a tile rests', () => {
+  const rest = { x: 10, y: 20, width: 30, height: 40 };
+
+  it('follows a tile coming in, whose card can still be moving', () => {
+    expect(measuresRest(1, rest)).toBe(true);
+  });
+
+  it('holds still once a tile is going, however its card moves', () => {
+    expect(measuresRest(-1, null)).toBe(true);
+    expect(measuresRest(-1, rest)).toBe(false);
   });
 });
 

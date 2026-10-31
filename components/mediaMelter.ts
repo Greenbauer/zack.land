@@ -52,6 +52,13 @@ export function stepMelt(melt: number, direction: 1 | -1, seconds: number) {
 export const squareSide = (side: number) =>
   Math.min(2 ** Math.ceil(Math.log2(Math.max(side, 1))), 2048);
 
+// Whether a tile's resting place is read again this frame. Coming, yes: its
+// card can still be moving into place. Going, only once: as the site leaves,
+// the 404 page's card slides off carrying its tile, and a melt that followed
+// it past the window's edge would run back in from there.
+export const measuresRest = (direction: 1 | -1, rest: Box | null) =>
+  direction > 0 || !rest;
+
 // Where a tile rests in the window, whatever the page's scroll: the place in
 // `post` of a tile at `tile` in `box`, with the post's top at `pageTop`, so a
 // tile melting in or out stays put while the page glides past it.

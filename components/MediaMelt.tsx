@@ -11,6 +11,7 @@ import {
   shownPart,
 } from './mediaBender';
 import {
+  measuresRest,
   MediaMelter,
   restingBox,
   stepMelt,
@@ -213,7 +214,11 @@ function drawFrame(
     run.pieces.map((piece) => ({ run, piece })),
   );
   for (const { run, piece } of pieces)
-    if (run.box.offsetWidth && piece.tile.isConnected)
+    if (
+      measuresRest(run.direction, piece.rest) &&
+      run.box.offsetWidth &&
+      piece.tile.isConnected
+    )
       piece.rest = restOf(run, piece);
   melter.begin(
     canvas.clientWidth,

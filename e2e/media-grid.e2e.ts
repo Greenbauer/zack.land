@@ -2,8 +2,9 @@ import { expect as expectNow, Page, test } from '@playwright/test';
 
 // A post's images as the page shows them: one still block, rounded only at
 // its outer corners, that no hover resizes, and that still comes in tile by
-// tile, melting or, with no GPU, sliding. (Where the tiles go is collageLayout.test.ts; this is what the styles
-// do with it.) Against a built site: `npx playwright test`.
+// tile, melting or, with no GPU, sliding. (Where the tiles go is
+// collageLayout.test.ts; this is what the styles do with it.) Against a built
+// site: `npx playwright test`.
 
 // A software-drawn runner can take many seconds over a frame.
 const expect = expectNow.configure({ timeout: 30_000 });
@@ -14,7 +15,7 @@ const SIZES = [
 ];
 const RADIUS = '16px';
 
-// The first post's tiles once they have slid in and the page has settled.
+// The first post's tiles once they have come in and the page has settled.
 async function atRest(page: Page) {
   await page.goto('/portfolio/miscellaneous');
   await page.waitForFunction(() => {
@@ -182,13 +183,33 @@ test.describe('the 404 page', () => {
     const tile = page.locator('.collage-tile');
     await expect(tile).toHaveCSS('opacity', '1');
     await expect(page.locator('canvas.fixed')).toBeHidden();
+    // Its card may still be sliding in.
+    await page.waitForTimeout(2000);
+    // Linux WebKit rejects this 720p H.264 file, re-encoded too (format error,
+    // no frames), so there is no picture to bend; Chrome and Mac WebKit play it.
+    const canPlay = await tile.locator('video').evaluate(
+      (video: HTMLVideoElement) =>
+        new Promise<boolean>((resolve) => {
+          const isSettled = () =>
+            video.readyState >= 2 ||
+            !!video.error ||
+            video.networkState === video.NETWORK_NO_SOURCE;
+          const wait = () =>
+            isSettled()
+              ? resolve(video.readyState >= 2)
+              : setTimeout(wait, 100);
+          wait();
+        }),
+    );
+    test.skip(
+      !canPlay && test.info().project.name === 'webkit',
+      'this browser cannot decode the video',
+    );
     const box = (await tile.boundingBox())!;
     await page.mouse.move(box.x + 20, box.y + 20);
     await page.mouse.move(box.x + box.width / 2, box.y + 40, { steps: 6 });
     await expect(tile.locator('[data-media-bend]')).toBeAttached();
     await page.mouse.move(2, 2);
-    // Its card may still be sliding in.
-    await page.waitForTimeout(2000);
     const first = await tile.boundingBox();
     await page.waitForTimeout(600);
     expect(await tile.boundingBox()).toEqual(first);
