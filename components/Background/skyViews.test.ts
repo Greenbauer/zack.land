@@ -1,6 +1,15 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { DARK_SKIES, LIGHT_SKIES, planSkies, STATIONS } from './skyViews';
+import {
+  currentView,
+  DARK_SKIES,
+  LIGHT_SKIES,
+  planSkies,
+  STATIONS,
+  VIEW_BOUND,
+  viewBound,
+  viewBoundOff,
+} from './skyViews';
 
 const seeded = (seed: number) => () => {
   seed = (seed * 1664525 + 1013904223) % 4294967296;
@@ -23,6 +32,18 @@ describe('the sky for each view of the site', () => {
           expect(which(next)).not.toBe(which(here));
           expect(isDark(next)).not.toBe(isDark(here));
         }
+    }
+  });
+
+  it('crosses between light and dark on every change of view, pages included', () => {
+    for (let seed = 1; seed < 20; seed++) {
+      const stationFor = planSkies(seeded(seed));
+      let last = stationFor('/');
+      for (const view of ['/contact', '/', '/portfolio/web-apps#0', '/x']) {
+        const next = stationFor(view);
+        expect(isDark(next)).not.toBe(isDark(last));
+        last = next;
+      }
     }
   });
 
@@ -62,6 +83,16 @@ describe('the sky for each view of the site', () => {
     expect(new Set(visits).size).toBeGreaterThan(1);
   });
 
+  it('keeps the sky a portfolio page set off with as its first post comes up', () => {
+    for (let seed = 1; seed < 20; seed++) {
+      const stationFor = planSkies(seeded(seed));
+      stationFor('/contact');
+      const bound = stationFor('/portfolio/web-apps');
+      expect(stationFor('/portfolio/web-apps#0')).toBe(bound);
+      expect(stationFor('/portfolio/web-apps#1')).not.toBe(bound);
+    }
+  });
+
   it('chooses afresh on each load', () => {
     const views = ['/', '/contact', '/portfolio/web-apps#0'];
     const loads = Array.from({ length: 12 }, (_, seed) => {
@@ -86,5 +117,58 @@ describe('the sky for each view of the site', () => {
       expect(reach.x).toBeLessThanOrEqual(0.2);
       expect(reach.y).toBeLessThanOrEqual(0.35);
     }
+  });
+});
+
+describe('the view the sky is for', () => {
+  const page = (pathname: string, posts = 0, scrollTop = 0) => {
+    const list = Array.from({ length: posts }, (_, k) => ({
+      getBoundingClientRect: () => ({ top: k * 800 - scrollTop }),
+      offsetHeight: 800,
+    }));
+    const scroller = {
+      scrollTop,
+      querySelector: () => list[0] ?? null,
+      querySelectorAll: () => list,
+    };
+    vi.stubGlobal('location', { pathname });
+    vi.stubGlobal('document', { getElementById: () => scroller });
+    vi.stubGlobal('getComputedStyle', () => ({
+      getPropertyValue: () => '0',
+      minHeight: '800px',
+    }));
+  };
+  const announced = vi.fn();
+  vi.stubGlobal('dispatchEvent', announced);
+  afterEach(() => {
+    announced.mockClear();
+    page('/elsewhere');
+    currentView();
+  });
+
+  it('is the next page from the click, before the page changes', () => {
+    page('/contact');
+    expect(currentView()).toBe('/contact');
+    viewBound('/');
+    expect(announced.mock.calls[0]![0].type).toBe(VIEW_BOUND);
+    expect(currentView()).toBe('/');
+    page('/');
+    expect(currentView()).toBe('/');
+  });
+
+  it('lets go when the browser goes back to the page it set off from', () => {
+    page('/contact');
+    viewBound('/');
+    viewBoundOff();
+    expect(currentView()).toBe('/contact');
+  });
+
+  it('lets go once the site lands on another page than it set off for', () => {
+    page('/contact');
+    viewBound('/portfolio');
+    page('/portfolio/web-apps');
+    expect(currentView()).toBe('/portfolio/web-apps');
+    page('/contact');
+    expect(currentView()).toBe('/contact');
   });
 });

@@ -10,8 +10,8 @@ import { restingSide, skyBehind, skyColours, WORD_SHARE } from './skyColours';
 // --sky-text, --sky-faint, --sky-accent and --sky-underline,
 // which its children use, without re-rendering; each change fades (the
 // .sky-colours class in styles/globals.css). Until the sky is first measured,
-// the defaults there apply. While the sky rests at its view's home (skyState)
-// the text takes that sky's side, light or dark, whatever the pointer or the
+// the defaults there apply. Once the sky's side is settled (skyState) the text
+// takes that side, light or dark, whatever the pointer or the
 // head does; with `ownSide`, it follows only what is right behind it instead,
 // as each word of the footer's text does (SkyWords.tsx), light over the dark
 // head and dark over a pale sky.

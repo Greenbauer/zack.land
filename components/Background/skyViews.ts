@@ -39,7 +39,7 @@ export const DARK_SKIES: Station[] = [
 export const STATIONS = [...LIGHT_SKIES, ...DARK_SKIES];
 
 // The view on screen: the page, and on a portfolio page the post in view.
-export function currentView(): string {
+function viewOnScreen(): string {
   const page = location.pathname;
   const scroller = document.getElementById('page');
   if (!scroller?.querySelector('[data-post]')) return page;
@@ -54,14 +54,43 @@ export function currentView(): string {
   return `${page}#${nearest}`;
 }
 
+// The view the site has set off for, ahead of its arrival: a page whose link
+// was just clicked, which comes up only once the page has moved out. (A post
+// turned to needs none: the sky sets off as the scroll reaches it.) The sky
+// sets off for it at once (Sky.tsx, on VIEW_BOUND). It lasts until that view
+// is on screen or the site is on another page.
+export const VIEW_BOUND = 'sky-view-bound';
+let bound: { from: string; to: string } | null = null;
+export function viewBound(to: string) {
+  bound = { from: location.pathname, to };
+  dispatchEvent(new Event(VIEW_BOUND));
+}
+// The browser's back and forward go where they go, whatever the site had set
+// off for.
+export const viewBoundOff = () => {
+  bound = null;
+};
+
+// The view the sky is for: the one the site has set off for, or else the one
+// on screen.
+export function currentView(): string {
+  const shown = viewOnScreen();
+  if (bound?.from === location.pathname && bound.to !== shown) return bound.to;
+  bound = null;
+  return shown;
+}
+
 // A fresh sky for every view of the site, picked with `random`: each time
 // the view changes (another page, or another post of a portfolio page) the
-// sky moves to a station picked at random, never the one it is leaving.
-// Between the posts of one page light and dark skies take turns; a page
-// starts on either. A view asked again while it is on screen keeps its sky,
-// and a view come back to later gets a new one, so the skies differ on every
-// load and on every visit. `left` is the station the last load of the tab
-// ended on, so a reload moves the sky too.
+// sky moves to a station picked at random from the other side, light for
+// dark or dark for light: the stations on one side lie close together, so a
+// move within it hardly shows, and a move across goes well round the sky. The
+// first view takes either side. A view asked again while it is on screen keeps
+// its sky, and a view come back to later gets a new one, so the skies differ
+// on every load and on every visit. A page's first post is that page's view, so a
+// portfolio page set off for (viewBound) keeps its sky as its first post comes
+// up. `left` is the station the last load of the tab ended on, so a reload
+// moves the sky too.
 export function planSkies(
   random: () => number = Math.random,
   left: Station | null = null,
@@ -69,19 +98,18 @@ export function planSkies(
   let view: string | null = null;
   let station: Station | null = left;
   return (next: string): Station => {
-    if (next === view && station) return station;
-    const samePage = view !== null && view.split('#')[0] === next.split('#')[0];
-    const wasLight = station !== null && LIGHT_SKIES.includes(station);
-    const family =
-      samePage && station
-        ? wasLight
-          ? DARK_SKIES
-          : LIGHT_SKIES
-        : random() < 0.5
-          ? LIGHT_SKIES
-          : DARK_SKIES;
-    const choices = family.filter((s) => s !== station);
-    station = choices[Math.floor(random() * choices.length)]!;
+    if (station && (next === view || next === `${view}#0`)) {
+      view = next;
+      return station;
+    }
+    const family = station
+      ? LIGHT_SKIES.includes(station)
+        ? DARK_SKIES
+        : LIGHT_SKIES
+      : random() < 0.5
+        ? LIGHT_SKIES
+        : DARK_SKIES;
+    station = family[Math.floor(random() * family.length)]!;
     view = next;
     return station;
   };

@@ -320,6 +320,69 @@ test.describe('phone on its side, reduced motion, snapping on', () => {
   });
 });
 
+// On a phone on its side the space between the fades (160 to 192 pixels down
+// a window 390 tall) lies wholly above the window's middle: paging down each
+// page with the keys to its last post's end and back up to its top, with the
+// browser's snapping on as a visitor has it, every stop shows the card of the
+// post the page is on, and no other (at the end of a post laid open taller
+// than the page, every card hid).
+const shownCards = (page: Page) =>
+  page.evaluate(() =>
+    [...document.querySelectorAll('[data-post] > section')].flatMap(
+      (card, k) => (getComputedStyle(card).visibility === 'visible' ? [k] : []),
+    ),
+  );
+test.describe('phone on its side, a card at every stop', () => {
+  test.use({ isMobile: true, hasTouch: true });
+  for (const reducedMotion of ['reduce', 'no-preference'] as const)
+    for (const path of ['/portfolio/web-apps', '/portfolio/miscellaneous'])
+      test(`${path}, ${reducedMotion === 'reduce' ? 'reduced motion' : 'moving'}`, async ({
+        page,
+      }) => {
+        // Every post of a page twice, down and back up: about 18 stops, each
+        // 4 to 5 seconds where Chrome draws the scene in software (CI), past
+        // the 90 seconds a test is given (playwright.config.ts).
+        test.slow();
+        await page.emulateMedia({ reducedMotion });
+        await page.setViewportSize({
+          width: SIDEWAYS.width,
+          height: SIDEWAYS.height,
+        });
+        await page.goto(path);
+        await page
+          .locator('html[data-scene-ready]')
+          .waitFor({ state: 'attached', timeout: 20_000 });
+        await page.waitForTimeout(1500);
+        const posts = await page.locator('[data-post]').count();
+        let endsSeen = 0;
+        for (const key of ['PageDown', 'PageUp']) {
+          let last = -1;
+          for (let k = 0; k < 20; k++) {
+            await page.keyboard.press(key);
+            await page.waitForTimeout(1200);
+            const now = await look(page, 0);
+            expect(now.on, 'the page rests on a post').not.toBe(-1);
+            await expect
+              .poll(() => shownCards(page), {
+                message: `the card of post ${now.on} alone shows`,
+                timeout: 5_000,
+              })
+              .toEqual([now.on]);
+            if ((await look(page, now.on)).atEnd) endsSeen++;
+            const top = await page.evaluate(
+              () => document.getElementById('page')!.scrollTop,
+            );
+            if (Math.abs(top - last) < 1) break;
+            last = top;
+          }
+          expect((await look(page, 0)).on, 'came to the far post').toBe(
+            key === 'PageDown' ? posts - 1 : 0,
+          );
+        }
+        expect(endsSeen, "stopped at a tall post's end").toBeGreaterThan(0);
+      });
+});
+
 for (const [from, to] of [
   [UPRIGHT, SIDEWAYS],
   [SIDEWAYS, UPRIGHT],

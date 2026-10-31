@@ -45,22 +45,18 @@ module.exports = {
         // window's left side (its glass reaches 15rem past the right edge, so
         // a window's width and 20rem) over 1.4 seconds, slowing gently to a
         // stop, its glass whole all the way, as a post's card does (Post.tsx);
-        // the form on it fades in alongside (content-in).
+        // the form on it fades in slowly and evenly from the start of the
+        // slide, for as long as it lasts (content-in).
         'card-in': {
           '0%': { translate: 'calc(-100vw - 20rem) 0' },
           '100%': { translate: '0 0' },
         },
-        // What is on a card arriving: it starts fading in a fifth of the way
-        // through the card's slide (card-in, the same length).
+        // What is on a card arriving fades in with it, evenly from the start
+        // of the card's slide (content-in, as long as card-in).
         // The footer's scroll arrow, after its text has faded out
         // (Footer/arrowSwap.ts).
         'fade-in': {
           '0%': { opacity: '0' },
-          '100%': { opacity: '1' },
-        },
-        'content-in': {
-          '0%': { opacity: '0' },
-          '20%': { opacity: '0' },
           '100%': { opacity: '1' },
         },
         // The home page's title arriving: it slides in from wholly off the
@@ -75,14 +71,19 @@ module.exports = {
           '20%': { opacity: '0' },
           '100%': { translate: '0 0', opacity: '1' },
         },
+        'menu-out': {
+          '0%': { translate: '0 0', opacity: '1' },
+          '100%': { translate: '0 -4rem', opacity: '0' },
+        },
       },
       animation: {
         'arrow-l': 'arrow-l 2.5s ease-in-out infinite',
         'card-in': 'card-in 1.4s cubic-bezier(0.22, 1, 0.36, 1) both',
         'fade-in': 'fade-in 0.4s ease-out both',
-        'content-in': 'content-in 1.4s cubic-bezier(0.22, 1, 0.36, 1) both',
+        'content-in': 'fade-in 1.4s linear both',
         'from-right': 'from-right 1.4s cubic-bezier(0.22, 1, 0.36, 1) both',
         'menu-in': 'menu-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) both',
+        'menu-out': 'menu-out 0.5s ease-out both',
       },
     },
   },

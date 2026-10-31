@@ -1,20 +1,20 @@
 import { isOnDark } from '@/components/SkyText/skyColours';
+import { hasLeftView } from '@/components/useHeldCard';
 
 import { skyState } from './skyState';
 
-// The glass cards' tint (glass.ts): the colour of the sky around each card,
-// so the card matches its sky, with its text dark on a light sky and light
-// on a dark one, as the text over the sky is (components/SkyText). The tint
-// itself is worked out in the glass's shader every frame, from the sky
-// around the card, so it follows the sky at once: on a dark sky the sky's
-// colour darkened (keeping its hue) to TINT_LUMINANCE, the glass kept no
-// brighter than BRIGHTEST; on a light sky the sky's colour, lightened toward
-// head-light to LIGHT_TINT_LUMINANCE if need be, the glass kept no dimmer
-// than DIMMEST. Either way the cards' text (all at full strength,
-// styles/globals.css) keeps WCAG AA's 4.5:1, with a little to spare. Which side a card is on is decided here, a
-// few times a second from the sky read back around it, and changes only
-// once the sky is clearly past the crossover (isOnDark), over
-// CHANGE_SECONDS, as its text does (styles/globals.css).
+// Which side of the sky a glass card is on, so its text is dark on a light sky
+// and light on a dark one, as the text over the sky is (components/SkyText);
+// and the phone menu's tint (glass.ts), the only glass that has one: the colour
+// of the sky around it, worked out in the glass's shader every frame, so it
+// follows the sky at once: on a dark sky the sky's colour darkened (keeping its
+// hue) to TINT_LUMINANCE, the glass kept no brighter than BRIGHTEST; on a light
+// sky the sky's colour, lightened toward head-light to LIGHT_TINT_LUMINANCE if
+// need be, the glass kept no dimmer than DIMMEST. A card takes the side of the
+// view the sky is bound for once that is settled (skyState.ts), as the sky sets
+// off; until then a few times a second from the sky read back around it, and
+// only once the sky is clearly past the crossover (isOnDark). Either way it
+// changes over CHANGE_SECONDS, as its text does (styles/globals.css).
 
 // sRGB channels, 0 to 255.
 export type Rgb = [number, number, number];
@@ -70,8 +70,21 @@ export class CardTints {
   // head's dark crown.
   aim(card: HTMLElement, sky: Rgb) {
     const state = this.cards.get(card);
+    // A card on its way out (a post's as the page turns, Post.tsx's LEAVING;
+    // any as the site goes to another page) keeps its side: the sky has set
+    // off, and what is fading on it would turn over and show again. A post's
+    // card counts from its post leaving the view line (hasLeftView), ahead of
+    // the middle of the gap, where the view changes: on a slow frame the sky
+    // can move before the card is marked as leaving.
+    const post = card.closest<HTMLElement>('[data-post]');
+    if (
+      state &&
+      (card.matches('.invisible, body[data-leaving] *') ||
+        (post && hasLeftView(post)))
+    )
+      return;
     // A card above the head stays on the dark side; any other takes the
-    // side of the sky's station while the sky rests at its view's home.
+    // side of the view's station once that is settled (skyState.ts).
     const light =
       card.dataset.headAvoid !== 'above' &&
       (skyState.settled
@@ -84,6 +97,19 @@ export class CardTints {
     else this.cards.set(card, { light, progress: light ? 1 : 0 });
     const side = light ? 'light' : 'dark';
     if (card.dataset.sky !== side) card.dataset.sky = side;
+  }
+
+  // Puts a card new to the page straight on the settled side, so it arrives
+  // on it rather than turning over once it is in. (The sky around it does not
+  // count once the side is settled.) Its colours' fade is skipped: the site's
+  // router can have styled the card on the default side by now, so setting
+  // its side alone would start that fade.
+  place(card: HTMLElement) {
+    if (!skyState.settled || this.cards.has(card)) return;
+    this.aim(card, [0, 0, 0]);
+    for (const fade of card.getAnimations())
+      if ((fade as CSSTransition).transitionProperty?.startsWith('--card'))
+        fade.finish();
   }
 
   // The glass `card` shows now, `delta` seconds after the last call (the

@@ -2,25 +2,38 @@ import { useFrame } from '@react-three/fiber';
 import { useEffect, useRef } from 'react';
 import { Euler } from 'three';
 
-import { glide } from './headPlace';
+import { glide, GLIDE_SECONDS } from './headPlace';
 import { heading } from './MyHead';
 import { skyState } from './skyState';
-import { currentView, LIGHT_SKIES, Station, stationFor } from './skyViews';
+import {
+  currentView,
+  LIGHT_SKIES,
+  Station,
+  stationFor,
+  VIEW_BOUND,
+  viewBoundOff,
+} from './skyViews';
 
 // The sky turns with the head, about the home each view of the site gives it
 // (skyViews.ts): the pointer from one edge of the screen to the other turns
 // it that view's reach either way (left and right turn it, top and bottom
 // tip it), never so far that the text over it switches between light and
-// dark. Moving to another view (a page, or the next post), the sky glides to
-// that view's home over about HOME_SECONDS, showing a different part of the
-// dawn. It follows the head's own look target, mouse or idle wandering, and
-// eases there at the head's speed. The head's reflections turn with it.
+// dark. Moving to another view, the sky sets off as the site does (a page
+// with its click, viewBound; the next post with the scroll) and glides to that view's home over about
+// GLIDE_SECONDS, as the head glides to its place, showing a different part of
+// the dawn. It follows the head's own look target, mouse or idle wandering,
+// and eases there at the head's speed, or at HOMING_SPEED while it is on its
+// way home. The head's reflections turn with it.
 // skyTurn's full range, which the view's reach scales down.
 const REACH = Math.PI / 2;
-const HOME_SECONDS = 2.5;
-// How long the sky must stay within its view's safe range before text over it
-// takes its station's side (skyState.ts), in seconds.
-const REST_SECONDS = 1;
+// How close to its view's home the gliding home counts as there, in radians.
+const HOME_NEAR = 0.02;
+// How closely the sky keeps to its gliding home, a share each frame: the
+// head's own speed trails it by a second or more (its idle wandering's most).
+const HOMING_SPEED = 0.3;
+// How long the scene must have drawn the sky before text over it takes its
+// station's side (skyState.ts), in seconds.
+const DRAWN_SECONDS = 1;
 // How often the view on screen is checked, in milliseconds.
 const VIEW_MS = 300;
 
@@ -99,6 +112,11 @@ export function skyAhead(frames: number, rotation: Euler) {
   return rotation;
 }
 
+// The share of its way to its aim the sky moves this frame: `gap` is how far
+// the gliding home is from its view's home, in radians.
+export const skySpeed = (gap: number, headSpeed: number) =>
+  gap < HOME_NEAR ? headSpeed : Math.max(headSpeed, HOMING_SPEED);
+
 // Where the view's home has glided to, and how fast it is moving.
 type Home = { x: number; y: number; speed: { x: number; y: number } };
 
@@ -111,16 +129,33 @@ export default function Sky() {
   // The pointer reads (0, 0) until it first moves; until then it counts as
   // the middle of the screen, so the sky sits at its home.
   const first = useRef<typeof heading.target | null>(null);
-  // When the sky came to rest at its view's home (clock seconds).
-  const restSince = useRef<number | null>(null);
+  // When the scene first drew the sky (clock seconds).
+  const drawnSince = useRef<number | null>(null);
 
   useEffect(() => {
     const check = () => {
       station.current = stationFor(currentView());
+      // At once, not on the next frame: a card can arrive ahead of that.
+      skyState.light = LIGHT_SKIES.includes(station.current);
     };
     check();
     const timer = setInterval(check, VIEW_MS);
-    return () => clearInterval(timer);
+    const onHistory = () => {
+      viewBoundOff();
+      check();
+    };
+    addEventListener(VIEW_BOUND, check);
+    addEventListener('popstate', onHistory);
+    // With the page's scroll, not on the timer's next tick: a card coming back
+    // on a quick turn back would read the side of the view it left. (A
+    // scroller's scroll does not bubble, so it is caught on its way down.)
+    addEventListener('scroll', check, { capture: true, passive: true });
+    return () => {
+      clearInterval(timer);
+      removeEventListener('scroll', check, { capture: true });
+      removeEventListener(VIEW_BOUND, check);
+      removeEventListener('popstate', onHistory);
+    };
   }, []);
 
   useFrame(({ clock, scene, size }, delta) => {
@@ -136,7 +171,7 @@ export default function Sky() {
         { x: home.current[axis], speed: home.current.speed[axis] },
         view.home[axis],
         seconds,
-        HOME_SECONDS,
+        GLIDE_SECONDS,
       );
       home.current[axis] = step.x;
       home.current.speed[axis] = step.speed;
@@ -165,8 +200,12 @@ export default function Sky() {
     for (const axis of ['x', 'y'] as const)
       motion.drift[axis] +=
         DRIFT_SMOOTHING * (aim[axis] - motion.aim[axis] - motion.drift[axis]);
-    // The sky eases after its aim at the head's speed.
-    const speed = heading.speed;
+    const gap = Math.hypot(
+      home.current.x - view.home.x,
+      home.current.y - view.home.y,
+    );
+    // The sky eases after its aim.
+    const speed = skySpeed(gap, heading.speed);
     Object.assign(motion, { aim, speed });
     const step = {
       x: speed * (aim.x - turn.current.x),
@@ -175,23 +214,16 @@ export default function Sky() {
     turn.current.x += step.x;
     turn.current.y += step.y;
     motion.rate = Math.hypot(step.x, step.y);
-    // At rest once the home has arrived (radians) and the sky itself has come
-    // within the view's reach of it (the range its station was measured
-    // over), and has stayed so for REST_SECONDS: only then do text and cards
-    // take the side its station reads on (light or dark, skyViews.ts), so a
-    // side they took while the sky was on its way is not kept.
-    const arrived =
-      Math.hypot(home.current.x - view.home.x, home.current.y - view.home.y) <
-        0.02 &&
-      Math.abs(turn.current.x - home.current.x) <= view.reach.x + 0.03 &&
-      Math.abs(turn.current.y - home.current.y) <= view.reach.y + 0.03;
-    restSince.current = arrived
-      ? (restSince.current ?? clock.elapsedTime)
-      : null;
-    skyState.settled =
-      restSince.current !== null &&
-      clock.elapsedTime - restSince.current >= REST_SECONDS;
-    skyState.light = LIGHT_SKIES.includes(view);
+    // Text and cards take the side of the view the sky is bound for from the
+    // moment it sets off (skyViews.ts), so they turn over with it rather than
+    // after it.
+    drawnSince.current ??= clock.elapsedTime;
+    skyState.settled = clock.elapsedTime - drawnSince.current >= DRAWN_SECONDS;
+    // For what must wait on it from outside, as data-scene-ready (the tests).
+    document.documentElement.toggleAttribute(
+      'data-sky-settled',
+      skyState.settled,
+    );
     for (const rotation of [
       scene.backgroundRotation,
       scene.environmentRotation,
