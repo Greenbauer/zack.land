@@ -10,13 +10,20 @@ import { MediaSource } from '@/types';
 type MediaProps = {
   mediaSource: MediaSource;
   onPlaying?: (_isPlaying: boolean) => void;
+  // Its play button was pressed, which lifts whatever stopped it (`paused`).
+  onPress?: () => void;
   paused?: boolean;
 };
 
 // One image or video, filling its box (cropped to cover it): a silent loop, or
 // a YouTube video, which tells `onPlaying` when it starts and stops, and
 // pauses while `paused` (its post has left the window).
-export default function Media({ mediaSource, onPlaying, paused }: MediaProps) {
+export default function Media({
+  mediaSource,
+  onPlaying,
+  onPress,
+  paused,
+}: MediaProps) {
   const { key, alt, type, width = 800, height = 800 } = mediaSource;
 
   switch (type) {
@@ -25,6 +32,7 @@ export default function Media({ mediaSource, onPlaying, paused }: MediaProps) {
         <YouTubeVideo
           mediaSource={mediaSource}
           onPlaying={onPlaying}
+          onPress={onPress}
           paused={paused}
         />
       );
@@ -66,7 +74,12 @@ const THUMBNAIL = { width: 480, height: 360 };
 // loads on the first press and stays, hidden, so a later press goes on from
 // where it stopped. (`isStarting` lets the player show, in case the browser
 // asks for a press on the player itself.)
-function YouTubeVideo({ mediaSource, onPlaying, paused = false }: MediaProps) {
+function YouTubeVideo({
+  mediaSource,
+  onPlaying,
+  onPress,
+  paused = false,
+}: MediaProps) {
   const { key, alt } = mediaSource;
   const player = useRef<YouTubePlayer | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -100,8 +113,7 @@ function YouTubeVideo({ mediaSource, onPlaying, paused = false }: MediaProps) {
           aria-label={`Play ${alt}`}
           className="absolute inset-0 grid place-items-center"
           onClick={() => {
-            // A press means play, whatever stopped it last.
-            isPaused.current = false;
+            onPress?.();
             setIsStarting(true);
             setIsLoaded(true);
             player.current?.playVideo();

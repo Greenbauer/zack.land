@@ -151,6 +151,7 @@ export default function PostCollage({
                     }
                   : undefined
               }
+              onPress={() => setIsDismissed(false)}
               paused={!isShown || isDismissed}
             />
           </div>
