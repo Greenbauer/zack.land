@@ -70,6 +70,10 @@ export class CardTints {
   // head's dark crown.
   aim(card: HTMLElement, sky: Rgb) {
     const state = this.cards.get(card);
+    // A card on its way out (a post's as the page turns, Post.tsx's LEAVING;
+    // any as the site goes to another page) keeps its side: the sky has set
+    // off, and what is fading on it would turn over and show again.
+    if (state && card.matches('.invisible, body[data-leaving] *')) return;
     // A card above the head stays on the dark side; any other takes the
     // side of the view's station once that is settled (skyState.ts).
     const light =

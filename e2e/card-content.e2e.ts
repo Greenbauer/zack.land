@@ -1,8 +1,9 @@
 import { expect, Page, test } from '@playwright/test';
 
 // What sits on the frosted glass waits for its glass: it fades in as the card
-// or the phone menu's pane comes to a stop, not on the way. Read off the
-// animations' own timing, so a slow machine doesn't change the answer.
+// or the phone menu's pane comes to a stop, not on the way, and going, it fades
+// out before the card sets off. Read off the animations' own timing, so a slow
+// machine doesn't change the answer.
 // Against a built site: `npx playwright test`.
 
 test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
@@ -64,4 +65,63 @@ test('the menu’s links fade in as its pane stops', async ({ page }) => {
   const links = await timing(page, '[role="menu"]', 'fade-in');
   expect(links.start).toBeGreaterThanOrEqual(0.6 * pane.end);
   expect(links.end).toBeLessThanOrEqual(pane.end);
+});
+
+test('going to another page, a card’s content fades before it sets off', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto('/contact');
+  await page.waitForTimeout(1600);
+  await page.locator('a[href="/"]').first().click({ noWaitAfter: true });
+  const { fade, card } = await page.evaluate(() => {
+    const section = document.querySelector('section')!;
+    const timing = (element: Element) => {
+      const { delay, duration } = element
+        .getAnimations()
+        .at(-1)!
+        .effect!.getComputedTiming();
+      return { delay: Number(delay), duration: Number(duration) };
+    };
+    return { fade: timing(section.children[0]!), card: timing(section) };
+  });
+  expect(fade.duration).toBeLessThanOrEqual(card.delay + 150);
+  expect(card.delay).toBeGreaterThan(0);
+});
+
+test('a post’s content fades before its card sets off', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto('/portfolio/web-apps');
+  await page.waitForTimeout(2600);
+  await page.keyboard.press('ArrowDown');
+  // The first post has left: its classes are now the leaving ones.
+  await expect(page.locator('.post-card').first()).toHaveClass(/invisible/);
+  const { fade, wait } = await page
+    .locator('.post-card')
+    .first()
+    .evaluate((card) => {
+      const style = getComputedStyle(card);
+      const at = style.transitionProperty.split(', ').indexOf('translate');
+      return {
+        wait: parseFloat(style.transitionDelay.split(', ')[at]!),
+        fade: parseFloat(
+          getComputedStyle(card.querySelector('article')!).transitionDuration,
+        ),
+      };
+    });
+  expect(wait).toBeGreaterThan(0);
+  expect(fade).toBeLessThanOrEqual(wait + 0.15);
+});
+
+test('closing, the menu’s links fade before its pane is gone', async ({
+  page,
+}) => {
+  await page.goto('/contact');
+  const button = page.locator('[id^="headlessui-menu-button"]');
+  await button.tap();
+  await page.waitForTimeout(1000);
+  await button.tap();
+  const pane = await timing(page, '.mobile-menu', 'menu-out');
+  const links = await timing(page, '[role="menu"]', 'fade-out');
+  expect(links.end).toBeLessThanOrEqual(0.5 * pane.end);
 });

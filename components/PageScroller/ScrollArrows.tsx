@@ -49,9 +49,9 @@ const HEAD_GAP = '0.5rem';
 // On a wide screen the arrows fade out as the page turns, and back in once
 // the arriving card has slid past them: SETTLE_MS after the page last
 // scrolled (its 0.3s glide), or after the page opens (its first card
-// arriving), so they show about 1.2s into a turn, as the card (sliding in
-// from 0.7s, useHeldCard.ts) clears the head.
-const SETTLE_MS = 900;
+// arriving), so they show about 1.5s into a turn, as the card (sliding in
+// from 1s, useHeldCard.ts) clears the head.
+const SETTLE_MS = 1200;
 const OPEN_SETTLE_MS = 1200;
 
 // The up arrow sits just under the header, and the down arrow just over the

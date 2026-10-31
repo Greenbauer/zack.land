@@ -59,6 +59,10 @@ module.exports = {
           '0%': { opacity: '0' },
           '100%': { opacity: '1' },
         },
+        'fade-out': {
+          '0%': { opacity: '1' },
+          '100%': { opacity: '0' },
+        },
         // The home page's title arriving: it slides in from wholly off the
         // window's right side, slowing gently to a stop (app/(root)/page.tsx).
         'from-right': {
@@ -82,6 +86,7 @@ module.exports = {
         'fade-in': 'fade-in 0.4s ease-out both',
         'content-in': 'fade-in 0.5s ease-out 0.9s both',
         'menu-content-in': 'fade-in 0.3s ease-out 0.5s both',
+        'menu-content-out': 'fade-out 0.2s ease-in both',
         'from-right': 'from-right 1.4s cubic-bezier(0.22, 1, 0.36, 1) both',
         'menu-in': 'menu-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) both',
         'menu-out': 'menu-out 0.5s ease-out both',

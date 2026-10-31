@@ -4,7 +4,7 @@ import { RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react';
 // has stopped being the one in view (useHeldCard) an opened card closes
 // again.
 const OPEN_MS = 600;
-const CLOSE_AWAY_MS = 900;
+const CLOSE_AWAY_MS = 1200;
 const SMOOTH = 'cubic-bezier(0.65, 0, 0.35, 1)';
 
 type Phase = 'closed' | 'opening' | 'open' | 'closing';

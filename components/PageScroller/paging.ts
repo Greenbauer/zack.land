@@ -12,14 +12,14 @@ export const GLIDE_MS = 300;
 export const easeOutCubic = (t: number) => 1 - (1 - t) ** 3;
 
 // The pause before a page turn's next card sets off while the last card
-// leaves, in milliseconds (Post.tsx's --turn-delay, 0.7s by default): a turn
+// leaves, in milliseconds (Post.tsx's --turn-delay, 1s by default): a turn
 // back inside it is quick, as that card has not set off yet.
-export const QUICK_MS = 700;
+export const QUICK_MS = 1000;
 // How long after a turn a push the same way is let go, in milliseconds: the
 // pause and most of the next card's slide in, so it never sets off across
 // the whole window only to be sent straight back out, and a long or uneven
 // swipe, or a mouse wheel spun on, turns one page, not two.
-export const HOLD_MS = 1400;
+export const HOLD_MS = 1700;
 // And for as long as pushes the same way keep coming, until they pause this
 // long, in milliseconds: one scroll, however long or uneven, turns one page.
 export const GESTURE_GAP_MS = 300;
