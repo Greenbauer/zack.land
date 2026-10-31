@@ -179,6 +179,43 @@ function advance(melter: MediaMelter, run: Run, step: number, dpr: number) {
   return run.pieces.every((piece) => piece.melt === end);
 }
 
+// Draws every melting box at `now` seconds, `step` seconds on from the last
+// frame, unless the page is still held back from moving in.
+function drawFrame(
+  melter: MediaMelter,
+  canvas: HTMLCanvasElement,
+  now: number,
+  step: number,
+) {
+  const held = isHeld();
+  const dpr = Math.min(devicePixelRatio, 2);
+  const pieces = [...runs.values()].flatMap((run) =>
+    run.pieces.map((piece) => ({ run, piece })),
+  );
+  for (const { run, piece } of pieces)
+    if (run.box.offsetWidth && piece.tile.isConnected)
+      piece.rest = restOf(run, piece);
+  melter.begin(
+    canvas.clientWidth,
+    canvas.clientHeight,
+    dpr,
+    now,
+    streakLine(pieces.flatMap(({ piece }) => piece.rest ?? [])),
+  );
+  const leaving = share(-1);
+  for (const run of runs.values()) {
+    if (held) run.began = now;
+    melter.drawTo(run.direction > 0);
+    const isDone =
+      !run.box.isConnected || advance(melter, run, held ? 0 : step, dpr);
+    if (!isDone) continue;
+    runs.delete(run.box);
+    if (run.direction > 0) run.box.toggleAttribute('data-whole', true);
+  }
+  const coming = share(1);
+  melter.finish(stirOf(leaving, coming), coming, now, dpr);
+}
+
 export default function MediaMelt() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -194,36 +231,7 @@ export default function MediaMelt() {
     let last = 0;
     const step = () => {
       const now = seconds();
-      const held = isHeld();
-      const dpr = Math.min(devicePixelRatio, 2);
-      for (const run of runs.values())
-        for (const piece of run.pieces)
-          if (run.box.offsetWidth && piece.tile.isConnected)
-            piece.rest = restOf(run, piece);
-      melter.begin(
-        canvas.clientWidth,
-        canvas.clientHeight,
-        dpr,
-        now,
-        streakLine(
-          [...runs.values()].flatMap((run) =>
-            run.pieces.flatMap((piece) => piece.rest ?? []),
-          ),
-        ),
-      );
-      const leaving = share(-1);
-      for (const run of runs.values()) {
-        if (held) run.began = now;
-        melter.drawTo(run.direction > 0);
-        const isDone =
-          !run.box.isConnected ||
-          advance(melter, run, held ? 0 : now - last, dpr);
-        if (!isDone) continue;
-        runs.delete(run.box);
-        if (run.direction > 0) run.box.toggleAttribute('data-whole', true);
-      }
-      const coming = share(1);
-      melter.finish(stirOf(leaving, coming), coming, now, dpr);
+      drawFrame(melter, canvas, now, now - last);
       last = now;
       frame = runs.size ? requestAnimationFrame(step) : 0;
       canvas.hidden = !frame;
