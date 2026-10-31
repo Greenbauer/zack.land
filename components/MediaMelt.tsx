@@ -24,7 +24,7 @@ import { Turn, TURN_EVENT } from './PageScroller/pageGlide';
 // two mix as one liquid on the way (mediaMelter.ts). Where the melt can't run (data-melts unset on <html>: reduced
 // motion, or no real GPU) the tiles slide instead.
 
-// Each tile melts at its own pace, on top of its own --wait and its own bands,
+// Each tile melts at its own pace, on top of its own wait and its own bands,
 // so each reads as its own: coming, up to this much either side of the rest;
 // going, only faster, so no tile is left behind.
 const PACE_SPREAD = 0.15;

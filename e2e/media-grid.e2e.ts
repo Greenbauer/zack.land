@@ -179,16 +179,17 @@ test.describe('tiles made anew', () => {
     ).toBeVisible();
   });
 
-  test('come back from More then a quick Less', async ({ page }) => {
-    await page.setViewportSize({ width: 1280, height: 720 });
-    await atRest(page);
-    await page.getByRole('button', { name: 'More' }).first().click();
-    await page.waitForTimeout(700);
-    await page.getByRole('button', { name: 'Less' }).click();
-    const tile = page.locator('.collage').first().locator('.collage-tile');
-    await expect(tile).toHaveCount(4);
-    for (let k = 0; k < 4; k++) await expect(tile.nth(k)).toBeVisible();
-  });
+  for (const ms of [200, 700])
+    test(`come back from Less ${ms}ms after More`, async ({ page }) => {
+      await page.setViewportSize({ width: 1280, height: 720 });
+      await atRest(page);
+      await page.getByRole('button', { name: 'More' }).first().click();
+      await page.waitForTimeout(ms);
+      await page.getByRole('button', { name: 'Less' }).click();
+      const tile = page.locator('.collage').first().locator('.collage-tile');
+      await expect(tile).toHaveCount(4);
+      for (let k = 0; k < 4; k++) await expect(tile.nth(k)).toBeVisible();
+    });
 });
 
 test.describe('paging', () => {

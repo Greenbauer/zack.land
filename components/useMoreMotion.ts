@@ -110,8 +110,10 @@ export default function useMoreMotion(
         ],
         timing,
       );
-      // (Melting, the tiles come back with their box: PostCollage.tsx.)
-      if (images && !melts()) {
+      // Melting, tiles still here turn back; tiles dropped with their box come
+      // back with it (PostCollage.tsx).
+      if (images && melts()) melt(images, 1);
+      else if (images) {
         flights.push(
           images.animate([{ translate: OFF_RIGHT }, { translate: '0 0' }], {
             duration: OPEN_MS,

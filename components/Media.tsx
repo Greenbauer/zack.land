@@ -100,6 +100,8 @@ function YouTubeVideo({ mediaSource, onPlaying, paused = false }: MediaProps) {
           aria-label={`Play ${alt}`}
           className="absolute inset-0 grid place-items-center"
           onClick={() => {
+            // A press means play, whatever stopped it last.
+            isPaused.current = false;
             setIsStarting(true);
             setIsLoaded(true);
             player.current?.playVideo();
