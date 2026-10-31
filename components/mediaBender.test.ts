@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { bendable, shownPart, uploadsAgain } from './mediaBender';
+import { partSeen, shownPart, uploadsAgain } from './mediaBender';
 
 describe('the part of a picture its box shows', () => {
   it('shows all of a picture drawn to fill its box', () => {
@@ -44,15 +44,10 @@ describe('when a picture is uploaded again', () => {
   });
 });
 
-describe('which pictures bend', () => {
-  it('bends stills and videos, not animated GIFs, whose frames cannot be read', () => {
-    expect(
-      bendable('/_next/image?url=%2Fweb-apps%2Fselfie-ig.jpg&w=1080'),
-    ).toBe(true);
-    expect(bendable('/not-found/hello-is-it-me.mp4')).toBe(true);
-    expect(
-      bendable('/_next/image?url=%2Fmiscellaneous%2Fgears.gif&w=1080'),
-    ).toBe(false);
-    expect(bendable('/web-apps/create-your-own-square.gif')).toBe(false);
+describe('the part of a picture its window shows', () => {
+  it('is what lies inside the window, in shares of the picture', () => {
+    const picture = { left: 0, top: 50, width: 200, height: 100 };
+    const seen = { left: 50, top: 75, width: 100, height: 50 };
+    expect(partSeen(picture, seen)).toEqual([0.25, 0.25, 0.5, 0.5]);
   });
 });

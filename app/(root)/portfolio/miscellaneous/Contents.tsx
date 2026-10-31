@@ -110,9 +110,9 @@ const Contents: Content[] = [
         type: 'YouTube',
       },
       {
-        key: '/miscellaneous/gears.gif',
+        key: '/miscellaneous/gears.mp4',
         alt: 'Buoyancy Robot',
-        type: 'img',
+        type: 'video',
         width: 600,
         height: 600,
       },

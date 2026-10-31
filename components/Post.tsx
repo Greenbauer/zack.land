@@ -114,7 +114,7 @@ export default function Post({ content }: PostProps) {
 
   // Each post fills the space between the page's fades (--post-height, from
   // PageScroller), and the page snaps from post to post (data-post, found by
-  // SnapPager). Its images are separate tiles (PostCollage) above its
+  // SnapPager). Its images are a block of tiles (PostCollage) above its
   // frosted card, which spans the bottom: wide and short, its title and
   // description beside its technology and links on a wide screen, and only
   // as tall as its text. On a wide screen both start just right of the 3D
@@ -126,7 +126,8 @@ export default function Post({ content }: PostProps) {
   // space between the fades (the post keeps room for it, --card-height), and
   // only the card of the post in view shows. Paging, one card slides off
   // and, after a pause, the next slides in (CARD), each card's text fading
-  // as it goes, while the images move with their posts.
+  // as it goes, while the images melt on their own (MediaMelt.tsx), or where
+  // they can't melt move with their posts.
   // The images lie behind the card, never over its text. On a wide screen
   // the card takes at most 55% of the post's height (but never so little
   // that its links or a line of its description are cut, useCardFloor), so
