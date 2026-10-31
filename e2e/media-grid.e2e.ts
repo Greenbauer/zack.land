@@ -1,9 +1,12 @@
-import { expect, Page, test } from '@playwright/test';
+import { expect as expectNow, Page, test } from '@playwright/test';
 
 // A post's images as the page shows them: one still block, rounded only at
 // its outer corners, that no hover resizes, and that still comes in tile by
 // tile, melting or, with no GPU, sliding. (Where the tiles go is collageLayout.test.ts; this is what the styles
 // do with it.) Against a built site: `npx playwright test`.
+
+// A software-drawn runner can take many seconds over a frame.
+const expect = expectNow.configure({ timeout: 30_000 });
 
 const SIZES = [
   { name: 'desktop', width: 1440, height: 900 },
