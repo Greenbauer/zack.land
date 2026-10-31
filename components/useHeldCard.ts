@@ -18,6 +18,27 @@ export type PostPlace = 'before' | 'current' | 'after';
 export const viewLine = (pageTop: number, postHeight: number) =>
   pageTop + postHeight / 2;
 
+// That line for `post`, from its own styles.
+function viewLineOf(post: HTMLElement) {
+  const style = getComputedStyle(post);
+  return viewLine(
+    parseFloat(style.getPropertyValue('--page-top')) || 0,
+    parseFloat(style.minHeight) || 0,
+  );
+}
+
+// Whether a post running from `top` to `bottom` is off the band a pixel deep
+// from `line` (the observer's, below).
+export const isOffLine = (top: number, bottom: number, line: number) =>
+  bottom < line || top > line + 1;
+
+// Whether `post` has left the view by now. The observer's word (PostPlace)
+// comes a frame or more later, so what must not lag a turn asks this.
+export function hasLeftView(post: HTMLElement) {
+  const { top, bottom } = post.getBoundingClientRect();
+  return isOffLine(top, bottom, viewLineOf(post));
+}
+
 // Where a post is, from what the observer brings of it crossing the line
 // `line` pixels down the window. A busy page can bring several crossings at
 // once, in order, and the last is where it is now: read the first, a post
@@ -52,11 +73,7 @@ export default function useHeldCard(ref: RefObject<HTMLElement | null>) {
     let line = 0;
     let margin = '';
     const watch = () => {
-      const style = getComputedStyle(post);
-      line = viewLine(
-        parseFloat(style.getPropertyValue('--page-top')) || 0,
-        parseFloat(style.minHeight) || 0,
-      );
+      line = viewLineOf(post);
       // A band a pixel deep from the line down, measured against the
       // viewport the observer uses (the root element's height; innerHeight
       // also counts a scrollbar): a band with no depth leaves no slack, and

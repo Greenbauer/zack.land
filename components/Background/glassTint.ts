@@ -1,4 +1,5 @@
 import { isOnDark } from '@/components/SkyText/skyColours';
+import { hasLeftView } from '@/components/useHeldCard';
 
 import { skyState } from './skyState';
 
@@ -72,9 +73,16 @@ export class CardTints {
     // A card on its way out (a post's as the page turns, Post.tsx's LEAVING;
     // any as the site goes to another page) keeps its side: the sky has set
     // off, and what is fading on it would turn over and show again. A post's
-    // card leaves before the sky sets off: its post crosses the view line
-    // (useHeldCard.ts) ahead of the middle of the gap, where the view changes.
-    if (state && card.matches('.invisible, body[data-leaving] *')) return;
+    // card counts from its post leaving the view line (hasLeftView), ahead of
+    // the middle of the gap, where the view changes: on a slow frame the sky
+    // can move before the card is marked as leaving.
+    const post = card.closest<HTMLElement>('[data-post]');
+    if (
+      state &&
+      (card.matches('.invisible, body[data-leaving] *') ||
+        (post && hasLeftView(post)))
+    )
+      return;
     // A card above the head stays on the dark side; any other takes the
     // side of the view's station once that is settled (skyState.ts).
     const light =

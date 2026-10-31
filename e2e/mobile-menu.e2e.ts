@@ -252,6 +252,10 @@ test('the menu fades evenly, leaving no tint for a sudden end', async ({
   await page.goto('/contact');
   await openMenu(page);
   await page.locator('[id^="headlessui-menu-button"]').tap();
+  // The tap's fade starts once the page has taken it, a moment on a busy page.
+  await page.waitForFunction(
+    () => document.querySelector('.mobile-menu')!.getAnimations().length > 0,
+  );
   const halfway = await page.evaluate(async () => {
     const pane = document.querySelector<HTMLElement>('.mobile-menu')!;
     const [fade] = pane.getAnimations();
@@ -272,7 +276,6 @@ test.describe('at a desktop size', () => {
     await sceneUp(page);
     // The first card is still arriving for a moment (turnGate).
     await page.waitForTimeout(1600);
-    const before = await skyNow(page);
     await page.evaluate(() => {
       const scroller = document.getElementById('page')!;
       const start = sessionStorage.getItem('sky-station');
@@ -284,11 +287,13 @@ test.describe('at a desktop size', () => {
       step();
     });
     await page.keyboard.press('ArrowDown');
-    await expect.poll(() => skyNow(page)).not.toBe(before);
-    const top = await page.evaluate(
-      () => (window as unknown as { skyMovedAt: number }).skyMovedAt,
-    );
-    expect(top).toBeGreaterThan(0);
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => (window as unknown as { skyMovedAt?: number }).skyMovedAt ?? 0,
+        ),
+      )
+      .toBeGreaterThan(0);
   });
 
   test('the sky sets off as a link is clicked, ahead of the next page', async ({

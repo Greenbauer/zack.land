@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { tintStrength } from './glass';
 import {
@@ -15,8 +15,9 @@ const PINK_DAWN: Rgb = [214, 160, 190];
 const BLUE_NIGHT: Rgb = [40, 60, 140];
 
 // A card element: only its data attributes are used.
-const card = (isLeaving = false) =>
+const card = (isLeaving = false, post: object | null = null) =>
   ({
+    closest: () => post,
     dataset: {},
     getAnimations: () => [],
     matches: () => isLeaving,
@@ -44,7 +45,8 @@ describe('glass tints', () => {
 
   it('keep a card over the head on the dark side, whatever the sky', () => {
     const tints = new CardTints();
-    const above = { dataset: { headAvoid: 'above' } } as unknown as HTMLElement;
+    const above = card();
+    above.dataset.headAvoid = 'above';
     tints.aim(above, PINK_DAWN);
     expect(above.dataset.sky).toBe('dark');
   });
@@ -83,6 +85,27 @@ describe('glass tints', () => {
     Object.assign(skyState, { settled: true, light: true });
     tints.aim(leaving, PINK_DAWN);
     expect(leaving.dataset.sky).toBe('dark');
+  });
+
+  it('leave a post’s card on its side once its post has left, on a slow frame too', () => {
+    vi.stubGlobal('getComputedStyle', () => ({
+      getPropertyValue: () => '160px',
+      minHeight: '400px',
+    }));
+    const box = { top: 160, bottom: 560 };
+    const element = card(false, { getBoundingClientRect: () => box });
+    const tints = new CardTints();
+    tints.aim(element, BLUE_NIGHT);
+    Object.assign(skyState, { settled: true, light: true });
+    // Paged on, not yet marked as leaving: the line at 360 is behind it.
+    Object.assign(box, { top: -200, bottom: 200 });
+    tints.aim(element, PINK_DAWN);
+    expect(element.dataset.sky).toBe('dark');
+    // Still crossing the line, it turns with the sky.
+    Object.assign(box, { top: 160, bottom: 560 });
+    tints.aim(element, PINK_DAWN);
+    expect(element.dataset.sky).toBe('light');
+    vi.unstubAllGlobals();
   });
 
   it('leave a card it knows, and every card before the side is settled, alone', () => {

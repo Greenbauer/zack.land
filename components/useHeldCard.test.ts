@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { placeOf, viewLine } from './useHeldCard';
+import { isOffLine, placeOf, viewLine } from './useHeldCard';
 
 describe('the line a post crosses to be the one in view', () => {
   it('is the middle of the space between the fades', () => {
@@ -34,5 +34,15 @@ describe('where a post is', () => {
     expect(
       placeOf([crossing(true, 160, 500), crossing(false, -196, 32)], 176),
     ).toBe('before');
+  });
+});
+
+describe('a post off the line', () => {
+  it('is off once it ends above the line or starts below its band', () => {
+    expect(isOffLine(-196, 32, 176)).toBe(true);
+    expect(isOffLine(320, 660, 176)).toBe(true);
+    expect(isOffLine(160, 500, 176)).toBe(false);
+    // At the end of a post laid open taller than the page.
+    expect(isOffLine(-36, 192, 176)).toBe(false);
   });
 });
