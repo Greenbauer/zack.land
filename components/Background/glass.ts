@@ -42,15 +42,10 @@ const ROUNDS = 2;
 // at least) keeps their text on the whole tint.
 export const FEATHER_FROM = -24;
 export const FEATHER_TO = 160;
-// The glass's tint: on a large screen none (TINT_STRENGTH), so the glass is
-// clear but for its frost and lenses, except where it must darken (or
-// lighten) for its text: then toward the colour of the sky around the card
-// (glassTint.ts's bounds). On a phone, or a screen too short for much text,
-// SMALL_STRENGTH of the way to the sky's own colour around the card
-// throughout, so the text there stands more on its own and the glass matches
-// the sky the footer sits on, then darkened (or lightened) only as far as
-// the bounds need. The phone menu (data-glass-deep) goes as far toward
-// the tint itself, so its lenses show.
+// The phone menu's tint (data-glass-deep; the cards have none): on a large
+// screen none (TINT_STRENGTH) but as far as it must go for its text, within
+// glassTint.ts's bounds; on a phone, or a screen too short for much text,
+// SMALL_STRENGTH of the way to the tint throughout, so its lenses show.
 const TINT_STRENGTH = 0;
 const SMALL_STRENGTH = 0.75;
 // The glass is pressed into small square lenses, like lenslet glass: each
@@ -251,18 +246,16 @@ const composite = (mode: 'frost' | 'tint') =>
         float frost = 0.0;
         vec4 box = vec4(0.0, 0.0, 1.0, 1.0);
         float lightness = 0.0;
-        float deep = 0.0;
         vec2 bounds = vec2(0.0, 1.0);
         for (int i = 0; i < ${CARDS}; i++) {
           if (i >= uCount) break;
+          ${mode === 'tint' ? 'if (uDeep[i] < 0.5) continue;' : ''}
           float shown = mix(1.0, fade, uFaded[i]) * uOpacity[i];
           float here = inside(p, uCards[i], uRadius[i], uReach[i]) * shown;
-          // The menu's pane wins over the footer's.
-          if (here > frost || (uDeep[i] > 0.5 && here > 0.0 && here >= frost)) {
+          if (here > frost) {
             frost = here;
             box = uCards[i];
             lightness = uLight[i];
-            deep = uDeep[i];
             bounds = uBounds[i];
           }
         }
@@ -396,9 +389,10 @@ export class GlassPass extends Pass {
   }
 }
 
-// Tints the cards' glass, after the colour grading, so the tint is the
-// head's darkest colour as the page shows it (a pass after Grading.tsx's
-// LUT), with the frosting's soft outline (from `glass`).
+// Tints the phone menu's glass (data-glass-deep) and no other, however a card
+// arriving as the menu fades lies over it, after the colour grading, so the
+// tint is the head's darkest colour as the page shows it (a pass after
+// Grading.tsx's LUT), with the frosting's soft outline (from `glass`).
 export class GlassTintPass extends Pass {
   // Each card's glass, in the order of the glass's cards (glassTint.ts),
   // and how strongly its tint is laid on (tintStrength).

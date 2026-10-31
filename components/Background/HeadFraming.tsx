@@ -7,14 +7,15 @@ import { PerspectiveCamera } from 'three';
 import { menuOpen } from './focusBlur';
 import { framedHead, headCentre, stepHead } from './headPlace';
 
-// How often the page is measured for the head's place, in milliseconds.
-const MEASURE_MS = 300;
+// How often the page is measured for the head's place, in milliseconds: soon
+// enough after a change of page that the head sets off with it.
+const MEASURE_MS = 100;
 
 // Moves the camera so the head's middle sits where headCentre says, gliding
 // there (glide, a damped spring) when the page or the window changes, and on
 // a phone off the screen and back as a card (data-head-avoid="card") comes
-// and goes. The page is measured a few times
-// a second, not every frame: the left edge of whatever marked data-head-avoid
+// and goes. The page is measured ten times a
+// second, not every frame: the left edge of whatever marked data-head-avoid
 // is showing, where it rests. While none shows (a post's card between fades),
 // the head stays where it is. Renders nothing.
 export default function HeadFraming() {

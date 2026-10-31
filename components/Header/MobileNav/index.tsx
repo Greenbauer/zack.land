@@ -1,6 +1,6 @@
 import { Menu } from '@headlessui/react';
 import { cva } from 'class-variance-authority';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Route } from '..';
 import NavLink, { isRouteActive, linkStyle, ON_GLASS } from '../NavLink';
@@ -13,20 +13,27 @@ import MobileNavButton from './MobileNavButton';
 // reaches 15rem past every edge of the screen, its padding putting the links
 // back where they were: its corners fall off screen and the menu stays square.
 // It slides down from above as it opens, fading in on the way
-// (animate-menu-in). Its links take the card's ink (ON_GLASS). Portfolio is a
-// button: it turns the menu to a second view of its pages, with a way back
-// (MenuViews). The page behind it hides while it is open (.mobile-menu there).
+// (animate-menu-in), and closing it fades out evenly as it rises a little
+// (animate-menu-out): it is far taller than the screen, so a slide away would
+// hold its deep tint over the page until a sudden reveal at the end. Its links
+// take the card's ink (ON_GLASS). Portfolio is a button: it turns the menu to a second view of its
+// pages, with a way back (MenuViews). The page behind it hides while it is
+// open (.mobile-menu there). A page chosen from it comes in under it
+// (PageLeave.tsx), and it closes once that page is in.
 const mobileNavBackgroundStyle = cva(
   'mobile-menu -left-60 -top-60 h-[calc(100%+30rem)] w-[calc(100vw+30rem)] p-60 pt-80',
   {
     variants: {
-      isOpen: {
-        true: 'fixed motion-safe:animate-menu-in',
-        false: 'hidden',
+      state: {
+        open: 'fixed motion-safe:animate-menu-in',
+        // Not `fixed`, which says the menu is open (focusBlur.ts's menuOpen):
+        // the page shows from here.
+        closing: 'pointer-events-none animate-menu-out [position:fixed]',
+        closed: 'hidden',
       },
     },
     defaultVariants: {
-      isOpen: false,
+      state: 'closed',
     },
   },
 );
@@ -40,18 +47,15 @@ export default function MobileNav({ pathname, routes }: MobileNavProps) {
   return (
     <div className="pointer-events-auto flex md:hidden">
       <Menu>
-        {({ open: isOpen }: { open: boolean }) => (
+        {({ open: isOpen, close }: { open: boolean; close: () => void }) => (
           <div className="flex items-center">
             <Menu.Button as={MobileNavButton} isActive={isOpen} />
-            <div
-              data-glass
-              data-glass-deep
-              className={`${mobileNavBackgroundStyle({ isOpen })} ${ON_GLASS}`}
-            >
-              <Menu.Items className="relative flex w-auto flex-col focus:outline-none">
-                <MenuViews pathname={pathname} routes={routes} />
-              </Menu.Items>
-            </div>
+            <MenuPane
+              isOpen={isOpen}
+              close={close}
+              pathname={pathname}
+              routes={routes}
+            />
           </div>
         )}
       </Menu>
@@ -59,8 +63,49 @@ export default function MobileNav({ pathname, routes }: MobileNavProps) {
   );
 }
 
+type MenuPaneProps = MobileNavProps & {
+  isOpen: boolean;
+  close: () => void;
+};
+
+// The menu's glass, kept on screen with its links as it fades away.
+function MenuPane({ isOpen, close, pathname, routes }: MenuPaneProps) {
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  const [closing, setClosing] = useState(false);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
+    setClosing(
+      !isOpen && !matchMedia('(prefers-reduced-motion: reduce)').matches,
+    );
+  }
+
+  // The page chosen from the menu has come in under it.
+  useEffect(close, [pathname, close]);
+
+  const state = isOpen ? 'open' : closing ? 'closing' : 'closed';
+  return (
+    <div
+      data-glass
+      data-glass-deep
+      className={`${mobileNavBackgroundStyle({ state })} ${ON_GLASS}`}
+      onAnimationEnd={({ animationName }) => {
+        if (animationName === 'menu-out') setClosing(false);
+      }}
+    >
+      <Menu.Items
+        static
+        className="relative flex w-auto flex-col focus:outline-none"
+      >
+        {state !== 'closed' && (
+          <MenuViews pathname={pathname} routes={routes} />
+        )}
+      </Menu.Items>
+    </div>
+  );
+}
+
 // The menu's links, or one route's pages (Portfolio's) after its button is
-// tapped. Mounted only while the menu is open, so it opens on the links.
+// tapped. Mounted only while the menu shows, so it opens on the links.
 function MenuViews({ pathname, routes }: MobileNavProps) {
   const [opened, setOpened] = useState<Route | null>(null);
 

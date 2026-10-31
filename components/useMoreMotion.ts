@@ -3,7 +3,8 @@ import { RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { melt } from './MediaMelt';
 
 // How long More and Less take, in milliseconds, and how long after its post
-// has left the middle of the window an opened card closes again.
+// has stopped being the one in view (useHeldCard) an opened card closes
+// again.
 const OPEN_MS = 600;
 const CLOSE_AWAY_MS = 900;
 const SMOOTH = 'cubic-bezier(0.65, 0, 0.35, 1)';

@@ -22,7 +22,7 @@
 
 /* The sky colours (components/SkyText) are registered as colours so a group
    over the sky fades from one to the next instead of snapping: light to dark
-   text over a second and a half (.sky-colours), while hover changes, which swap
+   text over 0.8 seconds (.sky-colours), while hover changes, which swap
    which variable a colour uses, stay instant. */
 @property --sky-text { syntax: '<color>'; inherits: true; initial-value: #ede4e3; }
 @property --sky-faint { syntax: '<color>'; inherits: true; initial-value: rgb(237 228 227 / 0.3); }
@@ -31,7 +31,7 @@
 
 .sky-colours {
   transition-property: --sky-text, --sky-faint, --sky-accent, --sky-underline;
-  transition-duration: 1.5s;
+  transition-duration: 0.8s;
   transition-timing-function: ease-in-out;
 }
 

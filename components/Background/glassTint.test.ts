@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { tintStrength } from './glass';
 import {
@@ -15,7 +15,13 @@ const PINK_DAWN: Rgb = [214, 160, 190];
 const BLUE_NIGHT: Rgb = [40, 60, 140];
 
 // A card element: only its data attributes are used.
-const card = () => ({ dataset: {} }) as HTMLElement;
+const card = (isLeaving = false, post: object | null = null) =>
+  ({
+    closest: () => post,
+    dataset: {},
+    getAnimations: () => [],
+    matches: () => isLeaving,
+  }) as unknown as HTMLElement;
 
 describe('glass tints', () => {
   it('put a card on the side of the sky around it, its text following', () => {
@@ -39,13 +45,81 @@ describe('glass tints', () => {
 
   it('keep a card over the head on the dark side, whatever the sky', () => {
     const tints = new CardTints();
-    const above = { dataset: { headAvoid: 'above' } } as unknown as HTMLElement;
+    const above = card();
+    above.dataset.headAvoid = 'above';
     tints.aim(above, PINK_DAWN);
     expect(above.dataset.sky).toBe('dark');
   });
 
   afterEach(() => {
     Object.assign(skyState, { settled: false, light: false });
+  });
+
+  it('put a card new to the page on the settled side at once, whole', () => {
+    Object.assign(skyState, { settled: true, light: true });
+    const tints = new CardTints();
+    const element = card();
+    tints.place(element);
+    expect(element.dataset.sky).toBe('light');
+    expect(tints.shown(element, 0).light).toBe(1);
+  });
+
+  it('skip the fade of a new card’s colours, and leave its other motion', () => {
+    Object.assign(skyState, { settled: true, light: true });
+    const finished: string[] = [];
+    const fade = (transitionProperty: string) => ({
+      transitionProperty,
+      finish: () => finished.push(transitionProperty),
+    });
+    const element = card();
+    element.getAnimations = () =>
+      [fade('--card-ink'), fade('--card-field'), fade('translate')] as never;
+    new CardTints().place(element);
+    expect(finished).toEqual(['--card-ink', '--card-field']);
+  });
+
+  it('leave a card on its way out on its side as the sky sets off', () => {
+    const tints = new CardTints();
+    const leaving = card(true);
+    tints.aim(leaving, BLUE_NIGHT);
+    Object.assign(skyState, { settled: true, light: true });
+    tints.aim(leaving, PINK_DAWN);
+    expect(leaving.dataset.sky).toBe('dark');
+  });
+
+  it('leave a post’s card on its side once its post has left, on a slow frame too', () => {
+    vi.stubGlobal('getComputedStyle', () => ({
+      getPropertyValue: () => '160px',
+      minHeight: '400px',
+    }));
+    const box = { top: 160, bottom: 560 };
+    const element = card(false, { getBoundingClientRect: () => box });
+    const tints = new CardTints();
+    tints.aim(element, BLUE_NIGHT);
+    Object.assign(skyState, { settled: true, light: true });
+    // Paged on, not yet marked as leaving: the line at 360 is behind it.
+    Object.assign(box, { top: -200, bottom: 200 });
+    tints.aim(element, PINK_DAWN);
+    expect(element.dataset.sky).toBe('dark');
+    // Still crossing the line, it turns with the sky.
+    Object.assign(box, { top: 160, bottom: 560 });
+    tints.aim(element, PINK_DAWN);
+    expect(element.dataset.sky).toBe('light');
+    vi.unstubAllGlobals();
+  });
+
+  it('leave a card it knows, and every card before the side is settled, alone', () => {
+    const tints = new CardTints();
+    const unsettled = card();
+    tints.place(unsettled);
+    expect(unsettled.dataset.sky).toBeUndefined();
+
+    Object.assign(skyState, { settled: true, light: true });
+    const known = card();
+    tints.place(known);
+    skyState.light = false;
+    tints.place(known);
+    expect(known.dataset.sky).toBe('light');
   });
 
   it('change a card’s side over CHANGE_SECONDS, eased in and out', () => {
@@ -85,7 +159,7 @@ describe('glass tints', () => {
     Object.assign(skyState, { settled: true, light: false });
     tints.aim(element, PINK_DAWN);
     expect(element.dataset.sky).toBe('dark');
-    // At rest on a light sky, a side taken on the way in is dropped.
+    // Settled on a light sky, a side read before then is dropped.
     Object.assign(skyState, { settled: true, light: true });
     tints.aim(element, BLUE_NIGHT);
     expect(element.dataset.sky).toBe('light');
