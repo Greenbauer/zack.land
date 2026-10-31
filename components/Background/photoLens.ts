@@ -158,7 +158,7 @@ function filterMarkup(
 // Whether any photo lies within the reach of `card`'s glass (PHOTO_REACH).
 function overPhoto(card: HTMLElement) {
   const box = card.getBoundingClientRect();
-  for (const photo of document.querySelectorAll('.collage-tile')) {
+  for (const photo of document.querySelectorAll('[data-post] .collage-tile')) {
     const r = photo.getBoundingClientRect();
     if (
       r.width > 0 &&

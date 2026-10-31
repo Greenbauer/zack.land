@@ -2,7 +2,14 @@
 
 import { useEffect } from 'react';
 
-import { bendable, Box, MediaBender, shownPart } from './mediaBender';
+import {
+  Box,
+  MediaBender,
+  naturalSize,
+  Picture,
+  ready,
+  shownPart,
+} from './mediaBender';
 import {
   addMark,
   inkLeft,
@@ -19,27 +26,15 @@ import {
 // page's fades and a playing video's blur fall on it too, and what sits over
 // the picture, such as a play button, stays over it), drawing the bent
 // picture only where the ink is; it hides again once the trail has gone.
-// Only pictures from this site can be read back to draw: another site's,
-// such as a YouTube embed, stays as it is, and so does an animated GIF
-// (bendable), whose frames cannot be read.
+// Only pictures from this site can be read back to draw: a YouTube embed
+// bends as its thumbnail (Media.tsx) until it plays, when a page sees neither
+// its pixels nor the pointer over it.
 
 // Marks the canvas laid over a picture.
 const OVERLAY = 'data-media-bend';
 
-type Picture = HTMLImageElement | HTMLVideoElement;
-
-const ready = (media: Picture) =>
-  media instanceof HTMLImageElement
-    ? media.complete && media.naturalWidth > 0
-    : media.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA;
-
 const fromThisSite = (media: Picture) =>
   new URL(media.currentSrc, location.href).origin === location.origin;
-
-const naturalSize = (media: Picture) =>
-  media instanceof HTMLImageElement
-    ? { width: media.naturalWidth, height: media.naturalHeight }
-    : { width: media.videoWidth, height: media.videoHeight };
 
 // The canvas over `media`, made the first time the trail reaches it, filling
 // the box `media` sits in; none if that box is not positioned to hold it.
@@ -67,14 +62,13 @@ export default function MediaBend() {
     const now = () => performance.now() / 1000;
 
     // Draws `media` bent into its overlay, in the CSS pixels of the box it
-    // sits in (a tile's slight tilt is left out).
+    // sits in.
     const bend = (media: Picture, overlay: HTMLCanvasElement, t: number) => {
       const box = media.parentElement!;
       const around = box.getBoundingClientRect();
-      const scale = box.clientWidth / (around.width || 1);
       const local = ({ x, y }: { x: number; y: number }) => ({
-        x: (x - around.left) * scale,
-        y: (y - around.top) * scale,
+        x: x - around.left,
+        y: y - around.top,
       });
       const dpr = Math.min(devicePixelRatio, 2);
       const width = Math.round(box.clientWidth * dpr);
@@ -85,8 +79,8 @@ export default function MediaBend() {
       const at = local({ x: rect.left, y: rect.top });
       const place: Box = {
         ...at,
-        width: rect.width * scale,
-        height: rect.height * scale,
+        width: rect.width,
+        height: rect.height,
       };
       bender ??= new MediaBender();
       bender.draw(
@@ -109,7 +103,6 @@ export default function MediaBend() {
       const touched = new Set<HTMLCanvasElement>();
       for (const media of document.querySelectorAll<Picture>('img, video')) {
         if (!ready(media) || !fromThisSite(media)) continue;
-        if (!bendable(media.currentSrc)) continue;
         if (!inkReaches(path, media.getBoundingClientRect(), t)) continue;
         const overlay = overlayFor(media);
         if (!overlay) continue;

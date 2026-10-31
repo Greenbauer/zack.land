@@ -1,18 +1,23 @@
 import { RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
+import { melt } from './MediaMelt';
+
 // How long More and Less take, in milliseconds, and how long after its post
 // has left the middle of the window an opened card closes again.
 const OPEN_MS = 600;
 const CLOSE_AWAY_MS = 900;
 const SMOOTH = 'cubic-bezier(0.65, 0, 0.35, 1)';
+// Where images that can't melt go, wholly past the window's right side.
+const OFF_RIGHT = 'calc(100vw + 20rem) 0';
 
 type Phase = 'closed' | 'opening' | 'open' | 'closing';
 
 // More and Less on a post's card (Post.tsx), moving rather than jumping.
 // More: the card's top rises to the top of the post, growing it upward over
-// its text, while the post's images fly up out of the window. Less: the
-// card's top comes back down to just over its cut-short text while the
-// images fly back in from above. Either way the post takes its new layout at
+// its text, while the post's images melt out of the window's right side
+// (MediaMelt.tsx). Less: the card's top comes back down to just over its
+// cut-short text while the images melt back in. Where they can't melt they
+// slide off the window's right side and back. Either way the post takes its new layout at
 // once (an opened card lies in the post, in place of its images) and the
 // motion runs from where things were: the card from its old top, the images
 // held where they were, out of the layout, until they are gone. A post left
@@ -71,21 +76,20 @@ export default function useMoreMotion(
           height: `${was.images.height}px`,
           marginLeft: '0px',
         });
-        flights.push(
-          images.animate(
-            [
-              { translate: '0 0' },
-              { translate: `0 ${-was.images.bottom - 32}px` },
-            ],
-            // Held at the end, gone above the window, until the post drops
-            // them (`open`): without it they show back in place for a frame.
-            {
-              duration: OPEN_MS,
-              easing: 'cubic-bezier(0.32, 0, 0.67, 0)',
-              fill: 'forwards',
-            },
-          ),
-        );
+        if (melts()) melt(images, -1);
+        else
+          flights.push(
+            images.animate(
+              [{ translate: '0 0' }, { translate: OFF_RIGHT }],
+              // Held at the end, gone off the window, until the post drops
+              // them (`open`): without it they show back in place for a frame.
+              {
+                duration: OPEN_MS,
+                easing: 'cubic-bezier(0.32, 0, 0.67, 0)',
+                fill: 'forwards',
+              },
+            ),
+          );
       }
       // The card now lies in the post from its top (measured once the images
       // are out of the layout, or it would still sit below them); it starts
@@ -106,13 +110,15 @@ export default function useMoreMotion(
         ],
         timing,
       );
-      if (images) {
-        const box = images.getBoundingClientRect();
+      // Melting, tiles still here turn back; tiles dropped with their box come
+      // back with it (PostCollage.tsx).
+      if (images && melts()) melt(images, 1);
+      else if (images) {
         flights.push(
-          images.animate(
-            [{ translate: `0 ${-box.bottom - 32}px` }, { translate: '0 0' }],
-            { duration: OPEN_MS, easing: 'cubic-bezier(0.33, 1, 0.68, 1)' },
-          ),
+          images.animate([{ translate: OFF_RIGHT }, { translate: '0 0' }], {
+            duration: OPEN_MS,
+            easing: 'cubic-bezier(0.33, 1, 0.68, 1)',
+          }),
         );
       }
     }
@@ -163,6 +169,8 @@ export function closeOnReturn(
   if (isCurrent) return { hasLeft: false, close: hasLeft, wait: false };
   return { hasLeft: true, close: false, wait: true };
 }
+
+const melts = () => document.documentElement.hasAttribute('data-melts');
 
 // A post's card and its images.
 const partsOf = (post: HTMLElement | null) => ({

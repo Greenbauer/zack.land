@@ -254,41 +254,50 @@
    hidden, wholly off the window's right side (past the 15rem a card's glass
    reaches beyond it, and the 64px of photo glass past that, so a waiting
    tile never counts as under a card: photoLens.ts); in view it slides in
-   from there after its own wait (--wait), slowing gently into place, then
-   drifts on its own beat (--drift). Leaving, it gathers speed back off to the right and
-   hides. No bounce, spin or fade. The slide is `transform`, the drift
-   `translate` and the hover `scale`, so none of them stops another. */
+   from there after its own wait (--wait), slowing gently into place, and
+   then rests. Leaving, it gathers speed back off to the right and hides. No
+   bounce, spin or fade.
+   The hover's bend is components/MediaBend.tsx. */
 .collage-tile {
   visibility: hidden;
-  transform: translateX(calc(100vw + 20rem)) rotate(var(--tilt));
+  transform: translateX(calc(100vw + 20rem));
   transition:
     transform 0.6s cubic-bezier(0.32, 0, 0.67, 0) var(--wait, 0s),
-    visibility 0s calc(var(--wait, 0s) + 0.6s),
-    scale 0.3s ease-out;
+    visibility 0s calc(var(--wait, 0s) + 0.6s);
 }
 
 .collage[data-shown] .collage-tile {
   /* Shown as the page is (hidden with it under the open phone menu). */
   visibility: inherit;
-  transform: rotate(var(--tilt));
+  transform: none;
   transition:
     transform 0.9s cubic-bezier(0.22, 1, 0.36, 1) var(--wait, 0s),
     visibility 0s var(--wait, 0s),
-    scale 0.3s ease-out,
     filter 0.3s ease-out,
     opacity 0.3s ease-out;
-  animation: collage-drift var(--drift, 6s) ease-in-out var(--drift-at, 0s)
-    infinite;
 }
 
-.collage-tile:hover {
-  z-index: 10;
-  scale: 1.04;
+/* Where the tiles melt (data-melts, components/MediaMelt.tsx) they don't
+   slide: each waits unseen in its place while its melt is drawn, and shows
+   once it has come to rest, so the page's scroll never carries one. */
+html[data-melts] .collage-tile,
+html[data-melts] .collage[data-shown] .collage-tile {
+  transition: filter 0.3s ease-out;
+}
+/* See-through, not hidden: a video stays painted, or it shows blank for a
+   moment as it takes over from the melt. */
+html[data-melts] .collage[data-shown] .collage-tile:not([data-rest]) {
+  opacity: 0;
+  pointer-events: none;
+}
+html[data-melts] .collage[data-playing] .collage-tile:not([data-video]) {
+  transition:
+    filter 0.3s ease-out,
+    opacity 0.3s ease-out;
 }
 
-/* A video's tile sits over the others, so none covers its controls, and
-   while it plays it stops drifting, grows to the post's width (PostCollage)
-   and the other tiles blur behind it. */
+/* While a video plays its tile grows over the others to the post's width
+   (PostCollage) and they blur behind it. */
 .collage .collage-tile[data-video] {
   z-index: 20;
 }
@@ -296,15 +305,19 @@
   transition:
     transform 0.9s cubic-bezier(0.22, 1, 0.36, 1) var(--wait, 0s),
     visibility 0s var(--wait, 0s),
-    scale 0.3s ease-out,
+    border-radius 0.6s cubic-bezier(0.65, 0, 0.35, 1),
     left 0.6s cubic-bezier(0.65, 0, 0.35, 1),
     top 0.6s cubic-bezier(0.65, 0, 0.35, 1),
     width 0.6s cubic-bezier(0.65, 0, 0.35, 1),
     height 0.6s cubic-bezier(0.65, 0, 0.35, 1);
 }
-.collage[data-playing] .collage-tile[data-video] {
-  scale: 1;
-  animation: none;
+html[data-melts] .collage[data-shown] .collage-tile[data-video] {
+  transition:
+    border-radius 0.6s cubic-bezier(0.65, 0, 0.35, 1),
+    left 0.6s cubic-bezier(0.65, 0, 0.35, 1),
+    top 0.6s cubic-bezier(0.65, 0, 0.35, 1),
+    width 0.6s cubic-bezier(0.65, 0, 0.35, 1),
+    height 0.6s cubic-bezier(0.65, 0, 0.35, 1);
 }
 .collage[data-playing] .collage-tile:not([data-video]) {
   filter: blur(6px);
@@ -315,21 +328,15 @@
   pointer-events: none;
 }
 
-@keyframes collage-drift {
-  0%, 100% { translate: 0 0; }
-  50% { translate: 0 -8px; }
-}
-
-/* As the site goes to another page (components/PageLeave.tsx), the tiles
-   slide off to the right as when their post leaves, after shorter waits, and
-   the scroll arrows fade. */
-body[data-leaving] .collage[data-shown] .collage-tile {
+/* As the site goes to another page (components/PageLeave.tsx), tiles that
+   can't melt slide off to the right as when their post leaves, after shorter
+   waits, and the scroll arrows fade. */
+html:not([data-melts]) body[data-leaving] .collage[data-shown] .collage-tile {
   visibility: hidden;
-  transform: translateX(calc(100vw + 20rem)) rotate(var(--tilt));
+  transform: translateX(calc(100vw + 20rem));
   transition:
     transform 0.6s cubic-bezier(0.32, 0, 0.67, 0) calc(var(--wait, 0s) * 0.4),
-    visibility 0s calc(var(--wait, 0s) * 0.4 + 0.6s),
-    scale 0.3s ease-out;
+    visibility 0s calc(var(--wait, 0s) * 0.4 + 0.6s);
 }
 body[data-leaving] [data-scroll-arrows] button {
   visibility: hidden;
@@ -347,20 +354,18 @@ body[data-leaving] [data-scroll-arrows] button {
 
 @media (prefers-reduced-motion: reduce) {
   .collage-tile {
-    transform: rotate(var(--tilt));
+    transform: none;
     opacity: 0;
     transition:
       opacity 0.3s,
       visibility 0s 0.3s;
-    animation: none;
   }
   .collage[data-shown] .collage-tile {
-    transform: rotate(var(--tilt));
+    transform: none;
     opacity: 1;
     transition:
       opacity 0.3s,
       visibility 0s;
-    animation: none;
   }
 }
 
@@ -385,7 +390,7 @@ html:not([data-page-in]):has([data-scene])
   .collage[data-shown]
   .collage-tile {
   visibility: hidden;
-  transform: translateX(calc(100vw + 20rem)) rotate(var(--tilt));
+  transform: translateX(calc(100vw + 20rem));
 }
 [data-site-chrome],
 [data-scroll-arrows] {

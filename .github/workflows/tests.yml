@@ -2,9 +2,9 @@ name: Code
 
 # Runs the unit tests (npm test: Vitest over every *.test.ts file) on every pull request and on every
 # push to master, and against the built site the phone More/Less spec (cypress/e2e/more-less.cy.ts)
-# and the moving views (e2e/moving-views.e2e.ts, Playwright).
+# and the Playwright specs (e2e/*.e2e.ts: the moving views and the media grid).
 # Target: GitHub's ubuntu-latest, with the Node version .nvmrc names, its installed Chrome for
-# Cypress, and Playwright's own Chromium and WebKit for the moving views.
+# Cypress, and Playwright's own Chromium and WebKit for the Playwright specs.
 #
 # The other Cypress specs in cypress/e2e are not run here.
 
@@ -67,14 +67,15 @@ jobs:
           for _ in $(seq 60); do curl -fsS -o /dev/null http://localhost:3000/ && break; sleep 1; done
           npx cypress run --browser chrome --spec cypress/e2e/more-less.cy.ts --config baseUrl=http://localhost:3000
 
-  # Every way a post moves and comes back (e2e/moving-views.e2e.ts): each kind of post, left open or
+  # Every Playwright spec (e2e/*.e2e.ts): the media grid and melt (media-grid.e2e.ts), and every way a
+  # post moves and comes back (moving-views.e2e.ts): each kind of post, left open or
   # closed, down or up and back, upright and sideways phones and two desktop sizes, and the window resized
   # while a post is open, in Chromium and WebKit (playwright.config.ts). Playwright's browsers are
   # downloaded here only; installing the site (Vercel's build too) never fetches them.
   moving-views:
     name: Moving views
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

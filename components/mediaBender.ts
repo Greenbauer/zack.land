@@ -32,16 +32,39 @@ export function shownPart(
   return [(1 - width) / 2, (1 - height) / 2, width, height];
 }
 
+// The part of a picture at `picture` that shows through a window at `seen`
+// (the same units), as [left, top, width, height] in shares of the picture:
+// for one larger than its window, centred or not, with no `object-fit`.
+export function partSeen(
+  picture: { left: number; top: number; width: number; height: number },
+  seen: { left: number; top: number; width: number; height: number },
+): [number, number, number, number] {
+  return [
+    (seen.left - picture.left) / picture.width,
+    (seen.top - picture.top) / picture.height,
+    seen.width / picture.width,
+    seen.height / picture.height,
+  ];
+}
+
 // Whether a picture's texture is uploaded again: when its source changes,
 // and every frame for a video, so it keeps playing under the bend.
 export const uploadsAgain = (was: string, src: string, isVideo: boolean) =>
   was !== src || isVideo;
 
-// Whether a picture can be bent. Not an animated GIF: a page reading an
-// animated image (WebGL's texImage2D, as a canvas's drawImage) only ever gets
-// its first frame (the HTML standard's rule for animated images), so under
-// the bend it would freeze; left alone it keeps moving.
-export const bendable = (src: string) => !/\.gif\b/i.test(src);
+// An image or video the page can draw. (Keep a moving picture a video, never a
+// GIF: a page reading an animated image only ever gets its first frame.)
+export type Picture = HTMLImageElement | HTMLVideoElement;
+
+export const ready = (media: Picture) =>
+  media instanceof HTMLImageElement
+    ? media.complete && media.naturalWidth > 0
+    : media.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA;
+
+export const naturalSize = (media: Picture) =>
+  media instanceof HTMLImageElement
+    ? { width: media.naturalWidth, height: media.naturalHeight }
+    : { width: media.videoWidth, height: media.videoHeight };
 
 const VERTEX = `
   attribute vec2 position;

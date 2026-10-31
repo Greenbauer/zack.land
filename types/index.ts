@@ -3,8 +3,10 @@ import { JSX } from 'react';
 export type MediaSource = {
   key: string;
   alt: string;
+  // 'img', 'video' (a silent loop from this site) or 'YouTube'.
   type: string;
-  // An image's size in pixels, which picks its crop (components/collageLayout.ts).
+  // An image's or video's size in pixels, which picks its crop
+  // (components/collageLayout.ts).
   width?: number;
   height?: number;
   // An image laid out as its post's largest tile, in its own shape, when the

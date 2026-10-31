@@ -9,7 +9,7 @@ describe('videoFill', () => {
       y: 75,
       width: 800,
       height: 450,
-      tilt: 0,
+      round: [true, true, true, true],
     });
   });
 
@@ -19,7 +19,7 @@ describe('videoFill', () => {
       y: 0,
       width: 1000,
       height: 360,
-      tilt: 0,
+      round: [true, true, true, true],
     });
   });
 });
