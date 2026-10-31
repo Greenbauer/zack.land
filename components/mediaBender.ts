@@ -32,6 +32,21 @@ export function shownPart(
   return [(1 - width) / 2, (1 - height) / 2, width, height];
 }
 
+// The part of a picture at `picture` that shows through a window at `seen`
+// (the same units), as [left, top, width, height] in shares of the picture:
+// for one larger than its window, centred or not, with no `object-fit`.
+export function partSeen(
+  picture: { left: number; top: number; width: number; height: number },
+  seen: { left: number; top: number; width: number; height: number },
+): [number, number, number, number] {
+  return [
+    (seen.left - picture.left) / picture.width,
+    (seen.top - picture.top) / picture.height,
+    seen.width / picture.width,
+    seen.height / picture.height,
+  ];
+}
+
 // Whether a picture's texture is uploaded again: when its source changes,
 // and every frame for a video, so it keeps playing under the bend.
 export const uploadsAgain = (was: string, src: string, isVideo: boolean) =>

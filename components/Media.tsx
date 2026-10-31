@@ -67,13 +67,16 @@ export default function Media({
 // YouTube's largest thumbnail every video has is 480 by 360: the video between
 // black bars, which its crop to a wide tile leaves out.
 const THUMBNAIL = { width: 480, height: 360 };
+// How long a pause lasts before it counts as stopping, in milliseconds.
+const SEEK_MS = 300;
 
 // A YouTube video's thumbnail and a play button until it is played, and again
 // when it stops: the page can draw the thumbnail and see the pointer over it,
 // so it bends and melts as any picture does, as an embed cannot. The player
 // loads on the first press and stays, hidden, so a later press goes on from
-// where it stopped. (`isStarting` lets the player show, in case the browser
-// asks for a press on the player itself.)
+// where it stopped, unless More has since dropped the tile, when it starts
+// over. (`isStarting` lets the player show, in case the browser asks for a
+// press on the player itself.)
 function YouTubeVideo({
   mediaSource,
   onPlaying,
@@ -97,6 +100,8 @@ function YouTubeVideo({
     setIsStarting(false);
     onPlaying?.(false);
   };
+  // A pause can be a moment of a seek: only one that lasts stops it.
+  const pauseTimer = useRef(0);
 
   return (
     <>
@@ -136,11 +141,14 @@ function YouTubeVideo({
             else target.playVideo();
           }}
           onPlay={({ target }) => {
+            clearTimeout(pauseTimer.current);
             if (isPaused.current) return target.pauseVideo();
             setIsStarting(true);
             onPlaying?.(true);
           }}
-          onPause={stopped}
+          onPause={() => {
+            pauseTimer.current = window.setTimeout(stopped, SEEK_MS);
+          }}
           onEnd={stopped}
         />
       )}

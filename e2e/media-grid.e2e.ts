@@ -26,6 +26,7 @@ async function atRest(page: Page) {
           tile.closest('[data-shown]') &&
           tile.getAnimations().length === 0 &&
           getComputedStyle(tile).visibility === 'visible' &&
+          getComputedStyle(tile).opacity === '1' &&
           getComputedStyle(tile).transform === 'none',
       )
     );
@@ -165,8 +166,47 @@ test.describe('More and Less', () => {
     await expect(box.locator('.collage-tile')).toHaveCount(0);
     await page.getByRole('button', { name: 'Less' }).click();
     await expect(box).toHaveAttribute('data-whole', '');
-    await expect(box.locator('.collage-tile').first()).toBeVisible();
+    await expect(box.locator('.collage-tile').first()).toHaveCSS(
+      'opacity',
+      '1',
+    );
     await expect(page.locator('canvas.fixed')).toBeHidden();
+  });
+});
+
+test.describe('the 404 page', () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test('its video comes in, holds still and bends', async ({ page }) => {
+    await page.goto('/no-such-page');
+    const tile = page.locator('.collage-tile');
+    await expect(tile).toHaveCSS('opacity', '1');
+    await expect(page.locator('canvas.fixed')).toBeHidden();
+    const box = (await tile.boundingBox())!;
+    await page.mouse.move(box.x + 20, box.y + 20);
+    await page.mouse.move(box.x + box.width / 2, box.y + 40, { steps: 6 });
+    await expect(tile.locator('[data-media-bend]')).toBeAttached();
+    await page.mouse.move(2, 2);
+    // Its card may still be sliding in.
+    await page.waitForTimeout(2000);
+    const first = await tile.boundingBox();
+    await page.waitForTimeout(600);
+    expect(await tile.boundingBox()).toEqual(first);
+  });
+
+  test('its video melts out as the site leaves', async ({ page }) => {
+    await page.goto('/no-such-page');
+    await expect(page.locator('.collage-tile')).toHaveCSS('opacity', '1');
+    const melts = await page.evaluate(() =>
+      document.documentElement.hasAttribute('data-melts'),
+    );
+    test.skip(!melts, 'no GPU here: it slides instead');
+    await page
+      .getByRole('link', { name: 'Contact', exact: true })
+      .first()
+      .click();
+    await expect(page.locator('canvas.fixed')).toBeVisible();
+    await expect(page).toHaveURL(/contact/);
   });
 });
 
@@ -179,7 +219,7 @@ test.describe('tiles made anew', () => {
     await page.setViewportSize({ width: 1280, height: 720 });
     await expect(
       page.locator('.collage').first().locator('.collage-tile').first(),
-    ).toBeVisible();
+    ).toHaveCSS('opacity', '1');
   });
 
   for (const ms of [200, 700])
@@ -191,7 +231,10 @@ test.describe('tiles made anew', () => {
       await page.getByRole('button', { name: 'Less' }).click();
       const tile = page.locator('.collage').first().locator('.collage-tile');
       await expect(tile).toHaveCount(4);
-      for (let k = 0; k < 4; k++) await expect(tile.nth(k)).toBeVisible();
+      for (let k = 0; k < 4; k++) {
+        await expect(tile.nth(k)).toBeVisible();
+        await expect(tile.nth(k)).toHaveCSS('opacity', '1');
+      }
     });
 });
 
@@ -229,7 +272,7 @@ test.describe('paging', () => {
           !leaving!.hasAttribute('data-whole') &&
           next!.hasAttribute('data-shown') &&
           next!.hasAttribute('data-whole') &&
-          getComputedStyle(tile).visibility === 'visible'
+          getComputedStyle(tile).opacity === '1'
         );
       });
       return;

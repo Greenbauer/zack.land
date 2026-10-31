@@ -2,7 +2,14 @@
 
 import { useEffect, useRef } from 'react';
 
-import { Box, naturalSize, Picture, ready, shownPart } from './mediaBender';
+import {
+  Box,
+  naturalSize,
+  partSeen,
+  Picture,
+  ready,
+  shownPart,
+} from './mediaBender';
 import {
   MediaMelter,
   restingBox,
@@ -12,8 +19,9 @@ import {
 } from './mediaMelter';
 import { Turn, TURN_EVENT } from './PageScroller/pageGlide';
 
-// A post's image tiles melt in and out of the window's right side
-// (mediaMelter.ts) on one canvas over the page, behind the cards. While a
+// Every picture on the site, a post's tiles and the 404 page's video, melts in
+// and out of the window's right side (mediaMelter.ts) on one canvas over the
+// page, behind the cards. While a
 // tile melts it is drawn here, at the place it rests, so it never moves with
 // the page as the page glides; the tile itself shows only while it is at rest
 // (.collage-tile[data-rest], styles/globals.css), each on its own, and the
@@ -21,8 +29,9 @@ import { Turn, TURN_EVENT } from './PageScroller/pageGlide';
 // rest. A tile starts on
 // its way out as a turn begins, not when its post leaves the window's middle:
 // by then the page has moved it. Tiles coming in set off with them, and the
-// two mix as one liquid on the way (mediaMelter.ts). Where the melt can't run (data-melts unset on <html>: reduced
-// motion, or no real GPU) the tiles slide instead.
+// two mix as one liquid on the way (mediaMelter.ts). Where the melt can't run
+// (data-melts unset on <html>) the tiles slide instead with no real GPU, and
+// fade with reduced motion (styles/globals.css).
 
 // Each tile melts at its own pace, on top of its own wait and its own bands,
 // so each reads as its own: coming, up to this much either side of the rest;
@@ -119,10 +128,14 @@ const radiiOf = (tile: HTMLElement) => {
   ].map(parseFloat) as [number, number, number, number];
 };
 
-// Where `piece` rests, from its box and post as they are now.
-function restOf({ box }: Run, { tile }: Piece) {
+// Where `piece` rests, from its box and post as they are now. Outside a post
+// nothing scrolls it away.
+function restOf({ box }: Run, { tile }: Piece): Box {
   const post = box.closest('[data-post]');
-  if (!post) return null;
+  if (!post) {
+    const { left, top, width, height } = tile.getBoundingClientRect();
+    return { x: left, y: top, width, height };
+  }
   return restingBox(
     box.getBoundingClientRect(),
     post.getBoundingClientRect(),
@@ -135,6 +148,13 @@ function restOf({ box }: Run, { tile }: Piece) {
     },
   );
 }
+
+// The part of `picture` that shows at rest: its own crop, or the part of it
+// its tile leaves in view (the 404 page's video is larger than its window).
+const shownOf = (picture: Picture, tile: HTMLElement, rest: Box) =>
+  getComputedStyle(picture).objectFit === 'cover'
+    ? shownPart(rest, naturalSize(picture), 'cover')
+    : partSeen(picture.getBoundingClientRect(), tile.getBoundingClientRect());
 
 // How much of the runs going in `direction` has melted, 0 to 1, or 0 with none.
 function share(direction: 1 | -1) {
@@ -155,7 +175,7 @@ function advance(melter: MediaMelter, run: Run, step: number, dpr: number) {
   const isHidden = !box.offsetWidth;
   if (direction < 0) box.removeAttribute('data-whole');
   for (const piece of run.pieces) {
-    const { picture, radii, rest } = piece;
+    const { picture, radii, rest, tile } = piece;
     const canDraw = ready(picture) && !!rest;
     if (!rest && isHidden && direction < 0) piece.melt = end;
     else if (!canDraw && elapsed > LOAD_LIMIT_S) piece.melt = end;
@@ -169,7 +189,7 @@ function advance(melter: MediaMelter, run: Run, step: number, dpr: number) {
       melter.draw(
         picture,
         rest,
-        shownPart(rest, naturalSize(picture), 'cover'),
+        shownOf(picture, tile, rest),
         radii,
         piece.melt,
         piece.seed,
@@ -244,14 +264,9 @@ export default function MediaMelt() {
     };
     const turn = (event: Event) => {
       const { to } = (event as CustomEvent<Turn>).detail;
-      const boxes = document.querySelectorAll<HTMLElement>(
-        '[data-post] .collage',
-      );
-      for (const box of boxes) {
-        const post = box.closest('[data-post]')!;
-        if (post === document.querySelectorAll('[data-post]')[to]) melt(box, 1);
-        else melt(box, -1);
-      }
+      const arriving = document.querySelectorAll('[data-post]')[to];
+      for (const box of document.querySelectorAll<HTMLElement>('.collage'))
+        melt(box, arriving && box.closest('[data-post]') === arriving ? 1 : -1);
     };
     addEventListener(TURN_EVENT, turn);
     return () => {

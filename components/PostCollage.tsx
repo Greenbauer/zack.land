@@ -94,7 +94,7 @@ export default function PostCollage({
   }, []);
 
   // Set once the tiles are there (after the box is measured), so the first
-  // time in view slides them in too. Each time the post comes into view or
+  // time in view brings them in too. Each time the post comes into view or
   // leaves, every tile gets a new wait. (It follows the post rather than the
   // tiles' own space, which on a short phone is too small a strip to count
   // as in view.)

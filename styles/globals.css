@@ -278,16 +278,22 @@
 }
 
 /* Where the tiles melt (data-melts, components/MediaMelt.tsx) they don't
-   slide: each waits hidden in its place while its melt is drawn, and shows
+   slide: each waits unseen in its place while its melt is drawn, and shows
    once it has come to rest, so the page's scroll never carries one. */
 html[data-melts] .collage-tile,
 html[data-melts] .collage[data-shown] .collage-tile {
+  transition: filter 0.3s ease-out;
+}
+/* See-through, not hidden: a video stays painted, or it shows blank for a
+   moment as it takes over from the melt. */
+html[data-melts] .collage[data-shown] .collage-tile:not([data-rest]) {
+  opacity: 0;
+  pointer-events: none;
+}
+html[data-melts] .collage[data-playing] .collage-tile:not([data-video]) {
   transition:
     filter 0.3s ease-out,
     opacity 0.3s ease-out;
-}
-html[data-melts] .collage[data-shown] .collage-tile:not([data-rest]) {
-  visibility: hidden;
 }
 
 /* While a video plays its tile grows over the others to the post's width
