@@ -299,22 +299,24 @@ test.describe('at a desktop size', () => {
       .toBeGreaterThan(0);
   });
 
-  test('the sky sets off as a link is clicked, ahead of the next page', async ({
-    page,
-  }) => {
-    await page.goto('/contact');
-    await sceneUp(page);
-    const before = await skyNow(page);
-    await watchSky(page, 'sky-view-bound');
-    await page.locator('a[href="/"]').first().click();
-    await expect.poll(() => heard(page)).toBeTruthy();
+  for (const reducedMotion of ['no-preference', 'reduce'] as const)
+    test(`the sky sets off as a link is clicked, ahead of the next page${
+      reducedMotion === 'reduce' ? ', with reduced motion' : ''
+    }`, async ({ page }) => {
+      await page.emulateMedia({ reducedMotion });
+      await page.goto('/contact');
+      await sceneUp(page);
+      const before = await skyNow(page);
+      await watchSky(page, 'sky-view-bound');
+      await page.locator('a[href="/"]').first().click();
+      await expect.poll(() => heard(page)).toBeTruthy();
 
-    const { sky, path } = await heard(page);
-    expect(path).toBe('/contact');
-    expect(sky).not.toBe(before);
-    await page.waitForURL('/');
-    expect(await skyNow(page)).toBe(sky);
-  });
+      const { sky, path } = await heard(page);
+      expect(path).toBe('/contact');
+      expect(sky).not.toBe(before);
+      await page.waitForURL('/');
+      expect(await skyNow(page)).toBe(sky);
+    });
 
   test('the sky sets off as the browser goes back', async ({ page }) => {
     await page.goto('/contact');

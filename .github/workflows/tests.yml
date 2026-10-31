@@ -71,7 +71,7 @@ jobs:
   # closed, down or up and back, upright and sideways phones and two desktop sizes, and the window resized
   # while a post is open, the phone menu's hand-over to the next page (e2e/mobile-menu.e2e.ts) and what
   # fades on a card as it slides (e2e/card-content.e2e.ts), in Chromium and WebKit
-  # (playwright.config.ts). Playwright's browsers are downloaded here only; installing the site (Vercel's build too) never fetches them. Split by test across two runners (about 70 minutes
+  # (playwright.config.ts). Playwright's browsers are downloaded here only; installing the site (Vercel's build too) never fetches them. Split by test across two runners (about 90 minutes
   # of tests in all, past one job's 40-minute limit), as the checks `Moving views (1/2)` and `(2/2)`.
   moving-views:
     name: Moving views (${{ matrix.shard }}/2)

@@ -118,10 +118,21 @@ for (const [name, width, height] of [
         };
         step();
       });
+      const station = await page.evaluate(() =>
+        sessionStorage.getItem('sky-station'),
+      );
+      const pressedAt = Date.now();
       await page.keyboard.press('PageDown');
       await expect(page.locator('.post-card').first()).toHaveClass(/invisible/);
-      // Past the middle of the gap, so the sky has set off for the next post.
-      if (isTurnedBack) await page.keyboard.press('PageUp');
+      // Turned back a moment on, once the sky has set off for the next post.
+      if (isTurnedBack) {
+        await page.waitForFunction(
+          (station) => sessionStorage.getItem('sky-station') !== station,
+          station,
+        );
+        await page.waitForTimeout(Math.max(0, 450 - (Date.now() - pressedAt)));
+        await page.keyboard.press('PageUp');
+      }
       await page.waitForTimeout(900);
 
       const sides = await page.evaluate(
