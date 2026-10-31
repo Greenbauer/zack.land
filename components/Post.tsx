@@ -27,27 +27,27 @@ type PostProps = { content: Content };
 // past that, photoLens.ts). Paging down, a card slides out to the right
 // and the next comes in from the left; paging up, the other way. They are
 // transitions, so a card turned back part way reverses from where it is.
-// Leaving, what is on it fades out first (0.4 seconds), then it gathers speed
-// off the window's edge (0.8 seconds, from 0.3 seconds in) and hides; arriving,
-// after a pause for the last to leave (--turn-delay, 1 second unless a quick
-// turn back sets it to 0, SnapPager.tsx), it slows gently into place (1.4
-// seconds), and what is on it fades in over the slide's last half second, once
-// the card has all but stopped. Its glass stays whole all the way. With reduced
+// Leaving, it gathers speed off the window's edge (0.8 seconds) and then
+// hides; arriving, after a pause for the last to leave (--turn-delay, 0.7
+// seconds unless a quick turn back sets it to 0, SnapPager.tsx), it slows
+// gently into place (1.4 seconds). Its glass stays whole; only what is on it
+// fades, slowly and evenly for the length of the slide, in or out. With reduced
 // motion the card just shows or hides, and what is on it fades.
 // Arriving slows gently to a stop, cubic-bezier(0.22,1,0.36,1); leaving
 // gathers speed, cubic-bezier(0.32,0,0.67,0). (Written out whole, as
 // Tailwind only finds class names it can read in full.)
 const LEAVING =
-  'pointer-events-none invisible motion-safe:[transition:translate_0.8s_cubic-bezier(0.32,0,0.67,0)_0.3s,visibility_0s_1.1s] motion-reduce:[transition:visibility_0s_0.4s]';
+  'pointer-events-none invisible motion-safe:[transition:translate_0.8s_cubic-bezier(0.32,0,0.67,0),visibility_0s_0.8s] motion-reduce:[transition:visibility_0s_0.4s]';
 const CARD: Record<PostPlace, string> = {
   current:
-    'motion-safe:[transition:translate_1.4s_cubic-bezier(0.22,1,0.36,1)_var(--turn-delay,1s),visibility_0s] motion-reduce:[transition:visibility_0s_0.7s]',
+    'motion-safe:[transition:translate_1.4s_cubic-bezier(0.22,1,0.36,1)_var(--turn-delay,0.7s),visibility_0s] motion-reduce:[transition:visibility_0s_0.7s]',
   before: `motion-safe:[translate:calc(100vw+20rem)_0] ${LEAVING}`,
   after: `motion-safe:[translate:calc(-100vw-20rem)_0] ${LEAVING}`,
 };
 const CONTENT_IN =
-  'motion-safe:[transition:opacity_0.5s_ease-out_calc(var(--turn-delay,1s)+0.9s)] motion-reduce:[transition:opacity_1.2s_ease-out_0.7s]';
-const CONTENT_OUT = 'opacity-0 [transition:opacity_0.4s_ease-in]';
+  'motion-safe:[transition:opacity_1.4s_linear_var(--turn-delay,0.7s)] motion-reduce:[transition:opacity_1.2s_ease-out_0.7s]';
+const CONTENT_OUT =
+  'opacity-0 [transition:opacity_0.8s_linear] motion-reduce:[transition:opacity_0.4s_ease-in]';
 
 export default function Post({ content }: PostProps) {
   const {

@@ -6,11 +6,9 @@ import { useEffect } from 'react';
 import { viewBound } from './Background/skyViews';
 import { slideAwayTo } from './leaveTo';
 
-// How the page moves out, in milliseconds, as a post's card leaves when the
-// portfolio turns (Post.tsx's LEAVING): what is on a card fades, and as that
-// ends the card gathers speed.
-const CONTENT_MS = 400;
-const CARD_WAIT_MS = 300;
+// How the page moves out, in milliseconds: gathering speed, as a post's card
+// leaves when the portfolio turns (Post.tsx's LEAVING), what is on a card
+// fading evenly for as long as the card slides.
 const CARD_MS = 800;
 const TITLE_MS = 600;
 // The image tiles' slide out (styles/globals.css, body[data-leaving]) ends
@@ -21,7 +19,7 @@ const GATHER = 'cubic-bezier(0.32, 0, 0.67, 0)';
 // When a link to another page of the site is clicked, the page moves out
 // before the site goes there, the way a post leaves as the portfolio turns:
 // every card showing (the contact form, a post's card) slides on off the
-// window's right side, its glass whole, after what is on it has faded; anything
+// window's right side, its glass whole, while what is on it fades; anything
 // marked data-leave (the home page's title) slides off to the right; and the
 // image tiles slide off to the right and the scroll arrows fade
 // (body[data-leaving], styles/globals.css). Then the next page arrives as it
@@ -63,18 +61,16 @@ export default function PageLeave() {
         return;
       }
       document.body.toggleAttribute('data-leaving', true);
-      const cards = shownCards();
-      for (const card of cards) {
+      for (const card of shownCards()) {
         card.animate([{ translate: 'calc(100vw + 20rem) 0' }], {
-          delay: CARD_WAIT_MS,
           duration: CARD_MS,
           easing: GATHER,
           fill: 'forwards',
         });
         for (const part of card.children)
           part.animate([{ opacity: 0 }], {
-            duration: CONTENT_MS,
-            easing: 'ease-in',
+            duration: CARD_MS,
+            easing: 'linear',
             fill: 'forwards',
           });
       }
@@ -84,10 +80,7 @@ export default function PageLeave() {
           easing: GATHER,
           fill: 'forwards',
         });
-      setTimeout(
-        () => router.push(to),
-        Math.max(TILES_MS, cards.length ? CARD_WAIT_MS + CARD_MS : 0),
-      );
+      setTimeout(() => router.push(to), TILES_MS);
     };
     document.addEventListener('click', onClick, true);
     return () => {
