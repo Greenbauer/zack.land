@@ -51,8 +51,8 @@ module.exports = {
           '0%': { translate: 'calc(-100vw - 20rem) 0' },
           '100%': { translate: '0 0' },
         },
-        // What is on a card arriving: it starts fading in a fifth of the way
-        // through the card's slide (card-in, the same length).
+        // What is on a card arriving fades in with it, evenly from the start
+        // of the card's slide (content-in, as long as card-in).
         // The footer's scroll arrow, after its text has faded out
         // (Footer/arrowSwap.ts).
         'fade-in': {
