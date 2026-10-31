@@ -94,7 +94,7 @@ for (const { name, width, height } of SIZES)
 test.describe('at rest', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  // The canvas lying over a resting tile hid the bend, froze a GIF and covered
+  // The canvas lying over a resting tile hid the bend, froze a loop and covered
   // a video.
   test('nothing lies over the tiles', async ({ page }) => {
     await atRest(page);
@@ -155,6 +155,19 @@ test.describe('More and Less', () => {
   test.use({ viewport: { width: 1280, height: 720 } });
 
   test('the images melt away and back', async ({ page }) => {
+    // A crop worked out from a tile already gone comes out NaN, and draws one
+    // flat colour.
+    await page.addInitScript(() => {
+      const uniform = WebGLRenderingContext.prototype.uniform4f;
+      Object.assign(window, { badCrops: 0 });
+      WebGLRenderingContext.prototype.uniform4f = function (at, ...values) {
+        if (values.some(Number.isNaN))
+          Object.assign(window, {
+            badCrops: (window as never as { badCrops: number }).badCrops + 1,
+          });
+        return uniform.call(this, at, ...values);
+      };
+    });
     await page.goto('/portfolio/miscellaneous');
     const box = page.locator('.collage').first();
     await expect(box.locator('.collage-tile').first()).toBeVisible();
@@ -163,8 +176,11 @@ test.describe('More and Less', () => {
     );
     test.skip(!melts, 'no GPU here: they fly instead');
     await page.getByRole('button', { name: 'More' }).first().click();
+    await expect(page.locator('canvas.fixed')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Less' })).toBeVisible();
     await expect(box.locator('.collage-tile')).toHaveCount(0);
+    await expect(page.locator('canvas.fixed')).toBeHidden();
+    expect(await page.evaluate('badCrops')).toBe(0);
     await page.getByRole('button', { name: 'Less' }).click();
     await expect(box).toHaveAttribute('data-whole', '');
     await expect(box.locator('.collage-tile').first()).toHaveCSS(

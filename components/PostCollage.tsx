@@ -162,8 +162,8 @@ export default function PostCollage({
 }
 
 // A post's media in their order and their tiles in a box `width` by
-// `height`: a video goes first, laid out as the main, largest tile; with
-// none, an image marked `main` does. (Post.tsx asks it too, to see whether
+// `height`: a YouTube video goes first, laid out as the main, largest tile;
+// with none, an image marked `main` does. (Post.tsx asks it too, to see whether
 // a phone's card can show whole: usePhoneWhole.ts.)
 export function layOut(
   mediaSources: readonly MediaSource[],

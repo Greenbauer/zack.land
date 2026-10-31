@@ -7,7 +7,7 @@
 // and portrait.
 export const CROPS = [16 / 9, 4 / 3, 1, 3 / 4] as const;
 
-// The crop nearest a picture's shape. A video is wide.
+// The crop nearest a picture's shape. A YouTube video is wide.
 export function cropFor({
   type,
   width = 1,

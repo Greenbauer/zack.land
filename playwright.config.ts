@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 
-// The portfolio's moving views (e2e/moving-views.e2e.ts), against a built and
+// The site's Playwright specs (e2e/*.e2e.ts), against a built and
 // started site (BASE_URL, or localhost:3000), in Chrome and in WebKit,
 // Safari's engine: the two differ in how the page settles on a post. Cypress
 // (cypress/e2e) cannot emulate a phone, and its experimental WebKit would not

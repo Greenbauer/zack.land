@@ -53,6 +53,7 @@ type Piece = {
   tile: HTMLElement;
   picture: Picture;
   rest: Box | null;
+  shown: [number, number, number, number] | null;
   pace: number;
   radii: [number, number, number, number];
   melt: number;
@@ -100,6 +101,7 @@ export function melt(box: HTMLElement, direction: 1 | -1) {
             tile,
             picture,
             rest: null,
+            shown: null,
             radii: radiiOf(tile),
             melt: direction > 0 ? 0 : 1,
             pace: paceOf(direction),
@@ -176,8 +178,8 @@ function advance(melter: MediaMelter, run: Run, step: number, dpr: number) {
   const isHidden = !box.offsetWidth;
   if (direction < 0) box.removeAttribute('data-whole');
   for (const piece of run.pieces) {
-    const { picture, radii, rest, tile } = piece;
-    const canDraw = ready(picture) && !!rest;
+    const { picture, radii, rest, shown } = piece;
+    const canDraw = ready(picture) && !!rest && !!shown;
     if (!rest && isHidden && direction < 0) piece.melt = end;
     else if (!canDraw && elapsed > LOAD_LIMIT_S) piece.melt = end;
     else if (canDraw && elapsed >= piece.wait)
@@ -187,15 +189,7 @@ function advance(melter: MediaMelter, run: Run, step: number, dpr: number) {
     const isAtRest = direction > 0 && piece.melt === 1;
     piece.tile.toggleAttribute('data-rest', isAtRest);
     if (canDraw && piece.melt > 0 && !isAtRest)
-      melter.draw(
-        picture,
-        rest,
-        shownOf(picture, tile, rest),
-        radii,
-        piece.melt,
-        piece.seed,
-        dpr,
-      );
+      melter.draw(picture, rest, shown, radii, piece.melt, piece.seed, dpr);
   }
   return run.pieces.every((piece) => piece.melt === end);
 }
@@ -213,13 +207,14 @@ function drawFrame(
   const pieces = [...runs.values()].flatMap((run) =>
     run.pieces.map((piece) => ({ run, piece })),
   );
-  for (const { run, piece } of pieces)
-    if (
-      measuresRest(run.direction, piece.rest) &&
-      run.box.offsetWidth &&
-      piece.tile.isConnected
-    )
+  for (const { run, piece } of pieces) {
+    // Read while the tile is here: a post drops its tiles part way through
+    // More, while the melt runs on.
+    if (!run.box.offsetWidth || !piece.tile.isConnected) continue;
+    if (measuresRest(run.direction, piece.rest))
       piece.rest = restOf(run, piece);
+    piece.shown = shownOf(piece.picture, piece.tile, piece.rest!);
+  }
   melter.begin(
     canvas.clientWidth,
     canvas.clientHeight,
