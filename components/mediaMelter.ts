@@ -37,6 +37,15 @@ export function streakLine(boxes: readonly Box[]) {
   return (top + bottom) / 2;
 }
 
+// Each tile melts at its own pace, on top of its own wait and its own bands,
+// so each reads as its own: coming, up to PACE_SPREAD either side of the rest;
+// going, only faster, so no tile is left behind.
+const PACE_SPREAD = 0.15;
+export const paceOf = (direction: 1 | -1, random = Math.random()) =>
+  direction > 0
+    ? 1 + (random * 2 - 1) * PACE_SPREAD
+    : 1.05 + random * 2 * PACE_SPREAD;
+
 // The streak's line `seconds` on, easing from `line` to `target`: a group
 // finishing moves the middle of what is left, and the streak follows rather
 // than jumps.

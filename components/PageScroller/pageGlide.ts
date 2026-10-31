@@ -20,8 +20,9 @@ export function postSpans(scroller: HTMLElement): [number, number][] {
   );
 }
 
-// Says a turn has begun: the page is leaving for post `to` (-1 for another
-// page). The page has not moved yet (MediaMelt.tsx).
+// Says a turn has begun: post `to` is where the page ends up, the post it is
+// on if the turn has nowhere to go (-1 for another page). The page has not
+// moved yet (MediaMelt.tsx).
 export type Turn = { to: number };
 export const TURN_EVENT = 'page-turn';
 export const announceTurn = (turn: Turn) =>

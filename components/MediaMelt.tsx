@@ -14,6 +14,7 @@ import {
   easeLine,
   measuresRest,
   MediaMelter,
+  paceOf,
   restingBox,
   stepMelt,
   stirOf,
@@ -35,14 +36,6 @@ import { Turn, TURN_EVENT } from './PageScroller/pageGlide';
 // (data-melts unset on <html>) the tiles slide instead with no real GPU, and
 // fade with reduced motion (styles/globals.css).
 
-// Each tile melts at its own pace, on top of its own wait and its own bands,
-// so each reads as its own: coming, up to this much either side of the rest;
-// going, only faster, so no tile is left behind.
-const PACE_SPREAD = 0.15;
-const paceOf = (direction: 1 | -1) =>
-  direction > 0
-    ? 1 + (Math.random() * 2 - 1) * PACE_SPREAD
-    : 1.05 + Math.random() * 2 * PACE_SPREAD;
 // The longest a tile waits to set off, in seconds: coming, enough for each to
 // arrive on its own; going, hardly at all, as it turns to liquid at once.
 const COME_WAIT_S = 0.35;
@@ -285,6 +278,7 @@ export default function MediaMelt() {
       removeEventListener(TURN_EVENT, turn);
       cancelAnimationFrame(frame);
       wake = null;
+      line = null;
       runs.clear();
       root.toggleAttribute('data-melts', false);
     };

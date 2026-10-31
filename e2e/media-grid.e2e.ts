@@ -264,21 +264,42 @@ test.describe('the 404 page', () => {
 test.describe('a turn taken straight back', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  // The first post has nothing above it, so the push back goes nowhere; what
-  // had set off for the next post still has to come back.
+  // Two pushes in the same moment: the first sets the tiles off, and the
+  // second goes nowhere, so nothing else would bring them back.
+  const pushBothWays = (page: Page, first: number) =>
+    page.evaluate((detail) => {
+      const push = (d: number) =>
+        dispatchEvent(new CustomEvent('page-glide', { detail: d }));
+      push(detail);
+      push(-detail);
+    }, first);
+
+  const expectWhole = async (page: Page, index: number) => {
+    const box = page.locator('.collage').nth(index);
+    await expect(box).toHaveAttribute('data-shown', '');
+    const tiles = box.locator('.collage-tile');
+    await page.waitForTimeout(2500);
+    for (const tile of await tiles.all())
+      await expect(tile).toHaveCSS('opacity', '1');
+    await expect(page.locator('canvas.fixed')).toBeHidden();
+  };
+
   test('leaves the first post whole', async ({ page }) => {
     await atRest(page);
-    await page.evaluate(() => {
-      const push = (detail: number) =>
-        dispatchEvent(new CustomEvent('page-glide', { detail }));
-      push(1);
-      push(-1);
-    });
-    const tile = page.locator('.collage').first().locator('.collage-tile');
-    await page.waitForTimeout(2500);
-    for (let k = 0; k < 4; k++)
-      await expect(tile.nth(k)).toHaveCSS('opacity', '1');
-    await expect(page.locator('canvas.fixed')).toBeHidden();
+    await pushBothWays(page, 1);
+    await expectWhole(page, 0);
+  });
+
+  test('leaves the last post whole', async ({ page }) => {
+    await atRest(page);
+    for (let k = 0; k < 3; k++) {
+      await page.evaluate(() =>
+        dispatchEvent(new CustomEvent('page-glide', { detail: 1 })),
+      );
+      await page.waitForTimeout(2500);
+    }
+    await pushBothWays(page, -1);
+    await expectWhole(page, 3);
   });
 });
 

@@ -5,6 +5,7 @@ import {
   measuresRest,
   MELT_IN_S,
   MELT_OUT_S,
+  paceOf,
   restingBox,
   squareSide,
   stepMelt,
@@ -47,6 +48,18 @@ describe('the streak of a turn', () => {
     expect(streakLine([box(100, 200)])).toBe(200);
     expect(streakLine([box(100, 100), box(300, 100)])).toBe(250);
     expect(streakLine([])).toBe(0);
+  });
+});
+
+describe('how fast a tile melts', () => {
+  it('varies either way coming in', () => {
+    expect(paceOf(1, 0)).toBeLessThan(1);
+    expect(paceOf(1, 1)).toBeGreaterThan(1);
+  });
+
+  it('is never slow going out, so none is left behind', () => {
+    expect(paceOf(-1, 0)).toBeGreaterThan(1);
+    expect(paceOf(-1, 1)).toBeGreaterThan(paceOf(-1, 0));
   });
 });
 
