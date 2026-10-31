@@ -89,31 +89,44 @@ for (const [name, width, height] of [
   ['a desktop', 1280, 720],
   ['a phone', 390, 844],
 ] as const)
-  test(`on ${name}, a post’s card keeps its colours as the page turns`, async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width, height });
-    await page.goto('/portfolio/web-apps');
-    await page.waitForFunction(() => sessionStorage.getItem('sky-station'));
-    // Until the sky's side is settled, a card reads the sky around it.
-    await page.waitForTimeout(2600);
-    await page.evaluate(() => {
-      const card = document.querySelector('.post-card')!;
-      const sides: (string | null)[] = [];
-      Object.assign(window, { sides });
-      const step = () => {
-        sides.push(card.getAttribute('data-sky'));
-        requestAnimationFrame(step);
-      };
-      step();
-    });
-    await page.keyboard.press('PageDown');
-    await expect(page.locator('.post-card').first()).toHaveClass(/invisible/);
-    await page.waitForTimeout(900);
+  for (const isTurnedBack of [false, true])
+    test(`on ${name}, a post’s card keeps its colours as the page turns${
+      isTurnedBack ? ' and quickly turns back' : ''
+    }`, async ({ page }) => {
+      await page.setViewportSize({ width, height });
+      await page.goto('/portfolio/web-apps');
+      await page.waitForFunction(() => sessionStorage.getItem('sky-station'));
+      // Until the sky's side is settled, a card reads the sky around it, and
+      // then it takes the view's side (the first three stations are light).
+      await page
+        .locator('html[data-sky-settled]')
+        .waitFor({ state: 'attached' });
+      await page.waitForFunction(() => {
+        const light = Number(sessionStorage.getItem('sky-station')) < 3;
+        return (
+          document.querySelector<HTMLElement>('.post-card')!.dataset.sky ===
+          (light ? 'light' : 'dark')
+        );
+      });
+      await page.evaluate(() => {
+        const card = document.querySelector('.post-card')!;
+        const sides: (string | null)[] = [];
+        Object.assign(window, { sides });
+        const step = () => {
+          sides.push(card.getAttribute('data-sky'));
+          requestAnimationFrame(step);
+        };
+        step();
+      });
+      await page.keyboard.press('PageDown');
+      await expect(page.locator('.post-card').first()).toHaveClass(/invisible/);
+      // Past the middle of the gap, so the sky has set off for the next post.
+      if (isTurnedBack) await page.keyboard.press('PageUp');
+      await page.waitForTimeout(900);
 
-    const sides = await page.evaluate(
-      () => (window as unknown as { sides: string[] }).sides,
-    );
-    expect(sides.length).toBeGreaterThan(1);
-    expect(new Set(sides).size).toBe(1);
-  });
+      const sides = await page.evaluate(
+        () => (window as unknown as { sides: string[] }).sides,
+      );
+      expect(sides.length).toBeGreaterThan(1);
+      expect(new Set(sides).size).toBe(1);
+    });

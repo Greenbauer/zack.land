@@ -146,8 +146,13 @@ export default function Sky() {
     };
     addEventListener(VIEW_BOUND, check);
     addEventListener('popstate', onHistory);
+    // With the page's scroll, not on the timer's next tick: a card coming back
+    // on a quick turn back would read the side of the view it left. (A
+    // scroller's scroll does not bubble, so it is caught on its way down.)
+    addEventListener('scroll', check, { capture: true, passive: true });
     return () => {
       clearInterval(timer);
+      removeEventListener('scroll', check, { capture: true });
       removeEventListener(VIEW_BOUND, check);
       removeEventListener('popstate', onHistory);
     };
@@ -214,6 +219,11 @@ export default function Sky() {
     // after it.
     drawnSince.current ??= clock.elapsedTime;
     skyState.settled = clock.elapsedTime - drawnSince.current >= DRAWN_SECONDS;
+    // For what must wait on it from outside, as data-scene-ready (the tests).
+    document.documentElement.toggleAttribute(
+      'data-sky-settled',
+      skyState.settled,
+    );
     for (const rotation of [
       scene.backgroundRotation,
       scene.environmentRotation,

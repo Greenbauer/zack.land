@@ -151,7 +151,8 @@ const onDarkSky = async (page: Page, path: string) => {
       first,
     );
   }
-  await page.waitForTimeout(2000);
+  // The header's text follows the view's side only once that is settled.
+  await page.locator('html[data-sky-settled]').waitFor({ state: 'attached' });
 };
 
 test('text turns with the sky, not after it lands', async ({ page }) => {
@@ -251,19 +252,21 @@ test('the menu fades evenly, leaving no tint for a sudden end', async ({
 }) => {
   await page.goto('/contact');
   await openMenu(page);
-  await page.locator('[id^="headlessui-menu-button"]').tap();
-  // The tap's fade starts once the page has taken it, a moment on a busy page.
-  await page.waitForFunction(
-    () => document.querySelector('.mobile-menu')!.getAnimations().length > 0,
+  // Read as the fade starts: on a busy page it can be over before a later look.
+  const halfway = page.evaluate(
+    () =>
+      new Promise<number>((resolve) => {
+        const pane = document.querySelector<HTMLElement>('.mobile-menu')!;
+        pane.addEventListener('animationstart', () => {
+          const [fade] = pane.getAnimations();
+          fade!.pause();
+          fade!.currentTime = 250;
+          resolve(parseFloat(getComputedStyle(pane).opacity));
+        });
+      }),
   );
-  const halfway = await page.evaluate(async () => {
-    const pane = document.querySelector<HTMLElement>('.mobile-menu')!;
-    const [fade] = pane.getAnimations();
-    fade!.pause();
-    fade!.currentTime = 250;
-    return parseFloat(getComputedStyle(pane).opacity);
-  });
-  expect(halfway).toBeLessThan(0.5);
+  await page.locator('[id^="headlessui-menu-button"]').tap();
+  expect(await halfway).toBeLessThan(0.5);
 });
 
 test.describe('at a desktop size', () => {
