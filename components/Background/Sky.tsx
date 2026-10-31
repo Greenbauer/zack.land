@@ -18,8 +18,8 @@ import {
 // (skyViews.ts): the pointer from one edge of the screen to the other turns
 // it that view's reach either way (left and right turn it, top and bottom
 // tip it), never so far that the text over it switches between light and
-// dark. Moving to another view (a page, or the next post), the sky sets off
-// as the site does (viewBound) and glides to that view's home over about
+// dark. Moving to another view, the sky sets off as the site does (a page
+// with its click, viewBound; the next post with the scroll) and glides to that view's home over about
 // GLIDE_SECONDS, as the head glides to its place, showing a different part of
 // the dawn. It follows the head's own look target, mouse or idle wandering,
 // and eases there at the head's speed, or at HOMING_SPEED while it is on its

@@ -69,15 +69,12 @@ export class CardTints {
   // head's dark crown.
   aim(card: HTMLElement, sky: Rgb) {
     const state = this.cards.get(card);
-    // A card on its way out keeps its side: the sky has set off, and what is
-    // fading on it would turn over and show again. That is any as the site
-    // goes to another page, or a post's from the page's turn starting
-    // (data-turning, SnapPager.tsx) until it is hidden (Post.tsx's LEAVING).
-    if (
-      state &&
-      card.matches('.invisible, [data-turning] *, body[data-leaving] *')
-    )
-      return;
+    // A card on its way out (a post's as the page turns, Post.tsx's LEAVING;
+    // any as the site goes to another page) keeps its side: the sky has set
+    // off, and what is fading on it would turn over and show again. A post's
+    // card leaves before the sky sets off: its post crosses the view line
+    // (useHeldCard.ts) ahead of the middle of the gap, where the view changes.
+    if (state && card.matches('.invisible, body[data-leaving] *')) return;
     // A card above the head stays on the dark side; any other takes the
     // side of the view's station once that is settled (skyState.ts).
     const light =

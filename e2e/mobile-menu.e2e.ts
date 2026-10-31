@@ -3,7 +3,8 @@ import { expect, Page, test } from '@playwright/test';
 // Choosing a page in the phone menu (components/Header/MobileNav): the page it
 // leaves never comes back, the menu stays until the next page is in and then
 // fades away evenly, and the sky sets off with the tap, ahead of the next
-// page; and so it does for every other way the view changes. Against a built site: `npx playwright test`.
+// page; and so it does for a link or the browser's back, and with the scroll
+// for a post turn. Against a built site: `npx playwright test`.
 
 test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 
@@ -264,7 +265,7 @@ test('the menu fades evenly, leaving no tint for a sudden end', async ({
 test.describe('at a desktop size', () => {
   test.use({ viewport: { width: 1280, height: 720 }, hasTouch: false });
 
-  test('the sky sets off as a post turn starts, ahead of the scroll', async ({
+  test('the sky sets off with a post turn’s scroll, not its key', async ({
     page,
   }) => {
     await page.goto('/portfolio/web-apps');
@@ -272,13 +273,22 @@ test.describe('at a desktop size', () => {
     // The first card is still arriving for a moment (turnGate).
     await page.waitForTimeout(1600);
     const before = await skyNow(page);
-    await watchSky(page, 'sky-view-bound');
+    await page.evaluate(() => {
+      const scroller = document.getElementById('page')!;
+      const start = sessionStorage.getItem('sky-station');
+      const step = () => {
+        if (sessionStorage.getItem('sky-station') === start)
+          return requestAnimationFrame(step);
+        Object.assign(window, { skyMovedAt: scroller.scrollTop });
+      };
+      step();
+    });
     await page.keyboard.press('ArrowDown');
-    await expect.poll(() => heard(page)).toBeTruthy();
-
-    const { sky, top } = await heard(page);
-    expect(top).toBe(0);
-    expect(sky).not.toBe(before);
+    await expect.poll(() => skyNow(page)).not.toBe(before);
+    const top = await page.evaluate(
+      () => (window as unknown as { skyMovedAt: number }).skyMovedAt,
+    );
+    expect(top).toBeGreaterThan(0);
   });
 
   test('the sky sets off as a link is clicked, ahead of the next page', async ({

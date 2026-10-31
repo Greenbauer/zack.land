@@ -156,17 +156,6 @@ describe('the view the sky is for', () => {
     expect(currentView()).toBe('/');
   });
 
-  it('is the next post from the turn, before the scroll reaches it', () => {
-    page('/portfolio/web-apps', 3);
-    viewBound('/portfolio/web-apps#1');
-    expect(currentView()).toBe('/portfolio/web-apps#1');
-    page('/portfolio/web-apps', 3, 800);
-    expect(currentView()).toBe('/portfolio/web-apps#1');
-    // Landed, it follows the page again.
-    page('/portfolio/web-apps', 3, 1600);
-    expect(currentView()).toBe('/portfolio/web-apps#2');
-  });
-
   it('lets go when the browser goes back to the page it set off from', () => {
     page('/contact');
     viewBound('/');

@@ -55,8 +55,8 @@ function viewOnScreen(): string {
 }
 
 // The view the site has set off for, ahead of its arrival: a page whose link
-// was just clicked, which comes up only once the page has moved out, or a post
-// just turned to, which the scroll reaches halfway through its glide. The sky
+// was just clicked, which comes up only once the page has moved out. (A post
+// turned to needs none: the sky sets off as the scroll reaches it.) The sky
 // sets off for it at once (Sky.tsx, on VIEW_BOUND). It lasts until that view
 // is on screen or the site is on another page.
 export const VIEW_BOUND = 'sky-view-bound';

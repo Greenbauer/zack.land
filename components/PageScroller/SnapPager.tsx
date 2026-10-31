@@ -2,7 +2,6 @@
 
 import { useEffect } from 'react';
 
-import { viewBound } from '../Background/skyViews';
 import { PAGE_SCROLLER_ID } from './edgeFade';
 import { GLIDE_EVENT, postSpans } from './pageGlide';
 import {
@@ -105,12 +104,6 @@ export default function SnapPager() {
     // is still settling as More opens it), and the glide follows it there
     // rather than run on to where it was. With reduced motion it goes at
     // once.
-    const land = () => {
-      isGliding = false;
-      take();
-      fitSnap();
-      scroller.removeAttribute('data-turning');
-    };
     const slide = (to: () => number) => {
       cancelAnimationFrame(frame);
       // The browser's snapping would pull the page back (each step of a
@@ -119,7 +112,9 @@ export default function SnapPager() {
       scroller.style.scrollSnapType = 'none';
       if (still.matches) {
         scroller.scrollTop = to();
-        land();
+        isGliding = false;
+        take();
+        fitSnap();
         return;
       }
       isGliding = true;
@@ -132,7 +127,11 @@ export default function SnapPager() {
         const t = Math.min((now - start) / GLIDE_MS, 1);
         scroller.scrollTop = to() - way * (1 - easeOutCubic(t));
         if (t < 1) frame = requestAnimationFrame(step);
-        else land();
+        else {
+          isGliding = false;
+          take();
+          fitSnap();
+        }
       };
       frame = requestAnimationFrame(step);
     };
@@ -145,12 +144,6 @@ export default function SnapPager() {
       scroller.style.setProperty('--turn-delay', quick ? '0s' : '');
       const from = scroller.scrollTop;
       const next = turnIndex(at, from, direction);
-      if (next !== null) {
-        // The sky sets off now, and the card leaving keeps its side until the
-        // page lands, by when it is hidden as it goes (glassTint.ts).
-        scroller.toggleAttribute('data-turning', true);
-        viewBound(`${location.pathname}#${next}`);
-      }
       slide(() => {
         const span = next === null ? undefined : spans()[next];
         return span ? landing(span, direction) : from;
@@ -295,7 +288,6 @@ export default function SnapPager() {
       scroller.removeEventListener('scroll', remember);
       scroller.style.scrollSnapType = '';
       scroller.style.removeProperty('--turn-delay');
-      scroller.removeAttribute('data-turning');
       scroller.removeEventListener('wheel', onWheel);
       scroller.removeEventListener('touchstart', onTouchStart);
       scroller.removeEventListener('touchmove', onTouchMove);
