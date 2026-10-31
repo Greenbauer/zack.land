@@ -11,9 +11,9 @@ import { announceTurn } from './PageScroller/pageGlide';
 const CARD_MS = 800;
 const CONTENT_MS = 650;
 const TITLE_MS = 600;
-// The image tiles' melt out (components/mediaMelter.ts) ends by then: 0.85s,
+// The image tiles' melt out (components/mediaMelter.ts) ends by then: 1.05s,
 // after a wait of up to 0.25s.
-const TILES_MS = 1100;
+const TILES_MS = 1300;
 const GATHER = 'cubic-bezier(0.32, 0, 0.67, 0)';
 
 // When a link to another page of the site is clicked, the page moves out

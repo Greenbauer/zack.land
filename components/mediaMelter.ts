@@ -7,13 +7,15 @@ import { Box, Picture, uploadsAgain } from './mediaBender';
 // across a picture's whole height rather than along the pointer's trail. At
 // `melt` 1 it draws the picture exactly where it rests, so the picture itself
 // can take over with no jump, and at 0 it draws nothing.
-// Pictures going out and coming in are drawn to a layer each, then mixed: one
-// flow of liquid carries both, and where they meet they marble together, so a
-// turn reads as one picture stirred into the next.
+// Pictures going out and coming in are drawn to a layer each, then mixed: the
+// old ones stay pooled where they are while the new ones pour in, one flow of
+// liquid carries both, and the new spreads through the old in veins until it
+// has taken over, so a turn reads as one liquid changing from picture to
+// picture.
 
 // How long a picture takes, in seconds, on its way in and out.
-export const MELT_IN_S = 0.95;
-export const MELT_OUT_S = 0.8;
+export const MELT_IN_S = 1.05;
+export const MELT_OUT_S = 1.05;
 
 // How far ahead of each other the bands of a picture go, as a share of the
 // melt: more leaves longer streaks.
@@ -21,9 +23,6 @@ const SPREAD = 0.75;
 // How many times its own width a picture stretches at the height of the melt.
 const STRETCH = 2.5;
 
-// How much of the pictures going out are left when those coming in set off,
-// so the two overlap.
-export const COMING_AT = 0.85;
 // How hard the flow stirs the pictures, 0 to 1, with `leaving` of those going
 // out left and `coming` of those coming in arrived: most while there is plenty
 // of both, and not at all with only one, so a picture alone melts as it is.
@@ -151,6 +150,7 @@ const MIX = `
   uniform vec2 uSize;
   uniform float uDpr;
   uniform float uStir;
+  uniform float uComing;
   uniform float uTime;
   varying vec2 vUv;
 
@@ -175,15 +175,18 @@ const MIX = `
     vec2 at = vUv;
     float marble = 0.5;
     if (uStir > 0.0) {
-      vec2 q = vUv * uSize / uDpr / 200.0;
+      vec2 q = vUv * uSize / uDpr / 260.0;
       vec2 first = vec2(
         fbm(q + vec2(0.0, uTime * 0.5)),
         fbm(q + vec2(5.2, 1.3 - uTime * 0.4))) - 0.5;
       vec2 flow = vec2(
         fbm(q + 3.0 * first + vec2(1.7, 9.2)),
         fbm(q + 3.0 * first + vec2(8.3, 2.8))) - 0.5;
-      at += flow * uStir * 260.0 * uDpr / uSize;
-      marble = smoothstep(0.4, 0.6, fbm(q * 1.4 + 5.0 * flow + uTime * 0.2));
+      at += flow * uStir * 460.0 * uDpr / uSize;
+      // The veins of the new widen until it has taken over.
+      float vein = fbm(q * 1.2 + 4.0 * flow + uTime * 0.2);
+      float front = mix(0.85, 0.15, uComing);
+      marble = smoothstep(front - 0.16, front + 0.16, vein);
     }
     vec4 leaving = layer(tLeaving, at);
     vec4 coming = layer(tComing, at);
@@ -238,6 +241,7 @@ export class MediaMelter {
       'uSize',
       'uDpr',
       'uStir',
+      'uComing',
       'uTime',
     ]);
     this.layers = [this.layer(), this.layer()];
@@ -399,8 +403,8 @@ export class MediaMelter {
   }
 
   // Mixes the layers onto the canvas, stirred `stir` (stirOf) by a flow at
-  // `time` seconds.
-  finish(stir: number, time: number, dpr: number) {
+  // `time` seconds, the new having spread `coming` (0 to 1) through the old.
+  finish(stir: number, coming: number, time: number, dpr: number) {
     const { gl, layers, mixAt } = this;
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.clear(gl.COLOR_BUFFER_BIT);
@@ -415,6 +419,7 @@ export class MediaMelter {
     gl.uniform2f(mixAt.uSize!, gl.canvas.width, gl.canvas.height);
     gl.uniform1f(mixAt.uDpr!, dpr);
     gl.uniform1f(mixAt.uStir!, stir);
+    gl.uniform1f(mixAt.uComing!, coming);
     gl.uniform1f(mixAt.uTime!, time);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }

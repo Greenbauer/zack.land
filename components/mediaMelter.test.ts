@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  COMING_AT,
   easeMelt,
   MELT_IN_S,
   MELT_OUT_S,
@@ -39,11 +38,6 @@ describe('how a turn mixes', () => {
     expect(stirOf(0.5, 0)).toBe(0);
     expect(stirOf(0.5, 0.5)).toBe(1);
     expect(stirOf(0, 1)).toBe(0);
-  });
-
-  it('sets the next pictures off while the last are still going', () => {
-    expect(COMING_AT).toBeGreaterThan(0.5);
-    expect(COMING_AT).toBeLessThan(1);
   });
 });
 

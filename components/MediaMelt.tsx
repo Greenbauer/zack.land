@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 
 import { Box, naturalSize, Picture, ready, shownPart } from './mediaBender';
 import {
-  COMING_AT,
+  easeMelt,
   MediaMelter,
   restingBox,
   stepMelt,
@@ -19,7 +19,7 @@ import { Turn, TURN_EVENT } from './PageScroller/pageGlide';
 // (.collage[data-whole], styles/globals.css), and the canvas hides whenever
 // nothing is melting, so it never lies over a tile at rest. A tile starts on
 // its way out as a turn begins, not when its post leaves the window's middle:
-// by then the page has moved it. Tiles coming in set off soon after, and the
+// by then the page has moved it. Tiles coming in set off with them, and the
 // two mix as one liquid on the way (mediaMelter.ts). Where the melt can't run (data-melts unset on <html>: reduced
 // motion, or no real GPU) the tiles slide instead.
 
@@ -175,17 +175,17 @@ export default function MediaMelt() {
       melter.begin(canvas.clientWidth, canvas.clientHeight, dpr);
       const leaving = share(-1);
       for (const run of runs.values()) {
-        const waits = held || (run.direction > 0 && leaving > COMING_AT);
-        if (waits) run.began = now;
+        if (held) run.began = now;
         melter.drawTo(run.direction > 0);
         const isDone =
           !run.box.isConnected ||
-          advance(melter, run, waits ? 0 : now - last, dpr);
+          advance(melter, run, held ? 0 : now - last, dpr);
         if (!isDone) continue;
         runs.delete(run.box);
         if (run.direction > 0) run.box.toggleAttribute('data-whole', true);
       }
-      melter.finish(stirOf(leaving, share(1)), now, dpr);
+      const coming = share(1);
+      melter.finish(stirOf(leaving, coming), easeMelt(coming), now, dpr);
       last = now;
       frame = runs.size ? requestAnimationFrame(step) : 0;
       canvas.hidden = !frame;
