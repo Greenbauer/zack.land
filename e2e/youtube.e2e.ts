@@ -101,6 +101,52 @@ const calls = (page: Page) =>
     () => (window as never as { yt?: { calls: string[] } }).yt?.calls ?? [],
   );
 
+// What lies on top where `cover` overlaps the video's tile, read by hit
+// testing (the order things are drawn in): for the card's glass layer below
+// the post's images (data-photo-lens, EdgeCard.tsx), made hit-testable for
+// the reading, and for each scroll arrow showing over the sky.
+const glassOverVideo = (page: Page) =>
+  page.evaluate(() => {
+    const tile = document
+      .querySelectorAll('.collage')[2]!
+      .querySelector<HTMLElement>('.collage-tile[data-video]')!;
+    const layer = document
+      .querySelectorAll('[data-post]')[2]!
+      .querySelector<HTMLElement>('[data-photo-lens]')!;
+    const t = tile.getBoundingClientRect();
+    const l = layer.getBoundingClientRect();
+    const [x, y] = [Math.max(l.left, t.left), Math.max(l.top, t.top)];
+    const [x2, y2] = [Math.min(l.right, t.right), Math.min(l.bottom, t.bottom)];
+    if (x >= x2 || y >= y2 || !layer.style.getPropertyValue('--photo-lens'))
+      return null;
+    layer.style.pointerEvents = 'auto';
+    const top = document.elementFromPoint((x + x2) / 2, (y + y2) / 2);
+    layer.style.pointerEvents = '';
+    return top === layer;
+  });
+const arrowsOverVideo = (page: Page) =>
+  page.evaluate(() => {
+    const tile = document
+      .querySelectorAll('.collage')[2]!
+      .querySelector<HTMLElement>('.collage-tile[data-video]')!;
+    const t = tile.getBoundingClientRect();
+    return [
+      ...document.querySelectorAll<HTMLElement>('[data-scroll-arrows] button'),
+    ].flatMap((arrow) => {
+      const a = arrow.getBoundingClientRect();
+      const [x, y] = [Math.max(a.left, t.left), Math.max(a.top, t.top)];
+      const [x2, y2] = [
+        Math.min(a.right, t.right),
+        Math.min(a.bottom, t.bottom),
+      ];
+      if (x >= x2 || y >= y2 || getComputedStyle(arrow).visibility === 'hidden')
+        return [];
+      return [
+        arrow.contains(document.elementFromPoint((x + x2) / 2, (y + y2) / 2)),
+      ];
+    });
+  });
+
 test.describe('a YouTube video', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
   // Each a page load, two turns and a play: a software-drawn WebKit takes
@@ -159,6 +205,52 @@ test.describe('a YouTube video', () => {
     await expect(box).not.toHaveAttribute('data-playing');
   });
 
+  // Zach, Nov 2: "seems like the glass effect is not effecting the video in
+  // the default state". Its tile lay over the glass, as only a playing one
+  // needs to.
+  test('at rest, the glass of the card below lies over it, as over the other tiles', async ({
+    page,
+  }) => {
+    await atVideoPost(page);
+    // Once its card has slid in, which places the glass.
+    await expect.poll(() => glassOverVideo(page)).toBe(true);
+  });
+
+  // Zach, Nov 2: "the glass blur on the scroll arrows covers the video. this
+  // should be behind the expanded video view. kind of like opening a modal".
+  test('playing, it lies over the scroll arrows and their glass, and over the other tiles until it has shrunk back', async ({
+    page,
+  }) => {
+    const { box, tile, play } = await atVideoPost(page);
+    await play.click();
+    await expect(box).toHaveAttribute('data-playing');
+    const post = (await page.locator('[data-post]').nth(2).boundingBox())!;
+    await expect
+      .poll(async () => Math.round((await tile.boundingBox())!.width))
+      .toBe(Math.round(post.width));
+    // At this window the up arrow lies where the video opens.
+    const arrows = await arrowsOverVideo(page);
+    expect(arrows.length).toBeGreaterThan(0);
+    expect(arrows).toEqual(arrows.map(() => false));
+    // Stopped, it stays over the others while it shrinks back (0.6s).
+    await tile.evaluate((element) => {
+      const z: string[] = [];
+      Object.assign(window, { z });
+      new MutationObserver(() => {
+        if (element.hasAttribute('data-playing')) return;
+        z.push(getComputedStyle(element).zIndex);
+      }).observe(element, {
+        attributes: true,
+        attributeFilter: ['data-playing'],
+      });
+    });
+    await page.mouse.click(40, 450);
+    await expect(box).not.toHaveAttribute('data-playing');
+    await expect.poll(() => page.evaluate('window.z')).toEqual(['20']);
+    // And goes back among them once it has (a starved browser takes longer).
+    await expect(tile).toHaveCSS('z-index', '0');
+  });
+
   test('a pause as short as a seek does not stop it', async ({ page }) => {
     const { box, play } = await atVideoPost(page);
     await play.click();
@@ -210,5 +302,24 @@ test.describe('a YouTube video', () => {
     await page.waitForTimeout(500);
     expect(await calls(page)).not.toContain('play');
     await expect(box).not.toHaveAttribute('data-playing');
+  });
+});
+
+test.describe('a YouTube video on a phone', () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+  test.beforeEach(({ browserName }) => {
+    test.slow(browserName === 'webkit');
+  });
+
+  // Its scroll arrow is in the footer, below where the video opens, and the
+  // card's glass does not reach its tile: checked wherever they do meet.
+  test('playing, no scroll arrow lies over it', async ({ page }) => {
+    const { box, play } = await atVideoPost(page);
+    expect(await glassOverVideo(page)).not.toBe(false);
+    await play.click();
+    await expect(box).toHaveAttribute('data-playing');
+    await page.waitForTimeout(1000);
+    const arrows = await arrowsOverVideo(page);
+    expect(arrows).toEqual(arrows.map(() => false));
   });
 });

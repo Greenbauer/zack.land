@@ -77,7 +77,9 @@ const DOWN_TOP = `min(calc(${FOOTER_TOP} - 0.25rem - ${ARROW_HEIGHT}), max(calc(
 // post before or after, and shows only while there is a post that way; on a
 // wide screen they fade out as the page turns and back in once the arriving
 // card has passed (SETTLE_MS). On a wide screen they sit on the body, outside
-// the page's scroller, so its fade under the header doesn't hide them. They
+// the page's scroller, so its fade under the header doesn't hide them, and
+// over it; while a video plays they step behind it, glass and all, as behind
+// a modal (styles/globals.css). They
 // hide with the page while the phone menu is open (data-scroll-arrows,
 // styles/globals.css).
 export default function ScrollArrows() {
