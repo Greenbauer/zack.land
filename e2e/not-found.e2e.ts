@@ -59,12 +59,13 @@ test.describe('the 404 page', () => {
   // runner (CI's WebKit can be one) may draw nothing of it: a frame, then
   // one 2 seconds on with the melt over, or the site gone on (PageLeave's 1.1
   // seconds). The draws are asserted where the melt was on screen for two
-  // frames past its wait, a fifth of a second apart or less; elsewhere it is
-  // only seen to start, and its frames are noted.
+  // frames past its wait, a fifth of a second apart or less, and Chrome's
+  // melt out on every run (below); elsewhere it is only seen to start, and
+  // its frames are noted.
   for (const isLoading of [false, true])
     test(`its video melts in and out as the site leaves${
       isLoading ? ', still loading' : ''
-    }`, async ({ page }) => {
+    }`, async ({ page, browserName }) => {
       await page.addInitScript(() => {
         const uniform = WebGLRenderingContext.prototype.uniform4f;
         const draws: number[] = [];
@@ -149,7 +150,14 @@ test.describe('the 404 page', () => {
       await expect(page).toHaveURL(/contact/);
       const drawsOut = ((await page.evaluate('draws')) as number[]).length;
       const framesOut = (await page.evaluate('meltFrames.length')) as number;
-      const isSeenOut = await isSeen(80);
+      // Chrome draws the melt out on its first frame after the click, within
+      // milliseconds of it (on macOS and in Playwright's Linux image alike), so
+      // there the melt out's draws are checked every run. WebKit drawn in
+      // software can take longer than the melt lasts (under a second) to
+      // step it, which then ends without a draw, so there it is checked
+      // where its frames could show it.
+      const isSeenOut = browserName === 'chromium' ? true : await isSeen(80);
+      if (browserName === 'chromium') expect(framesOut).toBeGreaterThan(0);
       if (isSeenOut) expect(drawsOut).toBeGreaterThan(0);
       if (!isSeenIn || !isSeenOut)
         test.info().annotations.push({
