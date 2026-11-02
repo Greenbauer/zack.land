@@ -64,7 +64,7 @@ test.describe('the 404 page', () => {
   for (const isLoading of [false, true])
     test(`its video melts in and out as the site leaves${
       isLoading ? ', still loading' : ''
-    }`, async ({ page }) => {
+    }`, async ({ page, browserName }) => {
       await page.addInitScript(() => {
         const uniform = WebGLRenderingContext.prototype.uniform4f;
         const draws: number[] = [];
@@ -149,7 +149,14 @@ test.describe('the 404 page', () => {
       await expect(page).toHaveURL(/contact/);
       const drawsOut = ((await page.evaluate('draws')) as number[]).length;
       const framesOut = (await page.evaluate('meltFrames.length')) as number;
-      const isSeenOut = await isSeen(80);
+      // Going, a melt draws its picture from its first frame (it starts
+      // whole, with no wait to be drawn through), so a browser that shows
+      // the melt for even a frame before the site goes on has drawn it.
+      // Chrome, on CI too, always does: its melt out is checked every time.
+      // WebKit drawn in software can show none, so there it is checked
+      // where its frames could show it.
+      const isSeenOut = browserName === 'chromium' ? true : await isSeen(80);
+      if (browserName === 'chromium') expect(framesOut).toBeGreaterThan(0);
       if (isSeenOut) expect(drawsOut).toBeGreaterThan(0);
       if (!isSeenIn || !isSeenOut)
         test.info().annotations.push({
