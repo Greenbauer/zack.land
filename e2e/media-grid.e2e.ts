@@ -35,6 +35,28 @@ async function atRest(page: Page, opens = true) {
   });
 }
 
+// Turns the page one post down, to post `k`, and waits until it is there:
+// its images have come in, and the pager takes another push the same way
+// (HOLD_MS, components/PageScroller/paging.ts). A fixed wait let a slow
+// browser's second push go while the first turn was still arriving, and the
+// page stopped a post short.
+async function turnTo(page: Page, k: number) {
+  await page.evaluate(() =>
+    dispatchEvent(new CustomEvent('page-glide', { detail: 1 })),
+  );
+  const post = page.locator('.collage').nth(k);
+  await Promise.all([
+    (async () => {
+      await expect(post).toHaveAttribute('data-shown', '');
+      await expect(post.locator('.collage-tile').first()).toHaveCSS(
+        'opacity',
+        '1',
+      );
+    })(),
+    page.waitForTimeout(1500),
+  ]);
+}
+
 // Each of the first post's tiles: where it is on the page, and each corner's
 // radius and whether that corner is on the block's outline.
 const tilesOf = (page: Page) =>
@@ -188,12 +210,7 @@ test.describe('every kind of media', () => {
   KINDS.forEach(([kind, element], k) =>
     test(`a ${kind} bends`, async ({ page }) => {
       await atRest(page);
-      for (let turn = 0; turn < 2; turn++) {
-        await page.evaluate(() =>
-          dispatchEvent(new CustomEvent('page-glide', { detail: 1 })),
-        );
-        await page.waitForTimeout(2500);
-      }
+      for (const post of [1, 2]) await turnTo(page, post);
       const tiles = page.locator('.collage').nth(2).locator('.collage-tile');
       await expect(tiles).toHaveCount(3);
       const tile = tiles.nth(k);
@@ -296,12 +313,7 @@ test.describe('a turn taken straight back', () => {
 
   test('leaves the last post whole', async ({ page }) => {
     await atRest(page);
-    for (let k = 0; k < 3; k++) {
-      await page.evaluate(() =>
-        dispatchEvent(new CustomEvent('page-glide', { detail: 1 })),
-      );
-      await page.waitForTimeout(2500);
-    }
+    for (const post of [1, 2, 3]) await turnTo(page, post);
     await pushBothWays(page, -1);
     await expectWhole(page, 3);
   });
