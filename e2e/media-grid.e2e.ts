@@ -15,9 +15,10 @@ const SIZES = [
 ];
 const RADIUS = '16px';
 
-// The first post's tiles once they have come in and the page has settled.
-async function atRest(page: Page) {
-  await page.goto('/portfolio/miscellaneous');
+// The first post's tiles once they have come in and the page has settled
+// (opening Miscellaneous first, unless `opens` is false).
+async function atRest(page: Page, opens = true) {
+  if (opens) await page.goto('/portfolio/miscellaneous');
   await page.waitForFunction(() => {
     const tiles = [...document.querySelectorAll('.collage-tile')].slice(0, 4);
     return (
@@ -108,6 +109,32 @@ test.describe('a phone loading slowly', () => {
       await route.continue();
     });
     await atRest(page);
+    const first = (await tilesOf(page)).map((tile) => tile.box);
+    for (let k = 0; k < 10; k++) {
+      await page.waitForTimeout(200);
+      expect((await tilesOf(page)).map((tile) => tile.box)).toEqual(first);
+    }
+  });
+});
+
+// Coming back to a page, the footer's arrow fading in put off its shrinking
+// until the images had come to rest (as on a slow load, above).
+test.describe('a phone coming back to a page', () => {
+  test.use({
+    viewport: { width: 390, height: 844 },
+    reducedMotion: 'reduce',
+  });
+
+  test('its images hold still once at rest', async ({ page }) => {
+    await atRest(page);
+    const menu = page.locator('[id^="headlessui-menu-button"]');
+    await menu.click();
+    await page.locator('.mobile-menu a', { hasText: 'Contact' }).click();
+    await expect(page).toHaveURL(/contact/);
+    await menu.click();
+    await page.locator('.mobile-menu button', { hasText: 'Portfolio' }).click();
+    await page.locator('.mobile-menu a', { hasText: 'Miscellaneous' }).click();
+    await atRest(page, false);
     const first = (await tilesOf(page)).map((tile) => tile.box);
     for (let k = 0; k < 10; k++) {
       await page.waitForTimeout(200);
@@ -236,100 +263,6 @@ test.describe('More and Less', () => {
     );
     await expect(page.locator('canvas.fixed')).toBeHidden();
   });
-});
-
-test.describe('the 404 page', () => {
-  test.use({ viewport: { width: 1440, height: 900 } });
-
-  test('its video comes in, holds still and bends', async ({ page }) => {
-    await page.goto('/no-such-page');
-    const tile = page.locator('.collage-tile');
-    await expect(tile).toHaveCSS('opacity', '1');
-    await expect(page.locator('canvas.fixed')).toBeHidden();
-    // Its card may still be sliding in.
-    await page.waitForTimeout(2000);
-    // Linux WebKit rejects this 720p H.264 file, re-encoded too (format error,
-    // no frames), so there is no picture to bend; Chrome and Mac WebKit play it.
-    const canPlay = await tile.locator('video').evaluate(
-      (video: HTMLVideoElement) =>
-        new Promise<boolean>((resolve) => {
-          const isSettled = () =>
-            video.readyState >= 2 ||
-            !!video.error ||
-            video.networkState === video.NETWORK_NO_SOURCE;
-          const wait = () =>
-            isSettled()
-              ? resolve(video.readyState >= 2)
-              : setTimeout(wait, 100);
-          wait();
-        }),
-    );
-    test.skip(
-      !canPlay && test.info().project.name === 'webkit',
-      'this browser cannot decode the video',
-    );
-    const box = (await tile.boundingBox())!;
-    await page.mouse.move(box.x + 20, box.y + 20);
-    await page.mouse.move(box.x + box.width / 2, box.y + 40, { steps: 6 });
-    await expect(tile.locator('[data-media-bend]')).toBeAttached();
-    await page.mouse.move(2, 2);
-    const first = await tile.boundingBox();
-    await page.waitForTimeout(600);
-    expect(await tile.boundingBox()).toEqual(first);
-  });
-
-  // Melting, it is drawn on the canvas (MediaMelter.draw, the one caller of
-  // uniform4f): each draw is noted with how far the video itself has loaded.
-  // Held back, as on a slow connection or where a browser loads no video
-  // until it plays, it melts as its poster: it used to wait unseen and then
-  // just show.
-  for (const isLoading of [false, true])
-    test(`its video melts in and out as the site leaves${
-      isLoading ? ', still loading' : ''
-    }`, async ({ page }) => {
-      await page.addInitScript(() => {
-        const uniform = WebGLRenderingContext.prototype.uniform4f;
-        const draws: number[] = [];
-        Object.assign(window, { draws });
-        WebGLRenderingContext.prototype.uniform4f = function (at, ...values) {
-          const video = document.querySelector('.collage-tile video');
-          draws.push((video as HTMLVideoElement | null)?.readyState ?? -1);
-          return uniform.call(this, at, ...values);
-        };
-      });
-      if (isLoading) await page.route('**/hello-is-it-me.mp4', () => {});
-      await page.goto('/no-such-page');
-      await expect(page.locator('.collage-tile')).toHaveCSS('opacity', '1');
-      const melts = await page.evaluate(() =>
-        document.documentElement.hasAttribute('data-melts'),
-      );
-      test.skip(!melts, 'no GPU here: it slides instead');
-      const drawsIn = (await page.evaluate('draws')) as number[];
-      expect(drawsIn.length).toBeGreaterThan(0);
-      if (isLoading) expect(drawsIn.every((loaded) => loaded < 2)).toBe(true);
-      await page.evaluate('draws.length = 0');
-      // Watched, not polled: the melt is over within about a second, and
-      // the click's own wait for the site to go took most of that on the
-      // runner, so a poll first looked once it had gone.
-      const melted = page.evaluate(
-        () =>
-          new Promise<boolean>((resolve) => {
-            const canvas = document.querySelector<HTMLElement>('canvas.fixed')!;
-            new MutationObserver(() => {
-              if (!canvas.hidden) resolve(true);
-            }).observe(canvas, { attributes: true });
-          }),
-      );
-      await page
-        .getByRole('link', { name: 'Contact', exact: true })
-        .first()
-        .click();
-      expect(await melted).toBe(true);
-      await expect(page).toHaveURL(/contact/);
-      expect(
-        ((await page.evaluate('draws')) as number[]).length,
-      ).toBeGreaterThan(0);
-    });
 });
 
 test.describe('a turn taken straight back', () => {

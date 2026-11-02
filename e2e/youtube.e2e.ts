@@ -11,8 +11,9 @@ const expect = expectNow.configure({ timeout: 30_000 });
 
 // YouTube's iframe API, reduced to what the site uses. The player notes each
 // call (window.yt.calls), says it is playing or paused a moment after being
-// asked, as the real one does (telling only a change), and readies `window.ytReadyMs` after it is
-// made; `window.yt.seek()` pauses and plays again 100ms later, as a seek,
+// asked, as the real one does (telling only a change), and readies once
+// made, or, where `window.ytHeld` is set, only once `window.ytReady()` is
+// called; `window.yt.seek()` pauses and plays again 100ms later, as a seek,
 // and `window.yt.pause()` pauses, as from the player's own controls.
 const STUB = `
 window.YT = {
@@ -42,13 +43,15 @@ window.YT = {
     player.getIframe = () => iframe;
     player.destroy = () => iframe.remove();
     window.yt = player;
-    setTimeout(() => {
+    const ready = () => {
       options.events.onReady({ target: player });
       if (options.playerVars && options.playerVars.autoplay && wanted !== 2) {
         wanted = 1;
         say(1);
       }
-    }, window.ytReadyMs || 0);
+    };
+    if (window.ytHeld) window.ytReady = ready;
+    else setTimeout(ready, 0);
   },
 };
 window.onYouTubeIframeAPIReady && window.onYouTubeIframeAPIReady();
@@ -61,13 +64,14 @@ const glide = (page: Page, detail: 1 | -1) =>
   );
 
 // Opens Miscellaneous on its third post, whose first tile is a YouTube video.
-async function atVideoPost(page: Page, readyMs = 0) {
+// `isHeld`: its player readies only when the test says (window.ytReady).
+async function atVideoPost(page: Page, isHeld = false) {
   await page.route('**/www.youtube.com/iframe_api', (route) =>
     route.fulfill({ contentType: 'text/javascript', body: STUB }),
   );
   await page.addInitScript(
-    (ms) => Object.assign(window, { ytReadyMs: ms }),
-    readyMs,
+    (held) => Object.assign(window, { ytHeld: held }),
+    isHeld,
   );
   await page.goto('/portfolio/miscellaneous');
   // A post at a time, each once its images have come in (a slow browser
@@ -99,6 +103,11 @@ const calls = (page: Page) =>
 
 test.describe('a YouTube video', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
+  // Each a page load, two turns and a play: a software-drawn WebKit takes
+  // most of 90 seconds just to reach the post.
+  test.beforeEach(({ browserName }) => {
+    test.slow(browserName === 'webkit');
+  });
 
   test('played, it takes the post with its corners rounded, and a press outside stops it', async ({
     page,
@@ -130,11 +139,16 @@ test.describe('a YouTube video', () => {
   test('stopped by a press outside, it plays again from its button, and paging away still pauses it', async ({
     page,
   }) => {
-    const { box, play } = await atVideoPost(page);
+    const { box, tile, play } = await atVideoPost(page);
+    const resting = await tile.boundingBox();
     await play.click();
     await expect(box).toHaveAttribute('data-playing');
     await page.mouse.click(40, 450);
     await expect(box).not.toHaveAttribute('data-playing');
+    // Pressed once it is back in its place: pressed while it still moves,
+    // Playwright's click retries by scrolling it into view, which the page
+    // takes as a turn.
+    await expect.poll(() => tile.boundingBox()).toEqual(resting);
     await play.click();
     await expect(box).toHaveAttribute('data-playing');
     const before = (await calls(page)).length;
@@ -180,12 +194,16 @@ test.describe('a YouTube video', () => {
   test('readying after its post has left, it stays paused', async ({
     page,
   }) => {
-    const { box, play } = await atVideoPost(page, 4000);
+    const { box, play } = await atVideoPost(page, true);
     await play.click();
     await glide(page, -1);
     // Gone before the player is ready.
     await expect(box).not.toHaveAttribute('data-shown');
+    await page.waitForFunction(() => 'ytReady' in window);
     expect(await calls(page)).toEqual([]);
+    await page.evaluate(() =>
+      (window as never as { ytReady: () => void }).ytReady(),
+    );
     await expect
       .poll(() => calls(page), { timeout: 10_000 })
       .toContain('pause');

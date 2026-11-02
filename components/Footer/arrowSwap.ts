@@ -36,8 +36,9 @@ export function swapTo(
 
 // Whether the arrow coming into the footer takes its place at once, with
 // nothing to fade: while the site is still loading (its header and footer
-// hidden, `isPageIn` false), and on a phone the first time it comes on a
-// page (`isFirstOnPage`). A phone always has it there at a page's opening,
+// hidden, `isPageIn` false), and on a phone the first time it comes since a
+// page opened, a page opened again included (`isFirstOnPage`). A phone
+// always has it there at a page's opening,
 // so its posts are laid out for the shorter footer before their images come
 // in: a page that loads slowly is already in (data-page-in) by the time the
 // arrow comes, and the fade put off the footer's shrinking until after the
@@ -64,12 +65,12 @@ export function useArrowSwap(
   const [phase, setPhase] = useState<Swap>('text');
   const phaseRef = useRef<Swap>('text');
   const [hasArrow, setHasArrow] = useState(false);
-  // The page on which the arrow last came, and the page now: read as the
-  // arrow comes or goes, so a page changing under a swap leaves it be.
-  const arrowPageRef = useRef<string | null>(null);
-  const pathnameRef = useRef(pathname);
+  // Whether the arrow has come since the page opened: cleared as each page
+  // opens, read as the arrow comes or goes, so a page changing under a swap
+  // leaves it be.
+  const hasComeRef = useRef(false);
   useEffect(() => {
-    pathnameRef.current = pathname;
+    hasComeRef.current = false;
   }, [pathname]);
 
   useEffect(() => {
@@ -87,9 +88,8 @@ export function useArrowSwap(
       phaseRef.current = next;
       setPhase(next);
     };
-    const page = pathnameRef.current;
-    const isFirstOnPage = arrowPageRef.current !== page;
-    if (hasArrow) arrowPageRef.current = page;
+    const isFirstOnPage = !hasComeRef.current;
+    if (hasArrow) hasComeRef.current = true;
     if (
       hasArrow &&
       goesStraight({
