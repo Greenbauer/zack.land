@@ -91,6 +91,31 @@ for (const { name, width, height } of SIZES)
     });
   });
 
+// A phone that loads slowly is already in (data-page-in) when the footer's
+// scroll arrow comes, and the footer used to fade its text out first, shrinking
+// only after the images had come to rest: they then jumped bigger and lower.
+// The site's scripts held back make the load slow; with reduced motion the
+// images only fade in, so they rest well inside the old fade.
+test.describe('a phone loading slowly', () => {
+  test.use({
+    viewport: { width: 390, height: 844 },
+    reducedMotion: 'reduce',
+  });
+
+  test('its images hold still once at rest', async ({ page }) => {
+    await page.route('**/_next/static/chunks/**', async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await route.continue();
+    });
+    await atRest(page);
+    const first = (await tilesOf(page)).map((tile) => tile.box);
+    for (let k = 0; k < 10; k++) {
+      await page.waitForTimeout(200);
+      expect((await tilesOf(page)).map((tile) => tile.box)).toEqual(first);
+    }
+  });
+});
+
 test.describe('at rest', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -126,35 +151,43 @@ test.describe('under a mouse', () => {
 test.describe('every kind of media', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  test('a photo, a silent loop and a YouTube thumbnail all bend', async ({
-    page,
-  }) => {
-    await atRest(page);
-    for (let k = 0; k < 2; k++) {
-      await page.evaluate(() =>
-        dispatchEvent(new CustomEvent('page-glide', { detail: 1 })),
-      );
-      await page.waitForTimeout(2500);
-    }
-    const tiles = page.locator('.collage').nth(2).locator('.collage-tile');
-    await expect(tiles).toHaveCount(3);
-    await expect(tiles.nth(0).locator('button')).toBeVisible();
-    await expect(tiles.nth(1).locator('video')).toBeVisible();
-    for (let k = 0; k < 3; k++) {
-      const box = (await tiles.nth(k).boundingBox())!;
+  // One test each: together, two page turns and three bends ran a
+  // software-drawn WebKit to the edge of its 90 seconds.
+  const KINDS = [
+    ['YouTube thumbnail', 'button'],
+    ['silent loop', 'video'],
+    ['photo', 'img'],
+  ] as const;
+  KINDS.forEach(([kind, element], k) =>
+    test(`a ${kind} bends`, async ({ page }) => {
+      await atRest(page);
+      for (let turn = 0; turn < 2; turn++) {
+        await page.evaluate(() =>
+          dispatchEvent(new CustomEvent('page-glide', { detail: 1 })),
+        );
+        await page.waitForTimeout(2500);
+      }
+      const tiles = page.locator('.collage').nth(2).locator('.collage-tile');
+      await expect(tiles).toHaveCount(3);
+      const tile = tiles.nth(k);
+      await expect(tile.locator(element).first()).toBeVisible();
+      const box = (await tile.boundingBox())!;
       await page.mouse.move(box.x + 20, box.y + 20);
       await page.mouse.move(box.x + box.width / 2, box.y + 30, { steps: 6 });
-      await expect(tiles.nth(k).locator('[data-media-bend]')).toBeAttached({
+      await expect(tile.locator('[data-media-bend]')).toBeAttached({
         timeout: 30_000,
       });
-    }
-  });
+    }),
+  );
 });
 
 test.describe('More and Less', () => {
   test.use({ viewport: { width: 1280, height: 720 } });
 
-  test('the images melt away and back', async ({ page }) => {
+  test('the images melt away and back', async ({ page, browserName }) => {
+    // One flow of a page load, More, a melt and Less: a software-drawn
+    // WebKit can take longer than 90 seconds over it.
+    test.slow(browserName === 'webkit');
     // A crop worked out from a tile already gone comes out NaN, and draws one
     // flat colour.
     await page.addInitScript(() => {
@@ -245,20 +278,58 @@ test.describe('the 404 page', () => {
     expect(await tile.boundingBox()).toEqual(first);
   });
 
-  test('its video melts out as the site leaves', async ({ page }) => {
-    await page.goto('/no-such-page');
-    await expect(page.locator('.collage-tile')).toHaveCSS('opacity', '1');
-    const melts = await page.evaluate(() =>
-      document.documentElement.hasAttribute('data-melts'),
-    );
-    test.skip(!melts, 'no GPU here: it slides instead');
-    await page
-      .getByRole('link', { name: 'Contact', exact: true })
-      .first()
-      .click();
-    await expect(page.locator('canvas.fixed')).toBeVisible();
-    await expect(page).toHaveURL(/contact/);
-  });
+  // Melting, it is drawn on the canvas (MediaMelter.draw, the one caller of
+  // uniform4f): each draw is noted with how far the video itself has loaded.
+  // Held back, as on a slow connection or where a browser loads no video
+  // until it plays, it melts as its poster: it used to wait unseen and then
+  // just show.
+  for (const isLoading of [false, true])
+    test(`its video melts in and out as the site leaves${
+      isLoading ? ', still loading' : ''
+    }`, async ({ page }) => {
+      await page.addInitScript(() => {
+        const uniform = WebGLRenderingContext.prototype.uniform4f;
+        const draws: number[] = [];
+        Object.assign(window, { draws });
+        WebGLRenderingContext.prototype.uniform4f = function (at, ...values) {
+          const video = document.querySelector('.collage-tile video');
+          draws.push((video as HTMLVideoElement | null)?.readyState ?? -1);
+          return uniform.call(this, at, ...values);
+        };
+      });
+      if (isLoading) await page.route('**/hello-is-it-me.mp4', () => {});
+      await page.goto('/no-such-page');
+      await expect(page.locator('.collage-tile')).toHaveCSS('opacity', '1');
+      const melts = await page.evaluate(() =>
+        document.documentElement.hasAttribute('data-melts'),
+      );
+      test.skip(!melts, 'no GPU here: it slides instead');
+      const drawsIn = (await page.evaluate('draws')) as number[];
+      expect(drawsIn.length).toBeGreaterThan(0);
+      if (isLoading) expect(drawsIn.every((loaded) => loaded < 2)).toBe(true);
+      await page.evaluate('draws.length = 0');
+      // Watched, not polled: the melt is over within about a second, and
+      // the click's own wait for the site to go took most of that on the
+      // runner, so a poll first looked once it had gone.
+      const melted = page.evaluate(
+        () =>
+          new Promise<boolean>((resolve) => {
+            const canvas = document.querySelector<HTMLElement>('canvas.fixed')!;
+            new MutationObserver(() => {
+              if (!canvas.hidden) resolve(true);
+            }).observe(canvas, { attributes: true });
+          }),
+      );
+      await page
+        .getByRole('link', { name: 'Contact', exact: true })
+        .first()
+        .click();
+      expect(await melted).toBe(true);
+      await expect(page).toHaveURL(/contact/);
+      expect(
+        ((await page.evaluate('draws')) as number[]).length,
+      ).toBeGreaterThan(0);
+    });
 });
 
 test.describe('a turn taken straight back', () => {
@@ -321,7 +392,10 @@ test.describe('tiles made anew', () => {
       await atRest(page);
       await page.getByRole('button', { name: 'More' }).first().click();
       await page.waitForTimeout(ms);
-      await page.getByRole('button', { name: 'Less' }).click();
+      // Pressed as it arrives, not by Playwright's click: while the opening
+      // card still covers it, the click retries by scrolling it into view,
+      // and the page takes that scroll as a turn to the next post.
+      await page.getByRole('button', { name: 'Less' }).dispatchEvent('click');
       const tile = page.locator('.collage').first().locator('.collage-tile');
       await expect(tile).toHaveCount(4);
       for (let k = 0; k < 4; k++) {
