@@ -50,14 +50,17 @@ test.describe('the 404 page', () => {
 
   // Melting, it is drawn on the melt's canvas (canvas.fixed: MediaMelter.draw
   // sets a uniform4f for each picture it draws there), each draw noted with
-  // how far the video itself has loaded; every frame the page draws is timed
-  // too, and every time the canvas shows is counted. A browser drawing a
-  // frame a fifth of a second apart or worse (a starved, software-drawn
-  // runner, as CI's WebKit) can step a melt from start to end between two
-  // frames, or see the site go on (PageLeave's 1.1 seconds) before it draws
-  // one: there each melt is only seen to start, and the gap is noted. Held back, as on a slow connection or where a browser loads no
-  // video until it plays, it melts as its poster: it used to wait unseen and
-  // then just show.
+  // how far the video itself has loaded; every time the canvas shows is
+  // counted, and every frame the page draws while it shows. Held back, as on
+  // a slow connection or where a browser loads no video until it plays, it
+  // melts as its poster: it used to wait unseen and then just show. A
+  // melt draws a picture only once its wait is over (up to 0.35 seconds
+  // coming, 0.08 going) and until it ends, so a starved, software-drawn
+  // runner (CI's WebKit can be one) may draw nothing of it: a frame, then
+  // one 2 seconds on with the melt over, or the site gone on (PageLeave's 1.1
+  // seconds). The draws are asserted where the melt was on screen for two
+  // frames past its wait, a fifth of a second apart or less; elsewhere it is
+  // only seen to start, and its frames are noted.
   for (const isLoading of [false, true])
     test(`its video melts in and out as the site leaves${
       isLoading ? ', still loading' : ''
@@ -65,9 +68,9 @@ test.describe('the 404 page', () => {
       await page.addInitScript(() => {
         const uniform = WebGLRenderingContext.prototype.uniform4f;
         const draws: number[] = [];
-        const frames: number[] = [];
+        const meltFrames: number[] = [];
         const shows = { count: 0 };
-        Object.assign(window, { draws, frames, shows });
+        Object.assign(window, { draws, meltFrames, shows });
         new MutationObserver((changes) => {
           for (const { target } of changes)
             if (
@@ -82,7 +85,8 @@ test.describe('the 404 page', () => {
           attributeFilter: ['hidden'],
         });
         const tick = (now: number) => {
-          frames.push(now);
+          const canvas = document.querySelector<HTMLElement>('canvas.fixed');
+          if (canvas && !canvas.hidden) meltFrames.push(now);
           requestAnimationFrame(tick);
         };
         requestAnimationFrame(tick);
@@ -96,24 +100,35 @@ test.describe('the 404 page', () => {
         };
       });
       if (isLoading) await page.route('**/hello-is-it-me.mp4', () => {});
-      await page.goto('/no-such-page');
+      // Not waiting for the page's load: a browser can hold that for the
+      // video, which never comes here.
+      await page.goto('/no-such-page', { waitUntil: 'domcontentloaded' });
       await expect(page.locator('.collage-tile')).toHaveCSS('opacity', '1');
       const melts = await page.evaluate(() =>
         document.documentElement.hasAttribute('data-melts'),
       );
       test.skip(!melts, 'no GPU here: it slides instead');
-      // The page's middle frame gap so far, in milliseconds.
-      const gap = await page.evaluate(() => {
-        const { frames } = window as never as { frames: number[] };
-        const gaps = frames.slice(1).map((at, k) => at - frames[k]!);
-        return gaps.sort((a, b) => a - b)[gaps.length >> 1] ?? Infinity;
-      });
-      const isSmooth = gap < 200;
+      // Whether the melt's frames since it began could show it, `waitMs`
+      // being its longest wait.
+      const isSeen = (waitMs: number) =>
+        page.evaluate((waitMs) => {
+          const { meltFrames: at } = window as never as {
+            meltFrames: number[];
+          };
+          const gaps = at
+            .slice(1)
+            .map((t, k) => t - at[k]!)
+            .sort((a, b) => a - b);
+          const after = at.filter((t) => t - at[0]! > waitMs).length;
+          return after >= 2 && (gaps[gaps.length >> 1] ?? Infinity) < 200;
+        }, waitMs);
+      const framesIn = (await page.evaluate('meltFrames.length')) as number;
+      const isSeenIn = await isSeen(350);
       expect(await page.evaluate('shows.count')).toBeGreaterThan(0);
       const drawsIn = (await page.evaluate('draws')) as number[];
-      if (isSmooth) expect(drawsIn.length).toBeGreaterThan(0);
+      if (isSeenIn) expect(drawsIn.length).toBeGreaterThan(0);
       expect(drawsIn.every((loaded) => !isLoading || loaded < 2)).toBe(true);
-      await page.evaluate('draws.length = 0');
+      await page.evaluate('draws.length = meltFrames.length = 0');
       // Watched, not polled: the melt is over within about a second, and
       // the click's own wait for the site to go took most of that on the
       // runner, so a poll first looked once it had gone.
@@ -133,11 +148,13 @@ test.describe('the 404 page', () => {
       expect(await melted).toBe(true);
       await expect(page).toHaveURL(/contact/);
       const drawsOut = ((await page.evaluate('draws')) as number[]).length;
-      if (isSmooth) expect(drawsOut).toBeGreaterThan(0);
-      else
+      const framesOut = (await page.evaluate('meltFrames.length')) as number;
+      const isSeenOut = await isSeen(80);
+      if (isSeenOut) expect(drawsOut).toBeGreaterThan(0);
+      if (!isSeenIn || !isSeenOut)
         test.info().annotations.push({
           type: 'note',
-          description: `frames ${Math.round(gap)}ms apart: melt drawn ${drawsIn.length} times in, ${drawsOut} out`,
+          description: `melt frames ${framesIn} in, ${framesOut} out; uniform4f ${drawsIn.length} in, ${drawsOut} out (three per draw)`,
         });
     });
 });
