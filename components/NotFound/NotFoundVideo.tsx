@@ -63,6 +63,12 @@ export default function NotFoundVideo() {
             ref={boxRef}
             className="collage relative aspect-video w-[min(100%,calc((100dvh_-_var(--page-top)_-_var(--page-bottom)_-_10rem)*16/9))]"
           >
+            {/* Blurs what is behind the video while it plays (styles/globals.css). */}
+            <div
+              data-behind-blur
+              aria-hidden
+              className="pointer-events-none fixed inset-0"
+            />
             <div className="collage-tile absolute inset-0 overflow-hidden rounded-2xl bg-head-dark [container-type:size]">
               {/* As wide as its picture needs to fill the window across
                 (PICTURE_WIDTH), or as its height needs to fill it down,

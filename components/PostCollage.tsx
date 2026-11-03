@@ -121,6 +121,12 @@ export default function PostCollage({
       className={`collage relative ${className}`}
       style={style}
     >
+      {/* Blurs everything behind its video while it plays (styles/globals.css). */}
+      <div
+        data-behind-blur
+        aria-hidden
+        className="pointer-events-none fixed inset-0"
+      />
       {tiles.map((laidOut, k) => {
         const isVideo = sources[k]!.type === 'YouTube';
         const tile = isVideo && isPlaying && playingAt ? playingAt : laidOut;

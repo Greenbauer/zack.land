@@ -418,6 +418,39 @@ html:not([data-page-in]):has([data-scene])
 [data-scroll-arrows] {
   transition: opacity 0.8s ease-out;
 }
+
+/* While a video someone started plays (data-focus-blur and data-playing: a
+   post's YouTube tile, the 404 page's video; not the silent loops, which
+   always play), everything behind it blurs, as under the header's open
+   dropdown (NavDropdown.tsx) and with the 3D scene (Background/focusBlur.ts),
+   over FOCUS_BLUR_SECONDS: the page, by a layer just under the video
+   (data-behind-blur, in its .collage: PostCollage.tsx, NotFoundVideo.tsx),
+   and the header and footer, which lie over the page. */
+[data-behind-blur] {
+  z-index: 19;
+  visibility: hidden;
+  opacity: 0;
+  backdrop-filter: blur(6px);
+  transition:
+    opacity 0.3s,
+    visibility 0s 0.3s;
+}
+.collage:has([data-focus-blur][data-playing]) > [data-behind-blur] {
+  visibility: visible;
+  opacity: 1;
+  transition: opacity 0.3s;
+}
+.collage-tile:has([data-focus-blur][data-playing]) {
+  z-index: 20;
+}
+[data-site-chrome] {
+  transition:
+    opacity 0.8s ease-out,
+    filter 0.3s;
+}
+body:has([data-focus-blur][data-playing]) [data-site-chrome] {
+  filter: blur(6px);
+}
 html:not([data-page-in]):has([data-scene])
   :is([data-site-chrome], [data-scroll-arrows]) {
   opacity: 0;

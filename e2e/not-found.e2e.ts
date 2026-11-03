@@ -48,6 +48,50 @@ test.describe('the 404 page', () => {
     expect(await tile.boundingBox()).toEqual(first);
   });
 
+  // Zach, Nov 2: "whenever any video is being played ... everything behind
+  // it should blur as we have for the other blur logic." Played, its card
+  // behind it blurs (the layer under it, data-behind-blur, lies over the
+  // card's title but under the video), and the header and footer blur; the
+  // scene behind already does (Background/focusBlur.ts). Paused, none of it.
+  test('played, everything behind it blurs, and paused, it stops', async ({
+    page,
+  }) => {
+    await page.goto('/no-such-page');
+    const layer = page.locator('[data-behind-blur]');
+    const chrome = page.locator('[data-site-chrome]');
+    await expect(page.locator('.collage-tile')).toHaveCSS('opacity', '1');
+    await expect(layer).toHaveCSS('visibility', 'hidden');
+    await page.getByRole('button', { name: 'Play the video' }).click();
+    await expect(layer).toHaveCSS('opacity', '1');
+    await expect(layer).toHaveCSS('backdrop-filter', 'blur(6px)');
+    for (const part of await chrome.all())
+      await expect(part).toHaveCSS('filter', 'blur(6px)');
+    const tops = await page.evaluate(() => {
+      const layer = document.querySelector<HTMLElement>('[data-behind-blur]')!;
+      const tile = document.querySelector<HTMLElement>('.collage-tile')!;
+      const title = document
+        .querySelector<HTMLElement>('h3')!
+        .getBoundingClientRect();
+      const t = tile.getBoundingClientRect();
+      layer.style.pointerEvents = 'auto';
+      const atVideo = document.elementFromPoint(
+        t.x + t.width / 2,
+        t.y + t.height / 2,
+      );
+      const atTitle = document.elementFromPoint(
+        title.x + 10,
+        title.y + title.height / 2,
+      );
+      layer.style.pointerEvents = '';
+      return { video: tile.contains(atVideo), title: atTitle === layer };
+    });
+    expect(tops).toEqual({ video: true, title: true });
+    await page.getByRole('button', { name: 'Pause the video' }).click();
+    await expect(layer).toHaveCSS('visibility', 'hidden');
+    for (const part of await chrome.all())
+      await expect(part).toHaveCSS('filter', 'none');
+  });
+
   // Melting, it is drawn on the melt's canvas (canvas.fixed: MediaMelter.draw
   // sets a uniform4f for each picture it draws there), each draw noted with
   // how far the video itself has loaded; every time the canvas shows is
