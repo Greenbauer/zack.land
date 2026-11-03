@@ -297,8 +297,15 @@ html[data-melts] .collage[data-playing] .collage-tile:not([data-video]) {
 }
 
 /* While a video plays its tile grows over the others to the post's width
-   (PostCollage) and they blur behind it. */
+   (PostCollage) and they blur behind it; it stays over them until it has
+   shrunk back (0.6s, the z-index's delay). At rest it lies with the others,
+   under the glass of the card below them (its layer, data-photo-lens, at the
+   card's z-index less one: EdgeCard.tsx, Background/photoLens.ts), which
+   left a video as the one picture the glass passed over. */
 .collage .collage-tile[data-video] {
+  z-index: 0;
+}
+.collage .collage-tile[data-video][data-playing] {
   z-index: 20;
 }
 .collage[data-shown] .collage-tile[data-video] {
@@ -309,7 +316,8 @@ html[data-melts] .collage[data-playing] .collage-tile:not([data-video]) {
     left 0.6s cubic-bezier(0.65, 0, 0.35, 1),
     top 0.6s cubic-bezier(0.65, 0, 0.35, 1),
     width 0.6s cubic-bezier(0.65, 0, 0.35, 1),
-    height 0.6s cubic-bezier(0.65, 0, 0.35, 1);
+    height 0.6s cubic-bezier(0.65, 0, 0.35, 1),
+    z-index 0s 0.6s;
 }
 html[data-melts] .collage[data-shown] .collage-tile[data-video] {
   transition:
@@ -317,7 +325,21 @@ html[data-melts] .collage[data-shown] .collage-tile[data-video] {
     left 0.6s cubic-bezier(0.65, 0, 0.35, 1),
     top 0.6s cubic-bezier(0.65, 0, 0.35, 1),
     width 0.6s cubic-bezier(0.65, 0, 0.35, 1),
-    height 0.6s cubic-bezier(0.65, 0, 0.35, 1);
+    height 0.6s cubic-bezier(0.65, 0, 0.35, 1),
+    z-index 0s 0.6s;
+}
+.collage[data-shown] .collage-tile[data-video][data-playing] {
+  transition-delay: var(--wait, 0s), var(--wait, 0s), 0s, 0s, 0s, 0s, 0s, 0s;
+}
+html[data-melts] .collage[data-shown] .collage-tile[data-video][data-playing] {
+  transition-delay: 0s;
+}
+/* A playing video opens over the whole page, as a modal does: the scroll
+   arrows over the sky (on the body, above the page: ScrollArrows.tsx) step
+   behind the page with their glass until it stops, rather than lying over
+   the video. */
+body:has(.collage[data-playing]) [data-scroll-arrows] button[data-glass] {
+  z-index: -1;
 }
 .collage[data-playing] .collage-tile:not([data-video]) {
   filter: blur(6px);

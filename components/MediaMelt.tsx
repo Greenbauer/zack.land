@@ -46,6 +46,7 @@ const LOAD_LIMIT_S = 3;
 type Piece = {
   tile: HTMLElement;
   picture: Picture;
+  poster: HTMLImageElement | null;
   rest: Box | null;
   shown: [number, number, number, number] | null;
   pace: number;
@@ -99,6 +100,7 @@ export function melt(box: HTMLElement, direction: 1 | -1) {
           {
             tile,
             picture,
+            poster: posterOf(picture),
             rest: null,
             shown: null,
             radii: radiiOf(tile),
@@ -115,6 +117,26 @@ export function melt(box: HTMLElement, direction: 1 | -1) {
   runs.set(box, { box, direction, began: seconds(), pieces });
   wake();
 }
+
+// A video's poster (its first frame, the 404 page's), loaded once, for its
+// melt to draw while the video itself has no frame yet: on a slow
+// connection, or in a browser that loads none until it plays, it would wait
+// unseen and then just show (LOAD_LIMIT_S).
+const posters = new Map<string, HTMLImageElement>();
+function posterOf(picture: Picture) {
+  if (!(picture instanceof HTMLVideoElement) || !picture.poster) return null;
+  let poster = posters.get(picture.poster);
+  if (!poster) {
+    poster = new Image();
+    poster.src = picture.poster;
+    posters.set(picture.poster, poster);
+  }
+  return poster;
+}
+
+// What `piece` melts as: its picture, else its poster, once either can draw.
+const drawnOf = ({ picture, poster }: Piece) =>
+  ready(picture) ? picture : poster && ready(poster) ? poster : null;
 
 const isHeld = () =>
   !!document.querySelector('[data-scene]') &&
@@ -177,8 +199,9 @@ function advance(melter: MediaMelter, run: Run, step: number, dpr: number) {
   const isHidden = !box.offsetWidth;
   if (direction < 0) box.removeAttribute('data-whole');
   for (const piece of run.pieces) {
-    const { picture, radii, rest, shown } = piece;
-    const canDraw = ready(picture) && !!rest && !!shown;
+    const { radii, rest, shown } = piece;
+    const drawn = drawnOf(piece);
+    const canDraw = !!drawn && !!rest && !!shown;
     if (!rest && isHidden && direction < 0) piece.melt = end;
     else if (!canDraw && elapsed > LOAD_LIMIT_S) piece.melt = end;
     else if (canDraw && elapsed >= piece.wait)
@@ -188,7 +211,7 @@ function advance(melter: MediaMelter, run: Run, step: number, dpr: number) {
     const isAtRest = direction > 0 && piece.melt === 1;
     piece.tile.toggleAttribute('data-rest', isAtRest);
     if (canDraw && piece.melt > 0 && !isAtRest)
-      melter.draw(picture, rest, shown, radii, piece.melt, piece.seed, dpr);
+      melter.draw(drawn, rest, shown, radii, piece.melt, piece.seed, dpr);
   }
   return run.pieces.every((piece) => piece.melt === end);
 }

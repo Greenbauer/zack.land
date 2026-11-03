@@ -20,7 +20,8 @@ const PICTURE_WIDTH = 0.72;
 // file's black sides never show. Clicking it, or the play button over its
 // bottom, plays or pauses it. Its window is a tile of one (.collage, as a
 // post's images are), so it melts in from the window's right side and out
-// again as the site leaves, and rests still; while it plays the scene behind
+// again as the site leaves, and rests still (as its poster, its first frame,
+// until the video has a frame of its own: MediaMelt.tsx); while it plays the scene behind
 // the card blurs, as it does while a contact field has focus (data-focus-blur,
 // Background/focusBlur.ts). While the page shows, the 3D head looks worried
 // (headMood).
@@ -78,6 +79,7 @@ export default function NotFoundVideo() {
                 loop
                 playsInline
                 preload="auto"
+                poster="/not-found/hello-is-it-me.jpg"
               >
                 <source src="/not-found/hello-is-it-me.mp4" type="video/mp4" />
               </video>

@@ -85,7 +85,7 @@ export default function Footer() {
   const pathname = usePathname();
   const ref = useRef<HTMLElement | null>(null);
   const slotRef = useRef<HTMLDivElement | null>(null);
-  const phase = useArrowSwap(slotRef);
+  const phase = useArrowSwap(slotRef, pathname);
   // The icons and the text each take their colours from the sky behind them.
   const iconsRef = useRef<HTMLDivElement | null>(null);
   const textRef = useRef<HTMLDivElement | null>(null);

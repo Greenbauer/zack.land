@@ -1,5 +1,7 @@
 import { RefObject, useEffect, useRef, useState } from 'react';
 
+import { WIDE_FROM } from '@/components/PageScroller/edgeFade';
+
 // How long the footer's text and links take to fade out, and the arrow to
 // fade in after them, in milliseconds.
 export const SWAP_MS = 400;
@@ -32,14 +34,44 @@ export function swapTo(
     : { now: phase };
 }
 
+// Whether the arrow coming into the footer takes its place at once, with
+// nothing to fade: while the site is still loading (its header and footer
+// hidden, `isPageIn` false), and on a phone the first time it comes since a
+// page opened, a page opened again included (`isFirstOnPage`). A phone
+// always has it there at a page's opening,
+// so its posts are laid out for the shorter footer before their images come
+// in: a page that loads slowly is already in (data-page-in) by the time the
+// arrow comes, and the fade put off the footer's shrinking until after the
+// images had come to rest, which then jumped bigger and lower. On a wide
+// screen it comes only as the head steps away, which the page shows, so it
+// fades.
+export const goesStraight = ({
+  isPageIn,
+  isPhone,
+  isFirstOnPage,
+}: {
+  isPageIn: boolean;
+  isPhone: boolean;
+  isFirstOnPage: boolean;
+}) => !isPageIn || (isPhone && isFirstOnPage);
+
 // The footer's look as the scroll arrow comes and goes in `slotRef` (its
-// arrow slot, data-footer-arrow). While the site is still loading (its
-// header and footer hidden, data-page-in not yet set) it goes straight
-// to the arrow, with nothing to fade.
-export function useArrowSwap(slotRef: RefObject<HTMLElement | null>) {
+// arrow slot, data-footer-arrow) on the page at `pathname`, going straight to
+// the arrow where goesStraight says so.
+export function useArrowSwap(
+  slotRef: RefObject<HTMLElement | null>,
+  pathname: string,
+) {
   const [phase, setPhase] = useState<Swap>('text');
   const phaseRef = useRef<Swap>('text');
   const [hasArrow, setHasArrow] = useState(false);
+  // Whether the arrow has come since the page opened: cleared as each page
+  // opens, read as the arrow comes or goes, so a page changing under a swap
+  // leaves it be.
+  const hasComeRef = useRef(false);
+  useEffect(() => {
+    hasComeRef.current = false;
+  }, [pathname]);
 
   useEffect(() => {
     const slot = slotRef.current;
@@ -56,7 +88,16 @@ export function useArrowSwap(slotRef: RefObject<HTMLElement | null>) {
       phaseRef.current = next;
       setPhase(next);
     };
-    if (hasArrow && !document.documentElement.hasAttribute('data-page-in'))
+    const isFirstOnPage = !hasComeRef.current;
+    if (hasArrow) hasComeRef.current = true;
+    if (
+      hasArrow &&
+      goesStraight({
+        isPageIn: document.documentElement.hasAttribute('data-page-in'),
+        isPhone: innerWidth < WIDE_FROM,
+        isFirstOnPage,
+      })
+    )
       return go('arrow');
     const { now, then, after } = swapTo(phaseRef.current, hasArrow);
     go(now);
