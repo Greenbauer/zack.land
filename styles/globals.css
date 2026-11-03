@@ -451,6 +451,17 @@ body:has(.collage-tile[data-video][data-playing]) [data-behind-blur] {
 body:has(.collage-tile[data-video][data-playing]) [data-site-chrome] {
   filter: blur(6px);
 }
+/* Not while the header's dropdown or phone menu is open (data-open), and
+   with no fade: a filter makes the header the box its fixed backdrop, lenses
+   and menu are laid out in (NavDropdown.tsx, MobileNav), and a press on the
+   menu stops the video only once its pause lasts (Media.tsx). */
+body:has(.collage-tile[data-video][data-playing]):has(
+    [data-site-chrome] [data-open]
+  )
+  [data-site-chrome] {
+  filter: none;
+  transition: opacity 0.8s ease-out;
+}
 html:not([data-page-in]):has([data-scene])
   :is([data-site-chrome], [data-scroll-arrows]) {
   opacity: 0;
