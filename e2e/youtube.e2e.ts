@@ -198,26 +198,36 @@ const behindVideo = (page: Page) =>
 async function expectBlurBehind(
   page: Page,
   play: () => Promise<void>,
+  stop: () => Promise<void>,
   browserName: string,
 ) {
   const layer = page.locator('[data-behind-blur]');
   const chrome = page.locator('[data-site-chrome]');
   await expect(layer).toHaveCSS('visibility', 'hidden');
-  const { boxes: parts, sharp } = await restingSharpness(page, async () =>
+  const measure = async () =>
     (await behindVideo(page)).filter(
       ({ byBackdrop }) => !byBackdrop || browserName === 'chromium',
-    ),
-  );
+    );
+  const { boxes: parts, sharp } = await restingSharpness(page, measure);
   expect(parts.length).toBeGreaterThan(0);
   await play();
   await expect(layer).toHaveCSS('opacity', '1');
   await expect(layer).toHaveCSS('backdrop-filter', 'blur(6px)');
   for (const part of await chrome.all())
     await expect(part).toHaveCSS('filter', 'blur(6px)');
-  // Each part now at most two thirds as sharp as it was.
   const blurred = await sharpness(page, parts);
+  await stop();
+  await expectNoBlur(page);
+  // Each part at most two thirds as sharp as it was at rest, before it played
+  // or after it stopped, whichever is sharper: the text's colours follow the
+  // sky behind each word (useSkyColours.ts), which drifts, so one of the two
+  // may have caught a colour with less contrast.
+  const { sharp: after } = await restingSharpness(page, measure);
   expect(
-    parts.map(({ name }, k) => [name, blurred[k]! < sharp[k]! * 0.67]),
+    parts.map(({ name }, k) => [
+      name,
+      blurred[k]! < Math.max(sharp[k]!, after[k]!) * 0.67,
+    ]),
   ).toEqual(parts.map(({ name }) => [name, true]));
 }
 
@@ -346,21 +356,22 @@ test.describe('a YouTube video', () => {
         await expect(box).toHaveAttribute('data-playing');
         // Opened, and its blur come in (0.3s).
         await page.waitForTimeout(1200);
+        // The video itself stays on top, over all of it.
+        const t = (await tile.boundingBox())!;
+        expect(
+          await tile.evaluate(
+            (element, [x, y]) =>
+              element.contains(document.elementFromPoint(x!, y!)),
+            [t.x + t.width / 2, t.y + t.height / 2],
+          ),
+        ).toBe(true);
+      },
+      async () => {
+        await page.mouse.click(40, 450);
+        await expect(box).not.toHaveAttribute('data-playing');
       },
       browserName,
     );
-    // The video itself stays on top, over all of it.
-    const t = (await tile.boundingBox())!;
-    expect(
-      await tile.evaluate(
-        (element, [x, y]) =>
-          element.contains(document.elementFromPoint(x!, y!)),
-        [t.x + t.width / 2, t.y + t.height / 2],
-      ),
-    ).toBe(true);
-    await page.mouse.click(40, 450);
-    await expect(box).not.toHaveAttribute('data-playing');
-    await expectNoBlur(page);
   });
 
   test('a pause as short as a seek does not stop it', async ({ page }) => {
@@ -435,7 +446,10 @@ test.describe('a YouTube video on a phone', () => {
     expect(arrows).toEqual(arrows.map(() => false));
   });
 
-  test('playing, everything behind it blurs', async ({ page, browserName }) => {
+  test('playing, everything behind it blurs, and stops blurring as it stops', async ({
+    page,
+    browserName,
+  }) => {
     const { box, play } = await atVideoPost(page);
     await expectBlurBehind(
       page,
@@ -443,6 +457,11 @@ test.describe('a YouTube video on a phone', () => {
         await play.click();
         await expect(box).toHaveAttribute('data-playing');
         await page.waitForTimeout(1200);
+      },
+      async () => {
+        // Below the opened video, above the footer's scroll arrow.
+        await page.mouse.click(195, 640);
+        await expect(box).not.toHaveAttribute('data-playing');
       },
       browserName,
     );

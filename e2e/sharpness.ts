@@ -49,8 +49,10 @@ export async function sharpness(page: Page, boxes: Box[]) {
 }
 
 // The boxes `measure` finds, and the sharpness of each, once the page has
-// come in: no transition or animation that ends still running, and the
-// boxes where they were half a second before. The card, header and footer
+// come in: the sky settled (data-sky-settled, Sky.tsx: until then the text
+// may yet turn to the other side's colours, as the sky sets off for it), no
+// transition or animation that ends still running, and the boxes where they
+// were half a second before. The card, header and footer
 // fade in as the page comes in, and on a phone the footer can shrink after
 // that (--footer-height), moving what is above it; on a starved runner all
 // of it comes late, and a reading taken before is of the wrong place or of a
@@ -68,6 +70,7 @@ export async function restingSharpness<B extends Box>(
         boxes = await measure();
         const isStill = await page.evaluate(
           () =>
+            document.documentElement.hasAttribute('data-sky-settled') &&
             !document
               .getAnimations()
               .some(

@@ -104,11 +104,6 @@ test.describe('the 404 page', () => {
         await expect(part).toHaveCSS('filter', 'blur(6px)');
       await expect(page.locator('h3')).toHaveCSS('filter', 'blur(6px)');
       const blurred = await sharpness(page, parts);
-      expect(blurred.map((b, k) => b < sharp[k]! * 0.67)).toEqual([
-        true,
-        true,
-        true,
-      ]);
       const tile = page.locator('.collage-tile');
       const t = (await tile.boundingBox())!;
       expect(
@@ -123,6 +118,13 @@ test.describe('the 404 page', () => {
       await expect(page.locator('h3')).toHaveCSS('filter', 'none');
       for (const part of await chrome.all())
         await expect(part).toHaveCSS('filter', 'none');
+      // Each part at most two thirds as sharp as at rest, before it played or
+      // after it paused, whichever is sharper (the text's colours follow the
+      // sky behind each word, useSkyColours.ts, which drifts).
+      const { sharp: after } = await restingSharpness(page, measure);
+      expect(
+        blurred.map((b, k) => b < Math.max(sharp[k]!, after[k]!) * 0.67),
+      ).toEqual([true, true, true]);
     });
 
   // Melting, it is drawn on the melt's canvas (canvas.fixed: MediaMelter.draw
