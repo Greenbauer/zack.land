@@ -217,7 +217,8 @@ jobs:
           # it was not needed (true on a Mac, not on this runner), an explorer retried timed-out
           # screenshots until it ran out of turns. Unable to load /favicon.ico any way it tried, an
           # explorer stalled until the job's time ran out (PR 113, 2026-10-29); so did one that could not
-          # start sampling a page before it loaded.
+          # start sampling a page before it loaded. YouTube's sign-in check kept a walk's YouTube video
+          # from ever playing, so its criterion failed with the site working (PR 128, 2026-11-03).
           cat > qae-inputs/site.md <<'MD'
           # The site under test
           - No sign-in: every page is public, and there is one theme.
@@ -245,6 +246,13 @@ jobs:
             sky turns slowly with the head.
           - Focusing a form field blurs the scene behind the form within a few seconds here: focus it,
             wait 4 seconds, stop the scene, and take a screenshot.
+          - YouTube asks this runner to sign in ("confirm you're not a bot"), so its own player never
+            plays a post's YouTube video here. A post's YouTube tile loads its player only when its play
+            button is pressed, and takes a `window.YT` already there. So to check a criterion about one
+            playing, first (after the page has loaded, on each load) run the function below with the
+            evaluate tool: a short copy of the stand-in player e2e/youtube.e2e.ts uses. It draws nothing,
+            and plays, pauses and stops as YouTube's does, so the site behaves as with the real one.
+            `() => { window.YT = { PlayerState: { ENDED: 0, PLAYING: 1, PAUSED: 2 }, Player: function (element, options) { const player = this; const iframe = document.createElement('iframe'); element.appendChild(iframe); let state = -1; let wanted = -1; const say = (data) => { if (data === state) return; state = data; options.events.onStateChange({ target: player, data }); }; const go = (data) => { wanted = data; setTimeout(() => say(wanted), 50); }; player.playVideo = () => go(1); player.pauseVideo = () => go(2); player.getIframe = () => iframe; player.destroy = () => iframe.remove(); setTimeout(() => { options.events.onReady({ target: player }); if (wanted !== 2) { wanted = 1; say(1); } }, 0); } }; }`
           - This browser fails every request for exactly `/favicon.ico` (as an image or a fetch), as
             Playwright's Chromium does once a page has a route, which this harness sets; any other
             address loads. To look at the favicon, open `/favicon.ico?v=1`, which the site answers with
