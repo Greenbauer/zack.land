@@ -1,4 +1,6 @@
-import { expect as expectNow, Locator, Page, test } from '@playwright/test';
+import { expect as expectNow, Page, test } from '@playwright/test';
+
+import { restingSharpness, sharpness } from './sharpness';
 
 // A post's YouTube video (components/Media.tsx, components/PostCollage.tsx):
 // played, it takes the post's width with its card faded away; a press
@@ -149,40 +151,85 @@ const arrowsOverVideo = (page: Page) =>
 
 // Zach, Nov 2: "whenever any video is being played, especially when it's in
 // its expanded view (as in the buoyancy sorting video), everything behind it
-// should blur as we have for the other blur logic." While it plays: the
-// layer under it (data-behind-blur) is up, blurs, and lies over the page but
-// under the video; the header and footer blur. Stopped, none of it.
-async function expectBlurBehind(page: Page, box: Locator, isOn: boolean) {
-  const layer = box.locator('[data-behind-blur]');
+// should blur as we have for the other blur logic." What lies behind the
+// post's video and is on screen: the header's links and page title, the
+// footer, and the scroll arrows over the sky (on a phone, the menu button
+// for the links, and the footer's arrow with the footer). Each is read for sharpness from
+// the screen before it plays and while it does (sharpness.ts). The title and
+// the arrows over the sky lie under the page and are blurred by a backdrop
+// (data-behind-blur), which Playwright's WebKit does not draw at all, so
+// there only the parts blurred by a filter are read; in WebKit the layer's
+// own state stands for the rest.
+const behindVideo = (page: Page) =>
+  page.evaluate(() => {
+    const box = (element: Element, byBackdrop: boolean) => {
+      const b = element.getBoundingClientRect();
+      const x = Math.max(0, b.x);
+      const y = Math.max(0, b.y);
+      return {
+        x,
+        y,
+        width: Math.min(b.right, innerWidth) - x,
+        height: Math.min(b.bottom, innerHeight) - y,
+        byBackdrop,
+        name: element.textContent?.trim().slice(0, 24) || element.tagName,
+      };
+    };
+    const [header, footer] = document.querySelectorAll('[data-site-chrome]');
+    const shown = (element: Element) =>
+      getComputedStyle(element).visibility !== 'hidden' &&
+      element.getBoundingClientRect().width > 0;
+    return [
+      ...[...header!.querySelectorAll('a, button')].filter(shown).slice(0, 1),
+      footer!.querySelector('footer')!,
+    ]
+      .map((element) => box(element, false))
+      .concat(
+        [
+          ...header!.querySelectorAll('[data-scene-title]'),
+          ...document.querySelectorAll('body > [data-scroll-arrows] button'),
+        ]
+          .filter(shown)
+          .map((element) => box(element, true)),
+      )
+      .filter(({ width, height }) => width > 4 && height > 4);
+  });
+
+async function expectBlurBehind(
+  page: Page,
+  play: () => Promise<void>,
+  browserName: string,
+) {
+  const layer = page.locator('[data-behind-blur]');
   const chrome = page.locator('[data-site-chrome]');
-  if (!isOn) {
-    await expect(layer).toHaveCSS('visibility', 'hidden');
-    for (const part of await chrome.all())
-      await expect(part).toHaveCSS('filter', 'none');
-    return;
-  }
+  await expect(layer).toHaveCSS('visibility', 'hidden');
+  const { boxes: parts, sharp } = await restingSharpness(page, async () =>
+    (await behindVideo(page)).filter(
+      ({ byBackdrop }) => !byBackdrop || browserName === 'chromium',
+    ),
+  );
+  expect(parts.length).toBeGreaterThan(0);
+  await play();
   await expect(layer).toHaveCSS('opacity', '1');
   await expect(layer).toHaveCSS('backdrop-filter', 'blur(6px)');
   for (const part of await chrome.all())
     await expect(part).toHaveCSS('filter', 'blur(6px)');
-  const tops = await box.evaluate((collage) => {
-    const layer = collage.querySelector<HTMLElement>('[data-behind-blur]')!;
-    const tile = collage.querySelector<HTMLElement>(
-      '[data-focus-blur][data-playing]',
-    )!;
-    const t = tile.getBoundingClientRect();
-    layer.style.pointerEvents = 'auto';
-    const atVideo = document.elementFromPoint(
-      t.x + t.width / 2,
-      t.y + t.height / 2,
-    );
-    // Beside the video, toward the window's left edge, over the page.
-    const beside = document.elementFromPoint(4, t.y + t.height / 2);
-    layer.style.pointerEvents = '';
-    return { video: tile.contains(atVideo), beside: beside === layer };
-  });
-  expect(tops).toEqual({ video: true, beside: true });
+  // Each part now at most two thirds as sharp as it was.
+  const blurred: number[] = [];
+  for (const part of parts) blurred.push(await sharpness(page, part));
+  expect(
+    parts.map(({ name }, k) => [name, blurred[k]! < sharp[k]! * 0.67]),
+  ).toEqual(parts.map(({ name }) => [name, true]));
 }
+
+const expectNoBlur = async (page: Page) => {
+  await expect(page.locator('[data-behind-blur]')).toHaveCSS(
+    'visibility',
+    'hidden',
+  );
+  for (const part of await page.locator('[data-site-chrome]').all())
+    await expect(part).toHaveCSS('filter', 'none');
+};
 
 test.describe('a YouTube video', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
@@ -290,15 +337,31 @@ test.describe('a YouTube video', () => {
 
   test('playing, everything behind it blurs, and stops blurring as it stops', async ({
     page,
+    browserName,
   }) => {
-    const { box, play } = await atVideoPost(page);
-    await expectBlurBehind(page, box, false);
-    await play.click();
-    await expect(box).toHaveAttribute('data-playing');
-    await expectBlurBehind(page, box, true);
+    const { box, tile, play } = await atVideoPost(page);
+    await expectBlurBehind(
+      page,
+      async () => {
+        await play.click();
+        await expect(box).toHaveAttribute('data-playing');
+        // Opened, and its blur come in (0.3s).
+        await page.waitForTimeout(1200);
+      },
+      browserName,
+    );
+    // The video itself stays on top, over all of it.
+    const t = (await tile.boundingBox())!;
+    expect(
+      await tile.evaluate(
+        (element, [x, y]) =>
+          element.contains(document.elementFromPoint(x!, y!)),
+        [t.x + t.width / 2, t.y + t.height / 2],
+      ),
+    ).toBe(true);
     await page.mouse.click(40, 450);
     await expect(box).not.toHaveAttribute('data-playing');
-    await expectBlurBehind(page, box, false);
+    await expectNoBlur(page);
   });
 
   test('a pause as short as a seek does not stop it', async ({ page }) => {
@@ -373,10 +436,16 @@ test.describe('a YouTube video on a phone', () => {
     expect(arrows).toEqual(arrows.map(() => false));
   });
 
-  test('playing, everything behind it blurs', async ({ page }) => {
+  test('playing, everything behind it blurs', async ({ page, browserName }) => {
     const { box, play } = await atVideoPost(page);
-    await play.click();
-    await expect(box).toHaveAttribute('data-playing');
-    await expectBlurBehind(page, box, true);
+    await expectBlurBehind(
+      page,
+      async () => {
+        await play.click();
+        await expect(box).toHaveAttribute('data-playing');
+        await page.waitForTimeout(1200);
+      },
+      browserName,
+    );
   });
 });

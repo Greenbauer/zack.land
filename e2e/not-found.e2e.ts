@@ -1,4 +1,6 @@
-import { expect as expectNow, test } from '@playwright/test';
+import { expect as expectNow, Locator, test } from '@playwright/test';
+
+import { restingSharpness, sharpness } from './sharpness';
 
 // The 404 page's video (components/NotFound/NotFoundVideo.tsx): a tile of
 // one, it comes in, rests still and bends as a post's images do, and melts
@@ -7,6 +9,28 @@ import { expect as expectNow, test } from '@playwright/test';
 
 // A software-drawn runner can take many seconds over a frame.
 const expect = expectNow.configure({ timeout: 30_000 });
+
+// Linux WebKit rejects this 720p H.264 file, re-encoded too (format error,
+// no frames), so there it has no picture and never plays; Chrome and Mac
+// WebKit play it.
+const skipWhereUndecodable = async (tile: Locator) => {
+  const canPlay = await tile.locator('video').evaluate(
+    (video: HTMLVideoElement) =>
+      new Promise<boolean>((resolve) => {
+        const isSettled = () =>
+          video.readyState >= 2 ||
+          !!video.error ||
+          video.networkState === video.NETWORK_NO_SOURCE;
+        const wait = () =>
+          isSettled() ? resolve(video.readyState >= 2) : setTimeout(wait, 100);
+        wait();
+      }),
+  );
+  test.skip(
+    !canPlay && test.info().project.name === 'webkit',
+    'this browser cannot decode the video',
+  );
+};
 
 test.describe('the 404 page', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
@@ -18,26 +42,7 @@ test.describe('the 404 page', () => {
     await expect(page.locator('canvas.fixed')).toBeHidden();
     // Its card may still be sliding in.
     await page.waitForTimeout(2000);
-    // Linux WebKit rejects this 720p H.264 file, re-encoded too (format error,
-    // no frames), so there is no picture to bend; Chrome and Mac WebKit play it.
-    const canPlay = await tile.locator('video').evaluate(
-      (video: HTMLVideoElement) =>
-        new Promise<boolean>((resolve) => {
-          const isSettled = () =>
-            video.readyState >= 2 ||
-            !!video.error ||
-            video.networkState === video.NETWORK_NO_SOURCE;
-          const wait = () =>
-            isSettled()
-              ? resolve(video.readyState >= 2)
-              : setTimeout(wait, 100);
-          wait();
-        }),
-    );
-    test.skip(
-      !canPlay && test.info().project.name === 'webkit',
-      'this browser cannot decode the video',
-    );
+    await skipWhereUndecodable(tile);
     const box = (await tile.boundingBox())!;
     await page.mouse.move(box.x + 20, box.y + 20);
     await page.mouse.move(box.x + box.width / 2, box.y + 40, { steps: 6 });
@@ -49,48 +54,76 @@ test.describe('the 404 page', () => {
   });
 
   // Zach, Nov 2: "whenever any video is being played ... everything behind
-  // it should blur as we have for the other blur logic." Played, its card
-  // behind it blurs (the layer under it, data-behind-blur, lies over the
-  // card's title but under the video), and the header and footer blur; the
-  // scene behind already does (Background/focusBlur.ts). Paused, none of it.
-  test('played, everything behind it blurs, and paused, it stops', async ({
-    page,
-  }) => {
-    await page.goto('/no-such-page');
-    const layer = page.locator('[data-behind-blur]');
-    const chrome = page.locator('[data-site-chrome]');
-    await expect(page.locator('.collage-tile')).toHaveCSS('opacity', '1');
-    await expect(layer).toHaveCSS('visibility', 'hidden');
-    await page.getByRole('button', { name: 'Play the video' }).click();
-    await expect(layer).toHaveCSS('opacity', '1');
-    await expect(layer).toHaveCSS('backdrop-filter', 'blur(6px)');
-    for (const part of await chrome.all())
-      await expect(part).toHaveCSS('filter', 'blur(6px)');
-    const tops = await page.evaluate(() => {
-      const layer = document.querySelector<HTMLElement>('[data-behind-blur]')!;
-      const tile = document.querySelector<HTMLElement>('.collage-tile')!;
-      const title = document
-        .querySelector<HTMLElement>('h3')!
-        .getBoundingClientRect();
-      const t = tile.getBoundingClientRect();
-      layer.style.pointerEvents = 'auto';
-      const atVideo = document.elementFromPoint(
-        t.x + t.width / 2,
-        t.y + t.height / 2,
-      );
-      const atTitle = document.elementFromPoint(
-        title.x + 10,
-        title.y + title.height / 2,
-      );
-      layer.style.pointerEvents = '';
-      return { video: tile.contains(atVideo), title: atTitle === layer };
+  // it should blur as we have for the other blur logic." Played, what lies
+  // behind it blurs: its card's title, the header's links and the footer, read
+  // for sharpness from the screen before and while it plays (sharpness.ts;
+  // all three are blurred by a filter, which both browsers draw), and the
+  // layer under the page that blurs the scene comes up. Paused, none of it.
+  for (const { name, width, height } of [
+    { name: 'desktop', width: 1440, height: 900 },
+    { name: 'phone', width: 390, height: 844 },
+  ])
+    test(`played, everything behind it blurs, and paused, it stops (${name})`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height });
+      await page.goto('/no-such-page');
+      // Played, as only a video that plays can be.
+      await skipWhereUndecodable(page.locator('.collage-tile'));
+      const layer = page.locator('[data-behind-blur]');
+      const chrome = page.locator('[data-site-chrome]');
+      await expect(page.locator('.collage-tile')).toHaveCSS('opacity', '1');
+      await expect(layer).toHaveCSS('visibility', 'hidden');
+      const measure = () =>
+        page.evaluate(() =>
+          [
+            document.querySelector('h3')!,
+            [
+              ...document.querySelectorAll(
+                '[data-site-chrome] a, [data-site-chrome] button',
+              ),
+            ].find((e) => e.getBoundingClientRect().width > 0)!,
+            document.querySelector('footer')!,
+          ].map((element) => {
+            const b = element.getBoundingClientRect();
+            const x = Math.max(0, b.x);
+            const y = Math.max(0, b.y);
+            return {
+              x,
+              y,
+              width: Math.min(b.right, innerWidth) - x,
+              height: Math.min(b.bottom, innerHeight) - y,
+            };
+          }),
+        );
+      const { boxes: parts, sharp } = await restingSharpness(page, measure);
+      await page.getByRole('button', { name: 'Play the video' }).click();
+      await expect(layer).toHaveCSS('opacity', '1');
+      await expect(layer).toHaveCSS('backdrop-filter', 'blur(6px)');
+      for (const part of await chrome.all())
+        await expect(part).toHaveCSS('filter', 'blur(6px)');
+      await expect(page.locator('h3')).toHaveCSS('filter', 'blur(6px)');
+      const blurred: number[] = [];
+      for (const part of parts) blurred.push(await sharpness(page, part));
+      expect(blurred.map((b, k) => b < sharp[k]! * 0.67)).toEqual([
+        true,
+        true,
+        true,
+      ]);
+      const tile = page.locator('.collage-tile');
+      const t = (await tile.boundingBox())!;
+      expect(
+        await tile.evaluate(
+          (element, [x, y]) =>
+            element.contains(document.elementFromPoint(x!, y!)),
+          [t.x + t.width / 2, t.y + t.height / 2],
+        ),
+      ).toBe(true);
+      await page.getByRole('button', { name: 'Pause the video' }).click();
+      await expect(layer).toHaveCSS('visibility', 'hidden');
+      for (const part of await chrome.all())
+        await expect(part).toHaveCSS('filter', 'none');
     });
-    expect(tops).toEqual({ video: true, title: true });
-    await page.getByRole('button', { name: 'Pause the video' }).click();
-    await expect(layer).toHaveCSS('visibility', 'hidden');
-    for (const part of await chrome.all())
-      await expect(part).toHaveCSS('filter', 'none');
-  });
 
   // Melting, it is drawn on the melt's canvas (canvas.fixed: MediaMelter.draw
   // sets a uniform4f for each picture it draws there), each draw noted with
