@@ -103,8 +103,7 @@ test.describe('the 404 page', () => {
       for (const part of await chrome.all())
         await expect(part).toHaveCSS('filter', 'blur(6px)');
       await expect(page.locator('h3')).toHaveCSS('filter', 'blur(6px)');
-      const blurred: number[] = [];
-      for (const part of parts) blurred.push(await sharpness(page, part));
+      const blurred = await sharpness(page, parts);
       expect(blurred.map((b, k) => b < sharp[k]! * 0.67)).toEqual([
         true,
         true,
@@ -121,6 +120,7 @@ test.describe('the 404 page', () => {
       ).toBe(true);
       await page.getByRole('button', { name: 'Pause the video' }).click();
       await expect(layer).toHaveCSS('visibility', 'hidden');
+      await expect(page.locator('h3')).toHaveCSS('filter', 'none');
       for (const part of await chrome.all())
         await expect(part).toHaveCSS('filter', 'none');
     });

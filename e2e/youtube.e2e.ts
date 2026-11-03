@@ -215,8 +215,7 @@ async function expectBlurBehind(
   for (const part of await chrome.all())
     await expect(part).toHaveCSS('filter', 'blur(6px)');
   // Each part now at most two thirds as sharp as it was.
-  const blurred: number[] = [];
-  for (const part of parts) blurred.push(await sharpness(page, part));
+  const blurred = await sharpness(page, parts);
   expect(
     parts.map(({ name }, k) => [name, blurred[k]! < sharp[k]! * 0.67]),
   ).toEqual(parts.map(({ name }) => [name, true]));
