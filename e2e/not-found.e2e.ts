@@ -1,4 +1,6 @@
-import { expect as expectNow, test } from '@playwright/test';
+import { expect as expectNow, Locator, test } from '@playwright/test';
+
+import { restingSharpness, sharpness } from './sharpness';
 
 // The 404 page's video (components/NotFound/NotFoundVideo.tsx): a tile of
 // one, it comes in, rests still and bends as a post's images do, and melts
@@ -7,6 +9,28 @@ import { expect as expectNow, test } from '@playwright/test';
 
 // A software-drawn runner can take many seconds over a frame.
 const expect = expectNow.configure({ timeout: 30_000 });
+
+// Linux WebKit rejects this 720p H.264 file, re-encoded too (format error,
+// no frames), so there it has no picture and never plays; Chrome and Mac
+// WebKit play it.
+const skipWhereUndecodable = async (tile: Locator) => {
+  const canPlay = await tile.locator('video').evaluate(
+    (video: HTMLVideoElement) =>
+      new Promise<boolean>((resolve) => {
+        const isSettled = () =>
+          video.readyState >= 2 ||
+          !!video.error ||
+          video.networkState === video.NETWORK_NO_SOURCE;
+        const wait = () =>
+          isSettled() ? resolve(video.readyState >= 2) : setTimeout(wait, 100);
+        wait();
+      }),
+  );
+  test.skip(
+    !canPlay && test.info().project.name === 'webkit',
+    'this browser cannot decode the video',
+  );
+};
 
 test.describe('the 404 page', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
@@ -18,26 +42,7 @@ test.describe('the 404 page', () => {
     await expect(page.locator('canvas.fixed')).toBeHidden();
     // Its card may still be sliding in.
     await page.waitForTimeout(2000);
-    // Linux WebKit rejects this 720p H.264 file, re-encoded too (format error,
-    // no frames), so there is no picture to bend; Chrome and Mac WebKit play it.
-    const canPlay = await tile.locator('video').evaluate(
-      (video: HTMLVideoElement) =>
-        new Promise<boolean>((resolve) => {
-          const isSettled = () =>
-            video.readyState >= 2 ||
-            !!video.error ||
-            video.networkState === video.NETWORK_NO_SOURCE;
-          const wait = () =>
-            isSettled()
-              ? resolve(video.readyState >= 2)
-              : setTimeout(wait, 100);
-          wait();
-        }),
-    );
-    test.skip(
-      !canPlay && test.info().project.name === 'webkit',
-      'this browser cannot decode the video',
-    );
+    await skipWhereUndecodable(tile);
     const box = (await tile.boundingBox())!;
     await page.mouse.move(box.x + 20, box.y + 20);
     await page.mouse.move(box.x + box.width / 2, box.y + 40, { steps: 6 });
@@ -47,6 +52,73 @@ test.describe('the 404 page', () => {
     await page.waitForTimeout(600);
     expect(await tile.boundingBox()).toEqual(first);
   });
+
+  // Zach, Nov 3: the blur of everything behind a video is for a post's video
+  // opened over its post, and "There wasn't any issue with the blur on the
+  // 404". Played, the 404 video blurs only the scene behind its card, as on
+  // master (focusBlur.ts): the header's controls, its title and the footer
+  // stay sharp, read for sharpness from the screen before, while and after it
+  // plays (sharpness.ts), and nothing blurs them by a filter or the layer
+  // under the page (data-behind-blur).
+  for (const { name, width, height } of [
+    { name: 'desktop', width: 1440, height: 900 },
+    { name: 'phone', width: 390, height: 844 },
+  ])
+    test(`played, its header, title and footer stay sharp (${name})`, async ({
+      page,
+    }) => {
+      // The page settles twice, before and after (restingSharpness), which a
+      // software-drawn runner can take most of a minute over.
+      test.slow();
+      await page.setViewportSize({ width, height });
+      await page.goto('/no-such-page');
+      // Played, as only a video that plays can be.
+      await skipWhereUndecodable(page.locator('.collage-tile'));
+      const measure = () =>
+        page.evaluate(() =>
+          [
+            document.querySelector('h3')!,
+            [
+              ...document.querySelectorAll(
+                '[data-site-chrome] a, [data-site-chrome] button',
+              ),
+            ].find((e) => e.getBoundingClientRect().width > 0)!,
+            document.querySelector('footer')!,
+          ].map((element) => {
+            const b = element.getBoundingClientRect();
+            const x = Math.max(0, b.x);
+            const y = Math.max(0, b.y);
+            return {
+              x,
+              y,
+              width: Math.min(b.right, innerWidth) - x,
+              height: Math.min(b.bottom, innerHeight) - y,
+            };
+          }),
+        );
+      const { boxes: parts, sharp } = await restingSharpness(page, measure);
+      await page.getByRole('button', { name: 'Play the video' }).click();
+      await expect(page.locator('video')).toHaveAttribute('data-playing');
+      // Longer than any of the site's blurs takes to come in (0.3s).
+      await page.waitForTimeout(800);
+      await expect(page.locator('[data-behind-blur]')).toHaveCSS(
+        'visibility',
+        'hidden',
+      );
+      await expect(page.locator('h3')).toHaveCSS('filter', 'none');
+      for (const part of await page.locator('[data-site-chrome]').all())
+        await expect(part).toHaveCSS('filter', 'none');
+      const playing = await sharpness(page, parts);
+      await page.getByRole('button', { name: 'Pause the video' }).click();
+      const { sharp: after } = await restingSharpness(page, measure);
+      // Each part at least two thirds as sharp while it plays as at rest,
+      // before it played or after it paused, whichever is less sharp (the
+      // text's colours follow the sky behind each word, which drifts); a 6px
+      // blur leaves a fifth or less.
+      expect(
+        playing.map((p, k) => p >= Math.min(sharp[k]!, after[k]!) * 0.67),
+      ).toEqual([true, true, true]);
+    });
 
   // Melting, it is drawn on the melt's canvas (canvas.fixed: MediaMelter.draw
   // sets a uniform4f for each picture it draws there), each draw noted with

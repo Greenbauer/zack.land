@@ -19,6 +19,13 @@ export default function Layout({ children }: LayoutProps) {
       <Header />
       <PageLeave />
       <MediaBend />
+      {/* Blurs what lies under the page while a post's video plays,
+          opened over its post (styles/globals.css). */}
+      <div
+        data-behind-blur
+        aria-hidden
+        className="pointer-events-none fixed inset-0"
+      />
       <PageScroller>
         {/* The content's frame: at most the container's width (1536px),
             centred, however wide the window. The 3D head keeps to it too
