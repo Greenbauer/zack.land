@@ -51,13 +51,17 @@ export async function sharpness(page: Page, boxes: Box[]) {
 // The boxes `measure` finds, and the sharpness of each, once the page has
 // come in: the sky settled (data-sky-settled, Sky.tsx: until then the text
 // may yet turn to the other side's colours, as the sky sets off for it), no
-// transition or animation that ends still running, and the boxes where they
-// were half a second before. The card, header and footer
-// fade in as the page comes in, and on a phone the footer can shrink after
-// that (--footer-height), moving what is above it; on a starved runner all
-// of it comes late, and a reading taken before is of the wrong place or of a
-// fade, too low to compare a blur against. The sky behind never holds
-// still, so the readings themselves cannot be waited on.
+// transition or animation that ends still running but the colour fades, and
+// the boxes where they were half a second before. The card, header and
+// footer fade in as the page comes in, and on a phone the footer can shrink
+// after that (--footer-height), moving what is above it; on a starved runner
+// all of it comes late (the scene can take 15 seconds to first draw), and a
+// reading taken before is of the wrong place or of a fade, too low to
+// compare a blur against. The colours (transitions of --sky-* and --card-*,
+// styles/globals.css) follow the sky behind each word, which drifts, so they
+// may never all be still: the tests read at rest before and after instead.
+// The sky behind never holds still either, so the readings themselves cannot
+// be waited on.
 export async function restingSharpness<B extends Box>(
   page: Page,
   measure: () => Promise<B[]>,
@@ -76,12 +80,16 @@ export async function restingSharpness<B extends Box>(
               .some(
                 (animation) =>
                   animation.playState === 'running' &&
-                  animation.effect?.getComputedTiming().endTime !== Infinity,
+                  animation.effect?.getComputedTiming().endTime !== Infinity &&
+                  !(
+                    animation instanceof CSSTransition &&
+                    animation.transitionProperty.startsWith('--')
+                  ),
               ),
         );
         return isStill && JSON.stringify(boxes) === before;
       },
-      { intervals: [500], timeout: 20_000 },
+      { intervals: [500], timeout: 60_000 },
     )
     .toBe(true);
   return { boxes, sharp: await sharpness(page, boxes) };

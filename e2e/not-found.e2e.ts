@@ -66,6 +66,9 @@ test.describe('the 404 page', () => {
     test(`played, everything behind it blurs, and paused, it stops (${name})`, async ({
       page,
     }) => {
+      // The page settles twice, before and after (restingSharpness), which a
+      // software-drawn runner can take most of a minute over.
+      test.slow();
       await page.setViewportSize({ width, height });
       await page.goto('/no-such-page');
       // Played, as only a video that plays can be.

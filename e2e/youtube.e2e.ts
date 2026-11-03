@@ -201,6 +201,9 @@ async function expectBlurBehind(
   stop: () => Promise<void>,
   browserName: string,
 ) {
+  // The page settles twice, before and after (restingSharpness), which a
+  // software-drawn runner can take most of a minute over.
+  test.slow();
   const layer = page.locator('[data-behind-blur]');
   const chrome = page.locator('[data-site-chrome]');
   await expect(layer).toHaveCSS('visibility', 'hidden');
