@@ -1,5 +1,7 @@
 import { expect as expectNow, Page, test } from '@playwright/test';
 
+import { expectBlurBehind } from './blurBehind';
+
 // A post's YouTube video (components/Media.tsx, components/PostCollage.tsx):
 // played, it takes the post's width with its card faded away; a press
 // outside it, a pause that lasts or paging away stops it; a press on its
@@ -251,6 +253,61 @@ test.describe('a YouTube video', () => {
     await expect(tile).toHaveCSS('z-index', '0');
   });
 
+  test('playing, everything behind it blurs, and stops blurring as it stops', async ({
+    page,
+    browserName,
+  }) => {
+    const { box, tile, play } = await atVideoPost(page);
+    await expectBlurBehind(
+      page,
+      async () => {
+        await play.click();
+        await expect(box).toHaveAttribute('data-playing');
+        // Opened, and its blur come in (0.3s).
+        await page.waitForTimeout(1200);
+        // The video itself stays on top, over all of it.
+        const t = (await tile.boundingBox())!;
+        expect(
+          await tile.evaluate(
+            (element, [x, y]) =>
+              element.contains(document.elementFromPoint(x!, y!)),
+            [t.x + t.width / 2, t.y + t.height / 2],
+          ),
+        ).toBe(true);
+      },
+      async () => {
+        await page.mouse.click(40, 450);
+        await expect(box).not.toHaveAttribute('data-playing');
+      },
+      browserName,
+    );
+  });
+
+  // The header's dropdown, opened while the video plays, lies over the whole
+  // window at once, sharp: the header's blur goes the moment it opens, with
+  // no fade (a filter would make the header the box its fixed backdrop is laid
+  // out in), though the press stops the video only once its pause lasts.
+  test("playing, the header's dropdown opens over the whole window, sharp", async ({
+    page,
+  }) => {
+    const { box, play } = await atVideoPost(page);
+    await play.click();
+    await expect(box).toHaveAttribute('data-playing');
+    await page.waitForTimeout(1200);
+    await page.locator('[data-nav-dropdown]').click();
+    for (const part of await page.locator('[data-site-chrome]').all())
+      await expect(part).toHaveCSS('filter', 'none', { timeout: 400 });
+    const backdrop = page
+      .locator('[data-nav-dropdown]')
+      .locator('xpath=preceding-sibling::*[1]');
+    expect(await backdrop.boundingBox()).toEqual({
+      x: 0,
+      y: 0,
+      width: 1440,
+      height: 900,
+    });
+  });
+
   test('a pause as short as a seek does not stop it', async ({ page }) => {
     const { box, play } = await atVideoPost(page);
     await play.click();
@@ -321,5 +378,42 @@ test.describe('a YouTube video on a phone', () => {
     await page.waitForTimeout(1000);
     const arrows = await arrowsOverVideo(page);
     expect(arrows).toEqual(arrows.map(() => false));
+  });
+
+  test('playing, everything behind it blurs, and stops blurring as it stops', async ({
+    page,
+    browserName,
+  }) => {
+    const { box, play } = await atVideoPost(page);
+    await expectBlurBehind(
+      page,
+      async () => {
+        await play.click();
+        await expect(box).toHaveAttribute('data-playing');
+        await page.waitForTimeout(1200);
+      },
+      async () => {
+        // Below the opened video, above the footer's scroll arrow.
+        await page.mouse.click(195, 640);
+        await expect(box).not.toHaveAttribute('data-playing');
+      },
+      browserName,
+    );
+  });
+  // The menu, opened while the video plays, covers the whole window at once,
+  // sharp, as the dropdown does above.
+  test('playing, the menu opens over the whole window, sharp', async ({
+    page,
+  }) => {
+    const { box, play } = await atVideoPost(page);
+    await play.click();
+    await expect(box).toHaveAttribute('data-playing');
+    await page.waitForTimeout(1200);
+    await page.locator('[id^="headlessui-menu-button"]').click();
+    for (const part of await page.locator('[data-site-chrome]').all())
+      await expect(part).toHaveCSS('filter', 'none', { timeout: 400 });
+    // Its height, which its slide in does not change.
+    const menu = (await page.locator('.mobile-menu').boundingBox())!;
+    expect(menu.height).toBeGreaterThanOrEqual(844);
   });
 });
