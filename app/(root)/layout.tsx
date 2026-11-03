@@ -19,7 +19,8 @@ export default function Layout({ children }: LayoutProps) {
       <Header />
       <PageLeave />
       <MediaBend />
-      {/* Blurs what lies under the page while a video plays (styles/globals.css). */}
+      {/* Blurs what lies under the page while a post's video plays,
+          opened over its post (styles/globals.css). */}
       <div
         data-behind-blur
         aria-hidden

@@ -419,16 +419,16 @@ html:not([data-page-in]):has([data-scene])
   transition: opacity 0.8s ease-out;
 }
 
-/* While a video someone started plays (data-focus-blur and data-playing: a
-   post's YouTube tile, the 404 page's video; not the silent loops, which
-   always play), everything behind it blurs, 6px over 0.3s as under the
-   header's open dropdown (NavDropdown.tsx): what lies under the page (the 3D
-   scene with its titles and the cards' glass, and the scroll arrows, which
-   step back below it), by a layer between them and the page
-   (data-behind-blur, in app/(root)/layout.tsx; a backdrop inside the page's
-   masked scroller cannot see under it); in the page, the other tiles (above)
-   and, on the 404 page, the card's title; and the header and footer, which
-   lie over the page. */
+/* While a post's video plays, opened over its post as a modal is (the
+   playing .collage-tile[data-video], PostCollage.tsx; not the 404 page's
+   video, which plays in its card, nor the silent loops), everything behind
+   it blurs, 6px over 0.3s as under the header's open dropdown
+   (NavDropdown.tsx): what lies under the page (the 3D scene with its titles
+   and the cards' glass, and the scroll arrows, which step back below it), by
+   a layer between them and the page (data-behind-blur, in
+   app/(root)/layout.tsx; a backdrop inside the page's masked scroller cannot
+   see under it); in the page, the other tiles (above); and the header and
+   footer, which lie over the page. */
 [data-behind-blur] {
   z-index: -1;
   visibility: hidden;
@@ -438,23 +438,17 @@ html:not([data-page-in]):has([data-scene])
     opacity 0.3s,
     visibility 0s 0.3s;
 }
-body:has([data-focus-blur][data-playing]) [data-behind-blur] {
+body:has(.collage-tile[data-video][data-playing]) [data-behind-blur] {
   visibility: visible;
   opacity: 1;
   transition: opacity 0.3s;
-}
-article:has(> .collage) > :not(.collage) {
-  transition: filter 0.3s;
-}
-article:has(> .collage [data-focus-blur][data-playing]) > :not(.collage) {
-  filter: blur(6px);
 }
 [data-site-chrome] {
   transition:
     opacity 0.8s ease-out,
     filter 0.3s;
 }
-body:has([data-focus-blur][data-playing]) [data-site-chrome] {
+body:has(.collage-tile[data-video][data-playing]) [data-site-chrome] {
   filter: blur(6px);
 }
 html:not([data-page-in]):has([data-scene])

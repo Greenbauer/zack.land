@@ -53,17 +53,18 @@ test.describe('the 404 page', () => {
     expect(await tile.boundingBox()).toEqual(first);
   });
 
-  // Zach, Nov 2: "whenever any video is being played ... everything behind
-  // it should blur as we have for the other blur logic." Played, what lies
-  // behind it blurs: its card's title, the header's links and the footer, read
-  // for sharpness from the screen before and while it plays (sharpness.ts;
-  // all three are blurred by a filter, which both browsers draw), and the
-  // layer under the page that blurs the scene comes up. Paused, none of it.
+  // Zach, Nov 3: the blur of everything behind a video is for a post's video
+  // opened over its post, and "There wasn't any issue with the blur on the
+  // 404". Played, the 404 video blurs only the scene behind its card, as on
+  // master (focusBlur.ts): the header's controls, its title and the footer
+  // stay sharp, read for sharpness from the screen before, while and after it
+  // plays (sharpness.ts), and nothing blurs them by a filter or the layer
+  // under the page (data-behind-blur).
   for (const { name, width, height } of [
     { name: 'desktop', width: 1440, height: 900 },
     { name: 'phone', width: 390, height: 844 },
   ])
-    test(`played, everything behind it blurs, and paused, it stops (${name})`, async ({
+    test(`played, its header, title and footer stay sharp (${name})`, async ({
       page,
     }) => {
       // The page settles twice, before and after (restingSharpness), which a
@@ -73,10 +74,6 @@ test.describe('the 404 page', () => {
       await page.goto('/no-such-page');
       // Played, as only a video that plays can be.
       await skipWhereUndecodable(page.locator('.collage-tile'));
-      const layer = page.locator('[data-behind-blur]');
-      const chrome = page.locator('[data-site-chrome]');
-      await expect(page.locator('.collage-tile')).toHaveCSS('opacity', '1');
-      await expect(layer).toHaveCSS('visibility', 'hidden');
       const measure = () =>
         page.evaluate(() =>
           [
@@ -101,32 +98,25 @@ test.describe('the 404 page', () => {
         );
       const { boxes: parts, sharp } = await restingSharpness(page, measure);
       await page.getByRole('button', { name: 'Play the video' }).click();
-      await expect(layer).toHaveCSS('opacity', '1');
-      await expect(layer).toHaveCSS('backdrop-filter', 'blur(6px)');
-      for (const part of await chrome.all())
-        await expect(part).toHaveCSS('filter', 'blur(6px)');
-      await expect(page.locator('h3')).toHaveCSS('filter', 'blur(6px)');
-      const blurred = await sharpness(page, parts);
-      const tile = page.locator('.collage-tile');
-      const t = (await tile.boundingBox())!;
-      expect(
-        await tile.evaluate(
-          (element, [x, y]) =>
-            element.contains(document.elementFromPoint(x!, y!)),
-          [t.x + t.width / 2, t.y + t.height / 2],
-        ),
-      ).toBe(true);
-      await page.getByRole('button', { name: 'Pause the video' }).click();
-      await expect(layer).toHaveCSS('visibility', 'hidden');
+      await expect(page.locator('video')).toHaveAttribute('data-playing');
+      // Longer than any of the site's blurs takes to come in (0.3s).
+      await page.waitForTimeout(800);
+      await expect(page.locator('[data-behind-blur]')).toHaveCSS(
+        'visibility',
+        'hidden',
+      );
       await expect(page.locator('h3')).toHaveCSS('filter', 'none');
-      for (const part of await chrome.all())
+      for (const part of await page.locator('[data-site-chrome]').all())
         await expect(part).toHaveCSS('filter', 'none');
-      // Each part at most two thirds as sharp as at rest, before it played or
-      // after it paused, whichever is sharper (the text's colours follow the
-      // sky behind each word, useSkyColours.ts, which drifts).
+      const playing = await sharpness(page, parts);
+      await page.getByRole('button', { name: 'Pause the video' }).click();
       const { sharp: after } = await restingSharpness(page, measure);
+      // Each part at least two thirds as sharp while it plays as at rest,
+      // before it played or after it paused, whichever is less sharp (the
+      // text's colours follow the sky behind each word, which drifts); a 6px
+      // blur leaves a fifth or less.
       expect(
-        blurred.map((b, k) => b < Math.max(sharp[k]!, after[k]!) * 0.67),
+        playing.map((p, k) => p >= Math.min(sharp[k]!, after[k]!) * 0.67),
       ).toEqual([true, true, true]);
     });
 

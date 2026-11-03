@@ -223,6 +223,24 @@ test.describe('every kind of media', () => {
       });
     }),
   );
+
+  // Zach, Nov 3: everything behind a video blurs only while a post's video
+  // plays opened over its post (data-behind-blur, styles/globals.css). A
+  // silent loop always plays, in its tile: nothing behind it blurs.
+  test('a silent loop playing blurs nothing behind it', async ({ page }) => {
+    await atRest(page);
+    for (const post of [1, 2]) await turnTo(page, post);
+    const loop = page.locator('.collage').nth(2).locator('video').first();
+    await expect
+      .poll(() => loop.evaluate((video: HTMLVideoElement) => !video.paused))
+      .toBe(true);
+    await expect(page.locator('[data-behind-blur]')).toHaveCSS(
+      'visibility',
+      'hidden',
+    );
+    for (const part of await page.locator('[data-site-chrome]').all())
+      await expect(part).toHaveCSS('filter', 'none');
+  });
 });
 
 test.describe('More and Less', () => {
