@@ -62,7 +62,7 @@ Pull requests with a rendered change also run the Vibe Verifier QAE harness (`.g
 gates in `.vibe-verifier-qae`): the site is built and started in a container on the runner, a model
 with a real browser walks each item under a `## Acceptance criteria` heading in the pull request body
 and saves a step log and a screenshot per step, and two deterministic gates decide from the artifacts. A
-third, `ui-audit`, reports layout defects on every page the model opened (clipped text, overlaps, a count or
+third, `ui-audit`, reports layout defects on every page the model opened (clipped text, controls touching, a count or
 tick off the middle of its circle) and is in soak: it reports but does not fail the check.
 A pull request body needs that heading (a change that renders nothing declares `- None: <why>` under
 it), with one exception: a pull request that changes only `package.json` and `package-lock.json` is
