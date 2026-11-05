@@ -14,6 +14,7 @@ import {
 import type { MousePosition } from '@/hooks/useMousePosition';
 
 import { Ambient, startAmbient, stepAmbient, withAmbient } from './ambient';
+import { blinkAmount, startBlink, stepBlink } from './blink';
 import {
   easeRate,
   easeToward,
@@ -36,6 +37,7 @@ import {
 } from './headTaps';
 import { headTurn, turnHead } from './headTurn';
 import {
+  faceNeutral,
   faceSeen,
   Greeting,
   GREETING_EASE_RATE,
@@ -162,8 +164,6 @@ function headGeometry(part: HeadMesh): BufferGeometry {
 // Before it first wanders off on its own, the head faces the camera and looks
 // surprised (idleGreeting.ts).
 let greeting: Greeting = idle;
-// Below this every expression counts as eased out: a neutral face.
-const NEUTRAL = 0.02;
 // How long the page has to be left alone (no pointer move, scroll, press or
 // key: useMousePosition), with the face in view (faceInView), before the
 // head greets and then looks around on its own, in seconds: somewhere in
@@ -220,6 +220,9 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
   }, [myHeadFile]);
   // Each expression's strength now, eased toward what the look calls for.
   const strengths = useRef<number[]>([]);
+  // The blinks' clock (blink.ts), and where the head looked last frame.
+  const blink = useRef(startBlink(0));
+  const lastLook = useRef({ x: 0, y: 0 });
   // On a touch screen: the head looks around on its own, and reacts to taps
   // on it (headTaps.ts). A tap waits here until the next frame tests it
   // against the head.
@@ -319,7 +322,11 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
       greeting = stepGreeting(greeting, {
         turn,
         // Every expression eased out (the strengths are the last frame's).
-        neutral: strengths.current.every((s) => s < NEUTRAL),
+        neutral: faceNeutral(
+          Object.fromEntries(
+            expressions.map((name, k) => [name, strengths.current[k] ?? 0]),
+          ),
+        ),
         time,
       });
       if (greeting.phase === 'done') startWandering(time);
@@ -424,8 +431,21 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
     strengths.current = strengths.current.map(
       (s, k) => neck[expressions[k]!] ?? s,
     );
+    // A blink over it all, on its own clock and with quick shifts of the
+    // gaze; shown, not eased, so the lids snap shut and open as lids do.
+    const gazeSpeed =
+      Math.hypot(
+        look.current.x - lastLook.current.x,
+        look.current.y - lastLook.current.y,
+      ) / Math.max(delta, 1e-3);
+    lastLook.current = { ...look.current };
+    blink.current = stepBlink(blink.current, clock.elapsedTime, gazeSpeed);
+    const lids = blinkAmount(blink.current, clock.elapsedTime);
+    const shown = strengths.current.map((s, k) =>
+      expressions[k] === 'blink' ? Math.max(s, lids) : s,
+    );
     for (const mesh of [skinRef.current, mouthRef.current])
-      if (mesh) mesh.morphTargetInfluences = strengths.current;
+      if (mesh) mesh.morphTargetInfluences = shown;
   });
 
   return (

@@ -10,6 +10,13 @@ import { neckExpressions } from './neckPose';
 import { SHOWN_EXPRESSIONS, SHOWN_SIDED } from './shownExpressions';
 import { SIDES } from './sideMorphs';
 
+// The expression a name drives: itself, when head.bin has it whole (the
+// mouth pulled left or right), or the one it is a half of (sideMorphs.ts).
+const whole = (name: string) =>
+  (SHOWN_EXPRESSIONS as readonly string[]).includes(name)
+    ? name
+    : SIDES.reduce((n, side) => n.replace(new RegExp(`${side}$`), ''), name);
+
 describe('the expressions the page loads', () => {
   it('are all in head.bin', () => {
     for (const name of SHOWN_EXPRESSIONS) expect(expressions).toContain(name);
@@ -39,12 +46,7 @@ describe('the expressions the page loads', () => {
       ...Object.keys(greetingExpressions({ phase: 'idle' })),
       ...Object.keys(neckExpressions({ x: 0, y: 0 })),
       ...Object.values(LOOKS).flatMap((look) =>
-        Object.keys(look('Left', 'Right')).map((name) =>
-          SIDES.reduce(
-            (base, side) => base.replace(new RegExp(`${side}$`), ''),
-            name,
-          ),
-        ),
+        Object.keys(look('Left', 'Right')).map(whole),
       ),
     ]);
     for (const name of asked) expect(SHOWN_EXPRESSIONS).toContain(name);
@@ -53,10 +55,7 @@ describe('the expressions the page loads', () => {
   it('split into halves those the page drives one-sided', () => {
     for (const look of Object.values(LOOKS))
       for (const name of Object.keys(look('Left', 'Right'))) {
-        const base = SIDES.reduce(
-          (n, side) => n.replace(new RegExp(`${side}$`), ''),
-          name,
-        );
+        const base = whole(name);
         if (base !== name) expect(SHOWN_SIDED).toContain(base);
       }
     for (const name of SHOWN_SIDED) expect(SHOWN_EXPRESSIONS).toContain(name);

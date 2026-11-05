@@ -4,13 +4,17 @@ import { Side, SIDES } from './sideMorphs';
 // Little things the head does on its own, whatever else it is doing and on
 // their own clock, so it never looks posed: it tilts slightly to one side or
 // the other now and then (a roll of the head on its neck: headTurn.ts), and
-// every few seconds a passing look comes and goes: one brow raised, the other
-// following a beat later and less, as its eye squints a little; both brows up,
-// one leading; one eye narrowed, the other a little; the lips pursed a little;
-// a faint half smile
-// (the one-sided ones made by sideMorphs.ts). Brow looks come most often.
-// The mouth only moves subtly: it never opens on its own. No wide eyes: opening the lids round the still eyeballs
-// reads as the eyes popping out.
+// every few seconds a passing look comes and goes, one of five things people
+// do standing about waiting: a brow flicked up (one brow leading, the other
+// following a beat later and less: a passing thought); the lips pressed
+// together; the mouth pulled to one side; a sigh (the chest rising, then the
+// lids drooping a little and the inner brows lifting as the breath goes out);
+// and a swallow, the lips closed. (Earlier, one eye narrowed, the lips
+// pursed and a half smile: nobody squints one eye or purses at nothing, and
+// the head smiles anyway, facing the camera.) The brow flick and the press
+// come most often. The mouth only moves subtly: it never opens on its own. No
+// wide eyes: opening the lids round the still eyeballs reads as the eyes
+// popping out. Blinks run on their own clock (blink.ts).
 // MyHead.tsx lays these over its other movements and expressions; the
 // greeting and a tap's reaction keep the face to themselves.
 
@@ -41,44 +45,50 @@ export const LOOKS: Record<
 > = {
   // One brow up, the other following a beat later and less, its eye
   // squinting a little.
-  oneBrow: (side, other) => ({
-    [`browsUp${side}`]: [0.55, 0.85],
-    [`browsUp${other}`]: [0.15, 0.3, 0.15],
-    [`squint${other}`]: [0.1, 0.25],
+  browFlick: (side, other) => ({
+    [`browsUp${side}`]: [0.45, 0.8],
+    [`browsUp${other}`]: [0.15, 0.35, 0.15],
+    [`squint${other}`]: [0.05, 0.15],
   }),
-  // Both brows up, one leading the other.
-  browsUp: (side, other) => ({
-    [`browsUp${side}`]: [0.35, 0.6],
-    [`browsUp${other}`]: [0.3, 0.5, 0.12],
+  // The lips pressed together, the mouth's corners drawn in a little.
+  press: () => ({ press: [0.3, 0.5] }),
+  // The mouth pulled to one side, its cheek bunching that eye a touch.
+  aside: (side, other) => ({
+    [`mouth${side}`]: [0.25, 0.4],
+    [`squint${side}`]: [0.05, 0.1],
+    [`squint${other}`]: [0.01, 0.03, 0.12],
   }),
-  // One eye narrowed, the other following a little, a beat later.
-  oneEye: (side, other) => ({
-    [`squint${side}`]: [0.4, 0.7],
-    [`squint${other}`]: [0.1, 0.2, 0.12],
-    pout: [0.1, 0.2],
+  // A sigh: the breath in, then out, the lids drooping and the inner brows
+  // lifting as it goes out.
+  sigh: (side, other) => ({
+    breathe: [0.5, 0.75],
+    blink: [0.2, 0.3, 0.35],
+    [`browsUp${side}`]: [0.1, 0.2, 0.3],
+    [`browsUp${other}`]: [0.1, 0.2, 0.3],
   }),
-  purse: () => ({ pout: [0.2, 0.4] }),
-  halfSmile: (side, other) => ({
-    smile: [0.2, 0.35],
-    [`squint${side}`]: [0.1, 0.2],
-    [`squint${other}`]: [0.04, 0.08, 0.12],
-  }),
+  // A swallow, the lips closed and pressed a little as it goes down.
+  swallow: () => ({ swallow: [0.75, 1], press: [0.1, 0.2] }),
 };
-// How often each look comes up against the others: the brows most.
+// How often each look comes up against the others.
 export const LOOK_WEIGHTS: Record<string, number> = {
-  oneBrow: 2,
-  browsUp: 2,
-  oneEye: 1,
-  purse: 1,
-  halfSmile: 1,
+  browFlick: 3,
+  press: 2,
+  aside: 1,
+  sigh: 1,
+  swallow: 1,
 };
-// How long one lasts, and the gap before the next, in seconds. A look that
-// moves the brows (QUICK_LOOKS) is a quick flick instead: up and back down
-// within QUICK_LASTS.
+// How long one lasts, and the gap before the next, in seconds: FACE_LASTS,
+// or a look's own (a brow flick is up and back down quickly; a swallow takes
+// about a second; a sigh several).
 const FACE_LASTS = [1.2, 2.8] as const;
 const FACE_GAP = [2.5, 7] as const;
-export const QUICK_LOOKS = new Set(['oneBrow', 'browsUp']);
-export const QUICK_LASTS = [0.7, 1.2] as const;
+export const LASTS: Record<string, readonly [number, number]> = {
+  browFlick: [0.7, 1.2],
+  swallow: [0.9, 1.3],
+  sigh: [3, 4.5],
+};
+// The looks that rise and fall quickly (in a fifth and a third of their time).
+export const QUICK_LOOKS = new Set(['browFlick', 'swallow']);
 
 export type Ambient = {
   tilt: number;
@@ -175,9 +185,7 @@ function nextFace(ambient: Ambient, time: number, random: () => number) {
       peaks,
       lags,
       start: time,
-      end:
-        time +
-        between(QUICK_LOOKS.has(name) ? QUICK_LASTS : FACE_LASTS, random()),
+      end: time + between(LASTS[name] ?? FACE_LASTS, random()),
     },
   };
 }

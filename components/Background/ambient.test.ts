@@ -3,8 +3,9 @@ import { describe, expect, it } from 'vitest';
 import {
   Ambient,
   ambientFace,
+  LASTS,
+  LOOK_WEIGHTS,
   LOOKS,
-  QUICK_LASTS,
   QUICK_LOOKS,
   startAmbient,
   stepAmbient,
@@ -81,17 +82,15 @@ describe("the head's little movements of its own", () => {
   });
 
   it('moves the brows as a wave: one leads, the other follows, less', () => {
-    const look = LOOKS.oneBrow!('Left', 'Right');
+    const look = LOOKS.browFlick!('Left', 'Right');
     expect(look.browsUpLeft![2]).toBeUndefined();
     expect(look.browsUpRight![2]).toBeGreaterThan(0);
     expect(look.browsUpRight![1]).toBeLessThan(look.browsUpLeft![0]);
-    const both = LOOKS.browsUp!('Right', 'Left');
-    expect(both.browsUpLeft![2]).toBeGreaterThan(0);
     // The follower is still at rest while the leader is already rising.
     const ambient: Ambient = {
       ...startAmbient(0),
       face: {
-        name: 'oneBrow',
+        name: 'browFlick',
         peaks: { browsUpLeft: 0.8, browsUpRight: 0.3 },
         lags: { browsUpRight: 0.15 },
         start: 0,
@@ -105,31 +104,48 @@ describe("the head's little movements of its own", () => {
   });
 
   it('never moves one side of the face alone: the other follows', () => {
+    // The brows and lids split into halves (sideMorphs.ts): a look moving
+    // one half moves the other too. (The mouth's pull to one side is one
+    // whole shape.)
+    const halves = (morph: string) =>
+      /^(browsUp|squint)(Left|Right)$/.test(morph);
     for (const [name, look] of Object.entries(LOOKS)) {
-      const parts = Object.keys(look('Left', 'Right'));
+      const parts = Object.keys(look('Left', 'Right')).filter(halves);
       const left = parts.filter((morph) => morph.endsWith('Left'));
       const right = parts.filter((morph) => morph.endsWith('Right'));
       expect(left.length > 0, name).toBe(right.length > 0);
     }
-    // The one-eyed looks: the other eye narrows too, less and a beat later.
-    for (const name of ['oneEye', 'halfSmile']) {
+    // The mouth pulled aside: the other eye narrows too, less and a beat later.
+    for (const name of ['aside']) {
       const parts = LOOKS[name]!('Left', 'Right');
       expect(parts.squintRight![1]).toBeLessThan(parts.squintLeft![0]);
       expect(parts.squintRight![2]).toBeGreaterThan(0);
     }
   });
 
-  it('brings up brow looks most often', () => {
+  it('brings up the brow flick most often, the sigh and swallow seldom', () => {
     const counts: Record<string, number> = {};
     frames.forEach(({ ambient }, k) => {
       const face = ambient.face;
       if (face && face !== frames[k - 1]?.ambient.face)
         counts[face.name] = (counts[face.name] ?? 0) + 1;
     });
-    const brows = (counts.oneBrow ?? 0) + (counts.browsUp ?? 0);
-    const rest =
-      (counts.oneEye ?? 0) + (counts.purse ?? 0) + (counts.halfSmile ?? 0);
-    expect(brows).toBeGreaterThan(rest);
+    for (const name of Object.keys(LOOKS))
+      if (name !== 'browFlick')
+        expect(counts.browFlick!).toBeGreaterThan(counts[name]!);
+    expect(counts.sigh!).toBeLessThan(counts.press!);
+    expect(LOOK_WEIGHTS.sigh).toBeLessThan(LOOK_WEIGHTS.browFlick!);
+  });
+
+  it('sighs: the breath first, then the lids droop and the brows lift', () => {
+    const sigh = LOOKS.sigh!('Left', 'Right');
+    expect(sigh.breathe![2]).toBeUndefined();
+    for (const morph of ['blink', 'browsUpLeft', 'browsUpRight'])
+      expect(sigh[morph]![2]).toBeGreaterThan(0.25);
+    // The lids only droop: well short of a blink.
+    expect(sigh.blink![1]).toBeLessThan(0.4);
+    // And it takes its time.
+    expect(LASTS.sigh![0]).toBeGreaterThanOrEqual(3);
   });
 
   it('comes and goes without a jump, never past its peaks', () => {
@@ -154,7 +170,7 @@ describe("the head's little movements of its own", () => {
     for (const { ambient } of frames) {
       const face = ambient.face;
       if (face && QUICK_LOOKS.has(face.name))
-        expect(face.end - face.start).toBeLessThanOrEqual(QUICK_LASTS[1]);
+        expect(face.end - face.start).toBeLessThanOrEqual(LASTS[face.name]![1]);
     }
   });
 
@@ -162,7 +178,7 @@ describe("the head's little movements of its own", () => {
     const ambient: Ambient = {
       ...startAmbient(0),
       face: {
-        name: 'halfSmile',
+        name: 'aside',
         peaks: { smile: 0.2 },
         lags: {},
         start: 0,
