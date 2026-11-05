@@ -333,6 +333,24 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
     headTurn.value.set(head.x, head.y, ambient.current.tilt);
   };
 
+  // The face's expression of its own now and then (ambient.ts), unless the
+  // face is someone else's (`held`): then none runs underneath, so none is
+  // under way to jump on when the face is its own again, and the last eases
+  // out.
+  const stepFace = (held: boolean, time: number, seconds: number): void => {
+    if (!held) {
+      face.current = ambientFace(ambient.current, time);
+      return;
+    }
+    ambient.current = holdFace(ambient.current, time);
+    face.current = Object.fromEntries(
+      Object.entries(face.current).map(([name, strength]) => [
+        name,
+        easeToward(strength, 0, seconds, GREETING_EASE_RATE),
+      ]),
+    );
+  };
+
   useFrame(({ clock, camera, size }, delta) => {
     fadeTime.value = clock.elapsedTime;
     // A tap or click that lands on the head (its skin, not the neck or the
@@ -390,20 +408,7 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
                 size,
               ),
             };
-    // With an expression of its own now and then (ambient.ts), unless the
-    // face is someone else's: then none runs underneath, so none is under
-    // way to jump on when the face is its own again.
-    if (isGreeting || headMood.worried)
-      ambient.current = holdFace(ambient.current, clock.elapsedTime);
-    face.current =
-      isGreeting || headMood.worried
-        ? Object.fromEntries(
-            Object.entries(face.current).map(([name, strength]) => [
-              name,
-              easeToward(strength, 0, delta, GREETING_EASE_RATE),
-            ]),
-          )
-        : ambientFace(ambient.current, clock.elapsedTime);
+    stepFace(isGreeting || headMood.worried, clock.elapsedTime, delta);
     strengths.current = expressions.map((name, k) =>
       easeToward(
         strengths.current[k] ?? 0,
