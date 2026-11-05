@@ -3,17 +3,22 @@ import { describe, expect, it } from 'vitest';
 import {
   Ambient,
   ambientFace,
-  LASTS,
-  LOOK_WEIGHTS,
-  LOOKS,
-  QUICK_LOOKS,
+  SAG,
   startAmbient,
   stepAmbient,
   TILT_MAX,
   TILT_RETURN,
   tiltRoom,
-  withAmbient,
+  withFace,
 } from './ambient';
+import {
+  BOLD_CHANCE,
+  BOLD_LOOKS,
+  FACE_LASTS,
+  LASTS,
+  LOOKS,
+  paceOf,
+} from './ambientLooks';
 
 const seeded = (seed: number) => () => {
   seed = (seed * 1664525 + 1013904223) % 4294967296;
@@ -123,38 +128,13 @@ describe("the head's little movements of its own", () => {
     }
   });
 
-  it('brings up the brow flick most often, the sigh and swallow seldom', () => {
-    const counts: Record<string, number> = {};
-    frames.forEach(({ ambient }, k) => {
-      const face = ambient.face;
-      if (face && face !== frames[k - 1]?.ambient.face)
-        counts[face.name] = (counts[face.name] ?? 0) + 1;
-    });
-    for (const name of Object.keys(LOOKS))
-      if (name !== 'browFlick')
-        expect(counts.browFlick!).toBeGreaterThan(counts[name]!);
-    expect(counts.sigh!).toBeLessThan(counts.press!);
-    expect(LOOK_WEIGHTS.sigh).toBeLessThan(LOOK_WEIGHTS.browFlick!);
-  });
-
-  it('sighs: the breath first, then the lids droop and the brows lift', () => {
-    const sigh = LOOKS.sigh!('Left', 'Right');
-    expect(sigh.breathe![2]).toBeUndefined();
-    for (const morph of ['blink', 'browsUpLeft', 'browsUpRight'])
-      expect(sigh[morph]![2]).toBeGreaterThan(0.25);
-    // The lids only droop: well short of a blink.
-    expect(sigh.blink![1]).toBeLessThan(0.4);
-    // And it takes its time.
-    expect(LASTS.sigh![0]).toBeGreaterThanOrEqual(3);
-  });
-
   it('comes and goes without a jump, never past its peaks', () => {
     const previous: Record<string, number> = {};
     for (const { time, ambient } of frames) {
       const now = ambientFace(ambient, time);
       for (const [morph, value] of Object.entries(now)) {
         const peak = ambient.face!.peaks[morph]!;
-        expect(value).toBeLessThanOrEqual(peak);
+        expect(value).toBeLessThanOrEqual(peak + 1e-9);
         // Even a quick flick takes a few frames to reach its height.
         expect(Math.abs(value - (previous[morph] ?? 0))).toBeLessThan(
           peak * 0.6,
@@ -166,29 +146,74 @@ describe("the head's little movements of its own", () => {
     }
   });
 
-  it('flicks the brows up and down quickly', () => {
-    for (const { ambient } of frames) {
-      const face = ambient.face;
-      if (face && QUICK_LOOKS.has(face.name))
-        expect(face.end - face.start).toBeLessThanOrEqual(LASTS[face.name]![1]);
-    }
-  });
-
   it('lays the passing look over the face without passing whole', () => {
-    const ambient: Ambient = {
-      ...startAmbient(0),
-      face: {
-        name: 'aside',
-        peaks: { smile: 0.2 },
-        lags: {},
-        start: 0,
-        end: 2,
-      },
-    };
-    const out = withAmbient({ smile: 0.9, gasp: 0.5 }, ambient, 1);
+    const out = withFace({ smile: 0.9, gasp: 0.5 }, { smile: 0.2 });
     expect(out.smile).toBe(1);
     expect(out.gasp).toBe(0.5);
-    expect(withAmbient({}, ambient, 1).smile).toBeCloseTo(0.2);
+    expect(withFace({}, { smile: 0.2 }).smile).toBeCloseTo(0.2);
+  });
+
+  it('sets in, eases off a little at its height, and settles back slowly', () => {
+    const { onset, offset } = paceOf('press');
+    const ambient: Ambient = {
+      ...startAmbient(0),
+      face: { name: 'press', peaks: { press: 1 }, lags: {}, start: 0, end: 3 },
+    };
+    const at = (t: number) => ambientFace(ambient, t).press!;
+    // Within about half a second it is there.
+    expect(onset).toBeLessThanOrEqual(0.5);
+    expect(at(onset)).toBe(1);
+    // Never frozen: it eases off a little while held.
+    expect(at(1.5)).toBeLessThan(at(onset + 0.1));
+    expect(at(3 - offset)).toBeGreaterThan(1 - SAG - 0.01);
+    // Letting go takes longer than setting in: about half gone a third of
+    // the way in, then trailing off slowly to rest.
+    expect(offset).toBeGreaterThan(onset);
+    const start = at(3 - offset);
+    expect(at(3 - (offset * 2) / 3) / start).toBeGreaterThan(0.3);
+    expect(at(3 - (offset * 2) / 3) / start).toBeLessThan(0.7);
+    expect(at(3 - offset / 3) / start).toBeGreaterThan(0.02);
+    expect(at(3 - offset / 3) / start).toBeLessThan(0.1);
+    expect(at(3)).toBe(0);
+  });
+
+  it('never changes speed suddenly, for every look', () => {
+    // Every look at 60 frames a second, as short as it comes, each of its
+    // morphs at full strength with its own lag: the change in speed from one
+    // frame to the next stays within what the look's onset and offset allow
+    // (a kink, where a brow following late reversed at its peak, changed
+    // speed several times faster).
+    for (const [name, look] of Object.entries({ ...LOOKS, ...BOLD_LOOKS })) {
+      const { onset, offset } = paceOf(name);
+      const parts = Object.entries(look('Left', 'Right'));
+      const ambient: Ambient = {
+        ...startAmbient(0),
+        face: {
+          name,
+          peaks: Object.fromEntries(parts.map(([morph]) => [morph, 1])),
+          lags: Object.fromEntries(
+            parts.map(([morph, part]) => [morph, part[2] ?? 0]),
+          ),
+          start: 0,
+          end: (LASTS[name] ?? FACE_LASTS)[0],
+        },
+      };
+      const quickest = Math.min(onset, offset);
+      for (const [morph] of parts) {
+        const v = Array.from(
+          { length: Math.ceil(ambient.face!.end * 60) + 2 },
+          (_, k) => ambientFace(ambient, k / 60)[morph]!,
+        );
+        let worst = 0;
+        for (let k = 2; k < v.length; k++)
+          worst = Math.max(worst, Math.abs(v[k]! - 2 * v[k - 1]! + v[k - 2]!));
+        // The minimum-jerk curve's own most, 5.8 / T^2, with room for the
+        // curves multiplied.
+        expect(worst * 3600, `${name} ${morph}`).toBeLessThan(
+          12 / quickest ** 2,
+        );
+      }
+    }
   });
 
   it('tilts looking down or toward a corner, not looking straight ahead', () => {
@@ -250,5 +275,94 @@ describe("the head's little movements of its own", () => {
     k++;
     ambient = stepAmbient(ambient, CORNER, k / 60, 1 / 60, random);
     expect(ambient.tiltTarget).toBe(0);
+  });
+});
+
+describe('the bold looks, looking around on its own', () => {
+  // Half an hour looking around on its own.
+  const random = seeded(5);
+  let ambient = startAmbient(0, random);
+  const starts: string[] = [];
+  for (let k = 1; k <= 60 * 1800; k++) {
+    const face = ambient.face;
+    ambient = stepAmbient(ambient, CORNER, k / 60, 1 / 60, random, true);
+    if (ambient.face && ambient.face !== face) starts.push(ambient.face.name);
+  }
+
+  it('mixes a bold look in now and then, each kind in turn', () => {
+    const bold = starts.filter((name) => name in BOLD_LOOKS);
+    expect(BOLD_CHANCE).toBeLessThanOrEqual(0.2);
+    expect(bold.length / starts.length).toBeGreaterThan(BOLD_CHANCE - 0.06);
+    expect(bold.length / starts.length).toBeLessThan(BOLD_CHANCE + 0.06);
+    expect([...new Set(bold)].sort()).toEqual(Object.keys(BOLD_LOOKS).sort());
+  });
+
+  it('never makes them following the pointer', () => {
+    const subtle = run();
+    for (const { ambient } of subtle)
+      if (ambient.face) expect(ambient.face.name in BOLD_LOOKS).toBe(false);
+  });
+
+  it('lets go of a bold look as soon as the pointer moves', () => {
+    let held: Ambient = {
+      ...startAmbient(0),
+      face: { name: 'hmm', peaks: { press: 0.8 }, lags: {}, start: 0, end: 3 },
+      nextFace: 10,
+    };
+    held = stepAmbient(held, STRAIGHT, 1, 1 / 60, seeded(1), true);
+    expect(held.face?.end).toBe(3);
+    held = stepAmbient(held, STRAIGHT, 1.02, 1 / 60, seeded(1), false);
+    const { offset } = paceOf('hmm');
+    expect(held.face!.end).toBeCloseTo(1.02 + offset);
+    // From where it was, without a jump, and gone by then.
+    const was = ambientFace(
+      { ...held, face: { ...held.face!, end: 3 } },
+      1.02,
+    ).press!;
+    expect(ambientFace(held, 1.02).press).toBeCloseTo(was);
+    expect(ambientFace(held, 1.03).press).toBeGreaterThan(was - 0.05);
+    held = stepAmbient(held, STRAIGHT, 1.03, 1 / 60, seeded(1), false);
+    expect(held.face!.end).toBeCloseTo(1.02 + offset);
+    held = stepAmbient(held, STRAIGHT, 1.1 + offset, 1 / 60, seeded(1), false);
+    expect(held.face).toBeNull();
+  });
+
+  it('moves the whole face, well past the small looks, mouth closed', () => {
+    for (const look of Object.values(BOLD_LOOKS)) {
+      const parts = look('Left', 'Right');
+      // At least one shape near its whole, and the brows always part of it.
+      expect(Math.max(...Object.values(parts).map((p) => p[1]))).toBe(1);
+      expect(Object.keys(parts).some((m) => m.startsWith('brows'))).toBe(true);
+      // Never the open jaw or a gasp.
+      for (const morph of ['gasp', 'jawOpen', 'mouthO'])
+        expect(parts[morph]).toBeUndefined();
+    }
+    // The "hmm": lips pressed and pushed hard to one side under high brows.
+    const hmm = BOLD_LOOKS.hmm!('Left', 'Right');
+    expect(hmm.press![0]).toBeGreaterThanOrEqual(0.7);
+    expect(hmm.mouthLeft![0]).toBeGreaterThanOrEqual(0.8);
+    expect(hmm.browsUpLeft![0]).toBeGreaterThan(hmm.browsUpRight![0]);
+  });
+
+  it('holds a moment at its height before letting go', () => {
+    const { onset, offset } = paceOf('hmm');
+    const at = (t: number) =>
+      ambientFace(
+        {
+          ...startAmbient(0),
+          face: {
+            name: 'hmm',
+            peaks: { press: 1 },
+            lags: {},
+            start: 0,
+            end: 3,
+          },
+        },
+        t,
+      ).press!;
+    expect(at(onset / 4)).toBeLessThan(0.2);
+    expect(at(onset)).toBe(1);
+    expect(at(3 - offset)).toBeGreaterThan(1 - SAG);
+    expect(at(3 - offset / 2)).toBeLessThan(0.8);
   });
 });

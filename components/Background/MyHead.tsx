@@ -1,7 +1,6 @@
 import { useFrame } from '@react-three/fiber';
 import { use, useEffect, useMemo, useRef } from 'react';
 import {
-  BufferAttribute,
   BufferGeometry,
   Group,
   Material,
@@ -13,7 +12,13 @@ import {
 
 import type { MousePosition } from '@/hooks/useMousePosition';
 
-import { Ambient, startAmbient, stepAmbient, withAmbient } from './ambient';
+import {
+  Ambient,
+  ambientFace,
+  startAmbient,
+  stepAmbient,
+  withFace,
+} from './ambient';
 import { blinkAmount, startBlink, stepBlink } from './blink';
 import {
   easeRate,
@@ -23,7 +28,7 @@ import {
   shareOver,
 } from './faceExpression';
 import { formFocused, menuOpen } from './focusBlur';
-import { decodeHead, HeadMesh, loadHead } from './headGeometry';
+import { decodeHead, loadHead } from './headGeometry';
 import { headMood, WORRIED } from './headMood';
 import { framedHead, lookOrigin } from './headPlace';
 import {
@@ -47,7 +52,7 @@ import {
   idleStart,
   stepGreeting,
 } from './idleGreeting';
-import { lineMouth, liningOf } from './mouthLining';
+import { morphGeometry } from './morphGeometry';
 import { fadeNeck, fadeTime } from './neckFade';
 import { neckExpressions } from './neckPose';
 import { SHOWN_EXPRESSIONS, SHOWN_SIDED } from './shownExpressions';
@@ -59,6 +64,7 @@ import {
   TIP,
   TURN,
   Wander,
+  WANDER_TURN,
 } from './wander';
 
 export type Point = { x: number; y: number };
@@ -77,6 +83,8 @@ type MyHeadProps = {
 // its terrazzo sphere's black base without the flakes, and eyes in its
 // lightest flake color.
 export const SKIN_COLOR = '#000000';
+// The mouth's inside: flat black, so it shows no detail.
+const MOUTH_COLOR = '#000000';
 const EYE_COLOR = '#aca8a3';
 export const GLOSS = {
   clearcoat: 0.6,
@@ -101,12 +109,6 @@ const skinShader: Material['onBeforeCompile'] = (shader) => {
   turnHead(shader);
   fadeNeck(shader);
 };
-// The mouth's inside: the lips' own glossy look as they roll in, then black,
-// so it shows no detail (mouthLining.ts).
-const mouthShader: Material['onBeforeCompile'] = (shader) => {
-  turnHead(shader);
-  lineMouth(shader);
-};
 
 // The point between the eyes, in head.bin units.
 const EYES = new Vector3(-0.7, 2.7, 29.3);
@@ -114,52 +116,6 @@ const EYES = new Vector3(-0.7, 2.7, 29.3);
 // Where the head is heading this frame, in the same pointer units as
 // lookPositionStart, and how fast it eases there. The sky follows it too.
 export const heading = { target: { x: 0, y: 0 }, speed: 0.05 };
-
-// A mesh's geometry, with each expression as a morph target (its moves, and
-// the turn of each normal they cause, worked out here once).
-function headGeometry(part: HeadMesh): BufferGeometry {
-  const geometry = new BufferGeometry();
-  geometry.setAttribute('position', new BufferAttribute(part.positions, 3));
-  geometry.setAttribute('normal', new BufferAttribute(part.normals, 3));
-  geometry.setIndex(new BufferAttribute(part.indices, 1));
-  geometry.setAttribute(
-    'headWeight',
-    new BufferAttribute(part.headWeights, 1, true),
-  );
-  geometry.setAttribute(
-    'turnWeight',
-    new BufferAttribute(part.turnWeights, 1, true),
-  );
-  if (part.morphs.some((morph) => morph.indices.length)) {
-    const normalsOf = (positions: Float32Array) => {
-      const shape = new BufferGeometry();
-      shape.setAttribute('position', new BufferAttribute(positions, 3));
-      shape.setIndex(new BufferAttribute(part.indices, 1));
-      shape.computeVertexNormals();
-      return shape.getAttribute('normal').array as Float32Array;
-    };
-    const rest = normalsOf(part.positions);
-    const moves = part.morphs.map(({ indices, moves: sparse }) => {
-      const dense = new Float32Array(part.positions.length);
-      indices.forEach((v, k) =>
-        dense.set(sparse.subarray(k * 3, k * 3 + 3), v * 3),
-      );
-      return dense;
-    });
-    geometry.morphAttributes.position = moves.map(
-      (dense) => new BufferAttribute(dense, 3),
-    );
-    geometry.morphAttributes.normal = moves.map((dense) => {
-      const posed = normalsOf(part.positions.map((c, i) => c + dense[i]!));
-      return new BufferAttribute(
-        posed.map((c, i) => c - rest[i]!),
-        3,
-      );
-    });
-    geometry.morphTargetsRelative = true;
-  }
-  return geometry;
-}
 
 // Before it first wanders off on its own, the head faces the camera and looks
 // surprised (idleGreeting.ts).
@@ -188,6 +144,9 @@ const faceInView = () =>
       menuOpen() ||
       !!document.querySelector('[data-nav-dropdown][aria-expanded="true"]'),
   });
+// A tap or click on the head counts only on points the head weight carries
+// more than this (the skull and face; the neck's share falls away below).
+const ON_HEAD = 0.9;
 // A tap on any of these is meant for the page, not the head.
 const PAGE_TARGETS =
   'a, button, input, textarea, select, label, section, header, footer, [data-glass]';
@@ -208,14 +167,7 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
       SHOWN_SIDED,
     );
     const geometry: MyHeadGeometry = {};
-    for (const [name, part] of meshes) geometry[name] = headGeometry(part);
-    geometry.mouth?.setAttribute(
-      'lining',
-      new BufferAttribute(
-        liningOf(meshes.get('mouth')!.positions, meshes.get('mouth')!.indices),
-        1,
-      ),
-    );
+    for (const [name, part] of meshes) geometry[name] = morphGeometry(part);
     return { geometry, expressions };
   }, [myHeadFile]);
   // Each expression's strength now, eased toward what the look calls for.
@@ -223,9 +175,13 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
   // The blinks' clock (blink.ts), and where the head looked last frame.
   const blink = useRef(startBlink(0));
   const lastLook = useRef({ x: 0, y: 0 });
-  // On a touch screen: the head looks around on its own, and reacts to taps
-  // on it (headTaps.ts). A tap waits here until the next frame tests it
-  // against the head.
+  // The passing look laid over the face (ambient.ts), not eased: it has its
+  // own quick onset and offset. When the greeting or a tap takes the face, it
+  // eases out.
+  const face = useRef<Record<string, number>>({});
+  // On a touch screen the head looks around on its own. On any screen it
+  // reacts to taps or clicks on its face (headTaps.ts); one waits here until
+  // the next frame tests it against the head.
   const isTouch = useMemo(
     () => typeof window !== 'undefined' && matchMedia('(hover: none)').matches,
     [],
@@ -243,14 +199,13 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
   const raycaster = useMemo(() => new Raycaster(), []);
 
   useEffect(() => {
-    if (!isTouch) return;
     const onTap = (event: MouseEvent) => {
       if ((event.target as Element | null)?.closest(PAGE_TARGETS)) return;
       tapAt.current = { x: event.clientX, y: event.clientY };
     };
     addEventListener('click', onTap);
     return () => removeEventListener('click', onTap);
-  }, [isTouch]);
+  }, []);
 
   const lookPositionLimit = (
     coordinate: number,
@@ -288,18 +243,22 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
   };
 
   // On a touch screen there is no pointer to follow (a tap's emulated
-  // mousemove is not one), so the head looks around from the start; while a
-  // tap's reaction is under way it faces the camera instead. Returns whether
-  // it is reacting.
-  const stepTouch = (time: number): boolean => {
-    if (!isTouch) return false;
-    pointer.moved = false;
+  // mousemove is not one), so the head looks around from the start. While a
+  // tap's or a click's reaction is under way it faces the camera instead;
+  // after it, on a touch screen it looks around again, and with a mouse it
+  // follows the pointer, the idle clock starting over. Returns whether it is
+  // reacting.
+  const stepReaction = (time: number): boolean => {
+    if (isTouch) pointer.moved = false;
     if (!tapsOn(taps.current)) {
-      if (!wandering.current) startWandering(time);
+      if (isTouch && !wandering.current) startWandering(time);
       return false;
     }
     taps.current = stepTaps(taps.current, time);
-    if (!tapsOn(taps.current)) startWandering(time);
+    if (!tapsOn(taps.current)) {
+      if (isTouch) startWandering(time);
+      else stopWandering(time);
+    }
     return true;
   };
 
@@ -311,7 +270,7 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
     let skySpeed: number | undefined;
 
     holdWhileUnseen(time);
-    if (stepTouch(time)) {
+    if (stepReaction(time)) {
       lookPosition = { x: 0, y: 0 };
       rotationSpeed = TAP_TURN_SPEED;
     } else if (pointer.moved) {
@@ -323,8 +282,11 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
         turn,
         // Every expression eased out (the strengths are the last frame's).
         neutral: faceNeutral(
-          Object.fromEntries(
-            expressions.map((name, k) => [name, strengths.current[k] ?? 0]),
+          withFace(
+            Object.fromEntries(
+              expressions.map((name, k) => [name, strengths.current[k] ?? 0]),
+            ),
+            face.current,
           ),
         ),
         time,
@@ -348,8 +310,11 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
     heading.target = lookPosition;
     heading.speed = skySpeed ?? rotationSpeed;
 
+    // Looking around on its own, it turns a little further than the pointer
+    // can turn it (wander.ts WANDER_TURN).
+    const [left, right] = wandering.current ? WANDER_TURN : TURN;
     lookPosition = {
-      x: lookPositionLimit(lookPosition.x * 0.001, ...TURN),
+      x: lookPositionLimit(lookPosition.x * 0.001, left, right),
       y: lookPositionLimit(lookPosition.y * 0.001, ...TIP),
     };
 
@@ -358,14 +323,22 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
     turn.y += share * (lookPosition.x - turn.y);
     const { body, head } = splitLook(turn);
     rotation.set(body.x, body.y, 0);
-    ambient.current = stepAmbient(ambient.current, turn, time, seconds);
+    ambient.current = stepAmbient(
+      ambient.current,
+      turn,
+      time,
+      seconds,
+      Math.random,
+      wandering.current !== null,
+    );
     headTurn.value.set(head.x, head.y, ambient.current.tilt);
   };
 
   useFrame(({ clock, camera, size }, delta) => {
     fadeTime.value = clock.elapsedTime;
-    // A tap that lands on the head (its skin, as posed this frame) sets off
-    // the next reaction.
+    // A tap or click that lands on the head (its skin, not the neck or the
+    // shoulders: points the head weight carries nearly whole) sets off the
+    // next reaction.
     if (tapAt.current && skinRef.current) {
       const { x, y } = tapAt.current;
       tapAt.current = null;
@@ -373,9 +346,17 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
         new Vector2((x / size.width) * 2 - 1, 1 - (y / size.height) * 2),
         camera,
       );
-      if (raycaster.intersectObject(skinRef.current, false).length) {
+      const [hit] = raycaster.intersectObject(skinRef.current, false);
+      const weights = skinRef.current.geometry.getAttribute('headWeight');
+      if (
+        hit?.face &&
+        [hit.face.a, hit.face.b, hit.face.c].every(
+          (i) => weights.getX(i) > ON_HEAD,
+        )
+      ) {
         taps.current = tapHead(taps.current, clock.elapsedTime);
         wandering.current = null;
+        greeting = idle;
       }
     }
     rotateMyHead(clock.elapsedTime, delta);
@@ -400,23 +381,29 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
         ? WORRIED
         : greetingOn(greeting)
           ? greetingExpressions(greeting)
-          : // The face's reactions to where it looks, with a faint
-            // expression of its own now and then (ambient.ts).
-            withAmbient(
-              {
-                smile: facingSmile(look.current),
-                ...pointerExpressions(
-                  spot,
-                  {
-                    x: ((eyes.x + 1) / 2) * size.width,
-                    y: ((1 - eyes.y) / 2) * size.height,
-                  },
-                  size,
-                ),
-              },
-              ambient.current,
-              clock.elapsedTime,
-            );
+          : // The face's reactions to where it looks.
+            {
+              smile: facingSmile(look.current),
+              ...pointerExpressions(
+                spot,
+                {
+                  x: ((eyes.x + 1) / 2) * size.width,
+                  y: ((1 - eyes.y) / 2) * size.height,
+                },
+                size,
+              ),
+            };
+    // With an expression of its own now and then (ambient.ts), unless the
+    // face is someone else's.
+    face.current =
+      isGreeting || headMood.worried
+        ? Object.fromEntries(
+            Object.entries(face.current).map(([name, strength]) => [
+              name,
+              easeToward(strength, 0, delta, GREETING_EASE_RATE),
+            ]),
+          )
+        : ambientFace(ambient.current, clock.elapsedTime);
     strengths.current = expressions.map((name, k) =>
       easeToward(
         strengths.current[k] ?? 0,
@@ -431,7 +418,7 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
     strengths.current = strengths.current.map(
       (s, k) => neck[expressions[k]!] ?? s,
     );
-    // A blink over it all, on its own clock and with quick shifts of the
+    // The passing look over it all, and a blink over that, on its own clock and with quick shifts of the
     // gaze; shown, not eased, so the lids snap shut and open as lids do.
     const gazeSpeed =
       Math.hypot(
@@ -441,9 +428,11 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
     lastLook.current = { ...look.current };
     blink.current = stepBlink(blink.current, clock.elapsedTime, gazeSpeed);
     const lids = blinkAmount(blink.current, clock.elapsedTime);
-    const shown = strengths.current.map((s, k) =>
-      expressions[k] === 'blink' ? Math.max(s, lids) : s,
-    );
+    const shown = strengths.current.map((s, k) => {
+      const name = expressions[k]!;
+      const made = Math.min(1, s + (face.current[name] ?? 0));
+      return name === 'blink' ? Math.max(made, lids) : made;
+    });
     for (const mesh of [skinRef.current, mouthRef.current])
       if (mesh) mesh.morphTargetInfluences = shown;
   });
@@ -459,11 +448,7 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
         />
       </mesh>
       <mesh geometry={myHeadGeometry.mouth} ref={mouthRef}>
-        <meshPhysicalMaterial
-          color={SKIN_COLOR}
-          {...GLOSS}
-          onBeforeCompile={mouthShader}
-        />
+        <meshBasicMaterial color={MOUTH_COLOR} onBeforeCompile={turnHead} />
       </mesh>
       <mesh geometry={myHeadGeometry.rightEye}>
         <meshPhysicalMaterial

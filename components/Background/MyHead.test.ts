@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { BODY_TURN, splitLook } from './MyHead';
 import { FAR_TURN } from './neckPose';
-import { TURN } from './wander';
+import { WANDER_TURN } from './wander';
 
 describe('the head and body turn', () => {
   it('keeps the shoulders still, turned in toward the middle of the page', () => {
@@ -24,7 +24,9 @@ describe('the head and body turn', () => {
     expect(head.x).toBe(look.x);
   });
 
-  it('turns the head on the neck as far as its far shapes go, and no further', () => {
-    expect(-splitLook({ x: 0, y: TURN[0] }).head.y).toBeCloseTo(FAR_TURN, 2);
+  it('never turns the head on the neck past its far shapes', () => {
+    expect(-splitLook({ x: 0, y: WANDER_TURN[0] }).head.y).toBeLessThan(
+      FAR_TURN,
+    );
   });
 });

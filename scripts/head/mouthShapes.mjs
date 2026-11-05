@@ -74,7 +74,8 @@ function jawOpen(rig, face) {
 // it; the roll of the lower lip pushed out by the teeth bulges below, over a
 // deep crease above the chin.
 function lowerLipIn(rig, face) {
-  const pins = held(rig);
+  // The nose held: drawing the lower lip in left it dragging the tip down.
+  const pins = held(rig, { nose: true });
   lips(rig, face, pins, (s, lower, i) => {
     const body = (1 - s * s) ** 0.7;
     // The lips meet (sealed) with the lower drawn back under the upper,

@@ -49,6 +49,17 @@ export const ICT_SHAPES = {
 const SEALED = { pucker: 1.2, cheekPuff: 0, press: 0, dimple: 0, frown: 0 };
 // How many times each carried move is evened over our mesh.
 const PASSES = 16;
+// The share of a mouth expression's move the nose's bridge and tip keep.
+const NOSE_KEPT = 0.3;
+// How much of the nose a point is, for holding it (0 to 1): the bridge and
+// tip, fading out down the lower nose to its base, which the upper lip
+// carries with it. (Faded out over the nostrils alone, the lip's move folded
+// them over.)
+const noseHeld = ([x, y, z]) =>
+  smoothstep(y, -27, -19) *
+  (1 - smoothstep(y, -8, -4)) *
+  (1 - smoothstep(Math.abs(x), 8, 11)) *
+  smoothstep(z, 38, 42);
 
 const sub = (a, b) => a.map((c, k) => c - b[k]);
 const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
@@ -286,6 +297,12 @@ export function ictMoves(skin, pocket, weights, free, into) {
     // where ICT's face ends), then any fold left smoothed out.
     d = carryDown(skin, { [name]: d }, free)[name];
     d = unfold(skin, d, neighbours);
+    // Evened and carried, the lips' moves crept up the nose and swung its
+    // tip (pulled to one side, the mouth took the tip 7 mm with it): the
+    // bridge and tip keep NOSE_KEPT of what reaches them.
+    d = d.map((m, i) =>
+      m.map((c) => c * (1 - (1 - NOSE_KEPT) * noseHeld(skin.vertices[i]))),
+    );
     skinMoves[name] = d;
     // The pocket's rim takes the lip edge's moves; the rest settles evenly
     // between (moved point by point, its rings tore).

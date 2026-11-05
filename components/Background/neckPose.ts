@@ -6,9 +6,10 @@
 
 // The turn and nod (radians) at which each shape is at full strength: the
 // shapes were built against renders turned 45 degrees and nodded 30. Past
-// FULL_TURN the far turn's shapes take over, full at FAR_TURN, as far as the
-// head turns (wander.ts TURN): the neck's share of it is 80 degrees, about as
-// far as a neck turns, built against a photo of one turned that far.
+// FULL_TURN the far turn's shapes take over, full at FAR_TURN: 80 degrees on
+// the neck, about as far as a neck turns, built against a photo of one turned
+// that far. The page turns it less (wander.ts WANDER_TURN, about 52 degrees
+// on the neck), so only the start of the far shapes shows.
 export const FULL_TURN = 0.79;
 export const FAR_TURN = 1.55;
 export const FULL_NOD = 0.52;

@@ -33,10 +33,10 @@ function run(fps = 60, seconds = 600, random = seeded(5)) {
 describe('the head blinking', () => {
   const { starts, shut } = run();
 
-  it('blinks about as often as a person at rest, at irregular gaps', () => {
-    // 12 to 22 a minute.
-    expect(starts.length).toBeGreaterThan(10 * 12);
-    expect(starts.length).toBeLessThan(10 * 22);
+  it('blinks sparingly, at irregular gaps', () => {
+    // 2 to 4 a minute, far under a person's 17 at rest.
+    expect(starts.length).toBeGreaterThan(10 * 2);
+    expect(starts.length).toBeLessThan(10 * 4);
     const gaps = starts.slice(1).map((t, k) => t - starts[k]!);
     expect(Math.min(...gaps)).toBeGreaterThanOrEqual(GAP.least);
     expect(Math.max(...gaps)).toBeLessThanOrEqual(
@@ -66,10 +66,10 @@ describe('the head blinking', () => {
     const after = BLINK.close + BLINK.hold + BLINK.open;
     expect(blinkAmount(twice, after + 0.05 + BLINK.close + 0.01)).toBe(1);
     expect(DOUBLE_CHANCE).toBeGreaterThan(0);
-    expect(DOUBLE_CHANCE).toBeLessThan(0.2);
+    expect(DOUBLE_CHANCE).toBeLessThan(0.1);
   });
 
-  it('blinks with a quick shift of the gaze, often, not every frame of it', () => {
+  it('blinks with a quick shift of the gaze now and then, once a shift', () => {
     let blinked = 0;
     for (let trial = 0; trial < 200; trial++) {
       // (The generator's first few numbers from nearby seeds are alike.)

@@ -8,8 +8,8 @@ import {
   startWander,
   stepWander,
   TIP,
-  TURN,
   Wander,
+  WANDER_TURN,
 } from './wander';
 
 // A repeatable random number generator (a linear congruential one).
@@ -36,8 +36,8 @@ describe('the head looking around on its own', () => {
     for (const { gaze } of frames) {
       expect(gaze.x).toBeGreaterThan(TIP[0]);
       expect(gaze.x).toBeLessThan(TIP[1]);
-      expect(gaze.y).toBeGreaterThan(TURN[0]);
-      expect(gaze.y).toBeLessThan(TURN[1]);
+      expect(gaze.y).toBeGreaterThan(WANDER_TURN[0]);
+      expect(gaze.y).toBeLessThan(WANDER_TURN[1]);
     }
   });
 

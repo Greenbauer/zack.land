@@ -97,10 +97,25 @@ export function field({ vertices, neighbours }, pins, hard) {
   return d;
 }
 
+// How much of the nose a point is, 0 to 1: its bridge, tip and wings, from
+// below its root (where the skin between the brows moves) down to the base
+// of the nostrils, out to where the wings meet the cheeks. The bridge and tip
+// are bone and cartilage: an expression that does not work the nose's own
+// muscles leaves them where they are.
+export const onNose = ([x, y, z]) =>
+  smoothstep(y, -28.5, -26) *
+  (1 - smoothstep(y, -8, -4)) *
+  (1 - smoothstep(Math.abs(x), 8, 10.5)) *
+  smoothstep(z, 38, 41);
+
 // Points that stay still: the back of the head, the crown (above `crown`),
-// the ears, the skin near the neck below `seam` units over the join, and
-// anything below `floor`.
-export function still(rig, { crown = 58, seam = 4, floor = -Infinity } = {}) {
+// the ears, the skin near the neck below `seam` units over the join, anything
+// below `floor`, and with `nose` the nose (onNose), so an expression around
+// it (the brows raised, the lips pushed out) does not drag it along.
+export function still(
+  rig,
+  { crown = 58, seam = 4, floor = -Infinity, nose = false } = {},
+) {
   const pins = new Map();
   rig.vertices.forEach((v, i) => {
     if (
@@ -108,7 +123,8 @@ export function still(rig, { crown = 58, seam = 4, floor = -Infinity } = {}) {
       v[1] > crown ||
       v[1] < floor ||
       Math.abs(v[0]) > 44 ||
-      rig.height(v) < seam
+      rig.height(v) < seam ||
+      (nose && onNose(v) > 0.5)
     )
       pins.set(i, [0, 0, 0]);
   });

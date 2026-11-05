@@ -109,7 +109,7 @@ function surprise(
   face,
   { lid, lowerLid, inner, jaw, upperLip, out, seam, brow = 4.5 },
 ) {
-  const pins = still(rig, { seam });
+  const pins = still(rig, { seam, nose: true });
   lids(rig, pins, -lid, -lowerLid);
   brows(rig, pins, (across) => [
     0,
@@ -171,7 +171,7 @@ const gasp = (rig, face) =>
 // Pout (reference: lips pushed forward, the lower lip up, corners down, chin
 // lifted and bunched, inner brows drawn down and together, eyes narrowed).
 function pout(rig, face) {
-  const pins = still(rig, { seam: 0 });
+  const pins = still(rig, { seam: 0, nose: true });
   lips(rig, face, pins, (s, lower, i) => {
     const body = 1 - s * s;
     const x = rig.vertices[i][0] - rig.mouth.middle;
@@ -219,7 +219,7 @@ const browsUp = (rig, face) =>
 // the upper lids come down, the brows lower and draw in a little, and the
 // cheeks under the eyes lift; the mouth stays still.
 function squint(rig, face) {
-  const pins = still(rig);
+  const pins = still(rig, { nose: true });
   lips(rig, face, pins, () => [0, 0, 0]);
   for (const i of face.lips.corners) pins.set(i, [0, 0, 0]);
   lids(rig, pins, 0.12, 0.4);
@@ -247,7 +247,7 @@ function squint(rig, face) {
 // turned down, the chin a little bunched): the eyes stay as they are, but
 // for the lower lids tightening a touch.
 function worried(rig, face) {
-  const pins = still(rig, { seam: 0 });
+  const pins = still(rig, { seam: 0, nose: true });
   lids(rig, pins, 0, 0.08);
   brows(rig, pins, (across, side) => {
     const inner = 1 - smoothstep(across, 5, 24);

@@ -1,22 +1,24 @@
 // The head blinks on its own clock, in every state (MyHead.tsx lays it over
-// whatever else the face is doing), as people do: every few seconds at
+// whatever else the face is doing), sparsely: every twenty seconds or so at
 // irregular gaps, each blink closing fast and opening more slowly, now and
-// then twice in a row, and often as the eyes shift quickly to a new look (a
-// glance carries a blink with it). Without blinks the face read as a still.
+// then twice in a row, and once in a while as the eyes shift quickly to a
+// new look (a glance carries a blink with it). Without blinks the face read
+// as a still; blinking as often as a person at rest (17 a minute), or even
+// every ten seconds, drew the eye to it.
 
 // One blink's course, in seconds: the lids close, stay shut a moment, open.
 export const BLINK = { close: 0.08, hold: 0.04, open: 0.18 };
 const LENGTH = BLINK.close + BLINK.hold + BLINK.open;
-// The gaps between blinks: at least `least` seconds, `mean` on average (about
-// 17 a minute, a person's rate at rest), never more than `most`.
-export const GAP = { least: 1.2, mean: 3.5, most: 9 } as const;
+// The gaps between blinks: at least `least` seconds, `mean` on average
+// (about 3 a minute), never more than `most`.
+export const GAP = { least: 8, mean: 20, most: 40 } as const;
 // How often a blink comes twice, the second just after the first.
-export const DOUBLE_CHANCE = 0.1;
+export const DOUBLE_CHANCE = 0.03;
 const DOUBLE_AFTER = LENGTH + 0.05;
 // A quick shift of the gaze (faster than `speed`, radians a second) brings a
 // blink with it `chance` of the time, if the last began over `after` seconds
 // before.
-export const SHIFT = { speed: 1.5, chance: 0.6, after: 0.8 } as const;
+export const SHIFT = { speed: 1.5, chance: 0.1, after: 8 } as const;
 
 export type Blink = {
   // When the current (or last) blink began, whether it comes twice, when

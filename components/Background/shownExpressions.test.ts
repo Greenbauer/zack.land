@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { LOOKS } from './ambient';
+import { BOLD_LOOKS, LOOKS } from './ambientLooks';
 import { pointerExpressions } from './faceExpression';
 import { expressions } from './headFixture';
 import { WORRIED } from './headMood';
@@ -45,15 +45,15 @@ describe('the expressions the page loads', () => {
       ),
       ...Object.keys(greetingExpressions({ phase: 'idle' })),
       ...Object.keys(neckExpressions({ x: 0, y: 0 })),
-      ...Object.values(LOOKS).flatMap((look) =>
-        Object.keys(look('Left', 'Right')).map(whole),
+      ...[...Object.values(LOOKS), ...Object.values(BOLD_LOOKS)].flatMap(
+        (look) => Object.keys(look('Left', 'Right')).map(whole),
       ),
     ]);
     for (const name of asked) expect(SHOWN_EXPRESSIONS).toContain(name);
   });
 
   it('split into halves those the page drives one-sided', () => {
-    for (const look of Object.values(LOOKS))
+    for (const look of [...Object.values(LOOKS), ...Object.values(BOLD_LOOKS)])
       for (const name of Object.keys(look('Left', 'Right'))) {
         const base = whole(name);
         if (base !== name) expect(SHOWN_SIDED).toContain(base);

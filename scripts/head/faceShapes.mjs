@@ -151,7 +151,7 @@ function blink(rig, { upperShare = 0.68, squeeze = 0 } = {}) {
 // concentration): the inner ends pulled down and in, the skin between them
 // bunched forward, the upper lids lowered a touch.
 function browDown(rig, face) {
-  const pins = still(rig, { floor: BROW_FLOOR });
+  const pins = still(rig, { floor: BROW_FLOOR, nose: true });
   lids(rig, pins, 0.14, 0.04);
   brows(rig, pins, (across, side) => {
     const inner = 1 - smoothstep(across, 6, 28);
@@ -215,7 +215,7 @@ function holdForehead(rig, pins, across, outer) {
 }
 
 function browInnerUp(rig, face) {
-  const pins = still(rig, { floor: BROW_FLOOR });
+  const pins = still(rig, { floor: BROW_FLOOR, nose: true });
   holdForehead(rig, pins, 26, true);
   lids(rig, pins, 0, 0);
   // The ridge of the brow moves too, not only the skin above it: on a face
@@ -236,7 +236,7 @@ function browInnerUp(rig, face) {
 // The outer ends of the brows raised: the whole brow lifts a little and its
 // outer third most, as the outer part of the forehead's muscle does it.
 function browOuterUp(rig, face) {
-  const pins = still(rig, { floor: BROW_FLOOR });
+  const pins = still(rig, { floor: BROW_FLOOR, nose: true });
   lids(rig, pins, -0.08, 0);
   holdForehead(rig, pins, 6, false);
   brows(
@@ -250,46 +250,34 @@ function browOuterUp(rig, face) {
 
 // Where each wing of the nose (the ala) is fullest, its side's x mirrored.
 const ALA = { x: 11, y: -26, z: 41 };
-// Each nostril's opening, under the nose.
-const NOSTRIL = { x: 6.5, y: -28, z: 47 };
+// The middle of each wing's lobe, round the nostril, and how far round it the
+// flare reaches.
+const WING = { x: 8, y: -24, z: 45, reach: 4.5 };
 
 // The nostrils flared, as the muscle that does it pulls: each wing of the
-// nose hinges outward on its crease against the cheek (CREASE), so the front
-// of the wing swings out most, the nostril opens rounder and the crease
-// deepens; the tip and the skin between the nostrils stay.
-const CREASE = { x: 13.5, z: 37, angle: 0.35 };
-
+// nose swings out, most at the middle of its lobe, so the nostril opens wider
+// and rounder, and the cheek just beside the wing gives a little. The tip,
+// the skin between the nostrils and the upper lip under them stay. (Hinged
+// out from a point on the cheek, the flare pushed the skin of the upper lip
+// under the nostrils out further than the wings themselves.)
 function noseFlare(rig) {
   return rig.vertices.map((v, i) => {
     if (rig.pocket.has(i)) return [0, 0, 0];
     const side = Math.sign(v[0]) || 1;
-    // Only the nose moves: nothing below the base of the nostrils, where the
-    // upper lip begins.
-    const onNose = smoothstep(v[1], -33, -28);
-    // How much of the wing a point is: round its middle, clear of the tip
-    // and the middle of the nose, and inside its crease.
+    const across = Math.abs(v[0]);
     const wing =
-      bump(Math.hypot(v[0] - side * ALA.x, v[1] - ALA.y, v[2] - ALA.z), 6) *
-      smoothstep(Math.abs(v[0]), 4, 8) *
-      (1 - smoothstep(side * (v[0] - side * CREASE.x), -4, 7)) *
-      onNose;
-    const [dx, dz] = [v[0] - side * CREASE.x, v[2] - CREASE.z];
-    const angle = side * CREASE.angle * wing;
-    const swung = [
-      side * CREASE.x + dx * Math.cos(angle) + dz * Math.sin(angle),
-      v[1],
-      CREASE.z - dx * Math.sin(angle) + dz * Math.cos(angle),
-    ];
-    // The nostril's rim rounds out with the wing.
-    const rim =
       bump(
-        Math.hypot(v[0] - side * NOSTRIL.x, v[1] - NOSTRIL.y, v[2] - NOSTRIL.z),
-        3.5,
+        Math.hypot(across - WING.x, v[1] - WING.y, (v[2] - WING.z) * 0.5),
+        WING.reach,
       ) *
-      smoothstep(Math.abs(v[0]), 3, 7) *
-      smoothstep(-rig.normal[i][1], 0.2, 0.6) *
-      onNose;
-    return [swung[0] - v[0] + side * 1.2 * rim, 0.4 * wing, swung[2] - v[2]];
+      // Clear of the tip and the skin between the nostrils.
+      smoothstep(across, 3, 6) *
+      // Fading out into the cheek beside the wing.
+      (1 - smoothstep(across, 10, 13)) *
+      // The nose's skin, not the upper lip under it.
+      smoothstep(v[1], -30, -28) *
+      smoothstep(v[2], 36, 40);
+    return [side * 1.4 * wing, 0.3 * wing, -0.2 * wing];
   });
 }
 
