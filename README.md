@@ -47,7 +47,8 @@ Every pull request and every push to `master` runs the unit tests (`npm test`: V
 path filter and the job no condition, so the check always reports. The same workflow builds and
 starts the site and runs two end-to-end checks against it: the Cypress spec
 `cypress/e2e/more-less.cy.ts` in Chrome (the check `Phone More/Less`), and the Playwright tests in
-`e2e/` in Chromium and WebKit (split by test across four runners, the checks `Moving views (1/4)` to `Moving views (4/4)`; `playwright.config.ts`, run locally with
+`e2e/` in Chromium and WebKit (split by test across four runners, the checks `Moving views (1/4)` to `Moving views (4/4)`, each in
+Playwright's own image of the version `package-lock.json` pins, read by the check `Playwright version`; `playwright.config.ts`, run locally with
 `npx playwright test` against `BASE_URL`, default `http://localhost:3000`). The other specs in
 `cypress/e2e` are not run.
 
