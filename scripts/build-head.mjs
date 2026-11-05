@@ -8,13 +8,18 @@
 // MakeHuman's base mesh and targets are CC0 1.0 (LICENSE.md in the repository
 // below, "C. The license for the bundled assets"). They are pinned to a commit
 // and downloaded to the system temp directory on first run.
+// The mouth's rounded shapes and open jaw come from ICT-FaceKit's scanned
+// expressions (MIT, scripts/head/ict/LICENSE; scripts/head/ict.mjs, extract-ict.mjs).
 
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import { bridge } from './head/bridge.mjs';
+import { BODY_SHAPES, bodyMoves } from './head/bodyShapes.mjs';
+import { bridge, evenSeam } from './head/bridge.mjs';
 import { bustMoves, EXPRESSIONS, expressions } from './head/expressions.mjs';
+import { smoothstep } from './head/faceRig.mjs';
+import { ictMoves } from './head/ict.mjs';
 import {
   add,
   average,
@@ -30,7 +35,8 @@ import {
   weld,
 } from './head/mesh.mjs';
 import { openMouth } from './head/mouth.mjs';
-import { headWeights } from './head/rig.mjs';
+import { hangArms } from './head/pose.mjs';
+import { headWeights, neckLevels, turnWeights } from './head/rig.mjs';
 import { sculpt } from './head/sculpt.mjs';
 import { writeHead } from './head/write.mjs';
 
@@ -56,7 +62,7 @@ const TARGETS = {
   'macrodetails/universal-male-young-maxmuscle-averageweight': 0.5,
   'macrodetails/universal-male-young-maxmuscle-minweight': 0.5,
   'torso/torso-muscle-pectoral-incr': 1.25,
-  'torso/torso-muscle-dorsi-incr': 0.5,
+  'torso/torso-muscle-dorsi-incr': 1,
   'armslegs/l-upperarm-shoulder-muscle-incr': 0.7,
   'armslegs/r-upperarm-shoulder-muscle-incr': 0.7,
   'neck/neck-scale-depth-incr': 0.5,
@@ -70,13 +76,14 @@ const OFFSET = [0, -70 - SCALE * 6.75, -37.6];
 // MakeHuman's neck is then stretched down: nothing at `from`, the full
 // `length` below `to`, so the base of the throat (with the lean below) comes
 // about 60 units (10 cm) below the underside of the chin (-65). Out across the shoulders (`across`, distance from the
-// midline) that drop turns into a lift of `shoulders` times it, which puts
-// the trapezius line where the reference photos have it.
+// midline) that drop shrinks to `shoulders` times it, which, with the arms
+// hanging (scripts/head/pose.mjs), puts the trapezius line where the
+// reference photos have it.
 const STRETCH = {
   from: -60,
   to: -112,
   length: 14,
-  shoulders: -0.45,
+  shoulders: 0.1,
   across: [25, 72],
 };
 // MakeHuman's body leans forward under the head more than the reference
@@ -93,26 +100,15 @@ const LEAN = {
 // `back` (z): measured on the stage photo, the traps meet the neck that much
 // higher than MakeHuman's do once its neck is stretched. The lift grows over
 // a tall range (`below`): grown over a short one, the neck bent sharply into
-// it and left a crease at the corner, where the back photo shows a curve.
-const TRAPEZIUS = {
-  lift: 16,
-  at: 42,
-  width: 20,
-  below: [45, 95],
-  back: [-30, 0],
-};
-// The body is cut as a bust: down to `bottom` under the chest, rising to
-// `arms` through the upper arms (`across`, distance from the midline), all
-// below where the scene's fade ends.
-const BUST = {
-  bottom: -250,
-  arms: -150,
-  across: [100, 165],
-};
-const bustCut = ([x, y]) =>
-  y -
-  (BUST.bottom +
-    (BUST.arms - BUST.bottom) * smoothstep(Math.abs(x), ...BUST.across));
+// it and left a crease at the corner, where the back photo shows a curve; it
+// fades out down the back (`fade`), where it left a ridge each side. Raised
+// over a narrower `width`, the back turned over its top at a sharp corner.
+// prettier-ignore
+const TRAPEZIUS = { lift: 16, at: 42, width: 28, below: [45, 95], back: [-30, 0], fade: [105, 175] };
+// The body is cut as a bust, level across the chest and the hanging arms at
+// the nipples (-193), below where the scene's fade ends (-140).
+const BUST_BOTTOM = -195;
+const bustCut = ([, y]) => y - BUST_BOTTOM;
 
 // The join: a plane through the neck, tilted with it, from the back of the
 // head above the stub's bottom lip (-38 at z = -56; just below, the model
@@ -145,11 +141,6 @@ const BRIDGE_FRONT = [0.5, 0.85];
 const CARRY = { above: 12, down: -125, across: 50 };
 const PLEAT_REACH = 4;
 const PLEAT_PASSES = 80;
-
-const smoothstep = (x, low, high) => {
-  const t = Math.min(Math.max((x - low) / (high - low), 0), 1);
-  return t * t * (3 - 2 * t);
-};
 
 function readObj(text) {
   const vertices = [];
@@ -202,6 +193,13 @@ async function body() {
       const [index, ...delta] = line.trim().split(/\s+/).map(Number);
       delta.forEach((d, axis) => (vertices[index][axis] += weight * d));
     }
+  const rig = JSON.parse(await makehuman('rigs/default_weights.mhw')).weights;
+  hangArms(
+    vertices,
+    faces,
+    JSON.parse(await makehuman('rigs/default.mhskel')),
+    rig,
+  );
   const placed = vertices.map((v) => {
     const [x, y, z] = v.map((c, axis) => c * SCALE + OFFSET[axis]);
     const drop =
@@ -215,6 +213,7 @@ async function body() {
       TRAPEZIUS.lift *
       Math.exp(-(((Math.abs(x) - TRAPEZIUS.at) / TRAPEZIUS.width) ** 2)) *
       smoothstep(-y, ...TRAPEZIUS.below) *
+      (1 - smoothstep(-y, ...TRAPEZIUS.fade)) *
       (1 - smoothstep(z, ...TRAPEZIUS.back));
     // The body leaned back under the head: a bend about the top of the
     // spine that grows over the neck, so the chest and shoulders sit where
@@ -248,7 +247,7 @@ async function body() {
         : best,
     0,
   );
-  return component(cut, nape);
+  return { ...component(cut, nape), neck: neckLevels(rig, placed) };
 }
 
 // A loop's points sorted by angle about its centre (x, z), with a lookup of
@@ -426,12 +425,13 @@ const facing = (() => {
 faces.push(...(facing < 0 ? band.map(([p, q, r]) => [p, r, q]) : band));
 
 // The stitched band's triangles pleat where its two edges' vertices fall out
-// of step: iron that out over a few units either side of the seam.
+// of step: iron that out over a few units either side of the seam, fading
+// out as a bell curve (cut off at the band's edge, the ironing left a ring).
 const pleats = new Map();
 vertices.forEach((v, i) => {
   const off = Math.abs(aboveJoin(v) + GAP / 2);
-  if (off < PLEAT_REACH)
-    pleats.set(i, 1 - smoothstep(off, PLEAT_REACH / 2, PLEAT_REACH));
+  if (off < 3 * PLEAT_REACH)
+    pleats.set(i, Math.exp(-((off / PLEAT_REACH) ** 2)));
 });
 const ironed = smooth({ vertices, faces }, pleats, PLEAT_PASSES, false);
 // Then, round the back and sides, rebuild the surface across the seam so it
@@ -439,33 +439,36 @@ const ironed = smooth({ vertices, faces }, pleats, PLEAT_PASSES, false);
 // head's surface curves up into the jaw too soon for that; there the ironing
 // alone joins them.
 const centre = average(upper.map(({ i }) => vertices[i]));
-const smoothed = {
-  vertices: bridge(
-    { head: head.vertices, body: bent, all: ironed.vertices },
-    {
-      height: aboveJoin,
-      centre: [centre[0], centre[2]],
-      above: BRIDGE_ABOVE,
-      below: BRIDGE_BELOW,
-      front: BRIDGE_FRONT,
-    },
-  ),
+const seam = {
+  height: aboveJoin,
+  centre: [centre[0], centre[2]],
+  front: BRIDGE_FRONT,
 };
+const smoothed = bridge(
+  { head: head.vertices, body: bent, all: ironed.vertices },
+  { ...seam, above: BRIDGE_ABOVE, below: BRIDGE_BELOW },
+);
 const skin = {
-  vertices: sculpt({ vertices: smoothed.vertices, faces }),
+  vertices: sculpt({
+    vertices: evenSeam({ vertices: smoothed, faces }, seam),
+    faces,
+  }),
   faces,
 };
 
-const { skinMoves, pocketMoves } = bustMoves({
-  head,
-  skin,
-  pocket,
-  fineMoves,
-  free: (v, i) =>
-    i < head.vertices.length
-      ? aboveJoin(v) < CARRY.above
-      : v[1] > CARRY.down && Math.abs(v[0]) < CARRY.across,
-});
+const free = (v, i) =>
+  i < head.vertices.length
+    ? aboveJoin(v) < CARRY.above
+    : v[1] > CARRY.down && Math.abs(v[0]) < CARRY.across;
+const bust = bustMoves({ head, skin, pocket, fineMoves, free });
+// The mouth's and jaw's expressions from ICT-FaceKit's scans of real faces
+// (scripts/head/ict.mjs) in place of the built ones, then the bust's own
+// (shrug, breath, swallow, and the grimace's tight neck) on the joined skin.
+const skinNormals = normals(skin);
+const weights = headWeights(skin, aboveJoin, neck.neck);
+ictMoves(skin, pocket, weights, free, bust);
+const turns = turnWeights(skin, aboveJoin, weights);
+bodyMoves(skin, skinNormals, turns, weights, bust.skinMoves);
 const eyeParts = ['rightEye', 'leftEye'].map((name) => {
   const part = mesh(name);
   return { name, mesh: part, normals: normals(part) };
@@ -476,19 +479,20 @@ writeHead(
     {
       name: 'skin',
       mesh: skin,
-      normals: normals(skin),
-      weights: headWeights(skin, aboveJoin),
-      morphs: skinMoves,
+      normals: skinNormals,
+      weights,
+      turns,
+      morphs: bust.skinMoves,
     },
     {
       name: 'mouth',
       mesh: pocket,
       normals: normals(pocket),
-      morphs: pocketMoves,
+      morphs: bust.pocketMoves,
     },
     ...eyeParts,
   ],
-  Object.keys(EXPRESSIONS),
+  [...Object.keys(EXPRESSIONS), ...Object.keys(BODY_SHAPES)],
 );
 process.stdout.write(
   `${path.relative(process.cwd(), OUTPUT)}: ${skin.vertices.length} skin vertices, ` +

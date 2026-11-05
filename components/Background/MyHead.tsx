@@ -45,9 +45,19 @@ import {
   idleStart,
   stepGreeting,
 } from './idleGreeting';
+import { lineMouth, liningOf } from './mouthLining';
 import { fadeNeck, fadeTime } from './neckFade';
+import { neckExpressions } from './neckPose';
+import { SHOWN_EXPRESSIONS, SHOWN_SIDED } from './shownExpressions';
 import { withSides } from './sideMorphs';
-import { shownGaze, startWander, stepWander, Wander } from './wander';
+import {
+  shownGaze,
+  startWander,
+  stepWander,
+  TIP,
+  TURN,
+  Wander,
+} from './wander';
 
 export type Point = { x: number; y: number };
 
@@ -65,8 +75,6 @@ type MyHeadProps = {
 // its terrazzo sphere's black base without the flakes, and eyes in its
 // lightest flake color.
 export const SKIN_COLOR = '#000000';
-// The mouth's inside: flat black, so it shows no detail.
-const MOUTH_COLOR = '#000000';
 const EYE_COLOR = '#aca8a3';
 export const GLOSS = {
   clearcoat: 0.6,
@@ -91,6 +99,12 @@ const skinShader: Material['onBeforeCompile'] = (shader) => {
   turnHead(shader);
   fadeNeck(shader);
 };
+// The mouth's inside: the lips' own glossy look as they roll in, then black,
+// so it shows no detail (mouthLining.ts).
+const mouthShader: Material['onBeforeCompile'] = (shader) => {
+  turnHead(shader);
+  lineMouth(shader);
+};
 
 // The point between the eyes, in head.bin units.
 const EYES = new Vector3(-0.7, 2.7, 29.3);
@@ -109,6 +123,10 @@ function headGeometry(part: HeadMesh): BufferGeometry {
   geometry.setAttribute(
     'headWeight',
     new BufferAttribute(part.headWeights, 1, true),
+  );
+  geometry.setAttribute(
+    'turnWeight',
+    new BufferAttribute(part.turnWeights, 1, true),
   );
   if (part.morphs.some((morph) => morph.indices.length)) {
     const normalsOf = (positions: Float32Array) => {
@@ -183,10 +201,21 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
   const mouthRef = useRef<Mesh>(null);
 
   const { geometry: myHeadGeometry, expressions } = useMemo(() => {
-    // With one-sided brows and squints (sideMorphs.ts) for ambient.ts.
-    const { meshes, expressions } = withSides(decodeHead(myHeadFile));
+    // The expressions the page shows (shownExpressions.ts), with one-sided
+    // brows and squints (sideMorphs.ts) for ambient.ts.
+    const { meshes, expressions } = withSides(
+      decodeHead(myHeadFile, SHOWN_EXPRESSIONS),
+      SHOWN_SIDED,
+    );
     const geometry: MyHeadGeometry = {};
     for (const [name, part] of meshes) geometry[name] = headGeometry(part);
+    geometry.mouth?.setAttribute(
+      'lining',
+      new BufferAttribute(
+        liningOf(meshes.get('mouth')!.positions, meshes.get('mouth')!.indices),
+        1,
+      ),
+    );
     return { geometry, expressions };
   }, [myHeadFile]);
   // Each expression's strength now, eased toward what the look calls for.
@@ -313,8 +342,8 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
     heading.speed = skySpeed ?? rotationSpeed;
 
     lookPosition = {
-      x: lookPositionLimit(lookPosition.x * 0.001, -0.5, 0.3),
-      y: lookPositionLimit(lookPosition.y * 0.001, -0.15, 0.13),
+      x: lookPositionLimit(lookPosition.x * 0.001, ...TURN),
+      y: lookPositionLimit(lookPosition.y * 0.001, ...TIP),
     };
 
     const share = shareOver(rotationSpeed, seconds);
@@ -389,6 +418,12 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
         isGreeting ? GREETING_EASE_RATE : easeRate(name, look.current),
       ),
     );
+    // The neck's shapes follow the head's turn this frame, not eased: they
+    // are part of the turn (neckPose.ts).
+    const neck: Record<string, number> = neckExpressions(headTurn.value);
+    strengths.current = strengths.current.map(
+      (s, k) => neck[expressions[k]!] ?? s,
+    );
     for (const mesh of [skinRef.current, mouthRef.current])
       if (mesh) mesh.morphTargetInfluences = strengths.current;
   });
@@ -404,7 +439,11 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
         />
       </mesh>
       <mesh geometry={myHeadGeometry.mouth} ref={mouthRef}>
-        <meshBasicMaterial color={MOUTH_COLOR} onBeforeCompile={turnHead} />
+        <meshPhysicalMaterial
+          color={SKIN_COLOR}
+          {...GLOSS}
+          onBeforeCompile={mouthShader}
+        />
       </mesh>
       <mesh geometry={myHeadGeometry.rightEye}>
         <meshPhysicalMaterial

@@ -1,14 +1,17 @@
 // Writes head.bin, the format components/Background/headGeometry.ts
 // describes and reads, gzipped. `parts` are { name, mesh: { vertices, faces }
-// (triangles), normals, weights?, morphs?: { [expression]: per-vertex
-// [dx, dy, dz] at full strength } }.
+// (triangles), normals, weights?, turns?, morphs?: { [expression]: per-vertex
+// [dx, dy, dz] at full strength } } (weights and turns: rig.mjs headWeights
+// and turnWeights, 1 for every vertex when left out).
 
 import fs from 'node:fs';
 import zlib from 'node:zlib';
 
 // A morph keeps the vertices it moves by more than this (head.bin units).
 const MOVED = 0.02;
-const POSITION_SCALE = 1000;
+// Moves are stored in 500ths of a unit (0.0034 mm): fine enough, and with
+// room for a shrug's full lift (up to 65 units).
+const POSITION_SCALE = 500;
 
 const even = (n) => n + (n % 2);
 
@@ -23,7 +26,7 @@ export function writeHead(file, parts, expressions) {
   const top = 40 + expressions.length * 16;
   const header = Buffer.alloc(top + parts.length * 24);
   header.write('HEAD', 0, 'ascii');
-  header.writeUInt32LE(3, 4);
+  header.writeUInt32LE(5, 4);
   header.writeUInt32LE(parts.length, 8);
   [...min, ...max].forEach((c, k) => header.writeFloatLE(c, 12 + k * 4));
   header.writeUInt32LE(expressions.length, 36);
@@ -31,7 +34,7 @@ export function writeHead(file, parts, expressions) {
     header.write(name, 40 + k * 16, 16, 'ascii'),
   );
   const chunks = [header];
-  parts.forEach(({ name, mesh, normals, weights, morphs }, k) => {
+  parts.forEach(({ name, mesh, normals, weights, turns, morphs }, k) => {
     const count = mesh.vertices.length;
     if (count > 65535)
       throw new Error(`${name}: too many vertices for 16-bit indices`);
@@ -60,11 +63,14 @@ export function writeHead(file, parts, expressions) {
         packed.writeInt8(Math.round(c * 127), i * 3 + axis),
       ),
     );
-    const turns = Buffer.alloc(even(count));
-    mesh.vertices.forEach((_, i) =>
-      turns.writeUInt8(Math.round((weights?.[i] ?? 1) * 255), i),
-    );
-    chunks.push(positions, indices, packed, turns);
+    const shares = (of) => {
+      const bytes = Buffer.alloc(even(count));
+      mesh.vertices.forEach((_, i) =>
+        bytes.writeUInt8(Math.round((of?.[i] ?? 1) * 255), i),
+      );
+      return bytes;
+    };
+    chunks.push(positions, indices, packed, shares(weights), shares(turns));
     for (const expression of expressions) {
       const morph = morphs?.[expression];
       const moved = morph

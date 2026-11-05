@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import { BODY_TURN, splitLook } from './MyHead';
+import { FAR_TURN } from './neckPose';
+import { TURN } from './wander';
 
 describe('the head and body turn', () => {
   it('keeps the shoulders still, turned in toward the middle of the page', () => {
@@ -20,5 +22,9 @@ describe('the head and body turn', () => {
     const { body, head } = splitLook(look);
     expect(body.y + head.y).toBeCloseTo(look.y);
     expect(head.x).toBe(look.x);
+  });
+
+  it('turns the head on the neck as far as its far shapes go, and no further', () => {
+    expect(-splitLook({ x: 0, y: TURN[0] }).head.y).toBeCloseTo(FAR_TURN, 2);
   });
 });
