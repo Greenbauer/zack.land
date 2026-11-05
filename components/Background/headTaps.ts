@@ -19,6 +19,17 @@ export const TAP_TURN_SPEED = 0.2;
 
 export const untapped: HeadTaps = { phase: 'none' };
 
+// A tap or click counts on the head only where it lands on skin the head
+// weight carries more than ON_HEAD (the skull and face; the neck's share
+// falls away below): on a triangle whose corners (`corners`, skin points)
+// all have that much (`weightOf`: a point's head weight, 0 to 1). The neck
+// and shoulders, and anything in front of the head, leave it alone.
+export const ON_HEAD = 0.9;
+export const onHead = (
+  corners: readonly number[],
+  weightOf: (_point: number) => number,
+) => corners.every((i) => weightOf(i) > ON_HEAD);
+
 // The head tapped at `time` (seconds): the next of the three reactions, or the
 // first again after the third or once the last has eased into a smile.
 export function tapHead(taps: HeadTaps, time: number): HeadTaps {

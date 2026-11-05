@@ -15,20 +15,25 @@ export const gridOf = (points, keep = () => true, cell = 2) => {
     const k = key(p);
     (cells.get(k) ?? cells.set(k, []).get(k)).push(i);
   });
+  // The points in the cells within `reach` cells of p's.
+  const around = (p, reach) => {
+    const [gx, gy, gz] = p.map((c) => Math.floor(c / cell));
+    const near = [];
+    for (let x = -reach; x <= reach; x++)
+      for (let y = -reach; y <= reach; y++)
+        for (let z = -reach; z <= reach; z++)
+          near.push(...(cells.get(`${gx + x},${gy + y},${gz + z}`) ?? []));
+    return near;
+  };
   // The nearest point to p within r that `ok(i)` allows, and its distance.
   return (p, r, ok = () => true) => {
     let best = -1;
     let bestD = r * r;
-    const [gx, gy, gz] = p.map((c) => Math.floor(c / cell));
-    const reach = Math.ceil(r / cell);
-    for (let x = -reach; x <= reach; x++)
-      for (let y = -reach; y <= reach; y++)
-        for (let z = -reach; z <= reach; z++)
-          for (const i of cells.get(`${gx + x},${gy + y},${gz + z}`) ?? []) {
-            if (!ok(i)) continue;
-            const d = dot(sub(points[i], p), sub(points[i], p));
-            if (d < bestD) [bestD, best] = [d, i];
-          }
+    for (const i of around(p, Math.ceil(r / cell))) {
+      if (!ok(i)) continue;
+      const d = dot(sub(points[i], p), sub(points[i], p));
+      if (d < bestD) [bestD, best] = [d, i];
+    }
     return [best, Math.sqrt(bestD)];
   };
 };

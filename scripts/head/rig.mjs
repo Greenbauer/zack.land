@@ -72,20 +72,25 @@ function carried(points, vertices) {
     if (!grid.has(key)) grid.set(key, []);
     grid.get(key).push(point);
   }
-  return vertices.map((v) => {
+  // The points in v's cell and the cells around it.
+  const around = (v) => {
     const [cx, cy, cz] = v.map((c) => Math.floor(c / REACH));
-    let sum = 0;
-    let total = 0;
+    const near = [];
     for (let a = -1; a <= 1; a++)
       for (let b = -1; b <= 1; b++)
         for (let c = -1; c <= 1; c++)
-          for (const [p, s] of grid.get(`${cx + a},${cy + b},${cz + c}`) ??
-            []) {
-            const d = Math.hypot(...p.map((x, k) => x - v[k]));
-            if (d > REACH) continue;
-            sum += s / (d + 0.5);
-            total += 1 / (d + 0.5);
-          }
+          near.push(...(grid.get(`${cx + a},${cy + b},${cz + c}`) ?? []));
+    return near;
+  };
+  return vertices.map((v) => {
+    let sum = 0;
+    let total = 0;
+    for (const [p, s] of around(v)) {
+      const d = Math.hypot(...p.map((x, k) => x - v[k]));
+      if (d > REACH) continue;
+      sum += s / (d + 0.5);
+      total += 1 / (d + 0.5);
+    }
     return total ? sum / total : 0;
   });
 }

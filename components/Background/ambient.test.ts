@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import {
   Ambient,
   ambientFace,
+  FACE_GAP,
+  holdFace,
   SAG,
   startAmbient,
   stepAmbient,
@@ -144,6 +146,42 @@ describe("the head's little movements of its own", () => {
         previous[morph] = now[morph] ?? 0;
       Object.assign(previous, now);
     }
+  });
+
+  it('runs no look under the greeting, so none jumps on after it', () => {
+    // A look under way as the greeting starts.
+    let ambient: Ambient = {
+      ...startAmbient(0),
+      face: {
+        name: 'press',
+        peaks: { press: 0.8 },
+        lags: {},
+        start: 0,
+        end: 3,
+      },
+      nextFace: 10,
+    };
+    const random = seeded(3);
+    // Seven seconds of greeting, held each frame as MyHead.tsx does.
+    let k = 60;
+    for (; k <= 60 * 8; k++) {
+      ambient = stepAmbient(ambient, STRAIGHT, k / 60, 1 / 60, random, true);
+      ambient = holdFace(ambient, k / 60);
+      expect(ambient.face).toBeNull();
+    }
+    // The face its own again: nothing at once, and the next look waits a
+    // gap, then sets in from nothing.
+    const back = k / 60;
+    expect(ambientFace(ambient, back)).toEqual({});
+    expect(ambient.nextFace).toBeGreaterThanOrEqual(
+      back - 1 / 60 + FACE_GAP[0],
+    );
+    let first: Record<string, number> | null = null;
+    for (; !first && k < 60 * 30; k++) {
+      ambient = stepAmbient(ambient, STRAIGHT, k / 60, 1 / 60, random, true);
+      if (ambient.face) first = ambientFace(ambient, k / 60);
+    }
+    for (const strength of Object.values(first!)) expect(strength).toBe(0);
   });
 
   it('lays the passing look over the face without passing whole', () => {

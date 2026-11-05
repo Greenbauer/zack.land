@@ -15,6 +15,7 @@ import type { MousePosition } from '@/hooks/useMousePosition';
 import {
   Ambient,
   ambientFace,
+  holdFace,
   startAmbient,
   stepAmbient,
   withFace,
@@ -33,6 +34,7 @@ import { headMood, WORRIED } from './headMood';
 import { framedHead, lookOrigin } from './headPlace';
 import {
   HeadTaps,
+  onHead,
   stepTaps,
   TAP_TURN_SPEED,
   tapExpressions,
@@ -144,9 +146,6 @@ const faceInView = () =>
       menuOpen() ||
       !!document.querySelector('[data-nav-dropdown][aria-expanded="true"]'),
   });
-// A tap or click on the head counts only on points the head weight carries
-// more than this (the skull and face; the neck's share falls away below).
-const ON_HEAD = 0.9;
 // A tap on any of these is meant for the page, not the head.
 const PAGE_TARGETS =
   'a, button, input, textarea, select, label, section, header, footer, [data-glass]';
@@ -350,9 +349,7 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
       const weights = skinRef.current.geometry.getAttribute('headWeight');
       if (
         hit?.face &&
-        [hit.face.a, hit.face.b, hit.face.c].every(
-          (i) => weights.getX(i) > ON_HEAD,
-        )
+        onHead([hit.face.a, hit.face.b, hit.face.c], (i) => weights.getX(i))
       ) {
         taps.current = tapHead(taps.current, clock.elapsedTime);
         wandering.current = null;
@@ -394,7 +391,10 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
               ),
             };
     // With an expression of its own now and then (ambient.ts), unless the
-    // face is someone else's.
+    // face is someone else's: then none runs underneath, so none is under
+    // way to jump on when the face is its own again.
+    if (isGreeting || headMood.worried)
+      ambient.current = holdFace(ambient.current, clock.elapsedTime);
     face.current =
       isGreeting || headMood.worried
         ? Object.fromEntries(

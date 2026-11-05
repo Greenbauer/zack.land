@@ -36,7 +36,7 @@ const TILT_SETTLE = [0.5, 0.8] as const;
 export const TILT_RETURN = 0.5;
 
 // The gap between one look and the next, in seconds.
-const FACE_GAP = [2.5, 7] as const;
+export const FACE_GAP = [2.5, 7] as const;
 
 export type Ambient = {
   tilt: number;
@@ -148,6 +148,17 @@ function nextFace(
     },
   };
 }
+
+// While the face is someone else's (the greeting, a tap's reaction, a page
+// holding it worried): no passing look runs underneath. One under way is
+// dropped (MyHead.tsx eases it out), and the next waits at least a gap after
+// the face is its own again. (Left running, a look under way when the
+// greeting ended appeared on the face in a single frame.)
+export const holdFace = (ambient: Ambient, time: number): Ambient => ({
+  ...ambient,
+  face: null,
+  nextFace: Math.max(ambient.nextFace, time + FACE_GAP[0]),
+});
 
 // The ambient movements `seconds` later, at clock `time`, the head looking
 // `look` (its turn, as tiltRoom takes it); `bold` while it looks around on

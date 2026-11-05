@@ -248,7 +248,10 @@ const PASSES = 300;
 // corners off: evened fully, the swallow all but disappeared.
 const NECK_PASSES = 30;
 
-function even({ vertices, faces }, moves, held, passes = PASSES) {
+// Each point's neighbours for evening: those it shares an edge with, or,
+// along the bust's cut edges, its neighbours on the edge only (with
+// neighbours on one side, it would be pulled in and fold).
+function evenNeighbours({ vertices, faces }) {
   const neighbours = vertices.map(() => new Set());
   for (const f of faces)
     f.forEach((a, k) => {
@@ -256,8 +259,6 @@ function even({ vertices, faces }, moves, held, passes = PASSES) {
       neighbours[a].add(b);
       neighbours[b].add(a);
     });
-  // Along the bust's cut edges a point is evened with its neighbours on the
-  // edge only: with neighbours on one side, it would be pulled in and fold.
   const uses = new Map();
   const along = {};
   for (const f of faces)
@@ -273,6 +274,11 @@ function even({ vertices, faces }, moves, held, passes = PASSES) {
     (along[b] ??= new Set()).add(a);
   }
   for (const [i, ends] of Object.entries(along)) neighbours[i] = ends;
+  return neighbours;
+}
+
+function even({ vertices, faces }, moves, held, passes = PASSES) {
+  const neighbours = evenNeighbours({ vertices, faces });
   const free = vertices.flatMap((v, i) => (!held(v) ? [i] : []));
   let d = moves.map((m, i) => (held(vertices[i]) ? [0, 0, 0] : [...m]));
   for (let pass = 0; pass < passes; pass++) {

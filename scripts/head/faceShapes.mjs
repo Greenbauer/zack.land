@@ -64,8 +64,6 @@ function along(points, x) {
 // `upperShare` is how much of the closing the upper lid does (the rest the
 // lower); `squeeze` bunches the cheek up under the shut eye, as in a wink.
 function blink(rig, { upperShare = 0.68, squeeze = 0 } = {}) {
-  // Each eye's upper rim, for the crease above the closed lid.
-  const uppers = [];
   const pins = still(rig);
   const nearest = (p) =>
     rig.eyes.reduce((best, e) =>
@@ -74,49 +72,7 @@ function blink(rig, { upperShare = 0.68, squeeze = 0 } = {}) {
   rig.vertices.forEach((v, i) => {
     if (length(minus(v, nearest(v))) > ORBIT) pins.set(i, [0, 0, 0]);
   });
-  for (const { loop, centre, line, arc } of rig.rims) {
-    const rim = loop.map((i) => {
-      const p = rig.vertices[i];
-      return {
-        i,
-        p,
-        x: p[0],
-        upper: p[1] > line(p[0]),
-        value: angleOf(p, centre),
-      };
-    });
-    const [upper, lower] = [true, false].map((top) =>
-      rim.filter((r) => r.upper === top).sort((a, b) => a.x - b.x),
-    );
-    uppers.push({ centre, upper, low: upper[0].x, high: upper.at(-1).x });
-    for (const { i, p, x, upper: top, value } of rim) {
-      const gap = top ? value - along(lower, x) : along(upper, x) - value;
-      const share = top ? upperShare : 1 - upperShare;
-      // Right at the corners the rim turns steeply between the lids; closing
-      // it there in full would fold it, so the corners close a little less.
-      const angle =
-        (top ? 1 : -1) *
-        (share * Math.max(gap, 0) + LID_OVERLAP * arc(x)) *
-        smoothstep(
-          arc(x),
-          0,
-          Math.abs(x) < Math.abs(centre[0]) ? CORNER.inner : CORNER.outer,
-        );
-      const r = length(minus(p, centre));
-      // At the corners, where the closing eases off, the lids still come
-      // just off the eyeball so none of it shows past them.
-      const lid = top ? LID_OFF.upper : LID_OFF.lower;
-      const off = Math.max(
-        0,
-        EYE_RADIUS +
-          LID_OFF.corner +
-          (lid - LID_OFF.corner) * arc(x) ** 0.5 -
-          r,
-      );
-      // The angle and the push out ride as the field's first two values.
-      pins.set(i, [angle, off, 0]);
-    }
-  }
+  const uppers = closeRims(rig, pins, upperShare);
   // The field of angles and pushes, then each point turned by its own.
   const spread = field(rig, pins, new Set(pins.keys()));
   return rig.vertices.map((p, i) => {
@@ -133,18 +89,82 @@ function blink(rig, { upperShare = 0.68, squeeze = 0 } = {}) {
     if (!angle && !off) return bunch;
     const c = nearest(p);
     const r = length(minus(p, c));
-    // The crease of the upper lid, a little above its edge, stays as the
-    // lid closes, so the closed lid shows its fold rather than a bare dome.
-    const eye = uppers.find((u) => u.centre === c);
-    let fold = 0;
-    if (eye && p[0] > eye.low && p[0] < eye.high) {
-      const above = angleOf(p, c) - along(eye.upper, p[0]);
-      const t = (p[0] - eye.low) / (eye.high - eye.low);
-      fold = LID_CREASE * bump(above - 0.32, 0.1) * (1 - (2 * t - 1) ** 2);
-    }
+    const fold = lidFold(p, c, uppers);
     const out = c.map((cc, a) => cc + ((p[a] - cc) * (r + off - fold)) / r);
     return add(minus(turn(out, c, angle), p), bunch);
   });
+}
+
+// The crease of the upper lid, a little above its edge, stays as the lid
+// closes, so the closed lid shows its fold rather than a bare dome: how far
+// in it holds point p, over the eye centred at c (`uppers`: each eye's upper
+// rim, from closeRims).
+function lidFold(p, c, uppers) {
+  const eye = uppers.find((u) => u.centre === c);
+  if (!eye || p[0] <= eye.low || p[0] >= eye.high) return 0;
+  const above = angleOf(p, c) - along(eye.upper, p[0]);
+  const t = (p[0] - eye.low) / (eye.high - eye.low);
+  return LID_CREASE * bump(above - 0.32, 0.1) * (1 - (2 * t - 1) ** 2);
+}
+
+// Each eyelid rim's closing, pinned in `pins` as the angle it turns and how
+// far it is pushed out (the field's first two values), the upper lid doing
+// `upperShare` of it; returns each eye's upper rim, for its crease.
+function closeRims(rig, pins, upperShare) {
+  const uppers = [];
+  for (const { loop, centre, line, arc } of rig.rims) {
+    const rim = loop.map((i) => {
+      const p = rig.vertices[i];
+      return {
+        i,
+        p,
+        x: p[0],
+        upper: p[1] > line(p[0]),
+        value: angleOf(p, centre),
+      };
+    });
+    const [upper, lower] = [true, false].map((top) =>
+      rim.filter((r) => r.upper === top).sort((a, b) => a.x - b.x),
+    );
+    uppers.push({ centre, upper, low: upper[0].x, high: upper.at(-1).x });
+    for (const point of rim)
+      pins.set(
+        point.i,
+        rimClosing(point, { centre, arc, upper, lower }, upperShare),
+      );
+  }
+  return uppers;
+}
+
+// One lid rim point's closing ({ i, p, x, upper, value }, on the rim of the
+// eye centred at `centre`): the angle it turns and how far it is pushed out,
+// riding as the field's first two values.
+function rimClosing(
+  { p, x, upper: top, value },
+  { centre, arc, upper, lower },
+  upperShare,
+) {
+  const gap = top ? value - along(lower, x) : along(upper, x) - value;
+  const share = top ? upperShare : 1 - upperShare;
+  // Right at the corners the rim turns steeply between the lids; closing it
+  // there in full would fold it, so the corners close a little less.
+  const angle =
+    (top ? 1 : -1) *
+    (share * Math.max(gap, 0) + LID_OVERLAP * arc(x)) *
+    smoothstep(
+      arc(x),
+      0,
+      Math.abs(x) < Math.abs(centre[0]) ? CORNER.inner : CORNER.outer,
+    );
+  const r = length(minus(p, centre));
+  // At the corners, where the closing eases off, the lids still come just
+  // off the eyeball so none of it shows past them.
+  const lid = top ? LID_OFF.upper : LID_OFF.lower;
+  const off = Math.max(
+    0,
+    EYE_RADIUS + LID_OFF.corner + (lid - LID_OFF.corner) * arc(x) ** 0.5 - r,
+  );
+  return [angle, off, 0];
 }
 
 // Brows down and together (the frown between the eyes, as in anger or hard
