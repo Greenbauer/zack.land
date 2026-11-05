@@ -3,8 +3,9 @@ name: Code
 # Runs the unit tests (npm test: Vitest over every *.test.ts file) on every pull request and on every
 # push to master, and against the built site the phone More/Less spec (cypress/e2e/more-less.cy.ts)
 # and the Playwright specs (e2e/*.e2e.ts: the moving views, the phone menu, a card's content, the media grid, the 404 video, a YouTube video).
-# Target: GitHub's ubuntu-latest, with the Node version .nvmrc names, its installed Chrome for
-# Cypress, and Playwright's own Chromium and WebKit for the Playwright specs.
+# Target: GitHub's ubuntu-latest, with the Node version .nvmrc names and its installed Chrome for
+# Cypress; the Playwright specs run in Playwright's own image of the version package-lock.json pins,
+# which carries its Chromium and WebKit and their system libraries.
 #
 # The other Cypress specs in cypress/e2e are not run here.
 
@@ -74,12 +75,39 @@ jobs:
   # closed, down or up and back, upright and sideways phones and two desktop sizes, and the window resized
   # while a post is open, the phone menu's hand-over to the next page (e2e/mobile-menu.e2e.ts) and what
   # fades on a card as it slides (e2e/card-content.e2e.ts), in Chromium and WebKit
-  # (playwright.config.ts). Playwright's browsers are downloaded here only; installing the site (Vercel's build too) never fetches them. Split by test across four runners (about 70
-  # minutes of tests in all: on two, the Chromium half took 40 to 55 of its 60 minutes), as the checks
-  # `Moving views (1/4)` to `(4/4)`.
+  # (playwright.config.ts). The browsers come with Playwright's image (mcr.microsoft.com/playwright),
+  # the one tagged with the Playwright version in package-lock.json, so the job installs nothing
+  # from Ubuntu's mirrors: `playwright install --with-deps` once spent 44 of a shard's 60 minutes
+  # fetching its system packages at 38 kB/s. Installing the site (Vercel's build too) never fetches
+  # the browsers. Split by test across four runners (about 70 minutes of tests in all: on two, the
+  # Chromium half took 40 to 55 of its 60 minutes), as the checks `Moving views (1/4)` to `(4/4)`.
+  playwright-version:
+    name: Playwright version
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: package-lock.json
+          sparse-checkout-cone-mode: false
+      - name: The version package-lock.json pins
+        id: version
+        run: |
+          version=$(node -p "require('./package-lock.json').packages['node_modules/playwright-core'].version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
   moving-views:
     name: Moving views (${{ matrix.shard }}/4)
+    needs: playwright-version
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v${{ needs.playwright-version.outputs.version }}-noble
+      # Playwright's Docker guide: the host's shared memory for Chromium, which can otherwise run out
+      # of memory and crash, and an init process so none is left a zombie under PID 1.
+      options: --ipc=host --init
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -97,8 +125,6 @@ jobs:
         env:
           # This job runs Playwright, not Cypress.
           CYPRESS_INSTALL_BINARY: '0'
-      - name: Chromium and WebKit for Playwright
-        run: npx playwright install --with-deps chromium webkit
       - name: Build
         run: npm run build
       - name: Every moving view, in Chromium and WebKit
