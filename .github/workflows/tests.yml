@@ -74,16 +74,17 @@ jobs:
   # closed, down or up and back, upright and sideways phones and two desktop sizes, and the window resized
   # while a post is open, the phone menu's hand-over to the next page (e2e/mobile-menu.e2e.ts) and what
   # fades on a card as it slides (e2e/card-content.e2e.ts), in Chromium and WebKit
-  # (playwright.config.ts). Playwright's browsers are downloaded here only; installing the site (Vercel's build too) never fetches them. Split by test across two runners (about 90 minutes
-  # of tests in all, too long for one job), as the checks `Moving views (1/2)` and `(2/2)`.
+  # (playwright.config.ts). Playwright's browsers are downloaded here only; installing the site (Vercel's build too) never fetches them. Split by test across four runners (about 70
+  # minutes of tests in all: on two, the Chromium half took 40 to 55 of its 60 minutes), as the checks
+  # `Moving views (1/4)` to `(4/4)`.
   moving-views:
-    name: Moving views (${{ matrix.shard }}/2)
+    name: Moving views (${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
     timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2]
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -104,7 +105,7 @@ jobs:
         run: |
           npm start -- --port 3000 > server.log 2>&1 &
           for _ in $(seq 60); do curl -fsS -o /dev/null http://localhost:3000/ && break; sleep 1; done
-          npx playwright test --shard="$SHARD/2"
+          npx playwright test --shard="$SHARD/4"
         env:
           SHARD: ${{ matrix.shard }}
       - name: Traces and videos of failing moving views

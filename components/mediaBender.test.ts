@@ -33,6 +33,14 @@ describe('the part of a picture its box shows', () => {
       shownPart({ width: 100, height: 50 }, { width: 0, height: 0 }, 'cover'),
     ).toEqual([0, 0, 1, 1]);
   });
+
+  // A tile already gone measures 0 by 0: its crop came out NaN, and the melt
+  // drew one flat colour (media-grid.e2e.ts, badCrops).
+  it('shows all of a picture whose box has no size', () => {
+    expect(
+      shownPart({ width: 0, height: 0 }, { width: 800, height: 400 }, 'cover'),
+    ).toEqual([0, 0, 1, 1]);
+  });
 });
 
 describe('when a picture is uploaded again', () => {
@@ -49,5 +57,13 @@ describe('the part of a picture its window shows', () => {
     const picture = { left: 0, top: 50, width: 200, height: 100 };
     const seen = { left: 50, top: 75, width: 100, height: 50 };
     expect(partSeen(picture, seen)).toEqual([0.25, 0.25, 0.5, 0.5]);
+  });
+
+  it('is all of a picture with no size, never NaN', () => {
+    const gone = { left: 0, top: 0, width: 0, height: 0 };
+    expect(partSeen(gone, gone)).toEqual([0, 0, 1, 1]);
+    expect(
+      partSeen(gone, { left: 50, top: 75, width: 100, height: 50 }),
+    ).toEqual([0, 0, 1, 1]);
   });
 });

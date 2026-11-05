@@ -16,13 +16,22 @@ export type Box = { x: number; y: number; width: number; height: number };
 
 // The part of a picture `natural` in size that shows in its box, as
 // [left, top, width, height] in shares of the picture: all of it, or for
-// `object-fit: cover` the middle of it, cropped to the box's shape.
+// `object-fit: cover` the middle of it, cropped to the box's shape. All of it
+// too for a picture not yet loaded or a box with no size (a tile already gone
+// measures 0 by 0), so a crop is never NaN.
 export function shownPart(
   box: { width: number; height: number },
   natural: { width: number; height: number },
   fit: string,
 ): [number, number, number, number] {
-  if (fit !== 'cover' || !natural.width || !natural.height) return [0, 0, 1, 1];
+  if (
+    fit !== 'cover' ||
+    !natural.width ||
+    !natural.height ||
+    !box.width ||
+    !box.height
+  )
+    return [0, 0, 1, 1];
   const scale = Math.max(
     box.width / natural.width,
     box.height / natural.height,
@@ -34,11 +43,13 @@ export function shownPart(
 
 // The part of a picture at `picture` that shows through a window at `seen`
 // (the same units), as [left, top, width, height] in shares of the picture:
-// for one larger than its window, centred or not, with no `object-fit`.
+// for one larger than its window, centred or not, with no `object-fit`. All of
+// it for a picture with no size (one already gone), so a crop is never NaN.
 export function partSeen(
   picture: { left: number; top: number; width: number; height: number },
   seen: { left: number; top: number; width: number; height: number },
 ): [number, number, number, number] {
+  if (!picture.width || !picture.height) return [0, 0, 1, 1];
   return [
     (seen.left - picture.left) / picture.width,
     (seen.top - picture.top) / picture.height,
