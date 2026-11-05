@@ -105,6 +105,9 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: mcr.microsoft.com/playwright:v${{ needs.playwright-version.outputs.version }}-noble
+      # Playwright's Docker guide: the host's shared memory for Chromium, which can otherwise run out
+      # of memory and crash, and an init process so none is left a zombie under PID 1.
+      options: --ipc=host --init
     timeout-minutes: 60
     strategy:
       fail-fast: false
