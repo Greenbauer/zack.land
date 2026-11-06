@@ -1,6 +1,6 @@
 import { glide } from './headPlace';
 
-// How the head looks around on its own (MyHead.tsx: after its greeting on a
+// How the head looks around on its own (leftAlone.ts: after its greeting on a
 // still page, and from the start on a touch screen), modelled on how people
 // glance about rather than drifting between random points: it holds each
 // look for a while (a fixation), never quite still, then shifts to the next

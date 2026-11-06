@@ -14,6 +14,7 @@ import {
   lids,
   lips,
   minus,
+  raiseLowerLids,
   setUp,
   smoothstep,
   still,
@@ -25,11 +26,16 @@ import { MOUTH_SHAPES } from './mouthShapes.mjs';
 
 // How far the skin round a smiling mouth corner follows it.
 const CORNER_REACH = 6;
+// How far under the line through the eye's corners the lower lid runs,
+// pushed up straight (raiseLowerLids), smiling and squinting.
+const SMILE_LID = 0.5;
+const SQUINT_LID = 0.3;
 
 // The smile (reference: a broad grin): the corners pull out, up and back
 // toward the cheekbones, the lips part in a crescent, the cheeks bunch up and
 // forward to a fold from beside the nose past the mouth corner, and the lower
-// lids rise into a squint.
+// lids rise into a squint, running nearly straight just under the line
+// through the eye's corners (as in the reference photo).
 function smile(rig, face) {
   const pins = still(rig, { crown: 40 });
   const [OUT, UP, BACK] = [4.5, 4.5, 3];
@@ -44,7 +50,8 @@ function smile(rig, face) {
     pins.set(i, move);
     return { at: rig.vertices[i], move };
   });
-  lids(rig, pins, 0.08, 0.42);
+  lids(rig, pins, 0.08, 0);
+  raiseLowerLids(rig, pins, SMILE_LID);
   return finish(rig, face, pins, (v, i, d) => {
     // The skin round each corner goes with it, fading over about a
     // centimetre, so the cheek beside the corner is not squeezed over it.
@@ -222,7 +229,8 @@ function squint(rig, face) {
   const pins = still(rig, { nose: true });
   lips(rig, face, pins, () => [0, 0, 0]);
   for (const i of face.lips.corners) pins.set(i, [0, 0, 0]);
-  lids(rig, pins, 0.12, 0.4);
+  lids(rig, pins, 0.12, 0);
+  raiseLowerLids(rig, pins, SQUINT_LID);
   brows(rig, pins, (across, side) => {
     const inner = 1 - smoothstep(across, 6, 26);
     return [-side * 0.6 * inner, -1.2 * inner - 0.4, 0];
