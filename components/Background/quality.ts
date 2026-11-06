@@ -35,11 +35,12 @@ export const isHiddenRenderer = (renderer: string) =>
 // Where the name hides it, a small test is drawn and timed instead: how
 // long, in milliseconds, `gl` takes to draw a 256-pixel square four times
 // through a shader that loops 32 times, read back so the wait is timed, the
-// faster of two tries, after one draw that compiles the shader. A GPU,
-// Apple's included, takes about a millisecond; WebKit drawing on its CPU
-// (Linux in a CI runner, at 2 to 4 cores) 22 to 83. It runs in the probe's
-// worker as well, as written here (askDrawsInSoftware), so it reads nothing
-// from outside itself.
+// faster of two tries, after one draw that compiles the shader. Measured,
+// a Mac's GPU in WebKit took 0 to 1 ms (a phone's was not measured; it does
+// a few million shader steps, a GPU's work for a millisecond or two), and
+// WebKit drawing on its CPU (Linux in a CI runner, at 2 to 4 cores) 22 to
+// 83. It runs in the probe's worker as well, as written here
+// (askDrawsInSoftware), so it reads nothing from outside itself.
 export const SLOW_TEST_MS = 10;
 export function testDrawTime(gl: WebGLRenderingContext) {
   gl.canvas.width = 256;
