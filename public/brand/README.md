@@ -28,6 +28,11 @@ The dawn palette (`theme/head.json`):
   the site sets it.
 - **The head** faces right of the camera with a neutral face, and a strip of the
   site's glass lies over the shoulders only, never the face.
+- **Share images** (`og-image.png` and `instagram-1080x1080.png`) are read at
+  about a third of their size, so their text is set to be read there: the name
+  small above, the whole tagline as the headline in Roboto regular (light is too
+  thin at that size), then the domain. The subtitle is left off, as the link
+  preview's own title and description already say it.
 
 ## Assets
 
@@ -55,7 +60,9 @@ it turns right without squinting or raising its brows), the sky held at a fixed
 turn per image (`scene.backgroundRotation` and `scene.environmentRotation`, as
 `components/Background/Sky.tsx` sets them), the title, subtitle, tagline and
 domain placed over it, and a glass card (any `section`) laid over the shoulders.
-The render scripts are not kept in the repository.
+The share images' text was later reset on the same renders: the old text was
+painted out with a smooth fit of the sky around it, and the head and glass were
+left as rendered. The render scripts are not kept in the repository.
 
 ## Link previews (wired in `app/layout.tsx`)
 
