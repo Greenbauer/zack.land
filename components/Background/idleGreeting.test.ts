@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { EASE_RATE, easeToward } from './faceExpression';
 import {
+  faceNeutral,
   faceSeen,
   FACING_CLOSE,
   FRAME_GAP,
@@ -13,6 +14,8 @@ import {
   stepGreeting,
   SURPRISE_SECONDS,
 } from './idleGreeting';
+import { splitLook } from './MyHead';
+import { neckExpressions } from './neckPose';
 
 const facing = { x: 0, y: 0 };
 const away = { x: 0.1, y: -0.4 };
@@ -100,6 +103,19 @@ describe('the head greeting before it wanders', () => {
     expect(easeToward(1, 0, 0.2, GREETING_EASE_RATE)).toBeLessThan(0.1);
     // Faster than the face's reactions to the pointer.
     expect(GREETING_EASE_RATE).toBeGreaterThan(EASE_RATE * 2);
+  });
+});
+
+describe('faceNeutral', () => {
+  it('reads a face with only the neck turned as neutral, so the greeting goes on', () => {
+    // Facing the camera, the head is still turned in on its shoulders
+    // (MyHead.tsx splitLook), so the neck's turn shape is on.
+    const { head } = splitLook({ x: 0, y: 0 });
+    const neck = neckExpressions({ x: head.x, y: head.y });
+    expect(Math.max(...Object.values(neck))).toBeGreaterThan(0.2);
+    expect(faceNeutral({ ...neck, smile: 0.01, gasp: 0 })).toBe(true);
+    // A face still easing out is not.
+    expect(faceNeutral({ ...neck, smile: 0.1 })).toBe(false);
   });
 });
 

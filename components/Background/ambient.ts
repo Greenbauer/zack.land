@@ -1,18 +1,25 @@
+import {
+  BOLD_CHANCE,
+  BOLD_LOOKS,
+  FACE_LASTS,
+  LASTS,
+  LOOK_WEIGHTS,
+  LOOKS,
+  paceOf,
+} from './ambientLooks';
 import { glide } from './headPlace';
-import { Side, SIDES } from './sideMorphs';
+import { SIDES } from './sideMorphs';
 
 // Little things the head does on its own, whatever else it is doing and on
 // their own clock, so it never looks posed: it tilts slightly to one side or
 // the other now and then (a roll of the head on its neck: headTurn.ts), and
-// every few seconds a passing look comes and goes: one brow raised, the other
-// following a beat later and less, as its eye squints a little; both brows up,
-// one leading; one eye narrowed, the other a little; the lips pursed a little;
-// a faint half smile
-// (the one-sided ones made by sideMorphs.ts). Brow looks come most often.
-// The mouth only moves subtly: it never opens on its own. No wide eyes: opening the lids round the still eyeballs
-// reads as the eyes popping out.
-// MyHead.tsx lays these over its other movements and expressions; the
-// greeting and a tap's reaction keep the face to themselves.
+// every few seconds a passing look comes and goes (ambientLooks.ts), setting
+// in quickly, holding, and letting go. While it looks around on its own, now
+// and then the look is a bold one; following the pointer it keeps to the
+// small ones, and a bold look under way when the pointer moves lets go at
+// once. Blinks run on their own clock (blink.ts). MyHead.tsx lays these over
+// its other movements and expressions; the greeting and a tap's reaction keep
+// the face to themselves.
 
 // The tilt: at most TILT_MAX radians either way (about 7 degrees), held for
 // TILT_HOLD seconds and then back to level for LEVEL_HOLD before the next,
@@ -28,57 +35,8 @@ export const TILT_CHANCE = 0.5;
 const TILT_SETTLE = [0.5, 0.8] as const;
 export const TILT_RETURN = 0.5;
 
-// The passing looks: each the expressions (head.bin's morph targets, and the
-// one-sided ones) it is made of, with the range each reaches at its height,
-// for one side of the face (`side`) and the other (`other`).
-type Range = readonly [number, number];
-// A morph's range, and optionally how late it starts (a share of the look's
-// time), so the brows move as a wave: one leads, the other follows.
-type Part = Range | readonly [number, number, number];
-export const LOOKS: Record<
-  string,
-  (_side: Side, _other: Side) => Record<string, Part>
-> = {
-  // One brow up, the other following a beat later and less, its eye
-  // squinting a little.
-  oneBrow: (side, other) => ({
-    [`browsUp${side}`]: [0.55, 0.85],
-    [`browsUp${other}`]: [0.15, 0.3, 0.15],
-    [`squint${other}`]: [0.1, 0.25],
-  }),
-  // Both brows up, one leading the other.
-  browsUp: (side, other) => ({
-    [`browsUp${side}`]: [0.35, 0.6],
-    [`browsUp${other}`]: [0.3, 0.5, 0.12],
-  }),
-  // One eye narrowed, the other following a little, a beat later.
-  oneEye: (side, other) => ({
-    [`squint${side}`]: [0.4, 0.7],
-    [`squint${other}`]: [0.1, 0.2, 0.12],
-    pout: [0.1, 0.2],
-  }),
-  purse: () => ({ pout: [0.2, 0.4] }),
-  halfSmile: (side, other) => ({
-    smile: [0.2, 0.35],
-    [`squint${side}`]: [0.1, 0.2],
-    [`squint${other}`]: [0.04, 0.08, 0.12],
-  }),
-};
-// How often each look comes up against the others: the brows most.
-export const LOOK_WEIGHTS: Record<string, number> = {
-  oneBrow: 2,
-  browsUp: 2,
-  oneEye: 1,
-  purse: 1,
-  halfSmile: 1,
-};
-// How long one lasts, and the gap before the next, in seconds. A look that
-// moves the brows (QUICK_LOOKS) is a quick flick instead: up and back down
-// within QUICK_LASTS.
-const FACE_LASTS = [1.2, 2.8] as const;
-const FACE_GAP = [2.5, 7] as const;
-export const QUICK_LOOKS = new Set(['oneBrow', 'browsUp']);
-export const QUICK_LASTS = [0.7, 1.2] as const;
+// The gap between one look and the next, in seconds.
+export const FACE_GAP = [2.5, 7] as const;
 
 export type Ambient = {
   tilt: number;
@@ -145,20 +103,31 @@ function nextTilt(ambient: Ambient, time: number, random: () => number) {
   };
 }
 
-function nextFace(ambient: Ambient, time: number, random: () => number) {
-  if (ambient.face && time >= ambient.face.end)
+function nextFace(
+  ambient: Ambient,
+  time: number,
+  random: () => number,
+  bold: boolean,
+) {
+  const face = ambient.face;
+  // A bold look when the pointer moves: let go of it now.
+  const offset = face ? paceOf(face.name).offset : 0;
+  if (face && !bold && face.name in BOLD_LOOKS && face.end > time + offset)
+    return { ...ambient, face: { ...face, end: time + offset } };
+  if (face && time >= face.end)
     return {
       ...ambient,
       face: null,
       nextFace: time + between(FACE_GAP, random()),
     };
   if (ambient.face || time < ambient.nextFace) return ambient;
-  const names = Object.keys(LOOKS);
+  const looks = bold && random() < BOLD_CHANCE ? BOLD_LOOKS : LOOKS;
+  const names = Object.keys(looks);
   let pick = random() * names.reduce((sum, n) => sum + LOOK_WEIGHTS[n]!, 0);
   const name = names.find((n) => (pick -= LOOK_WEIGHTS[n]!) < 0) ?? names[0]!;
   const side = SIDES[Math.floor(random() * 2)]!;
   const other = side === 'Left' ? 'Right' : 'Left';
-  const parts = Object.entries(LOOKS[name]!(side, other));
+  const parts = Object.entries(looks[name]!(side, other));
   const peaks = Object.fromEntries(
     parts.map(([morph, [low, high]]) => [
       morph,
@@ -175,23 +144,34 @@ function nextFace(ambient: Ambient, time: number, random: () => number) {
       peaks,
       lags,
       start: time,
-      end:
-        time +
-        between(QUICK_LOOKS.has(name) ? QUICK_LASTS : FACE_LASTS, random()),
+      end: time + between(LASTS[name] ?? FACE_LASTS, random()),
     },
   };
 }
 
+// While the face is someone else's (the greeting, a tap's reaction, a page
+// holding it worried): no passing look runs underneath. One under way is
+// dropped (MyHead.tsx eases it out), and the next waits at least a gap after
+// the face is its own again. (Left running, a look under way when the
+// greeting ended appeared on the face in a single frame.)
+export const holdFace = (ambient: Ambient, time: number): Ambient => ({
+  ...ambient,
+  face: null,
+  nextFace: Math.max(ambient.nextFace, time + FACE_GAP[0]),
+});
+
 // The ambient movements `seconds` later, at clock `time`, the head looking
-// `look` (its turn, as tiltRoom takes it).
+// `look` (its turn, as tiltRoom takes it); `bold` while it looks around on
+// its own.
 export function stepAmbient(
   ambient: Ambient,
   look: { x: number; y: number },
   time: number,
   seconds: number,
   random: () => number = Math.random,
+  bold = false,
 ): Ambient {
-  let next = nextFace(nextTilt(ambient, time, random), time, random);
+  let next = nextFace(nextTilt(ambient, time, random), time, random, bold);
   const room = tiltRoom(look);
   // No room for a tilt: drop it (it does not come back when the room does),
   // and stay level a while before the next.
@@ -211,41 +191,61 @@ export function stepAmbient(
   return { ...next, tilt: tilt.x, tiltSpeed: tilt.speed };
 }
 
-const smoothstep = (t: number) => {
+// A movement's course from 0 to 1 as people make one: setting off gently,
+// fastest midway, settling gently (the minimum-jerk curve of reaching
+// movements).
+const minimumJerk = (t: number) => {
   const c = Math.min(Math.max(t, 0), 1);
-  return c * c * (3 - 2 * c);
+  return c * c * c * (10 - 15 * c + 6 * c * c);
+};
+// At its height a look is never quite still: it eases off by SAG over
+// SAG_SECONDS, as a held expression does.
+export const SAG = 0.12;
+const SAG_SECONDS = 1.2;
+// Letting go, it settles back to rest as a relaxing muscle does: starting
+// gently, then falling away and trailing off slowly (a damped return,
+// smooth from its start, scaled so it reaches rest exactly at the end of
+// its offset, RELAX time constants in). Brought back along the same curve
+// it came, it stopped short as it reached rest.
+const RELAX = 9;
+const settle = (u: number) => (1 + u + (u * u) / 2) * Math.exp(-u);
+const relaxed = (t: number) => {
+  const c = Math.min(Math.max(t, 0), 1);
+  const rest = settle(RELAX);
+  return (settle(RELAX * (1 - c)) - rest) / (1 - rest);
 };
 
-// The passing look's strengths at `time`: rising over its first third,
-// falling over its last half, so it comes and goes rather than switching.
+// The passing look's strengths at `time`: each morph setting in over its
+// look's onset (a lagging one starting later), easing off a little at its
+// height, and letting go over its offset, so it comes and goes rather than
+// switching. Rise, height and fall are multiplied, not the least of them
+// taken: taking the least, a brow that followed the other late reversed in a
+// single frame at its peak, and the look froze flat between rise and fall.
 export function ambientFace({ face }: Ambient, time: number) {
   if (!face) return {};
-  const t = (time - face.start) / (face.end - face.start);
-  // A quick look rises in its first fifth and falls over its last third.
-  const [rise, fall] = QUICK_LOOKS.has(face.name) ? [5, 3] : [3, 2];
+  const { onset, offset } = paceOf(face.name);
   return Object.fromEntries(
     Object.entries(face.peaks).map(([morph, peak]) => {
-      // A lagging morph runs the same course, starting later.
-      const lag = face.lags[morph] ?? 0;
-      const own = Math.max(t - lag, 0) / (1 - lag);
-      const strength = Math.min(
-        smoothstep(own * rise),
-        smoothstep((1 - own) * fall),
-      );
+      const from =
+        face.start + (face.lags[morph] ?? 0) * (face.end - face.start);
+      const held = time - from - onset;
+      const strength =
+        minimumJerk((time - from) / onset) *
+        (1 - SAG * minimumJerk(held / SAG_SECONDS)) *
+        relaxed((face.end - time) / offset);
       return [morph, peak * strength];
     }),
   );
 }
 
-// `targets` (the face the head would make) with the passing look laid over
-// it, each at most whole.
-export function withAmbient(
-  targets: Record<string, number>,
-  ambient: Ambient,
-  time: number,
+// `strengths` (the face the head is making) with `face` (a passing look's
+// strengths) laid over it, each at most whole.
+export function withFace(
+  strengths: Record<string, number>,
+  face: Record<string, number>,
 ): Record<string, number> {
-  const out = { ...targets };
-  for (const [name, strength] of Object.entries(ambientFace(ambient, time)))
+  const out = { ...strengths };
+  for (const [name, strength] of Object.entries(face))
     out[name] = Math.min(1, (out[name] ?? 0) + strength);
   return out;
 }

@@ -10,8 +10,14 @@
 // `front`, a range of the sine of the angle around the axis (1 is straight
 // ahead), where the head's surface curves up into the jaw too soon for it.
 
+import { smooth } from './mesh.mjs';
+
 const BINS = 72;
 const HARMONICS = 12;
+// The rebuild eases in over this many units at each end: the fitted curve
+// misses the surface there by the fit's small error, and snapping onto it all
+// at once left a faint step that showed as a ring round the neck.
+const EASE = 8;
 
 const smoothstep = (x, low, high) => {
   const t = Math.min(Math.max((x - low) / (high - low), 0), 1);
@@ -87,8 +93,32 @@ export function bridge(
       (-2 * s ** 3 + 3 * s ** 2) * to +
       (s ** 3 - s ** 2) * toSlope;
     const r = Math.hypot(dx, dz) || 1;
-    const weight = 1 - smoothstep(Math.sin(a), ...front);
+    const weight =
+      (1 - smoothstep(Math.sin(a), ...front)) *
+      smoothstep(h, -below, -below + EASE) *
+      (1 - smoothstep(h, above - EASE, above));
     radius = r + (radius - r) * weight;
     return [centre[0] + (dx / r) * radius, p[1], centre[1] + (dz / r) * radius];
   });
+}
+
+// The scan's fine surface texture (photogrammetry noise, where the hair was)
+// stops at the seam, and MakeHuman's body below it is smooth: under side
+// light that change showed as a faint band round the neck. Above the seam
+// the texture is evened out (DETAIL.passes, keeping the surface's size),
+// fully up to `full` units over the seam and fading out by `clear`, round the
+// sides and back only (the face and jaw keep theirs, as the bridge does).
+const DETAIL = { full: 14, clear: 34, passes: 100 };
+export function evenSeam({ vertices, faces }, { height, centre, front }) {
+  const weights = new Map();
+  vertices.forEach((p, i) => {
+    const h = height(p);
+    if (h < -12 || h > DETAIL.clear) return;
+    const a = Math.atan2(p[2] - centre[1], p[0] - centre[0]);
+    const w =
+      (1 - smoothstep(h, DETAIL.full, DETAIL.clear)) *
+      (1 - smoothstep(Math.sin(a), ...front));
+    if (w > 0) weights.set(i, w);
+  });
+  return smooth({ vertices, faces }, weights, DETAIL.passes).vertices;
 }
