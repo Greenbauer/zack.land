@@ -18,8 +18,11 @@ describe("the head's one-sided expressions", () => {
         moves[k * 3 + 1]!,
         moves[k * 3 + 2]!,
       );
-      if (skin.positions[v * 3]! > 2) left += size;
-      if (skin.positions[v * 3]! < -3.4) right += size;
+      // Clear of the blend across the middle (sideMorphs.ts: 6 either side
+      // of -0.7, 22 for the shrug).
+      const clear = name.startsWith('shrug') ? 22 : 6;
+      if (skin.positions[v * 3]! > -0.7 + clear) left += size;
+      if (skin.positions[v * 3]! < -0.7 - clear) right += size;
     });
     return { left, right };
   };
@@ -55,7 +58,9 @@ describe("the head's one-sided expressions", () => {
 
   it('blends across the middle of the face', () => {
     expect(sideWeight(-0.7, 'Left')).toBeCloseTo(0.5);
-    expect(sideWeight(5, 'Left')).toBe(1);
-    expect(sideWeight(-6, 'Right')).toBe(1);
+    expect(sideWeight(5.3, 'Left')).toBe(1);
+    expect(sideWeight(-6.7, 'Right')).toBe(1);
+    expect(sideWeight(21.3, 'Left', 'shrug')).toBe(1);
+    expect(sideWeight(5.3, 'Left', 'shrug')).toBeLessThan(1);
   });
 });

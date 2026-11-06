@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { front, joinY, meshes, openEdges, Point, skin } from './headFixture';
+import {
+  bends,
+  front,
+  joinY,
+  meshes,
+  openEdges,
+  Point,
+  skin,
+} from './headFixture';
 import {
   FADE_BOTTOM,
   FADE_NOISE,
@@ -166,111 +174,26 @@ describe('the head joined to its neck and shoulders', () => {
     // aside). A blend that closes the gap between head and body too fast left
     // a ridge round the neck that measured 0.045; the neck itself stays near
     // 0.02.
-    const normal = skin.vertices.map((): Point => [0, 0, 0]);
-    for (const face of skin.faces) {
-      const [a, b, c] = face.map((i) => skin.vertices[i]!) as [
-        Point,
-        Point,
-        Point,
-      ];
-      const u = b.map((v, k) => v - a[k]!);
-      const w = c.map((v, k) => v - a[k]!);
-      const n = [
-        u[1]! * w[2]! - u[2]! * w[1]!,
-        u[2]! * w[0]! - u[0]! * w[2]!,
-        u[0]! * w[1]! - u[1]! * w[0]!,
-      ];
-      for (const i of face)
-        normal[i] = normal[i]!.map((v, k) => v + n[k]!) as Point;
-    }
     const axis = (y: number) => -20 + (y + 72) * 0.2;
-    let sharpest = 0;
-    skin.vertices.forEach(([x, y, z], i) => {
-      if (y > -72 || y < -104 || Math.hypot(x, z - axis(y)) > 45) return;
-      if (Math.abs(x) < 10 && z > 0 && y < -78 && y > -98) return;
-      const n = normal[i]!;
-      const length = Math.hypot(...n);
-      let sum = 0;
-      let count = 0;
-      for (const [px, py, pz] of skin.vertices) {
-        const d = [px - x, py - y, pz - z];
-        const r2 = d[0]! ** 2 + d[1]! ** 2 + d[2]! ** 2;
-        if (r2 > 36 || r2 < 1e-6) continue;
-        sum += (d[0]! * n[0] + d[1]! * n[1] + d[2]! * n[2]) / length / r2;
-        count++;
-      }
-      if (count) sharpest = Math.max(sharpest, sum / count);
-    });
+    const sharpest = Math.max(
+      0,
+      ...bends(
+        ([x, y, z]) =>
+          y <= -72 &&
+          y >= -104 &&
+          Math.hypot(x, z - axis(y)) <= 45 &&
+          !(Math.abs(x) < 10 && z > 0 && y < -78 && y > -98),
+      ),
+    );
     expect(sharpest).toBeLessThan(0.032);
   });
 
-  it('shows the collarbones', () => {
-    // Along each collarbone the chest's front stands out past the surface
-    // 8 units above it (the hollow over it) and 8 below.
-    const at = (across: number, y: number) =>
-      Math.max(
-        ...skin.vertices
-          .filter(
-            ([x, vy]) =>
-              Math.abs(Math.abs(x) - across) < 1.5 && Math.abs(vy - y) < 1.5,
-          )
-          .map(([, , z]) => z),
-      );
-    for (const [across, y] of [
-      [30, -117],
-      [42, -115],
-      [54, -113],
-    ] as const)
-      expect(
-        at(across, y) - (at(across, y + 8) + at(across, y - 8)) / 2,
-      ).toBeGreaterThan(0.8);
-  });
-
-  it('curves the neck into the trapezius without a crease', () => {
-    // How sharply the surface bends inward where the side and back of the
-    // neck meet the trapezius, over each point's neighbours within 6 units.
-    // A trapezius raised over too short a height left a crease there that
-    // measured 0.040; the curve the back photo shows stays near 0.031.
-    const normal = skin.vertices.map((): Point => [0, 0, 0]);
-    for (const face of skin.faces) {
-      const [a, b, c] = face.map((i) => skin.vertices[i]!) as [
-        Point,
-        Point,
-        Point,
-      ];
-      const u = b.map((v, k) => v - a[k]!);
-      const w = c.map((v, k) => v - a[k]!);
-      const n = [
-        u[1]! * w[2]! - u[2]! * w[1]!,
-        u[2]! * w[0]! - u[0]! * w[2]!,
-        u[0]! * w[1]! - u[1]! * w[0]!,
-      ];
-      for (const i of face)
-        normal[i] = normal[i]!.map((v, k) => v + n[k]!) as Point;
-    }
-    let deepest = 0;
-    skin.vertices.forEach(([x, y, z], i) => {
-      const across = Math.abs(x);
-      if (across < 26 || across > 60 || y > -58 || y < -100 || z > 0) return;
-      const n = normal[i]!;
-      const length = Math.hypot(...n);
-      let sum = 0;
-      let count = 0;
-      for (const [px, py, pz] of skin.vertices) {
-        const d = [px - x, py - y, pz - z];
-        const r2 = d[0]! ** 2 + d[1]! ** 2 + d[2]! ** 2;
-        if (r2 > 36 || r2 < 1e-6) continue;
-        sum += (d[0]! * n[0] + d[1]! * n[1] + d[2]! * n[2]) / length / r2;
-        count++;
-      }
-      if (count) deepest = Math.min(deepest, sum / count);
-    });
-    expect(deepest).toBeGreaterThan(-0.036);
-  });
-
-  it('runs the chest on down from the collarbones, with no hollow', () => {
-    // Below each collarbone the front of the chest only comes forward, into
-    // the pectoral, as in the reference photos.
+  it('shows the collarbones as soft swells, not tubes', () => {
+    // Down the chest's front through each collarbone, every 2 units, how
+    // far each point stands out of the line between its neighbours: the
+    // collarbone shows (out by over 0.3 somewhere), but softly, as in the
+    // stage photo (by under 0.75 everywhere; a narrow ridge with a hollow
+    // over it stood 1.2 out, and turned far it read as a tube).
     const at = (across: number, y: number) =>
       Math.max(
         ...skin.vertices
@@ -278,6 +201,53 @@ describe('the head joined to its neck and shoulders', () => {
             ([x, vy, z]) =>
               Math.abs(Math.abs(x) - across) < 1.5 &&
               Math.abs(vy - y) < 1.5 &&
+              z > -30,
+          )
+          .map(([, , z]) => z),
+      );
+    for (const [across, y] of [
+      [30, -117],
+      [42, -115],
+      [54, -113],
+    ] as const) {
+      const z: number[] = [];
+      for (let d = 16; d >= -6; d -= 2) z.push(at(across, y + d));
+      const out = z.slice(1, -1).map((c, k) => c - (z[k]! + z[k + 2]!) / 2);
+      expect(Math.max(...out)).toBeGreaterThan(0.3);
+      expect(Math.max(...out)).toBeLessThan(0.75);
+    }
+  });
+
+  it('curves the neck into the trapezius without a crease', () => {
+    // How sharply the surface bends inward where the side and back of the
+    // neck meet the trapezius, over each point's neighbours within 6 units.
+    // A trapezius raised over too short a height left a crease there that
+    // measured 0.040; the curve the back photo shows stays near 0.031.
+    const deepest = Math.min(
+      0,
+      ...bends(
+        ([x, y, z]) =>
+          Math.abs(x) >= 26 &&
+          Math.abs(x) <= 60 &&
+          y <= -58 &&
+          y >= -100 &&
+          z <= 0,
+      ),
+    );
+    expect(deepest).toBeGreaterThan(-0.036);
+  });
+
+  it('runs the chest on down from the collarbones, with no hollow', () => {
+    // Below each collarbone the front of the chest only comes forward, into
+    // the pectoral, as in the reference photos. (Sampled 2.5 units either
+    // way: the chest's triangles reach 9 units long there.)
+    const at = (across: number, y: number) =>
+      Math.max(
+        ...skin.vertices
+          .filter(
+            ([x, vy, z]) =>
+              Math.abs(Math.abs(x) - across) < 2.5 &&
+              Math.abs(vy - y) < 2.5 &&
               z > -40,
           )
           .map(([, , z]) => z),
@@ -330,15 +300,22 @@ describe('the head joined to its neck and shoulders', () => {
       expect(Math.abs(top(across) - y)).toBeLessThan(5);
   });
 
-  it('turns the head on the neck and leaves the shoulders still', () => {
-    // Each vertex's head weight (how much of the head's turn it takes): the
-    // whole skull 1, so it turns without bending; the shoulders and chest 0;
-    // and between them no edge jumps, so the neck twists without a crease.
+  it('bends the head on the neck and leaves the shoulder tips still', () => {
+    // Each vertex's head weight (how much of the head's nod and tilt it
+    // takes; its turn to the side is headBust.test.ts's): the
+    // whole skull 1, so it turns without bending; the tips of the shoulders
+    // and the chest below the bust's middle 0 (the trapezius between takes a
+    // little, headBust.test.ts); and between them no edge jumps, so the neck
+    // twists without a crease.
     const weights = meshes.get('skin')!.headWeights;
     const weight = (i: number) => weights[i]! / 255;
     skin.vertices.forEach(([x, y, z], i) => {
       if (y - joinY(z) > 0) expect(weight(i)).toBeGreaterThan(0.98);
-      if (Math.abs(x) > 70 || y < -140) expect(weight(i)).toBeLessThan(0.02);
+      if (Math.abs(x) > 115 || y < -175) expect(weight(i)).toBeLessThan(0.02);
+      // The base of the back of the neck and the top of the trapezius only a
+      // little (rig.mjs TRAPEZIUS): at 0.6, looking up slid them 23 mm.
+      if (Math.abs(x) < 70 && y < -95 && y > -115 && z < -25 + (y + 72) * 0.43)
+        expect(weight(i)).toBeLessThan(0.2);
     });
     let step = 0;
     for (const face of skin.faces)
@@ -349,7 +326,8 @@ describe('the head joined to its neck and shoulders', () => {
     expect(step).toBeLessThan(0.15);
     // The eyes turn with the head.
     for (const eye of ['rightEye', 'leftEye'])
-      expect(meshes.get(eye)!.headWeights.every((w) => w === 255)).toBe(true);
+      for (const shares of ['headWeights', 'turnWeights'] as const)
+        expect(meshes.get(eye)![shares].every((w) => w === 255)).toBe(true);
   });
 
   it('keeps the chin clear of the haze', () => {

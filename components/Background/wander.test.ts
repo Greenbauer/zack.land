@@ -10,6 +10,7 @@ import {
   TIP,
   TURN,
   Wander,
+  WANDER_TURN,
 } from './wander';
 
 // A repeatable random number generator (a linear congruential one).
@@ -29,6 +30,18 @@ function run(fps = 60, seconds = 1200, random = seeded(7)) {
   return frames;
 }
 
+describe("the head's turning range", () => {
+  it('follows the pointer as far as prod, and looks around a little further', () => {
+    // Master's range, the one prod turns to following the pointer.
+    expect(TURN).toEqual([-0.5, 0.3]);
+    // Out away from the page, a little further (under 10 degrees more);
+    // toward it, no further.
+    expect(WANDER_TURN[0]).toBeLessThan(TURN[0]);
+    expect(TURN[0] - WANDER_TURN[0]).toBeLessThanOrEqual(0.17);
+    expect(WANDER_TURN[1]).toBe(TURN[1]);
+  });
+});
+
 describe('the head looking around on its own', () => {
   const frames = run();
 
@@ -36,8 +49,8 @@ describe('the head looking around on its own', () => {
     for (const { gaze } of frames) {
       expect(gaze.x).toBeGreaterThan(TIP[0]);
       expect(gaze.x).toBeLessThan(TIP[1]);
-      expect(gaze.y).toBeGreaterThan(TURN[0]);
-      expect(gaze.y).toBeLessThan(TURN[1]);
+      expect(gaze.y).toBeGreaterThan(WANDER_TURN[0]);
+      expect(gaze.y).toBeLessThan(WANDER_TURN[1]);
     }
   });
 
