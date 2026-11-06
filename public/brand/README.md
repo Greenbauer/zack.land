@@ -29,11 +29,12 @@ The dawn palette (`theme/head.json`):
 - **The head** faces right of the camera with a neutral face, and a strip of the
   site's glass lies over the shoulders only, never the face.
 - **Share images** (`og-image.png` and `instagram-1080x1080.png`) are read at
-  about a third of their size, so their text is set to be read there: the name
-  small above, the whole tagline as the headline in Roboto regular (light is too
-  thin at that size), then the domain. The name shades navy to purple, not to
-  rose, so its last letters keep 3:1 contrast on the sky. The subtitle is left
-  off, as the link preview's own title and description already say it.
+  about a third of their size, so their text is set to be read there, in Roboto
+  regular (light is too thin at that size): the name as the headline, "Zack"
+  over "Greenbauer's"; "Portfolio and Sandbox" under it; the tagline smaller;
+  then the domain. The name shades corner to corner from navy through indigo,
+  blue and a violet to a darkened rose, and the subtitle runs back the other
+  way. Each stop is darkened as far as it needs to hold 3:1 on the image's sky.
 
 ## Assets
 
