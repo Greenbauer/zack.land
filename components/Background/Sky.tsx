@@ -4,7 +4,7 @@ import { Euler } from 'three';
 
 import { glide, GLIDE_SECONDS } from './headPlace';
 import { heading } from './MyHead';
-import { skyState } from './skyState';
+import { SKY_SIDE, skyState } from './skyState';
 import {
   currentView,
   LIGHT_SKIES,
@@ -136,7 +136,10 @@ export default function Sky() {
     const check = () => {
       station.current = stationFor(currentView());
       // At once, not on the next frame: a card can arrive ahead of that.
-      skyState.light = LIGHT_SKIES.includes(station.current);
+      const light = LIGHT_SKIES.includes(station.current);
+      if (light === skyState.light) return;
+      skyState.light = light;
+      dispatchEvent(new Event(SKY_SIDE));
     };
     check();
     const timer = setInterval(check, VIEW_MS);
