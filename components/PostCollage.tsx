@@ -1,6 +1,7 @@
 'use client';
 
 import { CSSProperties, useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 
 import { MediaSource } from '@/types';
 
@@ -85,9 +86,13 @@ export default function PostCollage({
   useEffect(() => {
     const box = boxRef.current;
     if (!box) return;
+    // The tiles take the box's new size before the frame is shown, not a
+    // frame or more after it: as a phone's page opens the footer shrinks
+    // under the arrow just as they come in, and on a slow phone they had
+    // come to rest at the old size before they jumped bigger and lower.
     const resize = new ResizeObserver(([entry]) => {
       const { width, height } = entry!.contentRect;
-      setSize({ width, height });
+      flushSync(() => setSize({ width, height }));
     });
     resize.observe(box);
     return () => resize.disconnect();
