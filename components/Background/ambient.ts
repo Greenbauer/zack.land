@@ -18,8 +18,8 @@ import { SIDES } from './sideMorphs';
 // and then the look is a bold one; following the pointer it keeps to the
 // small ones, and a bold look under way when the pointer moves lets go at
 // once. Blinks run on their own clock (blink.ts). MyHead.tsx lays these over
-// its other movements and expressions; the greeting and a tap's reaction keep
-// the face to themselves.
+// its other movements and expressions; the greeting, the search for a lost
+// pointer (headSearch.ts) and a tap's reaction keep the face to themselves.
 
 // The tilt: at most TILT_MAX radians either way (about 7 degrees), held for
 // TILT_HOLD seconds and then back to level for LEVEL_HOLD before the next,
