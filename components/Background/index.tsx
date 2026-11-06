@@ -61,7 +61,8 @@ export default function Background() {
   // Whether the scene has started loading, its canvas and WebGL context
   // included (sceneDelay): where WebGL is drawn in software, only once the
   // page has moved in, as opening the context stalls the page. Which it is
-  // is asked off the main thread (askDrawsInSoftware), for the same reason.
+  // is asked off the main thread where the browser can draw there
+  // (askDrawsInSoftware), for the same reason.
   const [isSceneOn, setIsSceneOn] = useState(false);
   useEffect(() => {
     let start: ReturnType<typeof setTimeout> | undefined;

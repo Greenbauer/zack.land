@@ -88,9 +88,18 @@ export function testDrawTime(gl: WebGLRenderingContext) {
 
 // Whether the renderer named `renderer` on `gl` draws on the CPU, by its
 // name or, where that hides it, by the test.
-const drawsOnCpu = (gl: WebGLRenderingContext, renderer: string) =>
-  isSoftwareRenderer(renderer) ||
-  (isHiddenRenderer(renderer) && testDrawTime(gl) > SLOW_TEST_MS);
+// A context lost as it opens cannot draw the test (its calls throw); that
+// browser is taken to have a GPU, so the scene still starts, and its first
+// frames still say otherwise if it has none.
+function drawsOnCpu(gl: WebGLRenderingContext, renderer: string) {
+  if (isSoftwareRenderer(renderer)) return true;
+  if (!isHiddenRenderer(renderer)) return false;
+  try {
+    return testDrawTime(gl) > SLOW_TEST_MS;
+  } catch {
+    return false;
+  }
+}
 
 // Whether this browser draws WebGL on the CPU, asked once of a throwaway
 // context (false on the server, where the page is first rendered and nothing

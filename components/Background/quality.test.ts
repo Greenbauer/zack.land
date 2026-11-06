@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   drawsInSoftware,
@@ -113,10 +113,11 @@ describe('a scene drawn in software that its renderer hides', () => {
 });
 
 describe('a hidden renderer, timed as the page opens', () => {
+  // Each test asks a fresh module: the answer is kept once found.
+  beforeEach(() => vi.resetModules());
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
-    vi.resetModules();
   });
 
   // A WebGL context named `renderer` whose clock moves `ms` a reading, so
@@ -163,7 +164,28 @@ describe('a hidden renderer, timed as the page opens', () => {
 
   it('draws on the GPU where the test is quick', async () => {
     // A Mac's GPU in WebKit: a millisecond.
-    expect((await onPage('Apple GPU', 1)).software).toBe(false);
+    const gpu = await onPage('Apple GPU', 1);
+    expect(gpu.software).toBe(false);
+    expect(gpu.calls).toContain('drawArrays');
+  });
+
+  it('draws on the GPU where the test cannot be drawn', async () => {
+    const { gl } = fakeGl('Apple GPU', 50);
+    vi.stubGlobal('document', {
+      createElement: () => ({
+        getContext: () =>
+          new Proxy(gl, {
+            get: (target, key: string) =>
+              key === 'shaderSource'
+                ? () => {
+                    throw new Error('context lost');
+                  }
+                : target[key],
+          }),
+      }),
+    });
+    const { drawsInSoftware } = await import('./quality');
+    expect(drawsInSoftware()).toBe(false);
   });
 
   it('trusts a renderer that names itself, untested', async () => {
@@ -196,5 +218,85 @@ describe('a hidden renderer, timed as the page opens', () => {
       renderer: 'Adreno (TM) 730',
       ms: 0,
     });
+  });
+});
+
+describe('the worker’s answer', () => {
+  beforeEach(() => vi.resetModules());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  // askDrawsInSoftware, its worker posting `answer`; on the page, `page`
+  // stands for drawsInSoftware's own context, a renderer and a test time.
+  const ask = async (
+    answer: { renderer: string; ms: number } | null,
+    page?: { renderer: string; ms: number },
+  ) => {
+    class FakeWorker {
+      onmessage?: (_: { data: unknown }) => void;
+      onerror?: () => void;
+      constructor() {
+        queueMicrotask(() => this.onmessage?.({ data: answer }));
+      }
+      terminate() {}
+    }
+    vi.stubGlobal('Worker', FakeWorker);
+    vi.stubGlobal('OffscreenCanvas', class {});
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:probe');
+    vi.spyOn(URL, 'revokeObjectURL').mockReturnValue();
+    const opened = vi.fn();
+    vi.stubGlobal('document', {
+      createElement: () => ({
+        getContext: () => {
+          opened();
+          if (!page) return null;
+          let now = 0;
+          vi.spyOn(performance, 'now').mockImplementation(
+            () => (now += page.ms),
+          );
+          return new Proxy({} as Record<string, unknown>, {
+            get: (_, key: string) =>
+              key === 'canvas'
+                ? {}
+                : key === 'getExtension'
+                  ? (name: string) =>
+                      name === 'WEBGL_debug_renderer_info'
+                        ? { UNMASKED_RENDERER_WEBGL: 1 }
+                        : { loseContext() {} }
+                  : key === 'getParameter'
+                    ? () => page.renderer
+                    : () => ({}),
+          });
+        },
+      }),
+    });
+    const { askDrawsInSoftware } = await import('./quality');
+    return { software: await askDrawsInSoftware(), opened };
+  };
+
+  it('is the GPU where the worker’s test is quick, asked on the page never', async () => {
+    // Safari on a Mac: "Apple GPU", drawn in a millisecond off the page.
+    const answer = await ask({ renderer: 'Apple GPU', ms: 1 });
+    expect(answer.software).toBe(false);
+    expect(answer.opened).not.toHaveBeenCalled();
+  });
+
+  it('is software where the worker’s test is slow, or its renderer says so', async () => {
+    expect((await ask({ renderer: 'Apple GPU', ms: 30 })).software).toBe(true);
+    vi.resetModules();
+    expect((await ask({ renderer: 'llvmpipe', ms: 0 })).software).toBe(true);
+  });
+
+  it('is asked on the page where the worker cannot draw', async () => {
+    // Linux WebKit: no WebGL in a worker, the CPU on the page.
+    const slow = await ask(null, { renderer: 'Apple GPU', ms: 30 });
+    expect(slow.opened).toHaveBeenCalledTimes(1);
+    expect(slow.software).toBe(true);
+    vi.resetModules();
+    expect((await ask(null, { renderer: 'Apple GPU', ms: 1 })).software).toBe(
+      false,
+    );
   });
 });
