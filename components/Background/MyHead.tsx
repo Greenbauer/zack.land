@@ -21,23 +21,16 @@ import {
   withFace,
 } from './ambient';
 import { blinkAmount, startBlink, stepBlink } from './blink';
-import {
-  easeRate,
-  easeToward,
-  facingSmile,
-  pointerExpressions,
-  shareOver,
-} from './faceExpression';
-import { formFocused, menuOpen } from './focusBlur';
+import { easeRate, easeToward, shareOver } from './faceExpression';
+import { faceTargets } from './headFace';
 import { decodeHead, loadHead } from './headGeometry';
-import { headMood, WORRIED } from './headMood';
-import { framedHead, lookOrigin } from './headPlace';
+import { headMood } from './headMood';
+import { lookOrigin } from './headPlace';
 import {
   HeadTaps,
   onHead,
   stepTaps,
   TAP_TURN_SPEED,
-  tapExpressions,
   tapHead,
   tapsOn,
   untapped,
@@ -45,39 +38,33 @@ import {
 import { headTurn, turnHead } from './headTurn';
 import {
   faceNeutral,
-  faceSeen,
-  Greeting,
   GREETING_EASE_RATE,
-  greetingExpressions,
   greetingOn,
   idle,
-  idleStart,
-  stepGreeting,
 } from './idleGreeting';
+import { Own, stepPage, usedAt, watched } from './leftAlone';
 import { morphGeometry } from './morphGeometry';
 import { fadeNeck, fadeTime } from './neckFade';
 import { neckExpressions } from './neckPose';
+import { faceInView, idleWait, PAGE_TARGETS } from './pageWatch';
 import { SHOWN_EXPRESSIONS, SHOWN_SIDED } from './shownExpressions';
 import { withSides } from './sideMorphs';
-import {
-  shownGaze,
-  startWander,
-  stepWander,
-  TIP,
-  TURN,
-  Wander,
-  WANDER_TURN,
-} from './wander';
+import { startWander, TIP, TURN, WANDER_TURN } from './wander';
 
 export type Point = { x: number; y: number };
+// A look in radians (x tips, y turns) in the pointer's units, x the turn.
+const asPosition = (gaze: Point): Point => ({
+  x: gaze.y * 1000,
+  y: gaze.x * 1000,
+});
 
 type MyHeadGeometry = { [key: string]: BufferGeometry };
 
 type MyHeadProps = {
   // Where the pointer has the head look, now.
   lookPositionStart: () => Point;
-  // The pointer (useMousePosition): the head clears `moved` once it has
-  // seen the move.
+  // The pointer (useMousePosition): the head clears `moved` and `left` once
+  // it has seen them (leftAlone.ts).
   pointer: MousePosition;
 };
 
@@ -119,36 +106,9 @@ const EYES = new Vector3(-0.7, 2.7, 29.3);
 // lookPositionStart, and how fast it eases there. The sky follows it too.
 export const heading = { target: { x: 0, y: 0 }, speed: 0.05 };
 
-// Before it first wanders off on its own, the head faces the camera and looks
-// surprised (idleGreeting.ts).
-let greeting: Greeting = idle;
-// How long the page has to be left alone (no pointer move, scroll, press or
-// key: useMousePosition), with the face in view (faceInView), before the
-// head greets and then looks around on its own, in seconds: somewhere in
-// this range, picked afresh each time.
-const IDLE_SECONDS = [10, 15] as const;
-const idleWait = () =>
-  IDLE_SECONDS[0] + Math.random() * (IDLE_SECONDS[1] - IDLE_SECONDS[0]);
 // How quickly the sky follows the head while it looks around on its own: a
 // share each frame, so it trails behind the head's glances.
 const WANDER_SKY_SPEED = 0.01;
-// Whether the face can be seen clearly (faceSeen): the page in front of the
-// person, the face in the frame (headPlace.ts) and nothing blurring or
-// covering it: a focused contact field or a playing video (focusBlur.ts),
-// the open Portfolio dropdown, or the phone menu's pane.
-const faceInView = () =>
-  faceSeen({
-    visible: document.visibilityState === 'visible',
-    focused: document.hasFocus(),
-    headX: framedHead.x,
-    covered:
-      formFocused() ||
-      menuOpen() ||
-      !!document.querySelector('[data-nav-dropdown][aria-expanded="true"]'),
-  });
-// A tap on any of these is meant for the page, not the head.
-const PAGE_TARGETS =
-  'a, button, input, textarea, select, label, section, header, footer, [data-glass]';
 
 export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
   const myHeadRef = useRef<Group>(null);
@@ -186,12 +146,11 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
     [],
   );
   const taps = useRef<HeadTaps>(untapped);
-  // Looking around on its own (wander.ts), and when the page was last used.
-  const wandering = useRef<Wander | null>(null);
-  const idleSince = useRef(0);
+  // What it does left alone (leftAlone.ts): the greeting, looking for the
+  // pointer it lost, looking around on its own, and the idle clock.
+  const alone = useRef(usedAt(0, idleWait()));
   // When the last frame was drawn (none are while the tab is hidden).
   const lastFrame = useRef(0);
-  const idleFor = useRef(idleWait());
   // The little tilts and faint expressions it makes on its own (ambient.ts).
   const ambient = useRef<Ambient>(startAmbient(0));
   const tapAt = useRef<Point | null>(null);
@@ -216,29 +175,22 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
     return coordinate;
   };
 
-  // Someone used the page: stop looking around, and start the idle clock.
-  const stopWandering = (time: number): void => {
-    wandering.current = null;
-    idleSince.current = time;
-    idleFor.current = idleWait();
-    pointer.moved = false;
-  };
-
   // While the face can't be seen clearly there is no greeting, and its clock
-  // only counts the time it can, never time away from the page (idleStart).
+  // only counts the time it can, never time away from the page (watched).
   const holdWhileUnseen = (time: number): void => {
-    const seen = isTouch || faceInView();
-    idleSince.current = idleStart(idleSince.current, {
+    alone.current = watched(alone.current, {
       time,
       lastFrame: lastFrame.current,
-      seen,
+      seen: isTouch || faceInView(),
     });
     lastFrame.current = time;
-    if (!seen && greetingOn(greeting)) greeting = idle;
   };
 
   const startWandering = (time: number): void => {
-    wandering.current = startWander(look.current, time);
+    alone.current = {
+      ...alone.current,
+      wandering: startWander(look.current, time),
+    };
   };
 
   // On a touch screen there is no pointer to follow (a tap's emulated
@@ -250,15 +202,42 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
   const stepReaction = (time: number): boolean => {
     if (isTouch) pointer.moved = false;
     if (!tapsOn(taps.current)) {
-      if (isTouch && !wandering.current) startWandering(time);
+      if (isTouch && !alone.current.wandering) startWandering(time);
       return false;
     }
     taps.current = stepTaps(taps.current, time);
     if (!tapsOn(taps.current)) {
       if (isTouch) startWandering(time);
-      else stopWandering(time);
+      else {
+        alone.current = usedAt(time, idleWait());
+        pointer.moved = false;
+      }
     }
     return true;
+  };
+
+  // Whether every expression has eased out (the strengths are the last
+  // frame's), for the greeting.
+  const neutral = () =>
+    faceNeutral(
+      withFace(
+        Object.fromEntries(
+          expressions.map((name, k) => [name, strengths.current[k] ?? 0]),
+        ),
+        face.current,
+      ),
+    );
+
+  // Where the head looks, left alone (leftAlone.ts), in the pointer's
+  // units, how fast it turns there, and how fast the sky follows.
+  const ownHeading = (own: NonNullable<Own>) => {
+    if (own.kind === 'greeting')
+      return { lookPosition: { x: 0, y: 0 }, rotationSpeed: 0.05 };
+    return {
+      lookPosition: asPosition(own.gaze),
+      rotationSpeed: 1,
+      skySpeed: own.kind === 'wander' ? WANDER_SKY_SPEED : undefined,
+    };
   };
 
   const rotateMyHead = (time: number, seconds: number): void => {
@@ -272,38 +251,16 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
     if (stepReaction(time)) {
       lookPosition = { x: 0, y: 0 };
       rotationSpeed = TAP_TURN_SPEED;
-    } else if (pointer.moved) {
-      stopWandering(time);
-      greeting = idle;
-    } else if (greetingOn(greeting)) {
-      lookPosition = { x: 0, y: 0 };
-      greeting = stepGreeting(greeting, {
-        turn,
-        // Every expression eased out (the strengths are the last frame's).
-        neutral: faceNeutral(
-          withFace(
-            Object.fromEntries(
-              expressions.map((name, k) => [name, strengths.current[k] ?? 0]),
-            ),
-            face.current,
-          ),
-        ),
-        time,
-      });
-      if (greeting.phase === 'done') startWandering(time);
-    } else if (wandering.current) {
-      // Looking around on its own: the wander's gaze is already smooth, so
-      // the head takes it as it is (in the pointer's units, x the turn).
-      wandering.current = stepWander(wandering.current, time, seconds);
-      const gaze = shownGaze(wandering.current, time);
-      lookPosition = { x: gaze.y * 1000, y: gaze.x * 1000 };
-      rotationSpeed = 1;
-      skySpeed = WANDER_SKY_SPEED;
-    } else if (
-      time - idleSince.current > idleFor.current &&
-      greeting.phase === 'idle'
-    ) {
-      greeting = { phase: 'facing' };
+    } else {
+      const step = stepPage(
+        alone.current,
+        pointer,
+        { time, seconds, look: turn, neutral },
+        idleWait,
+      );
+      alone.current = step.state;
+      if (step.own)
+        ({ lookPosition, rotationSpeed, skySpeed } = ownHeading(step.own));
     }
 
     heading.target = lookPosition;
@@ -311,7 +268,7 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
 
     // Looking around on its own, it turns a little further than the pointer
     // can turn it (wander.ts WANDER_TURN).
-    const [left, right] = wandering.current ? WANDER_TURN : TURN;
+    const [left, right] = alone.current.wandering ? WANDER_TURN : TURN;
     lookPosition = {
       x: lookPositionLimit(lookPosition.x * 0.001, left, right),
       y: lookPositionLimit(lookPosition.y * 0.001, ...TIP),
@@ -328,7 +285,7 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
       time,
       seconds,
       Math.random,
-      wandering.current !== null,
+      alone.current.wandering !== null,
     );
     headTurn.value.set(head.x, head.y, ambient.current.tilt);
   };
@@ -370,8 +327,7 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
         onHead([hit.face.a, hit.face.b, hit.face.c], (i) => weights.getX(i))
       ) {
         taps.current = tapHead(taps.current, clock.elapsedTime);
-        wandering.current = null;
-        greeting = idle;
+        alone.current = { ...alone.current, wandering: null, greeting: idle };
       }
     }
     rotateMyHead(clock.elapsedTime, delta);
@@ -383,31 +339,21 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
       y: heading.target.y * 2 + size.height / 2,
     };
     const eyes = myHeadRef.current!.localToWorld(EYES.clone()).project(camera);
-    // A tap's reaction, or the greeting (no expression while the head turns
-    // to the camera, then the gasp, then the smile), each eased in quickly;
-    // otherwise the face reacts to where it is looking.
-    const isTapped = tapsOn(taps.current);
-    const isGreeting = isTapped || greetingOn(greeting);
-    // A page holding the face (the 404 page, headMood) sets it worried,
-    // while the head still moves as it would.
-    const targets: Record<string, number> = isTapped
-      ? tapExpressions(taps.current)
-      : headMood.worried
-        ? WORRIED
-        : greetingOn(greeting)
-          ? greetingExpressions(greeting)
-          : // The face's reactions to where it looks.
-            {
-              smile: facingSmile(look.current),
-              ...pointerExpressions(
-                spot,
-                {
-                  x: ((eyes.x + 1) / 2) * size.width,
-                  y: ((1 - eyes.y) / 2) * size.height,
-                },
-                size,
-              ),
-            };
+    // A tap's reaction, the greeting and the search are each eased in
+    // quickly (headFace.ts).
+    const { greeting, search } = alone.current;
+    const isGreeting =
+      tapsOn(taps.current) || greetingOn(greeting) || search !== null;
+    const targets = faceTargets(
+      { taps: taps.current, greeting, searching: search !== null },
+      look.current,
+      spot,
+      {
+        x: ((eyes.x + 1) / 2) * size.width,
+        y: ((1 - eyes.y) / 2) * size.height,
+      },
+      size,
+    );
     stepFace(isGreeting || headMood.worried, clock.elapsedTime, delta);
     strengths.current = expressions.map((name, k) =>
       easeToward(
