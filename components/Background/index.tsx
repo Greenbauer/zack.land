@@ -14,7 +14,13 @@ import Grading from './Grading';
 import HeadFraming from './HeadFraming';
 import { lookOrigin } from './headPlace';
 import MyHead, { Point } from './MyHead';
-import { askDrawsInSoftware, drawsInSoftware, renderQuality } from './quality';
+import {
+  askDrawsInSoftware,
+  markSoftware,
+  renderQuality,
+  slowFrames,
+  useDrawsInSoftware,
+} from './quality';
 import {
   frameSettler,
   markPageIn,
@@ -31,6 +37,7 @@ export default function Background() {
   const mousePosition = useMousePosition();
   const { width, height } = useWindowSize();
   const { active: isLoading } = useProgress();
+  const software = useDrawsInSoftware();
 
   // Read by the head every frame: the pointer moves without re-rendering
   // (useMousePosition).
@@ -99,7 +106,7 @@ export default function Background() {
       {isSceneOn && (
         <Canvas
           className="bg-[#6864a8]"
-          dpr={renderQuality(width, height, drawsInSoftware()).dpr}
+          dpr={renderQuality(width, height, software).dpr}
           gl={{ antialias: false }}
         >
           <Suspense fallback={null}>
@@ -141,12 +148,15 @@ export default function Background() {
 
 // Marks the scene drawn at its first frame once it has loaded (inside the
 // Suspense), and ready once it has drawn a few smooth frames
-// (sceneReady.ts).
+// (sceneReady.ts). Its first frames, if slow enough, show it is drawn in
+// software (quality.ts).
 function SceneReady() {
   const settled = useMemo(() => frameSettler(), []);
+  const slow = useMemo(() => slowFrames(), []);
   const isDone = useRef(false);
   useFrame((_, delta) => {
     markSceneDrawn();
+    if (slow(delta)) markSoftware();
     if (isDone.current || !settled(delta)) return;
     isDone.current = true;
     markSceneReady();
