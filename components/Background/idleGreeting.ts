@@ -80,16 +80,17 @@ export const greetingExpressions = (greeting: Greeting) => ({
 
 // Whether the face can be seen clearly, so the greeting may run (MyHead.tsx
 // holds its clock otherwise): the page in front of the person (`visible`,
-// its tab showing; `focused`, its window the focused one), the face in the
-// frame (`headX`, where it sits across the window: below 0 when it has
+// its tab showing and its window not hidden or minimised; a window left
+// showing while the person uses another, beside it or behind the chat they
+// type in, still counts: requiring focus there, the head never greeted
+// again once they had clicked away), the face in the frame (`headX`, where it sits across the window: below 0 when it has
 // stepped off the left edge, NaN before it is placed), and nothing blurring
 // or covering it (`covered`).
 export const faceSeen = (page: {
   visible: boolean;
-  focused: boolean;
   headX: number;
   covered: boolean;
-}) => page.visible && page.focused && page.headX >= 0 && !page.covered;
+}) => page.visible && page.headX >= 0 && !page.covered;
 
 // The longest gap between frames, in seconds, that counts as the page being
 // watched all along: a hidden tab draws no frames, though the clock runs on.

@@ -1,12 +1,14 @@
 import { Side } from './sideMorphs';
 
 // The passing looks the head makes on its own (ambient.ts runs them). Most
-// are small, the things people do standing about waiting: a brow flicked up
-// (one brow leading, the other following a beat later and less: a passing
-// thought); the lips pressed together; the mouth pulled to one side; a sigh
+// are small, the things people do standing about waiting: the brows lifted
+// slowly, one leading; now and then a brow flicked up quickly (one brow
+// leading, the other following a beat later and less: a passing thought);
+// the lips pressed together; the mouth pulled to one side; a sigh
 // (the chest rising, then the lids drooping a little and the inner brows
-// lifting as the breath goes out); a swallow, the lips closed; a breath in
-// through the nose, its wings flaring a little; a brief frown of
+// lifting as the breath goes out); a swallow (the lips pressed shut first,
+// then the Adam's apple bobbing up and back down); a slow breath in through
+// the nose, its wings flaring a little; a brief frown of
 // concentration; the lower lip drawn in, as if to wet it; the jaw shifted a
 // little to one side. (Earlier, one eye narrowed, the lips pursed and a half
 // smile: nobody squints one eye or purses at nothing, and the head smiles
@@ -30,6 +32,11 @@ type Part = Range | readonly [number, number, number];
 export type Look = (_side: Side, _other: Side) => Record<string, Part>;
 
 export const LOOKS: Record<string, Look> = {
+  // Both brows lifted slowly, one leading and higher.
+  browRaise: (side, other) => ({
+    [`browsUp${side}`]: [0.35, 0.6],
+    [`browsUp${other}`]: [0.25, 0.45, 0.08],
+  }),
   // One brow up, the other following a beat later and less, its eye
   // squinting a little.
   browFlick: (side, other) => ({
@@ -54,8 +61,10 @@ export const LOOKS: Record<string, Look> = {
     [`browsUp${side}`]: [0.1, 0.2, 0.3],
     [`browsUp${other}`]: [0.1, 0.2, 0.3],
   }),
-  // A swallow, the lips closed and pressed a little as it goes down.
-  swallow: () => ({ swallow: [0.75, 1], press: [0.1, 0.2] }),
+  // A swallow: the lips pressed shut and the floor of the mouth firming
+  // first, then the Adam's apple jumping up and dropping back, the lips
+  // letting go with it.
+  swallow: () => ({ press: [0.3, 0.45], swallow: [0.8, 1, 0.3] }),
   // A breath in through the nose, its wings flaring a little.
   flare: () => ({ noseFlare: [0.3, 0.5] }),
   // A brief frown of concentration, the eyes narrowing with it.
@@ -127,7 +136,8 @@ export const BOLD_CHANCE = 0.15;
 
 // How often each look comes up against the others of its kind.
 export const LOOK_WEIGHTS: Record<string, number> = {
-  browFlick: 3,
+  browRaise: 4,
+  browFlick: 1,
   press: 2,
   aside: 2,
   sigh: 1,
@@ -144,14 +154,18 @@ export const LOOK_WEIGHTS: Record<string, number> = {
 };
 
 // How long one lasts, in seconds: FACE_LASTS, or a look's own (a brow flick
-// is up and back down quickly; a swallow takes about a second; a sigh
-// several).
+// is up and back down quickly; a sigh takes several). A swallow's throat
+// moves for about a second (in healthy adults' swallows on video, the hyoid
+// moves for 0.79 to 1.39 s on average across studies: Molfenter and Steele,
+// "Temporal Variability in the Deglutition Literature", Dysphagia, 2012),
+// after the lips have closed.
 export const FACE_LASTS = [2.2, 3.4] as const;
 export const LASTS: Record<string, readonly [number, number]> = {
+  browRaise: [2.6, 3.6],
   browFlick: [1.2, 1.5],
-  swallow: [1.2, 1.5],
+  swallow: [1.6, 1.9],
   sigh: [3.4, 4.8],
-  flare: [1.5, 2],
+  flare: [2.6, 3.4],
   hmm: [2.4, 3.4],
   puff: [1.6, 2.2],
   skeptic: [2, 2.8],
@@ -161,14 +175,19 @@ export const LASTS: Record<string, readonly [number, number]> = {
 // look's own. Measured on video, a spontaneous smile or brow raise takes
 // about half a second to reach its height (0.6 s and 0.74 s on average:
 // Schmidt et al., 2009), and lets go more slowly, half gone in about a
-// third of a second and settling back to rest over about a second more; the
-// greeting's brow flash is quicker, up in about a fifth of a second. The
-// sigh goes with a breath, over a second.
+// third of a second and settling back to rest over about a second more. Most
+// brow movements go at that measured pace or slower; the brow flick (like
+// the greeting's brow flash) is quicker, up in about a fifth of a second.
+// The sigh and the flare go with a breath, over a second. In a swallow the
+// Adam's apple jumps up and drops back quickly: it lets go over half a
+// second, not settling slowly as a held expression does.
 export const PACE = { onset: 0.45, offset: 1.4 };
 export const PACES: Record<string, { onset: number; offset: number }> = {
+  browRaise: { onset: 0.75, offset: 1.6 },
   browFlick: { onset: 0.22, offset: 0.9 },
-  flare: { onset: 0.3, offset: 1.1 },
-  swallow: { onset: 0.3, offset: 0.8 },
+  furrow: { onset: 0.6, offset: 1.5 },
+  flare: { onset: 0.9, offset: 1.4 },
+  swallow: { onset: 0.3, offset: 0.45 },
   sigh: { onset: 1, offset: 2.2 },
   hmm: { onset: 0.5, offset: 1.6 },
   puff: { onset: 0.4, offset: 0.8 },
