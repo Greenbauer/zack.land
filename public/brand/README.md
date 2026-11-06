@@ -31,8 +31,9 @@ The dawn palette (`theme/head.json`):
 - **Share images** (`og-image.png` and `instagram-1080x1080.png`) are read at
   about a third of their size, so their text is set to be read there: the name
   small above, the whole tagline as the headline in Roboto regular (light is too
-  thin at that size), then the domain. The subtitle is left off, as the link
-  preview's own title and description already say it.
+  thin at that size), then the domain. The name shades navy to purple, not to
+  rose, so its last letters keep 3:1 contrast on the sky. The subtitle is left
+  off, as the link preview's own title and description already say it.
 
 ## Assets
 
