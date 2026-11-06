@@ -34,7 +34,9 @@ The dawn palette (`theme/head.json`):
   over "Greenbauer's"; "Portfolio and Sandbox" under it; the tagline smaller;
   then the domain. The name shades corner to corner from navy through indigo,
   blue and a violet to a darkened rose, and the subtitle runs back the other
-  way. Each stop is darkened as far as it needs to hold 3:1 on the image's sky.
+  way. Each stop is darkened as far as it needs to hold 3:1 on the image's sky;
+  on the square, whose sky darkens toward the head, the subtitle, tagline and
+  domain stay in navy to blue.
 
 ## Assets
 
