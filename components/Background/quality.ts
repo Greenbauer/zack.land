@@ -1,3 +1,5 @@
+import { useSyncExternalStore } from 'react';
+
 import { isSmall } from './smallScreen';
 
 // How finely the scene is drawn on a window `width` by `height` CSS pixels:
@@ -27,7 +29,8 @@ export const isSoftwareRenderer = (renderer: string) =>
 
 // Whether this browser draws WebGL on the CPU, asked once of a throwaway
 // context (false where WebGL does not say, as most real GPUs do say, and on
-// the server, where the page is first rendered and nothing is drawn).
+// the server, where the page is first rendered and nothing is drawn), or
+// found from the scene's first frames (slowFrames).
 let software: boolean | undefined;
 export function drawsInSoftware() {
   if (typeof document === 'undefined') return false;
@@ -72,3 +75,53 @@ export function askDrawsInSoftware(): Promise<boolean> {
   });
   return asked;
 }
+
+// A browser can hide that it draws in software: WebKit names every renderer
+// "Apple GPU", so where it has none (a virtual machine, Linux, a CI runner)
+// the scene is drawn in full on its CPU, seconds a frame, with the whole page
+// waiting on each. So the scene's first frames are timed as well (index.tsx):
+// slowFrames takes each frame's time since the last, in seconds, and is true
+// once SLOW_FRAMES in a row have each taken longer than SLOW_SECONDS, leaving
+// out the first FIRST_FRAMES (which compile the shaders and upload the
+// textures) and watching only until WATCHED_FRAMES, so a later hitch (a
+// hidden tab, a page's load) is never taken for it. A GPU draws a frame in
+// milliseconds, a phone's included, and never comes near.
+export const SLOW_SECONDS = 0.5;
+export const SLOW_FRAMES = 2;
+export const FIRST_FRAMES = 2;
+export const WATCHED_FRAMES = 30;
+export function slowFrames() {
+  let frame = 0;
+  let run = 0;
+  return (delta: number) => {
+    frame += 1;
+    if (frame <= FIRST_FRAMES || frame > WATCHED_FRAMES) return false;
+    run = delta > SLOW_SECONDS ? run + 1 : 0;
+    return run >= SLOW_FRAMES;
+  };
+}
+
+// From then on it draws in software, as if its renderer had said so: the
+// scene, already drawing, takes the smaller size and drops its smoothing
+// (useDrawsInSoftware).
+const listeners = new Set<() => void>();
+export function markSoftware() {
+  if (software) return;
+  software = true;
+  document.documentElement.setAttribute('data-software', '');
+  for (const listener of listeners) listener();
+}
+export const onSoftware = (listener: () => void) => {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+};
+// It reads only what is already known, never asking itself: asked as the
+// page opens, it would open a WebGL context on the main thread, which
+// askDrawsInSoftware exists to avoid. The scene is drawn only once that has
+// answered (index.tsx).
+export const useDrawsInSoftware = () =>
+  useSyncExternalStore(
+    onSoftware,
+    () => software ?? false,
+    () => false,
+  );
