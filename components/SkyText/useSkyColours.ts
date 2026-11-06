@@ -1,7 +1,7 @@
 import { RefObject, useEffect } from 'react';
 
 import { watchBackdrop } from '@/components/Background/backdrop';
-import { skyState } from '@/components/Background/skyState';
+import { SKY_SIDE, skyState } from '@/components/Background/skyState';
 
 import { restingSide, skyBehind, skyColours, WORD_SHARE } from './skyColours';
 
@@ -25,7 +25,10 @@ export default function useSkyColours(
     element.classList.add('sky-colours');
     let last = '';
     let onDark: boolean | undefined;
-    return watchBackdrop(element, (samples) => {
+    // The sky last read behind it, read again as the sky's side turns over.
+    let samples: number[] | undefined;
+    const colour = () => {
+      if (!samples) return;
       const colours = skyColours(
         skyBehind(samples, ownSide ? WORD_SHARE : undefined),
         // A single word takes the side its backdrop reads on, with no margin
@@ -39,6 +42,15 @@ export default function useSkyColours(
       last = key;
       for (const name of ['text', 'faint', 'accent', 'underline'] as const)
         element.style.setProperty(`--sky-${name}`, colours[name]);
+    };
+    addEventListener(SKY_SIDE, colour);
+    const unwatch = watchBackdrop(element, (read) => {
+      samples = read;
+      colour();
     });
+    return () => {
+      unwatch();
+      removeEventListener(SKY_SIDE, colour);
+    };
   }, [ref, ownSide]);
 }
