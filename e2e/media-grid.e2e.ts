@@ -118,7 +118,11 @@ for (const { name, width, height } of SIZES)
 // scroll arrow comes, and the footer used to fade its text out first, shrinking
 // only after the images had come to rest: they then jumped bigger and lower.
 // The site's scripts held back make the load slow; with reduced motion the
-// images only fade in, so they rest well inside the old fade.
+// images only fade in, so they rest well inside the old fade. Where they are
+// is read every frame from the page's first, not from when a wait here first
+// sees them at rest: they also came to rest a frame or two before the tiles
+// took their box's new size as the footer shrank, and a wait that looked
+// after that jump missed it.
 test.describe('a phone loading slowly', () => {
   test.use({
     viewport: { width: 390, height: 844 },
@@ -126,16 +130,50 @@ test.describe('a phone loading slowly', () => {
   });
 
   test('its images hold still once at rest', async ({ page }) => {
+    await page.addInitScript(() => {
+      // The first post's first four tiles' boxes, each frame they are at
+      // rest (as atRest has it).
+      const seen: string[] = [];
+      Object.assign(window, { seen });
+      const step = () => {
+        const tiles = [
+          ...document.querySelectorAll<HTMLElement>('.collage-tile'),
+        ].slice(0, 4);
+        if (
+          tiles.length === 4 &&
+          tiles.every(
+            (tile) =>
+              tile.closest('[data-shown]') &&
+              tile.getAnimations().length === 0 &&
+              getComputedStyle(tile).visibility === 'visible' &&
+              getComputedStyle(tile).opacity === '1' &&
+              getComputedStyle(tile).transform === 'none',
+          )
+        )
+          seen.push(
+            JSON.stringify(
+              tiles.map((tile) => {
+                const { left, top, width, height } =
+                  tile.getBoundingClientRect();
+                return [left, top, width, height];
+              }),
+            ),
+          );
+        requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    });
     await page.route('**/_next/static/chunks/**', async (route) => {
       await new Promise((resolve) => setTimeout(resolve, 1500));
       await route.continue();
     });
     await atRest(page);
-    const first = (await tilesOf(page)).map((tile) => tile.box);
-    for (let k = 0; k < 10; k++) {
-      await page.waitForTimeout(200);
-      expect((await tilesOf(page)).map((tile) => tile.box)).toEqual(first);
-    }
+    await page.waitForTimeout(2000);
+    const seen = await page.evaluate(
+      () => (window as unknown as { seen: string[] }).seen,
+    );
+    expect(seen.length).toBeGreaterThan(1);
+    expect(new Set(seen).size).toBe(1);
   });
 });
 
