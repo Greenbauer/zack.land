@@ -6,10 +6,14 @@ import { useEffect, useState } from 'react';
 // anything on the page (moved the pointer, or any other interaction:
 // ACTIVITY) since its reader last cleared `moved`. The head only counts as
 // left alone, and greets with its surprised look, while it stays clear.
+// `left`: the pointer has gone out of the window since it last moved (the
+// head, following it, loses it and looks for it), until its reader clears it
+// or the pointer comes back.
 export type MousePosition = {
   x: number;
   y: number;
   moved: boolean;
+  left: boolean;
 };
 
 // Interactions other than moving the pointer that mean someone is there:
@@ -30,17 +34,28 @@ export const ACTIVITY = [
 export function watchPointer(target: EventTarget, position: MousePosition) {
   const onMove = (event: Event) => {
     const { clientX, clientY } = event as MouseEvent;
-    Object.assign(position, { x: clientX, y: clientY, moved: true });
+    Object.assign(position, {
+      x: clientX,
+      y: clientY,
+      moved: true,
+      left: false,
+    });
+  };
+  // Out of the window: onto nothing in the page.
+  const onOut = (event: Event) => {
+    if (!(event as MouseEvent).relatedTarget) position.left = true;
   };
   const onActivity = () => {
     position.moved = true;
   };
   const options = { capture: true, passive: true };
   target.addEventListener('mousemove', onMove);
+  target.addEventListener('mouseout', onOut);
   for (const type of ACTIVITY)
     target.addEventListener(type, onActivity, options);
   return () => {
     target.removeEventListener('mousemove', onMove);
+    target.removeEventListener('mouseout', onOut);
     for (const type of ACTIVITY)
       target.removeEventListener(type, onActivity, options);
   };
@@ -54,6 +69,7 @@ export default function useMousePosition() {
     x: 0,
     y: 0,
     moved: true,
+    left: false,
   }));
 
   useEffect(() => watchPointer(document, mousePosition), [mousePosition]);

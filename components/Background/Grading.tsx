@@ -28,7 +28,7 @@ import { findCards, findFields, pageFade } from './glassCards';
 import { CardTints, Rgb, skyOf, skyPoints } from './glassTint';
 import { photoLenses } from './photoLens';
 import { TrailPass } from './pointerTrail';
-import { drawsInSoftware, renderQuality } from './quality';
+import { renderQuality, useDrawsInSoftware } from './quality';
 import { isSmall } from './smallScreen';
 import usePixelReader from './usePixelReader';
 
@@ -55,11 +55,12 @@ export default function Grading() {
   );
   const get = useThree((state) => state.get);
   // The composer's targets are made once, so their smoothing is chosen once,
-  // by the window's size as the scene loads.
-  const [samples] = useState(() => {
-    const { width, height } = get().size;
-    return renderQuality(width, height, drawsInSoftware()).samples;
-  });
+  // by the window's size as the scene loads; they are made again (the key
+  // on Effects) only if its first frames show it drawn in software after all
+  // (quality.ts).
+  const [size] = useState(() => get().size);
+  const software = useDrawsInSoftware();
+  const { samples } = renderQuality(size.width, size.height, software);
   const [across] = useState(() => new ShaderPass(HorizontalBlurShader));
   const [down] = useState(() => new ShaderPass(VerticalBlurShader));
   const [glass] = useState(() => new GlassPass());
@@ -165,7 +166,7 @@ export default function Grading() {
   // the glass sits still over the trail and the colour grading falls on all
   // alike; the cards' tint goes on last, over the graded frame.
   return (
-    <Effects disableGamma multisamping={samples}>
+    <Effects key={samples} disableGamma multisamping={samples}>
       <primitive object={across} />
       <primitive object={down} />
       <primitive object={titles} />
