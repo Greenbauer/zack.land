@@ -27,6 +27,18 @@ export const FACING_CLOSE = 0.1;
 
 export const idle: Greeting = { phase: 'idle' };
 
+// Below this an expression counts as eased out.
+export const NEUTRAL = 0.02;
+// Whether the face has eased back to neutral: every expression eased out
+// but the neck's own shapes (neckPose.ts), which follow the head's turn on
+// its shoulders. (Counted, they kept the greeting facing the camera for
+// good: there the head is turned in on the shoulders, toward the middle of
+// the page, so the neck's turn shape is never at rest.)
+export const faceNeutral = (strengths: Record<string, number>) =>
+  Object.entries(strengths).every(
+    ([name, strength]) => name.startsWith('neck') || strength < NEUTRAL,
+  );
+
 // The next step: `turn` is where the head is looking now (radians, both 0
 // facing the camera), `neutral` whether the face has eased back to no
 // expression, and `time` the clock in seconds.

@@ -4,8 +4,9 @@ import zlib from 'node:zlib';
 
 import { decodeHead } from './headGeometry';
 
-// What the head's tests (head.test.ts, headExpressions.test.ts) read: the
-// built head, as the page reads it, and measures of its skin.
+// What the head's tests (head.test.ts, headBust.test.ts,
+// headExpressions.test.ts) read: the built head, as the page reads it, and
+// measures of its skin.
 
 export type Point = [x: number, y: number, z: number];
 
@@ -56,4 +57,43 @@ export const openEdges = () => {
       uses.set(key, (uses.get(key) ?? 0) + 1);
     });
   return [...uses].filter(([, count]) => count === 1).map(([key]) => key);
+};
+
+// How sharply the skin bends at each point inside a region: the average,
+// over its neighbours within 6 units, of how far they lie off the point's
+// tangent plane over their distance squared (positive bending outward,
+// negative inward).
+export const bends = (inside: (_point: Point) => boolean) => {
+  const normal = skin.vertices.map((): Point => [0, 0, 0]);
+  for (const face of skin.faces) {
+    const [a, b, c] = face.map((i) => skin.vertices[i]!) as [
+      Point,
+      Point,
+      Point,
+    ];
+    const u = b.map((v, k) => v - a[k]!);
+    const w = c.map((v, k) => v - a[k]!);
+    const n = [
+      u[1]! * w[2]! - u[2]! * w[1]!,
+      u[2]! * w[0]! - u[0]! * w[2]!,
+      u[0]! * w[1]! - u[1]! * w[0]!,
+    ];
+    for (const i of face)
+      normal[i] = normal[i]!.map((v, k) => v + n[k]!) as Point;
+  }
+  return skin.vertices.flatMap(([x, y, z], i) => {
+    if (!inside([x, y, z])) return [];
+    const n = normal[i]!;
+    const length = Math.hypot(...n);
+    let sum = 0;
+    let count = 0;
+    for (const [px, py, pz] of skin.vertices) {
+      const d = [px - x, py - y, pz - z];
+      const r2 = d[0]! ** 2 + d[1]! ** 2 + d[2]! ** 2;
+      if (r2 > 36 || r2 < 1e-6) continue;
+      sum += (d[0]! * n[0] + d[1]! * n[1] + d[2]! * n[2]) / length / r2;
+      count++;
+    }
+    return count ? [sum / count] : [];
+  });
 };

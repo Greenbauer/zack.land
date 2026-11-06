@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  ON_HEAD,
+  onHead,
   REACT_SECONDS,
   SMILE_SECONDS,
   stepTaps,
@@ -48,5 +50,15 @@ describe('tapping the head', () => {
   it('starts at the first reaction when tapped while smiling', () => {
     const smiling = stepTaps(tapHead(untapped, 0), REACT_SECONDS);
     expect(tapHead(smiling, REACT_SECONDS + 1)).toMatchObject({ count: 1 });
+  });
+
+  it('counts a tap or click only on the head, not the neck or shoulders', () => {
+    // Head weights of three skin points: on the face, on the neck below the
+    // jaw, on a shoulder.
+    const weight = [1, 0.95, ON_HEAD - 0.2, 0];
+    expect(onHead([0, 1, 0], (i) => weight[i]!)).toBe(true);
+    // A triangle reaching down onto the neck, or the shoulder: not the head.
+    expect(onHead([0, 1, 2], (i) => weight[i]!)).toBe(false);
+    expect(onHead([3, 3, 3], (i) => weight[i]!)).toBe(false);
   });
 });
