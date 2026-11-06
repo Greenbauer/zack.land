@@ -120,15 +120,14 @@ describe('faceNeutral', () => {
 });
 
 describe('faceSeen', () => {
-  const seen = { visible: true, focused: true, headX: 300, covered: false };
+  const seen = { visible: true, headX: 300, covered: false };
 
   it('lets the greeting run with the page in front and the face in view', () => {
     expect(faceSeen(seen)).toBe(true);
   });
 
-  it('holds it while the tab is hidden or another window has focus', () => {
+  it('holds it while the tab is hidden', () => {
     expect(faceSeen({ ...seen, visible: false })).toBe(false);
-    expect(faceSeen({ ...seen, focused: false })).toBe(false);
   });
 
   it('holds it while the face is off the frame, or not yet placed', () => {

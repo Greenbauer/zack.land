@@ -1,6 +1,16 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { isSoftwareRenderer, renderQuality } from './quality';
+import {
+  drawsInSoftware,
+  FIRST_FRAMES,
+  isSoftwareRenderer,
+  markSoftware,
+  onSoftware,
+  renderQuality,
+  SLOW_FRAMES,
+  slowFrames,
+  WATCHED_FRAMES,
+} from './quality';
 
 describe('how finely the scene is drawn', () => {
   it('draws a phone at up to 1.5 pixels per CSS pixel, unsmoothed', () => {
@@ -44,5 +54,48 @@ describe('how finely the scene is drawn', () => {
       'Adreno (TM) 730',
     ])
       expect(isSoftwareRenderer(gpu)).toBe(false);
+  });
+});
+
+describe('a scene drawn in software that its renderer hides', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  // Feeds `deltas` (seconds) to a fresh watch: the frame it first says so at
+  // (from 1), or 0.
+  const slowAt = (deltas: number[]) => {
+    const slow = slowFrames();
+    return deltas.findIndex((delta) => slow(delta)) + 1;
+  };
+
+  it('is found from two slow frames in a row, after the first two', () => {
+    // CI's WebKit, drawing in full on its CPU: seconds a frame.
+    expect(slowAt([3, 4, 2.5, 6, 3])).toBe(FIRST_FRAMES + SLOW_FRAMES);
+  });
+
+  it('is not found from a GPU’s frames, nor its first slow ones', () => {
+    // The first frames compile the shaders; then a sixtieth of a second each.
+    expect(slowAt([2, 1.5, ...Array(40).fill(1 / 60)])).toBe(0);
+  });
+
+  it('is not found from one slow frame at a time', () => {
+    expect(slowAt([0.02, 0.02, 0.9, 0.02, 0.9, 0.02, 0.9, 0.02])).toBe(0);
+  });
+
+  it('is watched for only as the scene starts', () => {
+    // A tab left hidden and shown again, or a heavy page loading, later on.
+    expect(slowAt([...Array(WATCHED_FRAMES).fill(1 / 60), 5, 5, 5])).toBe(0);
+  });
+
+  it('draws in software from then on, telling the scene once', () => {
+    const setAttribute = vi.fn();
+    vi.stubGlobal('document', { documentElement: { setAttribute } });
+    const told = vi.fn();
+    const stop = onSoftware(told);
+    markSoftware();
+    markSoftware();
+    stop();
+    expect(drawsInSoftware()).toBe(true);
+    expect(setAttribute).toHaveBeenCalledWith('data-software', '');
+    expect(told).toHaveBeenCalledTimes(1);
   });
 });

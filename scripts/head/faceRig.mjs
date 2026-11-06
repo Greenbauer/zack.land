@@ -142,6 +142,32 @@ export function lids(rig, pins, upper, lower) {
     }
 }
 
+// Each lower lid pushed up from below, as a smile's or a squint's cheek and
+// lid muscles push it, until it runs straight, `below` under the line
+// through its eye's corners: it only rises, easing in as it nears that line,
+// so its ends, high already, stay put. (Turned up most mid-lid, as `lids`
+// turns it, the lower lid arched up past the corners' line, where in a real
+// smile it runs nearly straight.)
+const RISE_EASE = 0.3;
+export function raiseLowerLids(rig, pins, below) {
+  for (const { loop, centre, line } of rig.rims)
+    for (const i of loop) {
+      const p = rig.vertices[i];
+      if (p[1] > line(p[0])) continue;
+      const short = line(p[0]) - below - p[1];
+      const rise =
+        short >= RISE_EASE
+          ? short
+          : Math.max(short + RISE_EASE, 0) ** 2 / (4 * RISE_EASE);
+      // The turn about the eye's centre that lifts it by `rise`.
+      const [dy, dz] = [p[1] - centre[1], p[2] - centre[2]];
+      const angle =
+        Math.atan2(dy, dz) -
+        Math.asin(Math.min(1, (dy + rise) / Math.hypot(dy, dz)));
+      pins.set(i, minus(turn(p, centre, angle), p));
+    }
+}
+
 // The brow line (from `low` up) moves by `move(|x|, sign of x)`.
 export function brows(rig, pins, move, low = 11) {
   rig.vertices.forEach((v, i) => {
