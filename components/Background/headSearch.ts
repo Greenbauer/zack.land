@@ -2,7 +2,7 @@ import { glide } from './headPlace';
 import { Gaze, TIP, TURN } from './wander';
 
 // What the head does when it loses the pointer it has been following
-// (MyHead.tsx: the pointer goes out of the window, or stops long enough for
+// (leftAlone.ts: the pointer goes out of the window, or stops long enough for
 // the head to greet): it looks for it, as a person does who has lost sight
 // of something. A few quick glances, each a short shift of the head held a
 // moment: first on past where it lost it (the way it was looking), then
