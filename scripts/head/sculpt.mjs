@@ -5,6 +5,7 @@
 // chin at -65, the notch at the base of the throat near -124, about 1.7 mm a
 // unit).
 
+import { fitBack } from './backOutline.mjs';
 import { normals } from './mesh.mjs';
 
 const smoothstep = (x, low, high) => {
@@ -20,7 +21,57 @@ const ADAMS_APPLE = { y: -88, height: 6, width: 6, depth: 3.5 };
 // down from the skull into the shoulders instead of dipping in just above
 // them: `depth` deep between the two ramps, rising in over `top` and out over
 // `bottom`.
-const NAPE = { top: [-72, -90], bottom: [-106, -96], width: 30, depth: 2.6 };
+const NAPE = { top: [-72, -90], bottom: [-135, -96], width: 30, depth: 2.6 };
+
+// The back below the neck, evened out first (`passes` times, a Taubin
+// smoothing that keeps its size): MakeHuman's base carries faint creases down
+// the upper back and a notch across the base of the neck that no real back
+// shows. It reaches up over the back of the trapezius (`below`), rounding
+// where the raised trapezius turns over into the back, but only where the
+// surface faces backward, so the trapezius's top, which the photos fix, keeps
+// its height; and it stays clear of the bust's cut edge.
+const BACK_SMOOTH = {
+  passes: 160,
+  below: [66, 90],
+  across: [105, 130],
+};
+// The same for the front of the base of the neck and the collarbones, where
+// the surface faces forward (`below` and `above`, heights fading in and out,
+// and `across`): it left the notch at the base of the throat a
+// cluster of small lumps where the collarbones' inner ends met the chest's
+// fill, and a dimple at the outer end of each collarbone, which showed in
+// every pose; a real notch is one smooth hollow. Evened after the sculpting
+// below, which made them.
+const FRONT_SMOOTH = {
+  passes: 40,
+  below: [94, 104],
+  above: [140, 152],
+  across: [95, 115],
+};
+// Then the one form a real back shows there: the groove down the spine
+// between the muscles either side of it, shallow between the shoulder blades
+// and deepening below (`depth` reached at `full`), about `width` across.
+const SPINE = { start: -105, full: -215, depth: 3.4, width: 8 };
+// MakeHuman's upper back is a deep trough between two humps over the
+// shoulder blades (the spine some 21 units in front of them at -140); a real
+// back is full there, the muscles between the blades filling it. Filled
+// `depth` at the spine, over `width` either side, from `top` down to `bottom`.
+// The upper trapezius thickened behind and below its top (whose height the
+// photos fix): `depth` most at `at` from the midline, over `width` either
+// side, from `top` down to `bottom`.
+const TRAPEZIUS = {
+  depth: 4,
+  at: 40,
+  width: 22,
+  top: [-60, -105],
+  bottom: [-105, -140],
+};
+const BETWEEN_BLADES = {
+  depth: 17,
+  width: 26,
+  top: [-88, -135],
+  bottom: [-145, -195],
+};
 
 // Each collarbone: a low ridge along the front of the shoulder, through
 // these (distance from the midline, height) points, placed on the surface's
@@ -34,14 +85,14 @@ const CLAVICLE = {
     [54, -113],
     [79, -110],
   ],
-  width: 6,
-  height: 2.6,
+  width: 9,
+  height: 2,
   // The hollow above each, between the neck and the trapezius: `above` its
   // line, `from` and `to` from the midline.
   hollow: {
-    above: 9,
-    width: 7,
-    depth: 1.6,
+    above: 10,
+    width: 9,
+    depth: 1,
     from: 18,
     to: 62,
   },
@@ -101,11 +152,51 @@ function toLine(line, p, shift) {
   return best;
 }
 
-export function sculpt({ vertices, faces }) {
+// The skin evened out where `reach(p, normal)` (0 to 1) says, `passes` times.
+function even(vertices, faces, reach, passes) {
+  const near = vertices.map(() => new Set());
+  for (const f of faces)
+    f.forEach((a, k) => {
+      const b = f[(k + 1) % f.length];
+      near[a].add(b);
+      near[b].add(a);
+    });
+  const n = normals({ vertices, faces });
+  const weight = vertices.map((p, i) => reach(p, n[i]));
+  let p = vertices.map((v) => [...v]);
+  const step = (factor) =>
+    p.map((v, i) => {
+      if (!weight[i] || !near[i].size) return v;
+      const mean = [0, 0, 0];
+      for (const j of near[i]) for (let a = 0; a < 3; a++) mean[a] += p[j][a];
+      return v.map(
+        (c, a) => c + factor * weight[i] * (mean[a] / near[i].size - c),
+      );
+    });
+  for (let pass = 0; pass < passes; pass++) {
+    p = step(0.5);
+    p = step(-0.53);
+  }
+  return p;
+}
+
+export function sculpt({ vertices: start, faces }) {
+  const vertices = even(
+    start,
+    faces,
+    ([x, y], n) =>
+      smoothstep(-n[2], 0.1, 0.4) *
+      smoothstep(-y, ...BACK_SMOOTH.below) *
+      (1 - smoothstep(Math.abs(x), ...BACK_SMOOTH.across)) *
+      (1 - smoothstep(-y, 178, 192)),
+    BACK_SMOOTH.passes,
+  );
   const line = clavicleLine(vertices);
   const n = normals({ vertices, faces });
   const ends = [line[0][0], line.at(-1)[0]];
-  return vertices.map(([x, y, z], i) => {
+  // Last, the back's outline seen from the side, shaped to the side photo
+  // (backOutline.mjs).
+  const shaped = vertices.map(([x, y, z], i) => {
     // The collarbones, tapering in at each end, pushed out along the surface.
     const mirrored = [Math.abs(x), y, z];
     const { distance: nearest, along } = toLine(line, mirrored, 0);
@@ -141,7 +232,33 @@ export function sculpt({ vertices, faces }) {
         bump(chestNearest, CLAVICLE.chest.width) *
         smoothstep(chestAlong, CLAVICLE.chest.from, CLAVICLE.chest.from + 8) *
         (1 - smoothstep(chestAlong, CLAVICLE.chest.to - 15, CLAVICLE.chest.to));
-    [x, y, z] = [0, 1, 2].map((axis) => [x, y, z][axis] + n[i][axis] * ridge);
+    // Behind the neck's middle, by depth rather than by which way the
+    // surface faces: that turns quickly over the top of the trapezius and
+    // left a hard line along it.
+    const behind = smoothstep(-z, 30, 60);
+    const back =
+      BETWEEN_BLADES.depth *
+        behind *
+        bump(x, BETWEEN_BLADES.width) *
+        smoothstep(-y, -BETWEEN_BLADES.top[0], -BETWEEN_BLADES.top[1]) *
+        (1 -
+          smoothstep(
+            -y,
+            -BETWEEN_BLADES.bottom[0],
+            -BETWEEN_BLADES.bottom[1],
+          )) +
+      TRAPEZIUS.depth *
+        behind *
+        bump(Math.abs(x) - TRAPEZIUS.at, TRAPEZIUS.width) *
+        smoothstep(-y, -TRAPEZIUS.top[0], -TRAPEZIUS.top[1]) *
+        (1 - smoothstep(-y, -TRAPEZIUS.bottom[0], -TRAPEZIUS.bottom[1])) -
+      SPINE.depth *
+        behind *
+        bump(x, SPINE.width) *
+        smoothstep(-y, -SPINE.start, -SPINE.full);
+    [x, y, z] = [0, 1, 2].map(
+      (axis) => [x, y, z][axis] + n[i][axis] * (ridge + back),
+    );
 
     const dz = z - centre(y);
     const radius = Math.hypot(x, dz);
@@ -157,4 +274,16 @@ export function sculpt({ vertices, faces }) {
         smoothstep(y, ...NAPE.bottom);
     return [x + (x / radius) * push, y, z + (dz / radius) * push];
   });
+  // Then the front of the base of the neck evened out (FRONT_SMOOTH).
+  const front = even(
+    shaped,
+    faces,
+    ([x, y], n) =>
+      smoothstep(n[2], 0.1, 0.4) *
+      smoothstep(-y, ...FRONT_SMOOTH.below) *
+      (1 - smoothstep(-y, ...FRONT_SMOOTH.above)) *
+      (1 - smoothstep(Math.abs(x), ...FRONT_SMOOTH.across)),
+    FRONT_SMOOTH.passes,
+  );
+  return fitBack(front, faces);
 }

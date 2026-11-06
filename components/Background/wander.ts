@@ -12,9 +12,12 @@ import { glide } from './headPlace';
 // A look, in radians: x tips the head (up is negative), y turns it.
 export type Gaze = { x: number; y: number };
 
-// The head's turning range (MyHead.tsx clamps any look to it).
+// The head's turning range (MyHead.tsx clamps any look to it): TURN
+// following the pointer, and WANDER_TURN looking around on its own, a little
+// further out away from the page.
 export const TIP = [-0.15, 0.13] as const;
 export const TURN = [-0.5, 0.3] as const;
+export const WANDER_TURN = [-0.65, 0.3] as const;
 // Looks keep this share of the range in from its ends.
 const MARGIN = 0.04;
 
@@ -76,7 +79,7 @@ export function nextLook(
       y: from.y + Math.cos(angle) * size,
     };
   }
-  target = { x: clamp(target.x, TIP), y: clamp(target.y, TURN) };
+  target = { x: clamp(target.x, TIP), y: clamp(target.y, WANDER_TURN) };
   const distance = Math.hypot(target.x - from.x, target.y - from.y);
   return {
     target,
