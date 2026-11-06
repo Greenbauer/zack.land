@@ -26,18 +26,23 @@ The dawn palette (`theme/head.json`):
   sky, light tones (light to rose) on a dark one. No shadows.
 - **Domain is always written `www.zack.land`**, lowercase and widely spaced, as
   the site sets it.
-- **The head** faces right of the camera with a neutral face, and a strip of the
-  site's glass lies over the shoulders only, never the face.
-- **Share images** (`og-image.png` and `instagram-1080x1080.png`) are read at
-  about a third of their size, so their text is set large: the name as the
-  headline, "Zack" over "Greenbauer's"; "Portfolio and Sandbox" under it; the
-  tagline smaller; then the domain. The name shades corner to corner from navy
-  through indigo, blue and a violet to a darkened rose, each stop darkened to
-  hold 3:1 on the image's sky. The subtitle is set as the site's (Roboto Thin,
-  uppercase, slightly spaced) in one theme colour: the lightest that reaches
-  4.5:1 on the sky, as the home page picks it. The tagline and domain are in
-  Roboto regular, as light is too thin at that size. The square shows only the
-  head's right half, its sky carried on to the right, to give the text room.
+- **The head** faces right of the camera, and a strip of the site's glass lies
+  over the shoulders only, never the face. On the social images (link preview,
+  square, LinkedIn, X) it wears the greeting's surprise: the gasp, at full
+  strength (`components/Background/idleGreeting.ts`); the icons keep a neutral
+  face.
+- **Social image text** is read at about a third of its size, so it is set
+  large: the name as the headline ("Zack" over "Greenbauer's" on the link
+  preview and square, one line on the banners); "Portfolio and Sandbox" under
+  it; the tagline smaller; then the domain. Over a light sky the name shades
+  corner to corner from navy through indigo, blue and a violet to a darkened
+  rose; over LinkedIn's dark one, from light to peach. Each stop is darkened (or
+  lightened) to hold 3:1 on the sky. The subtitle is set as the site's (Roboto
+  Thin, uppercase, slightly spaced) in one theme colour, the lightest (or, on a
+  dark sky, the theme's light) that reaches 4.5:1 on the sky, as the home page
+  picks it. The tagline and domain are in Roboto regular, as light is too thin
+  at that size. The square shows only the head's right half, to give the text
+  room.
 
 ## Assets
 
@@ -55,7 +60,10 @@ The dawn palette (`theme/head.json`):
 > eye, closer than the app icons, so the face still reads at tab size.
 
 Each social image has its own part of the dawn sky: lilac to blush (link
-preview), a pink to purple sweep (LinkedIn), warm cream (X) and mauve (square).
+preview), a pink to purple sweep (LinkedIn), warm cream (X) and lavender
+(square). The sky turns used (`components/Background/skyViews.ts`; x tips, y turns):
+link preview `{ x: -0.8, y: 2.36 }` (the first light station), LinkedIn
+`{ x: 0.4, y: -2.84 }`, X `{ x: 0, y: 1.84 }`, square `{ x: 0.2, y: 0.8 }`.
 
 ## Regenerating
 
@@ -65,9 +73,18 @@ it turns right without squinting or raising its brows), the sky held at a fixed
 turn per image (`scene.backgroundRotation` and `scene.environmentRotation`, as
 `components/Background/Sky.tsx` sets them), the title, subtitle, tagline and
 domain placed over it, and a glass card (any `section`) laid over the shoulders.
-The share images' text was later reset on the same renders: the old text was
-painted out with a smooth fit of the sky around it, and the head and glass were
-left as rendered. The render scripts are not kept in the repository.
+
+The social images were last rendered from `master` in a separate checkout with
+three local changes that were never committed: the 3D name left out of
+`components/Background/index.tsx`, the sky held at a turn (`stationFor` in
+`skyViews.ts` returning that turn with no reach), and the face held at given
+strengths (the morph influences in `MyHead.tsx`, neck shapes kept). Chromium ran
+headless with the Mac's GPU (`--headless=new --use-angle=metal`). Software GL
+(swiftshader) draws the head blocky at a quarter of the pixels, so it is not
+fit for these. The frosted glass fades out about 80 to 110 CSS pixels past its
+card's edge, so the card sits that far below where the glass should start. Each
+render was made larger than the image and cropped so the head sits where the old
+image had it. The render scripts are not kept in the repository.
 
 ## Link previews (wired in `app/layout.tsx`)
 
