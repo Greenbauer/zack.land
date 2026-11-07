@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   currentView,
   DARK_SKIES,
+  headLeft,
   LIGHT_SKIES,
   planSkies,
   STATIONS,
@@ -161,6 +162,33 @@ describe('the view the sky is for', () => {
     viewBound('/');
     viewBoundOff();
     expect(currentView()).toBe('/contact');
+  });
+
+  it('counts as a new view each time the head goes off the window on it', () => {
+    page('/contact');
+    expect(currentView()).toBe('/contact');
+    headLeft();
+    expect(announced.mock.calls[0]![0].type).toBe(VIEW_BOUND);
+    expect(currentView()).toBe('/contact~1');
+    headLeft();
+    expect(currentView()).toBe('/contact~2');
+    // Another view is itself again, and so is coming back to this one.
+    page('/');
+    expect(currentView()).toBe('/');
+    page('/contact');
+    expect(currentView()).toBe('/contact~2');
+    headLeft();
+    page('/portfolio');
+    headLeft();
+    expect(currentView()).toBe('/portfolio~1');
+  });
+
+  it('turns the sky when the head goes off, as a change of view does', () => {
+    const plan = planSkies(() => 0.3);
+    const first = plan('/contact');
+    expect(plan('/contact')).toBe(first);
+    const after = plan('/contact~1');
+    expect(LIGHT_SKIES.includes(after)).not.toBe(LIGHT_SKIES.includes(first));
   });
 
   it('lets go once the site lands on another page than it set off for', () => {

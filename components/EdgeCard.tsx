@@ -21,15 +21,19 @@ import { bleedsPast } from './edgeBleed';
 // `isAboveHead`: the card sits at the top of the window, over the head's
 // crown, and the head stays centred under it (data-head-avoid="above",
 // Background/HeadFraming.tsx) rather than moving away.
+// `isOffView`: the card of a post out of view (data-off-view), hidden, which
+// the head's place on the page's first load does not wait for (intro.ts).
 export default function EdgeCard({
   className = '',
   style,
   isAboveHead = false,
+  isOffView = false,
   children,
 }: {
   className?: string;
   style?: CSSProperties;
   isAboveHead?: boolean;
+  isOffView?: boolean;
   children: ReactNode;
 }) {
   const cardRef = useRef<HTMLElement | null>(null);
@@ -71,6 +75,7 @@ export default function EdgeCard({
       <section
         ref={cardRef}
         data-head-avoid={isAboveHead ? 'above' : 'card'}
+        data-off-view={isOffView || undefined}
         style={{
           marginLeft: 'calc(var(--head-clear, 0px) - var(--bleed-left, 0px))',
           paddingLeft: 'var(--bleed-left, 0px)',

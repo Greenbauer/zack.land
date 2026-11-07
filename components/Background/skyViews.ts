@@ -39,7 +39,7 @@ export const DARK_SKIES: Station[] = [
 export const STATIONS = [...LIGHT_SKIES, ...DARK_SKIES];
 
 // The view on screen: the page, and on a portfolio page the post in view.
-function viewOnScreen(): string {
+export function viewOnScreen(): string {
   const page = location.pathname;
   const scroller = document.getElementById('page');
   if (!scroller?.querySelector('[data-post]')) return page;
@@ -71,13 +71,23 @@ export const viewBoundOff = () => {
   bound = null;
 };
 
+// The head going off the window on the view on screen (HeadFraming.tsx: a
+// card coming over it, the phone menu closing over a card) turns the sky as
+// a new view does: the view counts as another for each time it has (`left`).
+let left = { view: '', count: 0 };
+export function headLeft() {
+  const view = viewOnScreen();
+  left = { view, count: left.view === view ? left.count + 1 : 1 };
+  dispatchEvent(new Event(VIEW_BOUND));
+}
+
 // The view the sky is for: the one the site has set off for, or else the one
-// on screen.
+// on screen, after each time the head has left it.
 export function currentView(): string {
   const shown = viewOnScreen();
   if (bound?.from === location.pathname && bound.to !== shown) return bound.to;
   bound = null;
-  return shown;
+  return left.view === shown ? `${shown}~${left.count}` : shown;
 }
 
 // A fresh sky for every view of the site, picked with `random`: each time
