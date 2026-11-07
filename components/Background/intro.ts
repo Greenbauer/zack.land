@@ -32,17 +32,17 @@ export const intro: { state: Intro; covered: boolean } = {
 // How long the camera takes to come out of the mouth to its place, in
 // seconds, and how much slower than evenly eased it starts (a power on the
 // share of the time): it creeps out through the lips, then picks up.
-export const INTRO_SECONDS = 4;
+export const INTRO_SECONDS = 3.4;
 const SLOW_START = 1.3;
 // When the face lets go of its surprise, the mouth closing, in seconds into
-// the intro: well after the camera has passed the lips (about 1.7 s in),
+// the intro: well after the camera has passed the lips (about 1.1 s in),
 // once the whole face is in view, shut just before the camera rests.
-export const MOUTH_SHUT = [2.7, 3.5] as const;
+export const MOUTH_SHUT = [2.3, 3] as const;
 // When it smiles at the camera, in seconds into the intro: the smile comes in
 // as the mouth closes, whole as the camera rests, and is held a second before
 // the head lets go (RELEASE_SECONDS). The head faces the camera until then.
-export const SMILE_IN = [3.2, 4] as const;
-export const RELEASE_SECONDS = 5;
+export const SMILE_IN = [2.7, 3.4] as const;
+export const RELEASE_SECONDS = 4.4;
 // The surprised face the head waits with (head.bin expressions, all in
 // SHOWN_EXPRESSIONS): the gasp's dropped jaw, the brows raised high, the
 // forehead with them.
@@ -55,8 +55,8 @@ export const SURPRISED = {
 // When the page's own motion starts, in seconds into the intro (where a card
 // covers the head, once it has smiled and glided off, coveredPageIn): once the
 // camera is behind the 3D titles' plane (titleLetters.tsx PLANE_Z, z 110,
-// passed about 2.55 s in), its 1.4 s slides then resting as the camera does.
-export const PAGE_IN_SECONDS = 2.6;
+// passed about 2.3 s in), its 1.4 s slides then resting as the camera does.
+export const PAGE_IN_SECONDS = 2.35;
 // Where a card covers the head: once it has let go (RELEASE_SECONDS) and
 // glided off (headPlace.ts GLIDE_SECONDS). The page's own load as it moves in
 // (a post's images) can stall a frame or two, which would jump the glide.
@@ -71,7 +71,7 @@ export const COVERED_PAGE_IN = RELEASE_SECONDS + GLIDE_SECONDS;
 // would show through it. It levels out over TIP_BACK, in seconds into the
 // intro, as the camera comes to rest.
 export const INTRO_TIP = -0.5;
-export const TIP_BACK = [3.2, 4] as const;
+export const TIP_BACK = [2.7, 3.4] as const;
 
 // Where the camera rests, in the scene's units (index.tsx).
 export const CAMERA_HOME = [0, 0, 250] as const;
