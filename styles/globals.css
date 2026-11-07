@@ -391,8 +391,9 @@ body[data-leaving] [data-scroll-arrows] button {
   }
 }
 
-/* Until data-page-in on <html> (the 3D scene ready, or half a second into
-   the page's load, components/Background/sceneReady.ts), what a page moves
+/* Until data-page-in on <html> (set part way through the camera's flight
+   out of the head's mouth, or as the dark screen fades without one,
+   components/Background/intro.ts), what a page moves
    in as it loads waits where it starts: the page's CSS animations (the home
    title, the contact card) pause, a post's card waits unseen off the left
    with its text faded, its image tiles off the right, and the header, footer

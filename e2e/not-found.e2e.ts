@@ -157,9 +157,17 @@ test.describe('the 404 page', () => {
           attributes: true,
           attributeFilter: ['hidden'],
         });
+        // Until the page moves in (data-page-in: on the first load, part
+        // way through the camera's flight out of the head's mouth) the melt
+        // shows but is held, drawing nothing, so those frames are not its.
         const tick = (now: number) => {
           const canvas = document.querySelector<HTMLElement>('canvas.fixed');
-          if (canvas && !canvas.hidden) meltFrames.push(now);
+          if (
+            canvas &&
+            !canvas.hidden &&
+            document.documentElement.hasAttribute('data-page-in')
+          )
+            meltFrames.push(now);
           requestAnimationFrame(tick);
         };
         requestAnimationFrame(tick);

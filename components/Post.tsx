@@ -156,6 +156,7 @@ export default function Post({ content }: PostProps) {
       )}
       <EdgeCard
         isAboveHead={isOnTop}
+        isOffView={!isCurrent}
         style={cardStyle(isLaidOpen, isOnTop)}
         className={`post-card z-20 flex w-auto max-w-none flex-col md:[--card-max:calc(var(--post-height)*0.55)] ${
           isLaidOpen ? 'flex-1' : ''
