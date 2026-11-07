@@ -15,15 +15,17 @@ import {
   onFacingHead,
 } from './intro';
 import { BODY_TURN, HEAD_LIFT } from './MyHead';
-import { headLeft, viewOnScreen } from './skyViews';
+import {
+  headLeft,
+  headSeen,
+  Seen,
+  turnsOnLeaving,
+  viewOnScreen,
+} from './skyViews';
 
 // How often the page is measured for the head's place, in milliseconds: soon
 // enough after a change of page that the head sets off with it.
 const MEASURE_MS = 100;
-// How long the head must have been in the window on one view before its
-// going off turns the sky (skyViews.ts headLeft), in milliseconds: going off
-// with a change of view (to the contact page on a phone) turns it already.
-const SEEN_MS = 1000;
 
 // Moves the camera so the head's middle sits where headCentre says, gliding
 // there (glide, a damped spring) when the page or the window changes, and on
@@ -47,10 +49,10 @@ export default function HeadFraming() {
   // Whether the head has taken its first place on the page (stepHead): until
   // the scene is ready and that place is known, it takes it at once.
   const placed = useRef(false);
-  // The head's place last frame, and the view it was last in the window on,
-  // since when (performance.now()).
+  // The head's place last frame, and the view it is in the window on, since
+  // when (skyViews.ts headSeen).
   const last = useRef<number | null>(null);
-  const seen = useRef<{ view: string; since: number } | null>(null);
+  const seen = useRef<Seen>(null);
   // Where the camera comes from on the page's first load: the open mouth,
   // as far as the head is tipped up.
   const mouthAt = (tip: number) =>
@@ -59,11 +61,18 @@ export default function HeadFraming() {
   useEffect(() => {
     const still = matchMedia('(prefers-reduced-motion: reduce)');
     const measure = () => {
-      if (last.current !== null && last.current >= 0) {
-        const view = viewOnScreen();
-        if (seen.current?.view !== view)
-          seen.current = { view, since: performance.now() };
-      }
+      // While the phone menu is open its pane covers the page (whose cards
+      // hide), so the head comes back behind it: the pane's lenses then
+      // have the head to show, on every page, as on the home page.
+      const menu = menuOpen();
+      if (last.current !== null)
+        seen.current = headSeen(
+          seen.current,
+          viewOnScreen(),
+          performance.now(),
+          last.current >= 0,
+          menu,
+        );
       const avoid = [
         ...document.querySelectorAll<HTMLElement>('[data-head-avoid]'),
       ];
@@ -85,10 +94,6 @@ export default function HeadFraming() {
         })
         .filter((box) => box.bottom > 0 && box.top < innerHeight);
       const shown = rests.filter((box) => box.shown);
-      // While the phone menu is open its pane covers the page (whose cards
-      // hide), so the head comes back behind it: the pane's lenses then
-      // have the head to show, on every page, as on the home page.
-      const menu = menuOpen();
       // A card above the head (data-head-avoid="above", EdgeCard) leaves it
       // centred under it.
       const beside = menu ? [] : shown.filter((box) => !box.above);
@@ -144,8 +149,7 @@ export default function HeadFraming() {
       known < 0 &&
       last.current !== null &&
       last.current >= 0 &&
-      seen.current?.view === viewOnScreen() &&
-      performance.now() - seen.current.since > SEEN_MS
+      turnsOnLeaving(seen.current, viewOnScreen(), performance.now())
     )
       headLeft();
     last.current = known;

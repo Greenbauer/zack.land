@@ -4,9 +4,12 @@ import {
   currentView,
   DARK_SKIES,
   headLeft,
+  headSeen,
   LIGHT_SKIES,
   planSkies,
+  SEEN_MS,
   STATIONS,
+  turnsOnLeaving,
   VIEW_BOUND,
   viewBound,
   viewBoundOff,
@@ -181,6 +184,35 @@ describe('the view the sky is for', () => {
     page('/portfolio');
     headLeft();
     expect(currentView()).toBe('/portfolio~1');
+  });
+
+  it('turns the sky as the head goes off only after a second in the window on that view', () => {
+    let seen = headSeen(null, '/contact', 0, true, false);
+    expect(turnsOnLeaving(seen, '/contact', SEEN_MS)).toBe(false);
+    seen = headSeen(seen, '/contact', SEEN_MS + 1, true, false);
+    expect(turnsOnLeaving(seen, '/contact', SEEN_MS + 1)).toBe(true);
+    // Off the window, it counts afresh when it comes back.
+    seen = headSeen(seen, '/contact', 2000, false, false);
+    expect(headSeen(seen, '/contact', 2100, true, false)).toEqual({
+      view: '/contact',
+      since: 2100,
+    });
+  });
+
+  it('behind the phone menu, turns it as the menu closes on its own view, not on a page chosen in it', () => {
+    // Opened on /contact, the head (off the window there) on its way back
+    // behind the pane, then there for two seconds.
+    let seen = headSeen(null, '/contact', 0, false, true);
+    seen = headSeen(seen, '/contact', 2000, true, true);
+    expect(turnsOnLeaving(seen, '/contact', 2000)).toBe(true);
+    // A link in it to Web Apps, the pane waiting for the page, slow (CI).
+    seen = headSeen(seen, '/portfolio/web-apps', 2100, true, true);
+    seen = headSeen(seen, '/portfolio/web-apps', 3900, true, true);
+    seen = headSeen(seen, '/portfolio/web-apps', 4000, true, false);
+    expect(turnsOnLeaving(seen, '/portfolio/web-apps', 4000)).toBe(false);
+    // Staying in the window there, it counts from the pane's going.
+    seen = headSeen(seen, '/portfolio/web-apps', 5100, true, false);
+    expect(turnsOnLeaving(seen, '/portfolio/web-apps', 5100)).toBe(true);
   });
 
   it('turns the sky when the head goes off, as a change of view does', () => {

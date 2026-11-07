@@ -81,6 +81,35 @@ export function headLeft() {
   dispatchEvent(new Event(VIEW_BOUND));
 }
 
+// How long the head must have been in the window on one view before its
+// going off turns the sky (headLeft), in milliseconds: going off with a
+// change of view (to the contact page on a phone) turns it already.
+export const SEEN_MS = 1000;
+// The view the head is in the window on, and since when (performance.now()),
+// or null while it is off the window.
+export type Seen = { view: string; since: number } | null;
+// The head's Seen now, from what it was: the view on screen, whether the
+// head is in the window, and whether the phone menu's pane is over the page.
+// Behind that pane the head shows, or is on its way back. A view the site
+// comes to while it is open (a link chosen in it, whose tap turned the sky
+// already) counts only from when the pane has gone, so the head's going as
+// it does turns nothing; the pane closing on the view it opened on does.
+export function headSeen(
+  seen: Seen,
+  view: string,
+  now: number,
+  inWindow: boolean,
+  menu: boolean,
+): Seen {
+  if (!inWindow && !menu) return null;
+  if (seen?.view === view)
+    return seen.since === Infinity && !menu ? { view, since: now } : seen;
+  return { view, since: menu && seen ? Infinity : now };
+}
+// Whether the head going off the window now turns the sky (headLeft).
+export const turnsOnLeaving = (seen: Seen, view: string, now: number) =>
+  seen?.view === view && now - seen.since > SEEN_MS;
+
 // The view the sky is for: the one the site has set off for, or else the one
 // on screen, after each time the head has left it.
 export function currentView(): string {
