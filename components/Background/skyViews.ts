@@ -89,22 +89,28 @@ export const SEEN_MS = 1000;
 // or null while it is off the window.
 export type Seen = { view: string; since: number } | null;
 // The head's Seen now, from what it was: the view on screen, whether the
-// head is in the window, and whether the phone menu's pane is over the page.
-// Behind that pane the head shows, or is on its way back. A view the site
-// comes to while it is open (a link chosen in it, whose tap turned the sky
-// already) counts only from when the pane has gone, so the head's going as
-// it does turns nothing; the pane closing on the view it opened on does.
+// head is in the window, whether the phone menu's pane is over the page, and
+// whether the head has taken this view's own place in the window (the first
+// load's, or one measured from the view's cards as they show; a place off
+// the window, a card arriving over it, is none). A view counts only from
+// when it has (`since` Infinity until then), so the head's going as a new
+// view's card arrives, however long that view took to come (a link, a page
+// chosen in the menu, whose tap or click turned the sky already), turns
+// nothing. Behind the pane the head shows, or is on its way back: the pane
+// opening over a view counts it from then, and its closing there does turn
+// the sky.
 export function headSeen(
   seen: Seen,
   view: string,
   now: number,
   inWindow: boolean,
   menu: boolean,
+  placed: boolean,
 ): Seen {
   if (!inWindow && !menu) return null;
-  if (seen?.view === view)
-    return seen.since === Infinity && !menu ? { view, since: now } : seen;
-  return { view, since: menu && seen ? Infinity : now };
+  if (seen?.view !== view)
+    return { view, since: placed || (menu && !seen) ? now : Infinity };
+  return seen.since === Infinity && placed ? { view, since: now } : seen;
 }
 // Whether the head going off the window now turns the sky (headLeft).
 export const turnsOnLeaving = (seen: Seen, view: string, now: number) =>

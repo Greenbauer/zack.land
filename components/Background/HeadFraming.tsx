@@ -65,14 +65,21 @@ export default function HeadFraming() {
       // hide), so the head comes back behind it: the pane's lenses then
       // have the head to show, on every page, as on the home page.
       const menu = menuOpen();
-      if (last.current !== null)
-        seen.current = headSeen(
-          seen.current,
-          viewOnScreen(),
-          performance.now(),
-          last.current >= 0,
-          menu,
-        );
+      // The view the head is in the window on, once it has taken that
+      // view's own place in the window (`placed`: the intro's, or one
+      // measured from the view's cards), for the sky's turn as it leaves
+      // (skyViews.ts).
+      const see = (placed: boolean) => {
+        if (last.current !== null)
+          seen.current = headSeen(
+            seen.current,
+            viewOnScreen(),
+            performance.now(),
+            last.current >= 0,
+            menu,
+            placed,
+          );
+      };
       const avoid = [
         ...document.querySelectorAll<HTMLElement>('[data-head-avoid]'),
       ];
@@ -121,8 +128,16 @@ export default function HeadFraming() {
       open.current = aimed.open;
       resting.current = aimed.resting;
       intro.covered = aimed.covered;
-      if (!menu && avoid.length && !shown.length) return;
+      if (!menu && avoid.length && !shown.length) {
+        see(intro.state.phase === 'flying');
+        return;
+      }
       target.current = place(beside.some((box) => box.card));
+      // A place off the window (a card arriving over the head) starts no
+      // count: the head is on its way off, a frame later, or seconds on a
+      // starved runner. On the first load it is at the intro's place until
+      // it has smiled.
+      see(!menu && (target.current >= 0 || intro.state.phase === 'flying'));
       if (still.matches)
         Object.assign(framedHead, { x: target.current, speed: 0 });
     };
