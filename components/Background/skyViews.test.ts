@@ -3,9 +3,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   currentView,
   DARK_SKIES,
+  headLeft,
+  headSeen,
   LIGHT_SKIES,
   planSkies,
+  SEEN_MS,
   STATIONS,
+  turnsOnLeaving,
   VIEW_BOUND,
   viewBound,
   viewBoundOff,
@@ -161,6 +165,83 @@ describe('the view the sky is for', () => {
     viewBound('/');
     viewBoundOff();
     expect(currentView()).toBe('/contact');
+  });
+
+  it('counts as a new view each time the head goes off the window on it', () => {
+    page('/contact');
+    expect(currentView()).toBe('/contact');
+    headLeft();
+    expect(announced.mock.calls[0]![0].type).toBe(VIEW_BOUND);
+    expect(currentView()).toBe('/contact~1');
+    headLeft();
+    expect(currentView()).toBe('/contact~2');
+    // Another view is itself again, and so is coming back to this one.
+    page('/');
+    expect(currentView()).toBe('/');
+    page('/contact');
+    expect(currentView()).toBe('/contact~2');
+    headLeft();
+    page('/portfolio');
+    headLeft();
+    expect(currentView()).toBe('/portfolio~1');
+  });
+
+  it('turns the sky as the head goes off only after a second in the window at its place on that view', () => {
+    let seen = headSeen(null, '/contact', 0, true, false, true);
+    expect(turnsOnLeaving(seen, '/contact', SEEN_MS)).toBe(false);
+    seen = headSeen(seen, '/contact', SEEN_MS + 1, true, false, true);
+    expect(turnsOnLeaving(seen, '/contact', SEEN_MS + 1)).toBe(true);
+    // Off the window, it counts afresh when it comes back.
+    seen = headSeen(seen, '/contact', 2000, false, false, true);
+    expect(headSeen(seen, '/contact', 2100, true, false, true)).toEqual({
+      view: '/contact',
+      since: 2100,
+    });
+  });
+
+  it('counts a new view only from when its card shows, however long it takes to come', () => {
+    // On the first load, waiting in the mouth, then out of it (the intro's
+    // place is the view's own).
+    let seen = headSeen(null, '/contact', 0, true, false, false);
+    expect(turnsOnLeaving(seen, '/contact', 3000)).toBe(false);
+    seen = headSeen(seen, '/contact', 3000, true, false, true);
+    expect(turnsOnLeaving(seen, '/contact', 4100)).toBe(true);
+    // A link to Web Apps: its card slow to come (CI), then over the head.
+    seen = headSeen(seen, '/portfolio/web-apps', 5000, true, false, false);
+    seen = headSeen(seen, '/portfolio/web-apps', 8000, true, false, false);
+    expect(turnsOnLeaving(seen, '/portfolio/web-apps', 8000)).toBe(false);
+    // Its card shows, placing the head off the window: the frame that takes
+    // it off can come over a second later on a starved runner.
+    seen = headSeen(seen, '/portfolio/web-apps', 8100, true, false, false);
+    expect(turnsOnLeaving(seen, '/portfolio/web-apps', 9500)).toBe(false);
+  });
+
+  it('behind the phone menu, turns it as the menu closes on its own view, not on a page chosen in it', () => {
+    // Opened on /contact, the head (off the window there) on its way back
+    // behind the pane, then there for two seconds.
+    let seen = headSeen(null, '/contact', 0, false, true, false);
+    seen = headSeen(seen, '/contact', 2000, true, true, false);
+    expect(turnsOnLeaving(seen, '/contact', 2000)).toBe(true);
+    // A link in it to Web Apps, the pane waiting for the page, then the
+    // page's card slow to show once the pane has gone (CI).
+    seen = headSeen(seen, '/portfolio/web-apps', 2100, true, true, false);
+    seen = headSeen(seen, '/portfolio/web-apps', 3900, true, true, false);
+    seen = headSeen(seen, '/portfolio/web-apps', 4000, true, false, false);
+    seen = headSeen(seen, '/portfolio/web-apps', 6000, true, false, false);
+    expect(turnsOnLeaving(seen, '/portfolio/web-apps', 6000)).toBe(false);
+    seen = headSeen(seen, '/portfolio/web-apps', 6100, true, false, true);
+    expect(turnsOnLeaving(seen, '/portfolio/web-apps', 6100)).toBe(false);
+    // Staying in the window there (its card above it), it counts from then.
+    seen = headSeen(seen, '/portfolio/web-apps', 7200, true, false, true);
+    expect(turnsOnLeaving(seen, '/portfolio/web-apps', 7200)).toBe(true);
+  });
+
+  it('turns the sky when the head goes off, as a change of view does', () => {
+    const plan = planSkies(() => 0.3);
+    const first = plan('/contact');
+    expect(plan('/contact')).toBe(first);
+    const after = plan('/contact~1');
+    expect(LIGHT_SKIES.includes(after)).not.toBe(LIGHT_SKIES.includes(first));
   });
 
   it('lets go once the site lands on another page than it set off for', () => {

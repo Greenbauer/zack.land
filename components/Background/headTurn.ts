@@ -16,13 +16,19 @@ import { Vector3, WebGLProgramParametersWithUniforms } from 'three';
 // tilts it to one side (rolling, ambient.ts), set by MyHead each frame.
 export const headTurn = { value: new Vector3() };
 
+// A point in head.bin units, written out for GLSL.
+const glsl = (point: readonly number[]) =>
+  point.map((v) => v.toFixed(1)).join(', ');
+
 // Where the skull sits on the spine, in head.bin units: behind the jaw, level
 // with the earlobes.
-const PIVOT = '0.0, -28.0, -22.0';
+export const SKULL_PIVOT = [0, -28, -22] as const;
+const PIVOT = glsl(SKULL_PIVOT);
 // The base of the neck on its axis, where it meets the shoulders (the neck's
 // axis as scripts/head/rig.mjs measures it). The neck bends between here and
 // PIVOT.
-const NECK_BASE = '0.0, -120.0, -45.6';
+export const NECK_BASE_POINT = [0, -120, -45.6] as const;
+const NECK_BASE = glsl(NECK_BASE_POINT);
 // The neck bends between its base and the skull (PIVOT, NECK_BASE): forward
 // and back for the tip (about x) and to the side for the tilt (rolling the
 // head toward a shoulder, about the neck's forward direction), each evenly
@@ -57,7 +63,8 @@ const NAPE_HEIGHT = '-50.0, -28.0';
 // (scripts/head/napeLine.mjs and neckCords.mjs SCM take the neck's share as
 // their full pose: keep them in step.)
 export const BODY_SHARE = { turn: 0.1, nod: 0.15 };
-const BODY_PIVOT = '0.0, -230.0, -45.0';
+export const CHEST_PIVOT = [0, -230, -45] as const;
+const BODY_PIVOT = glsl(CHEST_PIVOT);
 
 const TURN_GLSL = `
 attribute float headWeight;

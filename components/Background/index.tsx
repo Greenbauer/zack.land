@@ -1,6 +1,6 @@
 'use client';
 
-import { Environment, PerspectiveCamera, useProgress } from '@react-three/drei';
+import { Environment, PerspectiveCamera } from '@react-three/drei';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { PerspectiveCamera as PerspectiveCameraType } from 'three';
@@ -8,14 +8,16 @@ import { PerspectiveCamera as PerspectiveCameraType } from 'three';
 import useMousePosition from '@/hooks/useMousePosition';
 import useWindowSize from '@/hooks/useWindowSize';
 
-import Spinner from '../Spinner';
 import BackdropSampler from './BackdropSampler';
 import Grading from './Grading';
 import HeadFraming from './HeadFraming';
 import { lookOrigin } from './headPlace';
+import { CAMERA_HOME, endIntro, startIntro, stepIntro } from './intro';
+import Loader from './Loader';
 import MyHead, { Point } from './MyHead';
 import {
   askDrawsInSoftware,
+  drawsInSoftware,
   markSoftware,
   renderQuality,
   slowFrames,
@@ -23,12 +25,9 @@ import {
 } from './quality';
 import {
   frameSettler,
-  markPageIn,
   markSceneDrawn,
   markSceneReady,
-  pageInDelay,
   READY_AT_MOST_MS,
-  sceneDelay,
 } from './sceneReady';
 import Sky from './Sky';
 import TitleName from './TitleName';
@@ -36,7 +35,6 @@ import TitleName from './TitleName';
 export default function Background() {
   const mousePosition = useMousePosition();
   const { width, height } = useWindowSize();
-  const { active: isLoading } = useProgress();
   const software = useDrawsInSoftware();
 
   // Read by the head every frame: the pointer moves without re-rendering
@@ -46,38 +44,31 @@ export default function Background() {
     y: (mousePosition.y - height / 2) * 0.5,
   });
 
-  // The page's own motion waits for the scene only briefly, and the scene's
-  // ready mark no longer than READY_AT_MOST_MS, as without WebGL it never
-  // draws (sceneReady.ts).
+  // The dark screen waits for the scene no longer than READY_AT_MOST_MS, as
+  // without WebGL it never draws (sceneReady.ts, intro.ts).
   useEffect(() => {
-    const pageIn = setTimeout(markPageIn, pageInDelay(performance.now()));
-    const wait = setTimeout(markSceneReady, READY_AT_MOST_MS);
-    return () => {
-      clearTimeout(pageIn);
-      clearTimeout(wait);
-    };
+    const wait = setTimeout(() => {
+      markSceneReady();
+      endIntro();
+    }, READY_AT_MOST_MS);
+    return () => clearTimeout(wait);
   }, []);
 
   // Whether the scene has started loading, its canvas and WebGL context
-  // included (sceneDelay): where WebGL is drawn in software, only once the
-  // page has moved in, as opening the context stalls the page. Which it is
-  // is asked off the main thread where the browser can draw there
-  // (askDrawsInSoftware), for the same reason.
+  // included, once it is known whether WebGL is drawn in software (which
+  // sets the canvas's pixels, quality.ts). That is asked off the main
+  // thread where the browser can draw there (askDrawsInSoftware): opening
+  // a context on it stalls the page.
   const [isSceneOn, setIsSceneOn] = useState(false);
   useEffect(() => {
-    let start: ReturnType<typeof setTimeout> | undefined;
     let isGone = false;
     askDrawsInSoftware().then((software) => {
       if (isGone) return;
       if (software) document.documentElement.setAttribute('data-software', '');
-      start = setTimeout(
-        () => setIsSceneOn(true),
-        sceneDelay(performance.now(), software),
-      );
+      setIsSceneOn(true);
     });
     return () => {
       isGone = true;
-      clearTimeout(start);
     };
   }, []);
 
@@ -89,78 +80,84 @@ export default function Background() {
   // The loading boundary sits inside the Canvas: a suspense that escapes it
   // unmounts the Canvas mid-load, which loses its WebGL context in dev.
   return (
-    <div
-      data-scene
-      className="fixed left-0 top-0 -z-50 flex size-full overflow-hidden bg-[#6864a8]"
-    >
-      {isLoading && (
-        <div className="fixed flex size-full items-center justify-center">
-          <Spinner />
-        </div>
-      )}
-      {/* Before the sky loads, the canvas (and before it, the scene's own
+    <>
+      <Loader />
+      <div
+        data-scene
+        className="fixed left-0 top-0 -z-50 flex size-full overflow-hidden bg-[#6864a8]"
+      >
+        {/* Before the sky loads, the canvas (and before it, the scene's own
           box) shows a lavender near the dawn sky's middle, so the title over
           it reads the same from the first frame. */}
-      {/* No smoothing on the canvas itself: the scene is drawn and smoothed
+        {/* No smoothing on the canvas itself: the scene is drawn and smoothed
           in the colour grading's targets (Grading.tsx), and the canvas only
           receives its last full-screen pass. */}
-      {isSceneOn && (
-        <Canvas
-          className="bg-[#6864a8]"
-          dpr={renderQuality(width, height, software).dpr}
-          gl={{ antialias: false }}
-        >
-          <Suspense fallback={null}>
-            <ambientLight intensity={Math.PI} />
-            <spotLight
-              intensity={0.5 * Math.PI}
-              decay={0}
-              angle={0.2}
-              penumbra={1}
-              position={[250, 750, 500]}
+        {isSceneOn && (
+          <Canvas
+            className="bg-[#6864a8]"
+            dpr={renderQuality(width, height, software).dpr}
+            gl={{ antialias: false }}
+          >
+            <Suspense fallback={null}>
+              <ambientLight intensity={Math.PI} />
+              <spotLight
+                intensity={0.5 * Math.PI}
+                decay={0}
+                angle={0.2}
+                penumbra={1}
+                position={[250, 750, 500]}
+              />
+              <HeadFraming />
+              <MyHead
+                lookPositionStart={lookPositionStart}
+                pointer={mousePosition}
+              />
+              <Sky />
+              <Grading />
+              <BackdropSampler />
+              <TitleName />
+              <SceneReady />
+              <Environment
+                files="/background/environment/kiara_1_dawn_1k.hdr"
+                background
+                backgroundBlurriness={0.6}
+                backgroundIntensity={0.45}
+              />
+            </Suspense>
+            <PerspectiveCamera
+              makeDefault
+              position={[...CAMERA_HOME]}
+              onUpdate={handleCameraUpdate}
             />
-            <HeadFraming />
-            <MyHead
-              lookPositionStart={lookPositionStart}
-              pointer={mousePosition}
-            />
-            <Sky />
-            <Grading />
-            <BackdropSampler />
-            <TitleName />
-            <SceneReady />
-            <Environment
-              files="/background/environment/kiara_1_dawn_1k.hdr"
-              background
-              backgroundBlurriness={0.6}
-              backgroundIntensity={0.45}
-            />
-          </Suspense>
-          <PerspectiveCamera
-            makeDefault
-            position={[0, 0, 250]}
-            onUpdate={handleCameraUpdate}
-          />
-        </Canvas>
-      )}
-    </div>
+          </Canvas>
+        )}
+      </div>
+    </>
   );
 }
 
 // Marks the scene drawn at its first frame once it has loaded (inside the
 // Suspense), and ready once it has drawn a few smooth frames
-// (sceneReady.ts). Its first frames, if slow enough, show it is drawn in
+// (sceneReady.ts), when the camera starts out of the head's mouth (intro.ts):
+// unless motion is reduced or WebGL is drawn in software, where the dark
+// screen only fades. Its first frames, if slow enough, show it is drawn in
 // software (quality.ts).
 function SceneReady() {
   const settled = useMemo(() => frameSettler(), []);
   const slow = useMemo(() => slowFrames(), []);
   const isDone = useRef(false);
-  useFrame((_, delta) => {
+  useFrame(({ clock }, delta) => {
     markSceneDrawn();
+    stepIntro(clock.elapsedTime);
     if (slow(delta)) markSoftware();
     if (isDone.current || !settled(delta)) return;
     isDone.current = true;
     markSceneReady();
+    startIntro(
+      clock.elapsedTime,
+      !drawsInSoftware() &&
+        !matchMedia('(prefers-reduced-motion: reduce)').matches,
+    );
   });
   return null;
 }
