@@ -1,6 +1,7 @@
 import { useFrame } from '@react-three/fiber';
 import { use, useEffect, useMemo, useRef } from 'react';
 import {
+  BackSide,
   BufferGeometry,
   Group,
   Material,
@@ -42,6 +43,7 @@ import {
   greetingOn,
   idle,
 } from './idleGreeting';
+import { intro, introFace, introHolds, introTip } from './intro';
 import { Own, stepPage, usedAt, watched } from './leftAlone';
 import { morphGeometry } from './morphGeometry';
 import { fadeNeck, fadeTime } from './neckFade';
@@ -86,6 +88,8 @@ export const GLOSS = {
 // the page; the head and neck do all the turning, so where the head looks is
 // unchanged and the neck twists between it and the shoulders.
 export const BODY_TURN = 0.25;
+// How far the head is raised in the scene, in its units.
+export const HEAD_LIFT = 5;
 
 // The look (x tips, y turns, radians) split into the body's fixed turn and
 // the head's turn on the neck relative to it.
@@ -117,6 +121,10 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
   const myHeadFile = use(loadHead());
   const skinRef = useRef<Mesh>(null);
   const mouthRef = useRef<Mesh>(null);
+  // The inside of the head, lined in black while the intro's open mouth
+  // shows it (intro.ts): the skin's inner faces, which are otherwise not
+  // drawn, so the sky would show through the mouth.
+  const liningRef = useRef<Mesh>(null);
 
   const { geometry: myHeadGeometry, expressions } = useMemo(() => {
     // The expressions the page shows (shownExpressions.ts), with one-sided
@@ -248,7 +256,15 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
     let skySpeed: number | undefined;
 
     holdWhileUnseen(time);
-    if (stepReaction(time)) {
+    if (introHolds(intro.state, time)) {
+      // Loading, and coming out of the mouth (intro.ts): it faces the
+      // camera, tipped up so its open mouth faces it flat, surprised then
+      // smiling, and turns to the pointer after, the idle clock starting
+      // then.
+      lookPosition = { x: 0, y: 0 };
+      alone.current = usedAt(time, idleWait());
+      pointer.moved = false;
+    } else if (stepReaction(time)) {
       lookPosition = { x: 0, y: 0 };
       rotationSpeed = TAP_TURN_SPEED;
     } else {
@@ -277,6 +293,10 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
     const share = shareOver(rotationSpeed, seconds);
     turn.x += share * (lookPosition.y - turn.x);
     turn.y += share * (lookPosition.x - turn.y);
+    // The intro's tip is taken as it is: the camera starts in the mouth
+    // where it puts it (HeadFraming.tsx).
+    if (introHolds(intro.state, time))
+      Object.assign(turn, { x: introTip(intro.state, time), y: 0 });
     const { body, head } = splitLook(turn);
     rotation.set(body.x, body.y, 0);
     ambient.current = stepAmbient(
@@ -313,6 +333,8 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
     // A tap or click that lands on the head (its skin, not the neck or the
     // shoulders: points the head weight carries nearly whole) sets off the
     // next reaction.
+    const isIntro = introHolds(intro.state, clock.elapsedTime);
+    if (isIntro) tapAt.current = null;
     if (tapAt.current && skinRef.current) {
       const { x, y } = tapAt.current;
       tapAt.current = null;
@@ -343,25 +365,35 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
     // quickly (headFace.ts).
     const { greeting, search } = alone.current;
     const isGreeting =
-      tapsOn(taps.current) || greetingOn(greeting) || search !== null;
-    const targets = faceTargets(
-      { taps: taps.current, greeting, searching: search !== null },
-      look.current,
-      spot,
-      {
-        x: ((eyes.x + 1) / 2) * size.width,
-        y: ((1 - eyes.y) / 2) * size.height,
-      },
-      size,
-    );
+      isIntro ||
+      tapsOn(taps.current) ||
+      greetingOn(greeting) ||
+      search !== null;
+    const targets = isIntro
+      ? introFace(intro.state, clock.elapsedTime)
+      : faceTargets(
+          { taps: taps.current, greeting, searching: search !== null },
+          look.current,
+          spot,
+          {
+            x: ((eyes.x + 1) / 2) * size.width,
+            y: ((1 - eyes.y) / 2) * size.height,
+          },
+          size,
+        );
     stepFace(isGreeting || headMood.worried, clock.elapsedTime, delta);
+    // The intro's face is shown as it is: surprised from the first frame,
+    // the camera inside its open mouth, then smiling, on the intro's own
+    // curves; once it lets go, each eases from there as usual.
     strengths.current = expressions.map((name, k) =>
-      easeToward(
-        strengths.current[k] ?? 0,
-        targets[name] ?? 0,
-        delta,
-        isGreeting ? GREETING_EASE_RATE : easeRate(name, look.current),
-      ),
+      isIntro
+        ? (targets[name] ?? 0)
+        : easeToward(
+            strengths.current[k] ?? 0,
+            targets[name] ?? 0,
+            delta,
+            isGreeting ? GREETING_EASE_RATE : easeRate(name, look.current),
+          ),
     );
     // The neck's shapes follow the head's turn this frame, not eased: they
     // are part of the turn (neckPose.ts).
@@ -384,16 +416,26 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
       const made = Math.min(1, s + (face.current[name] ?? 0));
       return name === 'blink' ? Math.max(made, lids) : made;
     });
-    for (const mesh of [skinRef.current, mouthRef.current])
+    for (const mesh of [skinRef.current, mouthRef.current, liningRef.current])
       if (mesh) mesh.morphTargetInfluences = shown;
+    if (liningRef.current)
+      liningRef.current.visible = isIntro && (targets.gasp ?? 0) > 0;
   });
 
   return (
-    <group position={[0, 5, 0]} ref={myHeadRef}>
+    <group position={[0, HEAD_LIFT, 0]} ref={myHeadRef}>
       <mesh geometry={myHeadGeometry.skin} ref={skinRef}>
         <meshPhysicalMaterial
           color={SKIN_COLOR}
           {...GLOSS}
+          transparent
+          onBeforeCompile={skinShader}
+        />
+      </mesh>
+      <mesh geometry={myHeadGeometry.skin} ref={liningRef}>
+        <meshBasicMaterial
+          color={MOUTH_COLOR}
+          side={BackSide}
           transparent
           onBeforeCompile={skinShader}
         />

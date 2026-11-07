@@ -39,7 +39,7 @@ export const DARK_SKIES: Station[] = [
 export const STATIONS = [...LIGHT_SKIES, ...DARK_SKIES];
 
 // The view on screen: the page, and on a portfolio page the post in view.
-function viewOnScreen(): string {
+export function viewOnScreen(): string {
   const page = location.pathname;
   const scroller = document.getElementById('page');
   if (!scroller?.querySelector('[data-post]')) return page;
@@ -71,13 +71,58 @@ export const viewBoundOff = () => {
   bound = null;
 };
 
+// The head going off the window on the view on screen (HeadFraming.tsx: a
+// card coming over it, the phone menu closing over a card) turns the sky as
+// a new view does: the view counts as another for each time it has (`left`).
+let left = { view: '', count: 0 };
+export function headLeft() {
+  const view = viewOnScreen();
+  left = { view, count: left.view === view ? left.count + 1 : 1 };
+  dispatchEvent(new Event(VIEW_BOUND));
+}
+
+// How long the head must have been in the window on one view before its
+// going off turns the sky (headLeft), in milliseconds: going off with a
+// change of view (to the contact page on a phone) turns it already.
+export const SEEN_MS = 1000;
+// The view the head is in the window on, and since when (performance.now()),
+// or null while it is off the window.
+export type Seen = { view: string; since: number } | null;
+// The head's Seen now, from what it was: the view on screen, whether the
+// head is in the window, whether the phone menu's pane is over the page, and
+// whether the head has taken this view's own place in the window (the first
+// load's, or one measured from the view's cards as they show; a place off
+// the window, a card arriving over it, is none). A view counts only from
+// when it has (`since` Infinity until then), so the head's going as a new
+// view's card arrives, however long that view took to come (a link, a page
+// chosen in the menu, whose tap or click turned the sky already), turns
+// nothing. Behind the pane the head shows, or is on its way back: the pane
+// opening over a view counts it from then, and its closing there does turn
+// the sky.
+export function headSeen(
+  seen: Seen,
+  view: string,
+  now: number,
+  inWindow: boolean,
+  menu: boolean,
+  placed: boolean,
+): Seen {
+  if (!inWindow && !menu) return null;
+  if (seen?.view !== view)
+    return { view, since: placed || (menu && !seen) ? now : Infinity };
+  return seen.since === Infinity && placed ? { view, since: now } : seen;
+}
+// Whether the head going off the window now turns the sky (headLeft).
+export const turnsOnLeaving = (seen: Seen, view: string, now: number) =>
+  seen?.view === view && now - seen.since > SEEN_MS;
+
 // The view the sky is for: the one the site has set off for, or else the one
-// on screen.
+// on screen, after each time the head has left it.
 export function currentView(): string {
   const shown = viewOnScreen();
   if (bound?.from === location.pathname && bound.to !== shown) return bound.to;
   bound = null;
-  return shown;
+  return left.view === shown ? `${shown}~${left.count}` : shown;
 }
 
 // A fresh sky for every view of the site, picked with `random`: each time
