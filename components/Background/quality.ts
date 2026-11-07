@@ -27,10 +27,84 @@ export function renderQuality(width: number, height: number, software = false) {
 export const isSoftwareRenderer = (renderer: string) =>
   /swiftshader|llvmpipe|softpipe|software|basic render/i.test(renderer);
 
+// Whether `renderer` hides what draws: WebKit names every renderer "Apple
+// GPU", a real GPU or none, and a browser that will not say gives no name.
+export const isHiddenRenderer = (renderer: string) =>
+  /^(apple gpu)?$/i.test(renderer.trim());
+
+// Where the name hides it, a small test is drawn and timed instead: how
+// long, in milliseconds, `gl` takes to draw a 256-pixel square four times
+// through a shader that loops 32 times, read back so the wait is timed, the
+// faster of two tries, after one draw that compiles the shader. Measured,
+// a Mac's GPU in WebKit took 0 to 1 ms (a phone's was not measured; it does
+// a few million shader steps, a GPU's work for a millisecond or two), and
+// WebKit drawing on its CPU (Linux in a CI runner, at 2 to 4 cores) 22 to
+// 83. It runs in the probe's worker as well, as written here
+// (askDrawsInSoftware), so it reads nothing from outside itself.
+export const SLOW_TEST_MS = 10;
+export function testDrawTime(gl: WebGLRenderingContext) {
+  gl.canvas.width = 256;
+  gl.canvas.height = 256;
+  gl.viewport(0, 0, 256, 256);
+  const program = gl.createProgram()!;
+  const attach = (type: number, source: string) => {
+    const shader = gl.createShader(type)!;
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    gl.attachShader(program, shader);
+  };
+  attach(
+    gl.VERTEX_SHADER,
+    'attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}',
+  );
+  attach(
+    gl.FRAGMENT_SHADER,
+    'precision mediump float;uniform float t;void main(){vec2 u=gl_FragCoord.xy/256.;float a=t;for(int i=0;i<32;i++)a=sin(a*1.7+u.x)*cos(a+u.y);gl_FragColor=vec4(a,u,1.);}',
+  );
+  gl.bindAttribLocation(program, 0, 'p');
+  gl.linkProgram(program);
+  gl.useProgram(program);
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+  gl.bufferData(
+    gl.ARRAY_BUFFER,
+    new Float32Array([-1, -1, 3, -1, -1, 3]),
+    gl.STATIC_DRAW,
+  );
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+  const t = gl.getUniformLocation(program, 't');
+  const pixel = new Uint8Array(4);
+  const draw = (times: number) => {
+    const start = performance.now();
+    for (let i = 0; i < times; i += 1) {
+      gl.uniform1f(t, i);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+    }
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+    return performance.now() - start;
+  };
+  draw(1);
+  return Math.min(draw(4), draw(4));
+}
+
+// Whether the renderer named `renderer` on `gl` draws on the CPU, by its
+// name or, where that hides it, by the test.
+// A context lost as it opens cannot draw the test (its calls throw); that
+// browser is taken to have a GPU, so the scene still starts, and its first
+// frames still say otherwise if it has none.
+function drawsOnCpu(gl: WebGLRenderingContext, renderer: string) {
+  if (isSoftwareRenderer(renderer)) return true;
+  if (!isHiddenRenderer(renderer)) return false;
+  try {
+    return testDrawTime(gl) > SLOW_TEST_MS;
+  } catch {
+    return false;
+  }
+}
+
 // Whether this browser draws WebGL on the CPU, asked once of a throwaway
-// context (false where WebGL does not say, as most real GPUs do say, and on
-// the server, where the page is first rendered and nothing is drawn), or
-// found from the scene's first frames (slowFrames).
+// context (false on the server, where the page is first rendered and nothing
+// is drawn), or found from the scene's first frames (slowFrames).
 let software: boolean | undefined;
 export function drawsInSoftware() {
   if (typeof document === 'undefined') return false;
@@ -39,8 +113,10 @@ export function drawsInSoftware() {
   const info = gl?.getExtension('WEBGL_debug_renderer_info');
   software =
     !!gl &&
-    !!info &&
-    isSoftwareRenderer(String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL)));
+    drawsOnCpu(
+      gl,
+      info ? String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL)) : '',
+    );
   gl?.getExtension('WEBGL_lose_context')?.loseContext();
   return software;
 }
@@ -48,11 +124,17 @@ export function drawsInSoftware() {
 // The same, asked off the page's main thread, from a worker's OffscreenCanvas:
 // a browser drawing in software takes long enough to open a WebGL context
 // that, asked on the main thread as the page opens, it stalls the page's own
-// motion. Once answered, drawsInSoftware gives the same answer without
-// asking again. Where a worker cannot draw it asks on the main thread.
-const PROBE = `const gl = new OffscreenCanvas(1, 1).getContext('webgl');
+// motion. The worker posts the renderer's name and, where that hides it, the
+// test's time, or null where it cannot draw (Linux WebKit), and then it is
+// asked on the main thread. Once answered, drawsInSoftware gives the same
+// answer without asking again.
+export const PROBE = `const isHidden = ${isHiddenRenderer};
+const testDrawTime = ${testDrawTime};
+const gl = new OffscreenCanvas(1, 1).getContext('webgl');
 const info = gl && gl.getExtension('WEBGL_debug_renderer_info');
-postMessage(gl && info ? String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL)) : '');`;
+const renderer = info ? String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL)) : '';
+postMessage(gl ? { renderer, ms: isHidden(renderer) ? testDrawTime(gl) : 0 } : null);`;
+type Answer = { renderer: string; ms: number } | null;
 let asked: Promise<boolean> | undefined;
 export function askDrawsInSoftware(): Promise<boolean> {
   if (software !== undefined) return Promise.resolve(software);
@@ -63,23 +145,25 @@ export function askDrawsInSoftware(): Promise<boolean> {
       new Blob([PROBE], { type: 'text/javascript' }),
     );
     const worker = new Worker(url);
-    const answer = (renderer: string | null) => {
+    const answer = (found: Answer) => {
       worker.terminate();
       URL.revokeObjectURL(url);
       software ??=
-        renderer === null ? drawsInSoftware() : isSoftwareRenderer(renderer);
+        found === null
+          ? drawsInSoftware()
+          : isSoftwareRenderer(found.renderer) || found.ms > SLOW_TEST_MS;
       resolve(software);
     };
-    worker.onmessage = (event) => answer(String(event.data));
+    worker.onmessage = (event: MessageEvent<Answer>) => answer(event.data);
     worker.onerror = () => answer(null);
   });
   return asked;
 }
 
-// A browser can hide that it draws in software: WebKit names every renderer
-// "Apple GPU", so where it has none (a virtual machine, Linux, a CI runner)
-// the scene is drawn in full on its CPU, seconds a frame, with the whole page
-// waiting on each. So the scene's first frames are timed as well (index.tsx):
+// A test can still miss it (a busy machine's test drawn between its slow
+// moments), and where it does the scene is drawn in full on the CPU, seconds
+// a frame, with the whole page waiting on each. So the scene's first frames
+// are timed as well (index.tsx):
 // slowFrames takes each frame's time since the last, in seconds, and is true
 // once SLOW_FRAMES in a row have each taken longer than SLOW_SECONDS, leaving
 // out the first FIRST_FRAMES (which compile the shaders and upload the
