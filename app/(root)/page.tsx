@@ -1,3 +1,4 @@
+// QAE side-by-side run (harness records and widths): this comment changes nothing; the pull request is closed unmerged.
 import { Metadata } from 'next';
 
 import NavHint from '@/components/Home/NavHint';
