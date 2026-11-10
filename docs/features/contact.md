@@ -35,8 +35,8 @@ Roles: none; the page is public. Mail: the QAE container points the five SMTP va
 6. With no SMTP variables set, fill the three fields and press Submit: "An error has occurred" shows and the server logs the missing variables.
 7. Post to `/api/email` directly with the email `not-an-email`, or with no message: the route answers 400 and sends nothing.
 
-- `cypress/e2e/contact-form.cy.ts::enables Submit once valid, without blurring the last field`
-- `cypress/e2e/contact-form.cy.ts::shows a field error only after blur, not while typing`
+- `e2e/contact-form.e2e.ts::enables Submit once valid, without blurring the last field`
+- `e2e/contact-form.e2e.ts::shows a field error only after blur, not while typing`
 - `app/api/email/route.test.ts::mails a valid submission`
 - `app/api/email/route.test.ts::mails a submission from %s, whose top-level domain is over four letters`
 - `app/api/email/route.test.ts::escapes markup typed into the name and message`
@@ -52,7 +52,7 @@ Roles: none; the page is public. Mail: the QAE container points the five SMTP va
 
 ## Gotchas
 
-- `.github/workflows/tests.yml` runs `npm test` (the `route.test.ts` and `recaptcha.test.ts` cases above) on every pull request and every push to `master`. No workflow runs `contact-form.cy.ts` (the workflow's only Cypress run is the portfolio's `more-less.cy.ts`), so its two cases run only by hand.
+- `.github/workflows/tests.yml` runs `npm test` (the `route.test.ts` and `recaptcha.test.ts` cases above) on every pull request and every push to `master`, and the two `e2e/contact-form.e2e.ts` cases against the built site in Chromium and WebKit (the checks `Moving views (1/4)` to `(4/4)`).
 - Off the live site reCAPTCHA is optional: with no `RECAPTCHA_SECRET_KEY` every submission is accepted, and with no `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` the form sends no token. On the live site (`VERCEL_ENV` is `production`) a missing secret refuses every submission with a 400, so the spam gate cannot turn off unnoticed; the log line names `not-configured`. The public key is inlined at build, so setting it needs a redeploy (README).
 - The route re-checks every field the browser checks (required, the email pattern, 100 characters for Name and Email, 1000 for Message) from the one set of rules in `utils/contact-fields.ts`; change a limit there, not in either caller. A value the browser lets through but the route refuses shows as "An error has occurred".
 - Every typed value is HTML-escaped before it goes into the mail, and the sender's name travels as a nodemailer address object, so markup or a `<`/`,` in Name cannot add markup or an address.

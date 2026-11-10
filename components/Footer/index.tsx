@@ -122,11 +122,10 @@ export default function Footer() {
     >
       {/* Where the head can't fit beside the page, on the portfolio's
           pages, the scroll arrow moves in here (below) and is all the footer
-          shows: the text and the social links (data-footer-extra) are left
+          shows: the text and the social links are left
           out, so the posts get the room. */}
       <div
         ref={iconsRef}
-        data-footer-extra
         className={`order-last flex-none md:order-first ${EXTRA[phase]}`}
       >
         <SocialLinks />
@@ -147,7 +146,7 @@ export default function Footer() {
           data-footer-arrow
           className={`flex-none empty:hidden ${ARROW[phase]}`}
         />
-        <div data-footer-extra className={`max-md:flex-1 ${EXTRA[phase]}`}>
+        <div className={`max-md:flex-1 ${EXTRA[phase]}`}>
           {pathname === '/contact' ? <ContactPageText /> : <DefaultText />}
         </div>
       </div>
