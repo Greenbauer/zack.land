@@ -1,7 +1,9 @@
 // Server-side Google reCAPTCHA v3 verification for the contact form.
 //
-// If RECAPTCHA_SECRET_KEY is unset the check is skipped (fail-open), so the
-// form keeps working in environments where reCAPTCHA isn't configured yet.
+// If RECAPTCHA_SECRET_KEY is unset the check is skipped, so the form keeps
+// working where reCAPTCHA isn't set up (a local run, a preview, the QA
+// container). The live site is the exception: there a missing secret refuses
+// every submission, so the spam gate cannot turn off unnoticed.
 // Once the secret is set, a submission must (a) carry a token, (b) be a genuine
 // success, (c) match the expected action, and (d) clear the score threshold.
 
@@ -27,8 +29,12 @@ export async function verifyRecaptcha(
 ): Promise<RecaptchaVerdict> {
   const secret = process.env.RECAPTCHA_SECRET_KEY;
 
-  // Not configured -> don't block submissions.
-  if (!secret) return { ok: true, reason: 'disabled' };
+  if (!secret) {
+    // VERCEL_ENV is Vercel's own variable: "production" only on the live site.
+    return process.env.VERCEL_ENV === 'production'
+      ? { ok: false, reason: 'not-configured' }
+      : { ok: true, reason: 'disabled' };
+  }
   if (!token) return { ok: false, reason: 'missing-token' };
 
   let data: SiteverifyResponse;
