@@ -31,7 +31,10 @@ const sources = {
   'connect-src': ["'self'", 'https://www.google.com/recaptcha/'],
   // blob: the worker that times a test draw (Background/quality.ts).
   'worker-src': ["'self'", 'blob:'],
+  // 'self': the QA explorer frames a page from the site's own /robots.txt to
+  // sample it while it loads (.github/workflows/qae-explore.yml).
   'frame-src': [
+    "'self'",
     'www.youtube.com',
     'https://www.google.com/recaptcha/',
     'https://recaptcha.google.com/recaptcha/',

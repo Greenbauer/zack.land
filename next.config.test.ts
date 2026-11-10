@@ -81,6 +81,7 @@ describe('next.config.js', () => {
       'connect-src': ["'self'", 'https://www.google.com/recaptcha/'],
       'worker-src': ["'self'", 'blob:'],
       'frame-src': [
+        "'self'",
         'www.youtube.com',
         'https://www.google.com/recaptcha/',
         'https://recaptcha.google.com/recaptcha/',
@@ -107,9 +108,23 @@ describe('next.config.js', () => {
     );
     const live = policyOf((await load(LIVE)).headers);
 
-    expect(preview['script-src']).toContain('https://vercel.live');
-    expect(preview['connect-src']).toContain('wss://ws-us3.pusher.com');
-    expect(preview['frame-src']).toContain('https://vercel.live');
+    // Each preview directive is the live one plus the sources Vercel lists
+    // for its toolbar (vercel.com/docs/vercel-toolbar/managing-toolbar).
+    const added = Object.fromEntries(
+      Object.entries(preview).flatMap(([name, sources]) => {
+        const extra = sources.filter((source) => !live[name]!.includes(source));
+        return extra.length ? [[name, extra]] : [];
+      }),
+    );
+    expect(added).toEqual({
+      'script-src': ['https://vercel.live'],
+      'style-src': ['https://vercel.live'],
+      'img-src': ['https://vercel.live', 'https://vercel.com', 'blob:'],
+      'font-src': ['https://vercel.live', 'https://assets.vercel.com'],
+      'connect-src': ['https://vercel.live', 'wss://ws-us3.pusher.com'],
+      'frame-src': ['https://vercel.live'],
+    });
+    expect(Object.keys(preview)).toEqual(Object.keys(live));
     expect(Object.values(live).flat().join(' ')).not.toMatch(/vercel/);
   });
 });
