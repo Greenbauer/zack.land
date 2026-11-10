@@ -14,7 +14,8 @@
 <dl>
   Copy <code>.env.example</code> to <code>.env.local</code> and fill in the values.
   The contact form (<code>/api/email</code>) needs the SMTP variables; reCAPTCHA v3
-  is optional and fail-open (the form works without it).
+  is optional off the live site (the form works without it); Vercel production
+  refuses every submission while <code>RECAPTCHA_SECRET_KEY</code> is unset.
 </dl>
 
 | Variable | Purpose |
@@ -30,7 +31,7 @@
 2. Set `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` and `RECAPTCHA_SECRET_KEY` (locally and in Vercel).
 3. In production, **redeploy** after adding them so the public site key is inlined into the client bundle.
 
-When the secret is unset, submissions skip verification; when set, a submission must clear a 0.5 score threshold on the `contact` action. Verification logic is unit-tested — run `npm test`.
+When the secret is unset, submissions skip verification, except on the live site (Vercel production), which then refuses every submission; when set, a submission must clear a 0.5 score threshold on the `contact` action. Verification logic is unit-tested: run `npm test`.
 
 ## Credits
 
