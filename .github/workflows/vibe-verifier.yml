@@ -1,7 +1,9 @@
 name: Standards
 
 # Runs the gates this repository subscribes to in .vibe-verifier.
-# The gates ship with the pinned action, so nothing is installed.
+# The catalog's gates ship with the pinned action. The eslint gate runs this repository's own ESLint
+# (.vibe-verifier-tools/eslint.json), whose config loads its plugins from node_modules, so the job
+# installs the packages and puts node_modules/.bin on PATH first.
 
 on:
   pull_request:
@@ -19,10 +21,20 @@ jobs:
   vibe-verifier-ok:
     name: Gates
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: Greenbauer/vibe-verifier/actions/gates@ec2b5059548fad47f52014a40b5f90f0032edf7e # main 2026-11-09
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version-file: .nvmrc
+      - name: Install the packages ESLint's config loads
+        run: |
+          npm ci
+          echo "$PWD/node_modules/.bin" >> "$GITHUB_PATH"
+        env:
+          CYPRESS_INSTALL_BINARY: '0'
+          HUSKY: '0'
+      - uses: Greenbauer/vibe-verifier/actions/gates@a92974c3c3b6e4bc3d7d4745ebab205875952053 # main 2026-11-10

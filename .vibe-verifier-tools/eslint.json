@@ -1,0 +1,15 @@
+{
+  "gate": "eslint",
+  "description": "Fail when a file this pull request changed has an ESLint error under this repository's own config (eslint.config.js). Warnings are reported, not blocking, as ESLint itself fails only on errors. A file ESLint cannot parse blocks.",
+  "tool": "eslint",
+  "args": ["--format", "json", "--no-warn-ignored", "--"],
+  "files": [
+    "**/*.js",
+    "**/*.jsx",
+    "**/*.mjs",
+    "**/*.cjs",
+    "**/*.ts",
+    "**/*.tsx"
+  ],
+  "output": { "parser": "eslint" }
+}
