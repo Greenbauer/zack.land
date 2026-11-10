@@ -13,7 +13,7 @@ acceptance-verdict --criteria qae-inputs/pr-body.md --verdict qae-inputs/verdict
 # --site-file is the URL the explore job's site step declared, local or a preview; --site <URL> fixes one instead.
 # To check every criterion at more than one viewport width, add for example --widths 1280,375: each criterion's step
 # screenshots must then include one of each width, and the explorer is told the same widths (qae-inputs/widths).
-qae-artifacts --artifacts qae-artifacts --criteria qae-inputs/pr-body.md --site-file qae-inputs/site-url --allow-console '/_vercel/insights/script\.js' --allow-request '/_vercel/insights/script\.js' --widths 1280,375 --ticket qae-inputs/ticket.md
+qae-artifacts --artifacts qae-artifacts --criteria qae-inputs/pr-body.md --site-file qae-inputs/site-url --allow-console '/_vercel/insights/script\.js' --allow-request '/_vercel/insights/script\.js' --widths 1280,375 --ticket qae-inputs/ticket.md --changed-files qae-inputs/changed-files
 # Layout defects on every page the explorer opened (clipped text, controls touching, off-center glyphs in badges), from the
 # ui-audit hook the explore job loads with --init-page. In soak: findings are reported but do not fail the check.
 ui-audit --artifacts qae-artifacts --site-file qae-inputs/site-url --soak
