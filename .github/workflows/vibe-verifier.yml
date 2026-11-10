@@ -37,4 +37,4 @@ jobs:
         env:
           CYPRESS_INSTALL_BINARY: '0'
           HUSKY: '0'
-      - uses: Greenbauer/vibe-verifier/actions/gates@a92974c3c3b6e4bc3d7d4745ebab205875952053 # main 2026-11-10
+      - uses: Greenbauer/vibe-verifier/actions/gates@bb51d1a242c80a59c821d80888500c7a3b230d1f # main 2026-11-10
