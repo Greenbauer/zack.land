@@ -16,3 +16,7 @@ repo-rules --pack typescript
 # style); a curly quote and the pull request description are advisory. Only added lines count, so the
 # docs as they stand never block.
 prose
+# eslint: this repository's own ESLint (eslint.config.js) on the files a pull request changed, run through its own
+# descriptor in .vibe-verifier-tools/eslint.json. An error blocks; a warning is reported. The Gates job installs the
+# packages first, since the config loads its plugins from node_modules.
+eslint

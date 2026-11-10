@@ -9,7 +9,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint --fix . & tsc",
+    "lint": "eslint --fix . && tsc",
     "test": "vitest run",
     "cypress": "cypress open",
     "prepare": "husky install"
