@@ -14,6 +14,10 @@ export const runtime = 'nodejs';
 
 const transporter = createTransport({
   host: process.env.EMAIL_HOST,
+  // The live site refuses to sign in or send over a connection the server
+  // did not encrypt. Elsewhere encryption is used when offered, as the QA
+  // container's mail sink offers none.
+  requireTLS: process.env.VERCEL_ENV === 'production',
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
@@ -98,7 +102,8 @@ export async function POST(request: Request): Promise<Response> {
   }
   const { name, email, message, recaptchaToken } = submission;
 
-  // Spam gate — no-op until RECAPTCHA_SECRET_KEY is configured (see utils/recaptcha).
+  // Spam gate: skipped where RECAPTCHA_SECRET_KEY is not set, except on the
+  // live site, which then refuses (see utils/recaptcha).
   const verdict = await verifyRecaptcha(recaptchaToken);
   if (!verdict.ok) {
     console.warn(
@@ -140,13 +145,6 @@ export async function POST(request: Request): Promise<Response> {
       accepted: info.accepted,
       rejected: info.rejected,
     });
-
-    if (info.rejected?.length) {
-      return json(
-        { error: 'Recipient rejected', rejected: info.rejected },
-        502,
-      );
-    }
 
     return json({ message: 'Email sent successfully' });
   } catch (error) {

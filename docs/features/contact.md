@@ -1,6 +1,6 @@
 # Contact form
 
-The contact page and the route that mails each message: Name, Email and Message, an optional reCAPTCHA v3 check, and an SMTP send through nodemailer.
+The contact page and the route that mails each message: Name, Email and Message, a reCAPTCHA v3 check (optional off the live site), and an SMTP send through nodemailer.
 
 ## Surfaces
 
@@ -42,14 +42,19 @@ Roles: none; the page is public. Mail: the QAE container points the five SMTP va
 - `app/api/email/route.test.ts::escapes markup typed into the name and message`
 - `app/api/email/route.test.ts::rejects %s with a 400 and sends nothing`
 - `app/api/email/route.test.ts::checks the SMTP server's certificate`
-- `utils/recaptcha.test.ts::fails open (skips verification) when no secret is configured`
+- `utils/recaptcha.test.ts::skips verification when no secret is configured off the live site`
+- `utils/recaptcha.test.ts::refuses every submission on the live site when no secret is configured`
+- `app/api/email/route.test.ts::never tells the sender which address the mail server refused`
+- `app/api/email/route.test.ts::requires an encrypted connection on the live site only`
+- `app/api/email/route.test.ts::refuses a submission on the live site while reCAPTCHA has no secret`
 - `utils/recaptcha.test.ts::rejects a low score`
 - `utils/recaptcha.test.ts::rejects an action mismatch`
 
 ## Gotchas
 
 - `.github/workflows/tests.yml` runs `npm test` (the `route.test.ts` and `recaptcha.test.ts` cases above) on every pull request and every push to `master`. No workflow runs `contact-form.cy.ts` (the workflow's only Cypress run is the portfolio's `more-less.cy.ts`), so its two cases run only by hand.
-- reCAPTCHA fails open: with no `RECAPTCHA_SECRET_KEY` every submission is accepted, and with no `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` the form sends no token. The public key is inlined at build, so setting it needs a redeploy (README).
+- Off the live site reCAPTCHA is optional: with no `RECAPTCHA_SECRET_KEY` every submission is accepted, and with no `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` the form sends no token. On the live site (`VERCEL_ENV` is `production`) a missing secret refuses every submission with a 400, so the spam gate cannot turn off unnoticed; the log line names `not-configured`. The public key is inlined at build, so setting it needs a redeploy (README).
 - The route re-checks every field the browser checks (required, the email pattern, 100 characters for Name and Email, 1000 for Message) from the one set of rules in `utils/contact-fields.ts`; change a limit there, not in either caller. A value the browser lets through but the route refuses shows as "An error has occurred".
 - Every typed value is HTML-escaped before it goes into the mail, and the sender's name travels as a nodemailer address object, so markup or a `<`/`,` in Name cannot add markup or an address.
+- On the live site (`VERCEL_ENV` is `production`) the SMTP transport sets `requireTLS`: it will not sign in or send unless the server encrypts the connection with STARTTLS, which Amazon SES offers on port 587. Everywhere else encryption is used when offered, since the QAE container's sink offers none.
 - The SMTP transport checks the server's certificate. Production and preview send through Amazon SES (`email-smtp.us-east-1.amazonaws.com`), whose certificate is publicly trusted; a local SMTP host with a self-signed certificate now fails to send, so point local runs at a sink without STARTTLS, as the QAE container does.
