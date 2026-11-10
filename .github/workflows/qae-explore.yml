@@ -358,7 +358,7 @@ jobs:
         # integrity fixed by tools/qae-browser/package-lock.json in the catalog. Nothing here is
         # resolved from the registry at run time: this job holds the account-level token.
         id: browser
-        uses: Greenbauer/vibe-verifier/actions/qae-browser@ec2b5059548fad47f52014a40b5f90f0032edf7e # main 2026-11-09
+        uses: Greenbauer/vibe-verifier/actions/qae-browser@e94dc79b9f4367d0e6e2f2c2af2e155a313f6dae # main 2026-11-09
       - name: Explore the acceptance criteria in a real browser
         # --max-turns is the turn cap the references step sized to this run's walks: a fixed 80 cut off
         # a correct run of two criteria at two widths (harnesses/qae/README.md, "The turn cap").
