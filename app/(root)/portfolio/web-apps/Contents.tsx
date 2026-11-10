@@ -26,7 +26,7 @@ const Contents: Content[] = [
         realistic 3D representation of the real product. Just type some text and
         see that text fit the sides of the sunglasses in 3D. You can also change
         the font, ear tip icons, and colors.{' '}
-        <a href="http://www.shapeways.com" target="_blank" rel="noreferrer">
+        <a href="https://www.shapeways.com" target="_blank" rel="noreferrer">
           Shapeways
         </a>
         , one of the world’s largest 3D printing companies, featured Banner
@@ -93,7 +93,7 @@ const Contents: Content[] = [
     name: 'Perf Sealers',
     description: (
       <p>
-        <a href="http://www.perfsealers.com" target="_blank" rel="noreferrer">
+        <a href="https://www.perfsealers.com" target="_blank" rel="noreferrer">
           Perf Sealers
         </a>{' '}
         is an oil and gas company that sells dissolvable ball sealers. I help
@@ -101,7 +101,7 @@ const Contents: Content[] = [
       </p>
     ),
     technology: 'jQuery, MySQL, PHP, WordPress',
-    siteUrl: 'http://www.perfsealers.com',
+    siteUrl: 'https://www.perfsealers.com',
     mediaSources: [
       {
         key: '/web-apps/balls-in-fluid.jpg',
