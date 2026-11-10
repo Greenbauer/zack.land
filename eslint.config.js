@@ -57,12 +57,9 @@ module.exports = [
   },
   {
     // eslint-config-next 16 brings eslint-plugin-react-hooks 7, whose React
-    // Compiler rules flag these two mouse-driven animations. The compiler is not
-    // enabled, and both work as written; rewriting them is separate work.
-    files: [
-      'components/Background/MyHead.tsx',
-      'components/Header/NavListBackground.tsx',
-    ],
+    // Compiler rules flag this mouse-driven animation. The compiler is not
+    // enabled, and it works as written; rewriting it is separate work.
+    files: ['components/Background/MyHead.tsx'],
     rules: {
       'react-hooks/immutability': 'off',
       'react-hooks/refs': 'off',

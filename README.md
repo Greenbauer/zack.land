@@ -43,7 +43,7 @@ When the secret is unset, submissions skip verification; when set, a submission 
 ## CI
 
 Every pull request and every push to `master` runs the unit tests (`npm test`: Vitest over every
-`*.test.ts` file) through `.github/workflows/tests.yml`, as the check `Unit tests` (shown as `Code / Unit tests`). The workflow has no
+`*.test.ts` file) through `.github/workflows/tests.yml`, as the check `Unit tests` (shown as `Code / Unit tests`). The same job then runs ESLint and the type check, the two halves of `npm run lint` (which also applies ESLint's fixes); an error in either fails the check. The workflow has no
 path filter and the job no condition, so the check always reports. The same workflow builds and
 starts the site and runs two end-to-end checks against it: the Cypress spec
 `cypress/e2e/more-less.cy.ts` in Chrome (the check `Phone More/Less`), and the Playwright tests in
