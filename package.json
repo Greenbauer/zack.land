@@ -11,8 +11,7 @@
     "start": "next start",
     "lint": "eslint --fix . && tsc",
     "test": "vitest run",
-    "build:head": "node scripts/build-head.mjs",
-    "prepare": "husky install"
+    "build:head": "node scripts/build-head.mjs"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.0",
@@ -44,7 +43,6 @@
     "eslint-plugin-simple-import-sort": "^10.0.0",
     "eslint-plugin-tailwindcss": "^3.18.3",
     "eslint-plugin-unused-imports": "^4.4.1",
-    "husky": "^8.0.0",
     "postcss": "^8.5.23",
     "prettier": "^3.8.4",
     "tailwindcss": "^3.4.17",
