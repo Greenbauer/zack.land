@@ -125,4 +125,43 @@ describe('POST /api/email', () => {
 
     expect(options.tls?.rejectUnauthorized).not.toBe(false);
   });
+
+  it('never tells the sender which address the mail server refused', async () => {
+    sendMail.mockResolvedValue({
+      messageId: 'id',
+      accepted: ['kept@example.com'],
+      rejected: [MAIL_ENV.TO_EMAIL],
+    });
+
+    const res = await post(valid);
+
+    expect(res.status).toBe(200);
+    expect(await res.text()).not.toContain(MAIL_ENV.TO_EMAIL);
+  });
+
+  it('requires an encrypted connection on the live site only', async () => {
+    const requireTLS = () =>
+      (createTransport.mock.calls.at(-1)![0] as { requireTLS?: boolean })
+        .requireTLS;
+
+    expect(requireTLS()).toBe(false);
+
+    // The transport is made when the route's module loads, so load it again
+    // as the live site would.
+    vi.stubEnv('VERCEL_ENV', 'production');
+    vi.resetModules();
+    await import('./route');
+
+    expect(requireTLS()).toBe(true);
+  });
+
+  it('refuses a submission on the live site while reCAPTCHA has no secret', async () => {
+    vi.stubEnv('VERCEL_ENV', 'production');
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const res = await post(valid);
+
+    expect(res.status).toBe(400);
+    expect(sendMail).not.toHaveBeenCalled();
+  });
 });
