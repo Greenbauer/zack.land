@@ -1,6 +1,8 @@
 import { ReactNode } from 'react';
+import { preload } from 'react-dom';
 
 import Background from '@/components/Background';
+import { SCENE_FILES } from '@/components/Background/sceneFiles';
 
 import Footer from '../../components/Footer';
 import Header from '../../components/Header';
@@ -13,6 +15,11 @@ type LayoutProps = {
 };
 
 export default function Layout({ children }: LayoutProps) {
+  // Every page waits under the dark screen for the scene's files: ask for
+  // them in <head>, so they download alongside the scripts. As three's
+  // loaders fetch them (same origin, mode cors), so the fetches reuse them.
+  for (const file of SCENE_FILES)
+    preload(file, { as: 'fetch', crossOrigin: 'anonymous' });
   return (
     <>
       <Background />

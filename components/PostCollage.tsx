@@ -27,11 +27,14 @@ const CORNER = '1rem';
 export default function PostCollage({
   mediaSources,
   isShown,
+  isEager = false,
   className = '',
   style,
 }: {
   mediaSources: MediaSource[];
   isShown: boolean;
+  // Its pictures load at once (Media's isEager): the page's first post.
+  isEager?: boolean;
   className?: string;
   style?: CSSProperties;
 }) {
@@ -157,7 +160,10 @@ export default function PostCollage({
                   : undefined
               }
               onPress={() => setIsDismissed(false)}
-              paused={!isShown || isDismissed}
+              // A press outside the playing YouTube video stops only it.
+              paused={!isShown || (isVideo && isDismissed)}
+              shownWidth={laidOut.width}
+              isEager={isEager}
             />
           </div>
         );

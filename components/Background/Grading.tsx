@@ -29,6 +29,7 @@ import { CardTints, Rgb, skyOf, skyPoints } from './glassTint';
 import { photoLenses } from './photoLens';
 import { TrailPass } from './pointerTrail';
 import { renderQuality, useDrawsInSoftware } from './quality';
+import { LUT_FILE } from './sceneFiles';
 import { isSmall } from './smallScreen';
 import usePixelReader from './usePixelReader';
 
@@ -49,10 +50,7 @@ const BLUR_STEPS = 2.7;
 const SAMPLE_EVERY = 6;
 
 export default function Grading() {
-  const { texture3D } = useLoader(
-    LUTCubeLoader,
-    '/background/environment/cubicle-99.cube',
-  );
+  const { texture3D } = useLoader(LUTCubeLoader, LUT_FILE);
   const get = useThree((state) => state.get);
   // The composer's targets are made once, so their smoothing is chosen once,
   // by the window's size as the scene loads; they are made again (the key

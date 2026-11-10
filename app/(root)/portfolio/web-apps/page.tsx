@@ -19,8 +19,8 @@ export default function WebApps() {
       <div className="flex min-w-0 flex-1 flex-col gap-[var(--post-gap)]">
         <SnapPager />
         <MediaMelt />
-        {Contents.map((content) => (
-          <Post key={content.name} content={content} />
+        {Contents.map((content, k) => (
+          <Post key={content.name} content={content} isFirst={k === 0} />
         ))}
       </div>
     </div>
