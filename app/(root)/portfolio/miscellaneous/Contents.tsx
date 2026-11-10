@@ -87,7 +87,7 @@ const Contents: Content[] = [
     description: (
       <p>
         This is a robot which I designed, programmed, and fabricated for&nbsp;
-        <a href="http://www.perfsealers.com" target="_blank" rel="noreferrer">
+        <a href="https://www.perfsealers.com" target="_blank" rel="noreferrer">
           Perf Sealers
         </a>
         . This machine sorts plastic balls by buoyancy. It weighs each ball,

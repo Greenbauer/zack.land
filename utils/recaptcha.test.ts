@@ -18,18 +18,37 @@ describe('verifyRecaptcha', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
     vi.restoreAllMocks();
     process.env.RECAPTCHA_SECRET_KEY = ORIGINAL_SECRET;
   });
 
-  it('fails open (skips verification) when no secret is configured', async () => {
+  it('skips verification when no secret is configured off the live site', async () => {
     delete process.env.RECAPTCHA_SECRET_KEY;
     const fetchSpy = vi.fn();
     vi.stubGlobal('fetch', fetchSpy);
 
-    const verdict = await verifyRecaptcha('any-token');
+    for (const where of ['', 'preview', 'development']) {
+      vi.stubEnv('VERCEL_ENV', where);
 
-    expect(verdict).toEqual({ ok: true, reason: 'disabled' });
+      expect(await verifyRecaptcha('any-token')).toEqual({
+        ok: true,
+        reason: 'disabled',
+      });
+    }
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('refuses every submission on the live site when no secret is configured', async () => {
+    delete process.env.RECAPTCHA_SECRET_KEY;
+    vi.stubEnv('VERCEL_ENV', 'production');
+    const fetchSpy = vi.fn();
+    vi.stubGlobal('fetch', fetchSpy);
+
+    expect(await verifyRecaptcha('any-token')).toEqual({
+      ok: false,
+      reason: 'not-configured',
+    });
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
