@@ -1,6 +1,6 @@
 'use client';
 
-import { Environment, PerspectiveCamera } from '@react-three/drei';
+import { PerspectiveCamera } from '@react-three/drei';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { PerspectiveCamera as PerspectiveCameraType } from 'three';
@@ -30,6 +30,7 @@ import {
   READY_AT_MOST_MS,
 } from './sceneReady';
 import Sky from './Sky';
+import SkyEnvironment from './SkyEnvironment';
 import TitleName from './TitleName';
 
 export default function Background() {
@@ -117,12 +118,7 @@ export default function Background() {
               <BackdropSampler />
               <TitleName />
               <SceneReady />
-              <Environment
-                files="/background/environment/kiara_1_dawn_1k.hdr"
-                background
-                backgroundBlurriness={0.6}
-                backgroundIntensity={0.45}
-              />
+              <SkyEnvironment />
             </Suspense>
             <PerspectiveCamera
               makeDefault
