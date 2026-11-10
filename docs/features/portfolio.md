@@ -48,4 +48,5 @@ The tiles' crops and layout are covered by `components/collageLayout.test.ts`, t
 ## Gotchas
 
 - A post's media `key` is a path under `public/` or, for a YouTube video, its id, and a moving picture is an `.mp4` of `type: 'video'`, never a GIF, whose moving frames the bend and melt cannot read, and `main: true` makes an image its post's largest tile when the post has no video (`types/index.ts`); a misspelled path shows a broken image with no error. An image's `width` and `height` pick its crop; left out, it is cropped square.
+- A file under `public/` is served byte for byte, so a location or a camera record a phone wrote into a photo or a video is published with it (the resized copies from `next/image` drop it, the file's own address does not). Remove it before adding the file. `utils/publicMedia.test.ts` reads every file under `public/` by its contents and fails on a JPEG, PNG, GIF or WebP photo or an MP4 or QuickTime video that carries a location, and on a photo or video of a kind it cannot read (HEIC, AVIF, TIFF), which must be converted first.
 - `Button` is shared with [contact](contact.md).
