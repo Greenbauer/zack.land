@@ -6,7 +6,9 @@
 // (data-intro on <html>); as the camera comes out of the mouth ("fly"),
 // they wait 0.75 seconds over its dark inside and fade over the next second,
 // as the camera creeps out past the lips (intro.ts), so the face comes in
-// as the spinner goes.
+// as the spinner goes. Faded, its "Loading" status is hidden too
+// (visibility, which turns at the end of the fade), so a screen reader does
+// not meet it on every page.
 export default function Loader() {
   return (
     <div
@@ -16,7 +18,7 @@ export default function Loader() {
       <div
         role="status"
         aria-label="Loading"
-        className="relative size-20 transition-opacity duration-300 [html[data-intro=fly]_&]:delay-[750ms] [html[data-intro=fly]_&]:duration-700 [html[data-intro]_&]:opacity-0"
+        className="relative size-20 transition-[opacity,visibility] duration-300 [html[data-intro=fly]_&]:delay-[750ms] [html[data-intro=fly]_&]:duration-700 [html[data-intro]_&]:invisible [html[data-intro]_&]:opacity-0"
       >
         <div className="absolute inset-0 rounded-full border-2 border-head-light/10" />
         <div className="absolute inset-0 animate-[spin_1.4s_linear_infinite] rounded-full bg-[conic-gradient(transparent_35%,theme(colors.head.rose)_65%,theme(colors.head.peach)_85%,theme(colors.head.light))] [mask:radial-gradient(farthest-side,transparent_calc(100%_-_3px),#000_calc(100%_-_2px))]" />

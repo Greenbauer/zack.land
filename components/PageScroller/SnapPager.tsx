@@ -269,7 +269,11 @@ export default function SnapPager() {
     const onKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement;
       if (target.closest('input, textarea, select, [contenteditable]')) return;
-      const direction = keyDirection(event.key, event.shiftKey);
+      const onPage =
+        target === document.body ||
+        target === document.documentElement ||
+        target === scroller;
+      const direction = keyDirection(event.key, event.shiftKey, onPage);
       if (!direction) return;
       event.preventDefault();
       step(direction);

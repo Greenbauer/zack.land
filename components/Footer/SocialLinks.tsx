@@ -26,6 +26,8 @@ export default function SocialLinks() {
           target="_blank"
           href={url}
           rel="noreferrer"
+          // The icon alone says nothing to a screen reader or voice control.
+          aria-label={name}
         >
           {cloneElement(icons[name], { size: 34 })}
         </Link>

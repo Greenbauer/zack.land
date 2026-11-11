@@ -40,7 +40,7 @@ const Contents: Content[] = [
     mediaSources: [
       {
         key: '/web-apps/glasses-computer.jpg',
-        alt: 'Banner Eyewear',
+        alt: "A hand holding Banner sunglasses in front of a laptop showing the same pair on Banner Eyewear's create page",
         type: 'img',
         width: 960,
         height: 540,
@@ -48,14 +48,14 @@ const Contents: Content[] = [
       },
       {
         key: '/web-apps/create-your-own-square.mp4',
-        alt: 'Banner Eyewear',
+        alt: "Banner Eyewear's create page turning a 3D pair of sunglasses with ENTER TEXT along the arm",
         type: 'video',
         width: 428,
         height: 428,
       },
       {
         key: '/web-apps/selfie-ig.jpg',
-        alt: 'Banner Eyewear',
+        alt: 'A woman wearing Banner sunglasses with custom lettering along the arm',
         type: 'img',
         width: 569,
         height: 569,
@@ -82,7 +82,7 @@ const Contents: Content[] = [
     mediaSources: [
       {
         key: '/web-apps/passero-app.jpg',
-        alt: 'Passero',
+        alt: "The trip planner's idea cards for snorkeling in Mauritius, a mountain in Peru and surfing in Cape Town",
         type: 'img',
         width: 2048,
         height: 1205,
@@ -105,7 +105,7 @@ const Contents: Content[] = [
     mediaSources: [
       {
         key: '/web-apps/balls-in-fluid.jpg',
-        alt: 'Perf Sealers',
+        alt: 'Green ball sealers sinking among bubbles through a dark fluid',
         type: 'img',
         width: 960,
         height: 768,

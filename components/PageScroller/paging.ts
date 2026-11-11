@@ -204,10 +204,16 @@ export function wheelPager({
   };
 }
 
-// The direction a key pages in, or 0 for a key that doesn't.
-export function keyDirection(key: string, shiftKey: boolean): 1 | -1 | 0 {
+// The direction a key pages in, or 0 for a key that doesn't. Space pages
+// only while focus is on the page itself (`onPage`): on a button or a link
+// it presses that.
+export function keyDirection(
+  key: string,
+  shiftKey: boolean,
+  onPage: boolean,
+): 1 | -1 | 0 {
   if (key === 'ArrowDown' || key === 'PageDown') return 1;
   if (key === 'ArrowUp' || key === 'PageUp') return -1;
-  if (key === ' ') return shiftKey ? -1 : 1;
+  if (key === ' ' && onPage) return shiftKey ? -1 : 1;
   return 0;
 }

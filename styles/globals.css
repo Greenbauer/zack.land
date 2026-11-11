@@ -155,6 +155,9 @@
   input {
     @apply text-lg font-sans font-normal; 
     @apply outline-none rounded-md;
+    /* A ring in the card's ink while focused (outline-none's transparent
+       outline, coloured): the field shows nothing else. */
+    @apply focus-visible:outline-[color:var(--card-ink)];
     @apply bg-head-dark/40 text-head-light/80 placeholder-head-light/40;
     @apply px-3 py-2 shadow-none;
   }
@@ -162,6 +165,9 @@
   textarea {
     @apply text-lg font-sans font-normal;
     @apply outline-none rounded-md;
+    /* A ring in the card's ink while focused (outline-none's transparent
+       outline, coloured): the field shows nothing else. */
+    @apply focus-visible:outline-[color:var(--card-ink)];
     @apply bg-head-dark/40 text-head-light/80 placeholder-head-light/40;
     @apply px-3 py-2 shadow-none;
   }
