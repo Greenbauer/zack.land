@@ -16,7 +16,6 @@ import {
 
 import { TITLE_LAYER } from './focusBlur';
 import { GLOSS, SKIN_COLOR } from './MyHead';
-import { FONT_FILE } from './sceneFiles';
 import { bendSheet } from './titleProbe';
 import { TitleWord } from './titleWords';
 
@@ -25,7 +24,7 @@ import { TitleWord } from './titleWords';
 // page, the skin's normals bent as one curved sheet across the whole name.
 
 // The title font (scripts/build-title-font.mjs).
-export const FONT = FONT_FILE;
+export const FONT = '/background/fonts/kanit.json';
 // three's TTFLoader stores glyphs at 100000 / 72 units to the em against a
 // resolution of 1000, so shapes of size 1 are 1.39 em: this size makes them
 // one em.

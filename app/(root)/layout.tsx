@@ -1,7 +1,6 @@
 import { ReactNode } from 'react';
 
 import Background from '@/components/Background';
-import { fetchEarly, SCENE_FILES } from '@/components/Background/sceneFiles';
 
 import Footer from '../../components/Footer';
 import Header from '../../components/Header';
@@ -16,14 +15,6 @@ type LayoutProps = {
 export default function Layout({ children }: LayoutProps) {
   return (
     <>
-      {/* Every page waits under the dark screen for the scene's files: this
-          starts their downloads before the scripts have even arrived
-          (fetchEarly, components/Background/sceneFiles.ts). */}
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `(${fetchEarly})(${JSON.stringify(SCENE_FILES)})`,
-        }}
-      />
       <Background />
       <Header />
       <PageLeave />

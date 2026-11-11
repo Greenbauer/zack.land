@@ -58,15 +58,17 @@ export default function Media({
       return <LoopVideo mediaSource={mediaSource} paused={paused} />;
     default:
       return (
-        <Image
-          src={key}
-          alt={alt}
-          width={width}
-          height={height}
-          sizes={sizes}
-          className="size-full object-cover"
-          {...loading}
-        />
+        loading && (
+          <Image
+            src={key}
+            alt={alt}
+            width={width}
+            height={height}
+            sizes={sizes}
+            className="size-full object-cover"
+            {...loading}
+          />
+        )
       );
   }
 }
@@ -81,18 +83,19 @@ function useSizes(shownWidth?: number) {
   return widest ? `${Math.max(widest, shownWidth ?? 0)}px` : undefined;
 }
 
-// How a picture loads: at once and first when `isEager`, else lazily (not at
-// all, as its post's tiles wait off the window) until the page is in, then
-// at once. (Not next/image's `preload`: its <link> is made with the tile's
-// first width, which the footer can still change, and the picture was then
-// fetched twice.)
+// How a picture loads: at once and first when `isEager`; else not at all
+// (null: it isn't drawn) until the page is in, then at once. (Not lazily
+// meanwhile: Safari's engine fetched a later post's large tiles under the
+// dark screen all the same. Not next/image's `preload`: its <link> is made
+// with the tile's first width, which the footer can still change, and the
+// picture was then fetched twice.)
 function useLoading(isEager: boolean) {
   const [isPageIn, setIsPageIn] = useState(false);
   useEffect(() => {
     if (!isEager) return whenPageIn(() => setIsPageIn(true));
   }, [isEager]);
   if (isEager) return { loading: 'eager', fetchPriority: 'high' } as const;
-  return { loading: isPageIn ? 'eager' : 'lazy' } as const;
+  return isPageIn ? ({ loading: 'eager' } as const) : null;
 }
 
 // A silent loop. It shows its poster and loads nothing more until it plays:
@@ -180,14 +183,16 @@ function YouTubeVideo({
 
   return (
     <>
-      <Image
-        src={`https://i.ytimg.com/vi/${key}/hqdefault.jpg`}
-        alt={alt}
-        {...THUMBNAIL}
-        sizes={sizes}
-        className="size-full object-cover"
-        {...loading}
-      />
+      {loading && (
+        <Image
+          src={`https://i.ytimg.com/vi/${key}/hqdefault.jpg`}
+          alt={alt}
+          {...THUMBNAIL}
+          sizes={sizes}
+          className="size-full object-cover"
+          {...loading}
+        />
+      )}
       {!isStarting && (
         <button
           type="button"

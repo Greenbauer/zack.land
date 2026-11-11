@@ -1,33 +1,61 @@
 import { expect as expectNow, Page, test } from '@playwright/test';
 
-// What a page downloads, and when: the scene's files once each, started
-// before the scripts have run (fetchEarly, components/Background/
-// sceneFiles.ts); under the dark screen only the first post's pictures, each
-// at its tile's size; a silent loop only once its post is shown
-// (components/Media.tsx). Against a built site: `npx playwright test`.
+// What a portfolio page downloads, and when: under the dark screen only the
+// first post's pictures, each at its tile's size; a silent loop only once its
+// post is shown (components/Media.tsx). Against a built site:
+// `npx playwright test`.
 
 // A software-drawn runner can take many seconds over a frame.
 const expect = expectNow.configure({ timeout: 30_000 });
 
-// Every request the page makes, with whether the page was in yet
-// (data-page-in) when it was made.
-function watch(page: Page) {
-  const requests: { url: string; afterPageIn: boolean }[] = [];
-  let isIn = false;
-  page.on('request', (request) =>
-    requests.push({ url: request.url(), afterPageIn: isIn }),
+// The page's pictures and loops, each with when it was asked for and
+// whether the page was in yet (data-page-in) then, both read in the page.
+async function openWatched(page: Page, route: string) {
+  await page.addInitScript(() => {
+    new MutationObserver(() => {
+      const html = document.documentElement;
+      if (html?.hasAttribute('data-page-in'))
+        (window as { pageInAt?: number }).pageInAt ??= performance.now();
+    }).observe(document, {
+      attributes: true,
+      subtree: true,
+      attributeFilter: ['data-page-in'],
+    });
+  });
+  await page.goto(route);
+  await page.waitForFunction(
+    () => document.documentElement.hasAttribute('data-page-in'),
+    null,
+    { timeout: 60_000 },
   );
-  return {
-    requests,
-    pageIn: async () => {
-      await page.waitForFunction(
-        () => document.documentElement.hasAttribute('data-page-in'),
-        null,
-        { timeout: 60_000 },
-      );
-      isIn = true;
-    },
-  };
+  return () =>
+    page.evaluate(() => {
+      const pageInAt = (window as { pageInAt?: number }).pageInAt!;
+      return performance
+        .getEntriesByType('resource')
+        .map(({ name, startTime }) => ({
+          url: name,
+          afterPageIn: startTime >= pageInAt,
+        }));
+    });
+}
+
+// Waits until the first post's tiles have come in and the pager takes a
+// turn (it lets the page's first card arriving count as one).
+async function firstAtRest(page: Page) {
+  await page.waitForFunction(() => {
+    const tiles = [
+      ...document.querySelector('.collage')!.querySelectorAll('.collage-tile'),
+    ];
+    return (
+      tiles.length > 0 &&
+      tiles.every(
+        (tile) =>
+          tile.closest('[data-shown]') && tile.getAnimations().length === 0,
+      )
+    );
+  });
+  await page.waitForTimeout(1500);
 }
 
 // Turns the page one post down and waits for post `k`'s tiles to come in.
@@ -39,33 +67,8 @@ async function turnTo(page: Page, k: number) {
     'data-shown',
     '',
   );
+  await page.waitForTimeout(1500);
 }
-
-test.describe('the scene files', () => {
-  test.use({ viewport: { width: 390, height: 844 } });
-
-  for (const route of ['/', '/contact', '/portfolio/miscellaneous']) {
-    test(`are each downloaded once on ${route}`, async ({ page }) => {
-      const seen = watch(page);
-      await page.goto(route);
-      await seen.pageIn();
-      await page.waitForTimeout(2000);
-      const scene = seen.requests
-        .map(({ url }) => new URL(url).pathname)
-        .filter((path) => path.startsWith('/background/'));
-      expect(scene.sort()).toEqual([
-        '/background/environment/cubicle-99.cube',
-        '/background/environment/kiara_1_dawn_1k.hdr',
-        '/background/fonts/kanit.json',
-        '/background/geometry/head.bin',
-      ]);
-      // The page's own fetch is the browser's again once all are handed on.
-      expect(await page.evaluate(() => window.fetch.toString())).toContain(
-        'native code',
-      );
-    });
-  }
-});
 
 test.describe("a post's pictures and loops", () => {
   test.use({
@@ -76,25 +79,23 @@ test.describe("a post's pictures and loops", () => {
   test('under the dark screen, only the first post loads its pictures', async ({
     page,
   }) => {
-    const seen = watch(page);
-    await page.goto('/portfolio/miscellaneous');
-    await seen.pageIn();
-    const pictures = seen.requests.filter(({ url }) =>
-      url.includes('/_next/image'),
-    );
-    const early = pictures.filter(({ afterPageIn }) => !afterPageIn);
-    expect(early.length).toBeGreaterThan(0);
-    for (const { url } of early) expect(url).toContain('bed-');
+    const requests = await openWatched(page, '/portfolio/miscellaneous');
     // The rest follow once the page is in, before they are paged to.
     await expect
-      .poll(() => seen.requests.filter(({ url }) => url.includes('shofar')))
+      .poll(async () =>
+        (await requests()).filter(({ url }) => url.includes('shofar')),
+      )
       .not.toHaveLength(0);
+    const early = (await requests()).filter(
+      ({ url, afterPageIn }) => url.includes('/_next/image') && !afterPageIn,
+    );
+    expect(early.length).toBeGreaterThan(0);
+    for (const { url } of early) expect(url).toContain('bed-');
   });
 
   test("each picture is fetched at its tile's size", async ({ page }) => {
-    const seen = watch(page);
-    await page.goto('/portfolio/miscellaneous');
-    await seen.pageIn();
+    await openWatched(page, '/portfolio/miscellaneous');
+    await firstAtRest(page);
     const pictures = page.locator('.collage').first().locator('img');
     await expect(pictures).toHaveCount(4);
     for (const picture of await pictures.all()) {
@@ -105,7 +106,9 @@ test.describe("a post's pictures and loops", () => {
           fetched: Number(new URL(img.currentSrc).searchParams.get('w')),
         }),
       );
-      expect(sizes).toBe(`${Math.round(shown)}px`);
+      // The widest the tile has been: its first layout can be a passing,
+      // wider one (Media's useSizes).
+      expect(parseFloat(sizes)).toBeGreaterThanOrEqual(Math.round(shown));
       // At 2x: a copy at least twice the tile's width, never the widest.
       expect(fetched).toBeGreaterThanOrEqual(shown * 2);
       expect(fetched).toBeLessThan(1920);
@@ -115,19 +118,17 @@ test.describe("a post's pictures and loops", () => {
   test('a silent loop loads only its poster until its post is shown', async ({
     page,
   }) => {
-    const seen = watch(page);
-    await page.goto('/portfolio/miscellaneous');
-    await seen.pageIn();
+    const requests = await openWatched(page, '/portfolio/miscellaneous');
     const loop = page.locator('video[src$="gears.mp4"]');
     await expect(loop).toHaveAttribute('preload', 'none');
     await expect(loop).toHaveAttribute('poster', '/miscellaneous/gears.jpg');
     expect(
       await loop.evaluate((video: HTMLVideoElement) => video.autoplay),
     ).toBe(false);
-    await page.waitForTimeout(2000);
-    const loads = () =>
-      seen.requests.filter(({ url }) => url.endsWith('/gears.mp4'));
-    expect(loads()).toHaveLength(0);
+    await firstAtRest(page);
+    const loads = async () =>
+      (await requests()).filter(({ url }) => url.endsWith('/gears.mp4'));
+    expect(await loads()).toHaveLength(0);
     expect(await loop.evaluate((video: HTMLVideoElement) => video.paused)).toBe(
       true,
     );
@@ -137,7 +138,7 @@ test.describe("a post's pictures and loops", () => {
     await expect
       .poll(() => loop.evaluate((video: HTMLVideoElement) => !video.paused))
       .toBe(true);
-    expect(loads().length).toBeGreaterThan(0);
+    expect((await loads()).length).toBeGreaterThan(0);
 
     // It holds still once its post has gone.
     await turnTo(page, 3);

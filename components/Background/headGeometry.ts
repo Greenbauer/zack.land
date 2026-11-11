@@ -1,7 +1,5 @@
 import { FileLoader } from 'three';
 
-import { HEAD_FILE } from './sceneFiles';
-
 // public/background/geometry/head.bin, written by scripts/build-head.mjs: the
 // head's meshes and expressions in a compact binary form, gzipped (the site
 // serves it as it is, so it is compressed ahead). Unzipped, little-endian:
@@ -35,6 +33,8 @@ export type HeadMesh = {
 };
 
 export type Head = { meshes: Map<string, HeadMesh>; expressions: string[] };
+
+export const HEAD_URL = '/background/geometry/head.bin';
 
 // Moves are stored in this many parts of a unit (scripts/head/write.mjs).
 const MOVE_SCALE = 500;
@@ -118,7 +118,7 @@ let loading: Promise<ArrayBuffer> | undefined;
 export function loadHead(): Promise<ArrayBuffer> {
   loading ??= new FileLoader()
     .setResponseType('arraybuffer')
-    .loadAsync(HEAD_FILE)
+    .loadAsync(HEAD_URL)
     .then((zipped) =>
       new Response(
         new Blob([zipped as ArrayBuffer])
