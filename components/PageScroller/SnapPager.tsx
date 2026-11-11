@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 
+import { ARRIVAL_REGION_ID, arrive, POST_TITLE } from './arrival';
 import { PAGE_SCROLLER_ID } from './edgeFade';
 import { announceTurn, GLIDE_EVENT, postSpans } from './pageGlide';
 import {
@@ -34,7 +35,8 @@ const THROUGH_STEP = 0.8;
 // goes at once (turnGate). A post that More has opened taller than the
 // page (Post.tsx) is scrolled through first, and turns only at its end
 // (throughPost), except by a scroll arrow on a post laid open for a short
-// window. Renders nothing.
+// window. Renders only the status region a turn by a key or a scroll
+// arrow writes to (arrival.ts).
 export default function SnapPager() {
   useEffect(() => {
     const scroller = document.getElementById(PAGE_SCROLLER_ID);
@@ -104,7 +106,7 @@ export default function SnapPager() {
     // is still settling as More opens it), and the glide follows it there
     // rather than run on to where it was. With reduced motion it goes at
     // once.
-    const slide = (to: () => number) => {
+    const slide = (to: () => number, onLand?: () => void) => {
       cancelAnimationFrame(frame);
       // The browser's snapping would pull the page back (each step of a
       // glide, or a jump part way through a tall post to its top), so it is
@@ -115,6 +117,7 @@ export default function SnapPager() {
         isGliding = false;
         take();
         fitSnap();
+        onLand?.();
         return;
       }
       isGliding = true;
@@ -131,12 +134,14 @@ export default function SnapPager() {
           isGliding = false;
           take();
           fitSnap();
+          onLand?.();
         }
       };
       frame = requestAnimationFrame(step);
     };
 
-    const move = (direction: 1 | -1, quick: boolean) => {
+    // `announce`: a turn by a key or a scroll arrow (arrival.ts).
+    const move = (direction: 1 | -1, quick: boolean, announce: boolean) => {
       const at = spans();
       if (!at.length) return;
       // A quick turn back brings its card straight back (Post.tsx): the card
@@ -147,17 +152,20 @@ export default function SnapPager() {
       // A turn with nowhere to go comes back: what had set off on the way
       // here has to know (MediaMelt.tsx).
       announceTurn({ to: next ?? postAt(at, from) });
-      slide(() => {
-        const span = next === null ? undefined : spans()[next];
-        return span ? landing(span, direction) : from;
-      });
+      slide(
+        () => {
+          const span = next === null ? undefined : spans()[next];
+          return span ? landing(span, direction) : from;
+        },
+        announce && next !== null ? () => arrive(scroller, next) : undefined,
+      );
     };
 
     // A turn goes now, or not at all while the last turn's next card is
     // still coming in (turnGate).
-    const glide = (direction: 1 | -1, pressed = false) => {
+    const glide = (direction: 1 | -1, pressed = false, announce = false) => {
       const next = gate.ask(direction, performance.now(), pressed);
-      if (next) move(next.direction, next.quick);
+      if (next) move(next.direction, next.quick, announce);
     };
 
     // A key or a scroll arrow (`pressed`) scrolls most of a window through a
@@ -172,14 +180,14 @@ export default function SnapPager() {
       );
     };
     const step = (direction: 1 | -1, pressed = false) => {
-      if (pressed && isOnLaidOpen()) return glide(direction, pressed);
+      if (pressed && isOnLaidOpen()) return glide(direction, pressed, true);
       const to = throughPost(
         spans(),
         scroller.scrollTop,
         direction,
         scroller.clientHeight * THROUGH_STEP,
       );
-      if (to === null) return glide(direction, pressed);
+      if (to === null) return glide(direction, pressed, true);
       // As far down the post the page is on as it goes, no further than the
       // post's end as it is then (keptPlace): a post still settling as More
       // opens it is taller for a moment, and a scroll set off for its old
@@ -269,10 +277,12 @@ export default function SnapPager() {
     const onKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement;
       if (target.closest('input, textarea, select, [contenteditable]')) return;
+      // A post's title, focused by a turn (arrival.ts), counts as the page.
       const onPage =
         target === document.body ||
         target === document.documentElement ||
-        target === scroller;
+        target === scroller ||
+        target.matches(POST_TITLE);
       const direction = keyDirection(event.key, event.shiftKey, onPage);
       if (!direction) return;
       event.preventDefault();
@@ -304,5 +314,13 @@ export default function SnapPager() {
     };
   }, []);
 
-  return null;
+  // Where a turn by a key or a scroll arrow landed, for a screen reader.
+  return (
+    <div
+      id={ARRIVAL_REGION_ID}
+      role="status"
+      aria-live="polite"
+      className="sr-only"
+    />
+  );
 }

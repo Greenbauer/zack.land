@@ -10,14 +10,16 @@ import { NameWord } from '@/components/Home/Title';
 // over it. Its words register after the name's (from FIRST_WORD), and
 // the name and a header title are never on one page. Until the scene first
 // draws, where WebGL is drawn in software, it shows the title itself
-// (data-scene-title in styles/globals.css).
+// (data-scene-title in styles/globals.css). It is the page's one h1, in the
+// look of an h4 (.text-h4) without the h1's background (its gradient and
+// dark colour, clipped to the text, would show through the see-through text).
 const FIRST_WORD = 100;
 
 export default function HeaderTitle({ title }: { title: string }) {
   return (
-    <h4
+    <h1
       data-scene-title
-      className="text-right font-medium tracking-wider !text-transparent [word-spacing:0.2em] max-md:text-2xl"
+      className="text-h4 !bg-transparent !bg-none text-right font-medium tracking-wider !text-transparent [word-spacing:0.2em] max-md:text-2xl"
     >
       {title.split(' ').map((word, k) => (
         <span key={word}>
@@ -25,6 +27,6 @@ export default function HeaderTitle({ title }: { title: string }) {
           <NameWord text={word} index={FIRST_WORD + k} />
         </span>
       ))}
-    </h4>
+    </h1>
   );
 }

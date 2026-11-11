@@ -13,6 +13,7 @@ import {
   VIEW_BOUND,
   viewBoundOff,
 } from './skyViews';
+import { isStill } from './stillScene';
 
 // The sky turns with the head, about the home each view of the site gives it
 // (skyViews.ts): the pointer from one edge of the screen to the other turns
@@ -168,58 +169,77 @@ export default function Sky() {
       home.current = { ...view.home, speed: { x: 0, y: 0 } };
       Object.assign(turn.current, view.home);
     }
-    const seconds = Math.min(delta, 0.1);
-    for (const axis of ['x', 'y'] as const) {
-      const step = glide(
-        { x: home.current[axis], speed: home.current.speed[axis] },
-        view.home[axis],
-        seconds,
-        GLIDE_SECONDS,
+    // With reduced motion it rests where the view sets it, and jumps there
+    // when the view changes (stillScene.ts).
+    if (isStill()) {
+      Object.assign(home.current, view.home, { speed: { x: 0, y: 0 } });
+      const step = Math.hypot(
+        view.home.x - turn.current.x,
+        view.home.y - turn.current.y,
       );
-      home.current[axis] = step.x;
-      home.current.speed[axis] = step.speed;
+      Object.assign(turn.current, view.home);
+      Object.assign(motion, {
+        aim: { ...view.home },
+        drift: { x: 0, y: 0 },
+        speed: 1,
+        rate: step,
+        low: { ...view.home },
+        high: { ...view.home },
+      });
+    } else {
+      const seconds = Math.min(delta, 0.1);
+      for (const axis of ['x', 'y'] as const) {
+        const step = glide(
+          { x: home.current[axis], speed: home.current.speed[axis] },
+          view.home[axis],
+          seconds,
+          GLIDE_SECONDS,
+        );
+        home.current[axis] = step.x;
+        home.current.speed[axis] = step.speed;
+      }
+      first.current ??= heading.target;
+      const pointer =
+        heading.target === first.current
+          ? { x: 0, y: 0 }
+          : skyTurn(heading.target, size);
+      // The pointer's turn, scaled from REACH down to the view's reach, about
+      // the home.
+      const aim = {
+        x: home.current.x + (pointer.x / REACH) * view.reach.x,
+        y: home.current.y + (pointer.y / REACH) * view.reach.y,
+      };
+      Object.assign(motion, {
+        low: {
+          x: home.current.x - view.reach.x,
+          y: home.current.y - view.reach.y,
+        },
+        high: {
+          x: home.current.x + view.reach.x,
+          y: home.current.y + view.reach.y,
+        },
+      });
+      for (const axis of ['x', 'y'] as const)
+        motion.drift[axis] +=
+          DRIFT_SMOOTHING * (aim[axis] - motion.aim[axis] - motion.drift[axis]);
+      const gap = Math.hypot(
+        home.current.x - view.home.x,
+        home.current.y - view.home.y,
+      );
+      // The sky eases after its aim.
+      const speed = skySpeed(gap, heading.speed);
+      Object.assign(motion, { aim, speed });
+      const step = {
+        x: speed * (aim.x - turn.current.x),
+        y: speed * (aim.y - turn.current.y),
+      };
+      turn.current.x += step.x;
+      turn.current.y += step.y;
+      motion.rate = Math.hypot(step.x, step.y);
+      // Text and cards take the side of the view the sky is bound for from the
+      // moment it sets off (skyViews.ts), so they turn over with it rather than
+      // after it.
     }
-    first.current ??= heading.target;
-    const pointer =
-      heading.target === first.current
-        ? { x: 0, y: 0 }
-        : skyTurn(heading.target, size);
-    // The pointer's turn, scaled from REACH down to the view's reach, about
-    // the home.
-    const aim = {
-      x: home.current.x + (pointer.x / REACH) * view.reach.x,
-      y: home.current.y + (pointer.y / REACH) * view.reach.y,
-    };
-    Object.assign(motion, {
-      low: {
-        x: home.current.x - view.reach.x,
-        y: home.current.y - view.reach.y,
-      },
-      high: {
-        x: home.current.x + view.reach.x,
-        y: home.current.y + view.reach.y,
-      },
-    });
-    for (const axis of ['x', 'y'] as const)
-      motion.drift[axis] +=
-        DRIFT_SMOOTHING * (aim[axis] - motion.aim[axis] - motion.drift[axis]);
-    const gap = Math.hypot(
-      home.current.x - view.home.x,
-      home.current.y - view.home.y,
-    );
-    // The sky eases after its aim.
-    const speed = skySpeed(gap, heading.speed);
-    Object.assign(motion, { aim, speed });
-    const step = {
-      x: speed * (aim.x - turn.current.x),
-      y: speed * (aim.y - turn.current.y),
-    };
-    turn.current.x += step.x;
-    turn.current.y += step.y;
-    motion.rate = Math.hypot(step.x, step.y);
-    // Text and cards take the side of the view the sky is bound for from the
-    // moment it sets off (skyViews.ts), so they turn over with it rather than
-    // after it.
     drawnSince.current ??= clock.elapsedTime;
     skyState.settled = clock.elapsedTime - drawnSince.current >= DRAWN_SECONDS;
     // For what must wait on it from outside, as data-scene-ready (the tests).
