@@ -51,7 +51,10 @@ export function whenPageIn(then: () => void): () => void {
 export const markSceneDrawn = () =>
   document.documentElement.setAttribute('data-scene-drawn', '');
 
-export function markSceneReady() {
-  markSceneDrawn();
+// `drawn`: false when the wait for the scene runs out (READY_AT_MOST_MS)
+// before it has drawn, as without WebGL: the page goes on, and its titles
+// show as text until the scene draws, if it ever does (styles/globals.css).
+export function markSceneReady(drawn = true) {
+  if (drawn) markSceneDrawn();
   document.documentElement.setAttribute('data-scene-ready', '');
 }

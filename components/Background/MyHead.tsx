@@ -51,6 +51,7 @@ import { neckExpressions } from './neckPose';
 import { faceInView, idleWait, PAGE_TARGETS } from './pageWatch';
 import { SHOWN_EXPRESSIONS, SHOWN_SIDED } from './shownExpressions';
 import { withSides } from './sideMorphs';
+import { isStill } from './stillScene';
 import { startWander, TIP, TURN, WANDER_TURN } from './wander';
 
 export type Point = { x: number; y: number };
@@ -109,6 +110,9 @@ const EYES = new Vector3(-0.7, 2.7, 29.3);
 // Where the head is heading this frame, in the same pointer units as
 // lookPositionStart, and how fast it eases there. The sky follows it too.
 export const heading = { target: { x: 0, y: 0 }, speed: 0.05 };
+// Where the head looks with reduced motion: straight at the camera. One
+// object, so the sky can tell the head has not moved (Sky.tsx's `first`).
+const STILL_LOOK = { x: 0, y: 0 };
 
 // How quickly the sky follows the head while it looks around on its own: a
 // share each frame, so it trails behind the head's glances.
@@ -279,6 +283,17 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
         ({ lookPosition, rotationSpeed, skySpeed } = ownHeading(step.own));
     }
 
+    // With reduced motion it holds still, facing the camera (stillScene.ts).
+    if (isStill()) {
+      heading.target = STILL_LOOK;
+      heading.speed = 1;
+      Object.assign(turn, { x: 0, y: 0 });
+      const { body, head } = splitLook(turn);
+      rotation.set(body.x, body.y, 0);
+      headTurn.value.set(head.x, head.y, 0);
+      return;
+    }
+
     heading.target = lookPosition;
     heading.speed = skySpeed ?? rotationSpeed;
 
@@ -411,9 +426,14 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
     lastLook.current = { ...look.current };
     blink.current = stepBlink(blink.current, clock.elapsedTime, gazeSpeed);
     const lids = blinkAmount(blink.current, clock.elapsedTime);
+    // With reduced motion the face makes no expression: only the neck's
+    // shapes for its (still) turn, and the blinks.
+    const still = isStill();
     const shown = strengths.current.map((s, k) => {
       const name = expressions[k]!;
-      const made = Math.min(1, s + (face.current[name] ?? 0));
+      const made = still
+        ? (neck[name] ?? 0)
+        : Math.min(1, s + (face.current[name] ?? 0));
       return name === 'blink' ? Math.max(made, lids) : made;
     });
     for (const mesh of [skinRef.current, mouthRef.current, liningRef.current])

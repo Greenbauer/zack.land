@@ -176,7 +176,15 @@ export default function Post({ content, isFirst = false }: PostProps) {
                 or on its own line at the left when the title leaves no room
                 (on a wide screen it heads the column of links). */}
             <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-              <h2>{name}</h2>
+              {/* Focused by a page turn from a key or a scroll arrow
+                  (PageScroller/arrival.ts). */}
+              <h2
+                data-post-title
+                tabIndex={-1}
+                className="rounded-md outline-none outline-offset-4 focus-visible:outline-[color:var(--card-ink)]"
+              >
+                {name}
+              </h2>
               {!!coded && (
                 <CodedBadge coded={coded} className="self-center md:hidden" />
               )}

@@ -11,7 +11,7 @@ import { ForwardedRef, forwardRef } from 'react';
 // when hovered. Hovering or focusing another link turns it the accent too,
 // with no underline.
 export const linkStyle = cva(
-  'relative block w-full border-b border-[color:var(--sky-faint)] px-6 py-3 after:pointer-events-none after:absolute after:inset-x-4 after:inset-y-0 after:rounded-md after:outline after:outline-2 after:outline-transparent group-focus-visible:after:outline-[color:var(--sky-text)] uppercase underline-offset-[6px] transition-[color,text-decoration-color] duration-300 group-hover:text-[color:var(--sky-accent)] group-focus-visible:text-[color:var(--sky-accent)] md:border-none md:py-2',
+  'relative block w-full border-b border-[color:var(--sky-faint)] px-6 py-3 uppercase underline-offset-[6px] transition-[color,text-decoration-color] duration-300 after:pointer-events-none after:absolute after:inset-x-4 after:inset-y-0 after:rounded-md after:outline after:outline-2 after:outline-transparent group-hover:text-[color:var(--sky-accent)] group-focus-visible:text-[color:var(--sky-accent)] group-focus-visible:after:outline-[color:var(--sky-text)] md:border-none md:py-2',
   {
     variants: {
       isActive: {
@@ -54,10 +54,13 @@ type NavLinkProps = {
 
 function NavLink(
   { path, isActive, isFirst, label, isSub, onClick }: NavLinkProps,
-  ref: ForwardedRef<HTMLHeadingElement>,
+  ref: ForwardedRef<HTMLDivElement>,
 ) {
   return (
-    <h5 ref={ref} className={`w-full ${isSub ? 'max-md:!text-lg' : ''}`}>
+    <div
+      ref={ref}
+      className={`text-h5 w-full ${isSub ? 'max-md:!text-lg' : ''}`}
+    >
       <Link
         href={path}
         className="group flex w-full text-center outline-none"
@@ -66,7 +69,7 @@ function NavLink(
       >
         <div className={linkStyle({ isActive, isFirst })}>{label}</div>
       </Link>
-    </h5>
+    </div>
   );
 }
 

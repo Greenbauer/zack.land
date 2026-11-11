@@ -49,23 +49,23 @@ export default function Header() {
   const pathname = usePathname();
   // The links take their colours from the sky behind them; the page title
   // is drawn in 3D like the home page's name (HeaderTitle).
-  const linksRef = useRef<HTMLDivElement | null>(null);
+  const linksRef = useRef<HTMLElement | null>(null);
   useSkyColours(linksRef);
 
   const { headerTitle } = routes.find(({ path }) => path === pathname) || {};
 
   return (
-    <div
+    <header
       data-site-chrome
       className="pointer-events-none fixed inset-x-0 z-40 flex h-20 w-full items-center justify-center px-3 max-md:px-8"
     >
       <div className="container flex w-full items-center justify-between gap-3">
-        <div ref={linksRef} className="flex">
+        <nav ref={linksRef} aria-label="Main" className="flex">
           <DesktopNav routes={routes} pathname={pathname} />
           <MobileNav routes={routes} pathname={pathname} />
-        </div>
+        </nav>
         {!!headerTitle && <HeaderTitle title={headerTitle} />}
       </div>
-    </div>
+    </header>
   );
 }

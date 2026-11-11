@@ -2,7 +2,13 @@ import { Euler, Matrix4, Vector3 } from 'three';
 import { describe, expect, it } from 'vitest';
 
 import { glide, GLIDE_SECONDS } from './headPlace';
-import { forecastTurn, setSkyRotation, skySpeed, skyTurn } from './Sky';
+import {
+  forecastTurn,
+  holdAtHome,
+  setSkyRotation,
+  skySpeed,
+  skyTurn,
+} from './Sky';
 
 // MyHead's pointer units for a pointer at (x, y) on a screen of this size.
 const size = { width: 1200, height: 800 };
@@ -119,5 +125,29 @@ describe('the sky forecast', () => {
   it('stays put while the sky is still', () => {
     const still = { ...now, speed: 0, turn: { x: 0.3, y: -0.2 } };
     expect(forecastTurn(still, 30)).toEqual(still.turn);
+  });
+});
+
+// Finding A7 (docs/audit/2026-11.md): with reduced motion the sky does not
+// glide from one view's resting place to the next; it is there at once.
+describe('the sky with reduced motion', () => {
+  it("reaches a new view's resting place in one frame, from anywhere", () => {
+    const viewHome = { x: 0.8, y: -1.57 };
+    for (const from of [
+      { x: -0.8, y: 2.36 },
+      { x: 0, y: 0 },
+      { x: 1.2, y: -3 },
+    ]) {
+      const home = { ...from, speed: { x: 0.4, y: -0.2 } };
+      const turn = { ...from };
+      holdAtHome(home, turn, viewHome);
+      expect(turn).toEqual(viewHome);
+      expect(home).toEqual({ ...viewHome, speed: { x: 0, y: 0 } });
+    }
+  });
+
+  it('where with motion one frame goes only part of the way', () => {
+    const step = glide({ x: -0.8, speed: 0 }, 0.8, 1 / 60, GLIDE_SECONDS);
+    expect(step.x).toBeLessThan(-0.7);
   });
 });
