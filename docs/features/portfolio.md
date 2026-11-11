@@ -8,6 +8,8 @@ The header's Portfolio dropdown and the two portfolio pages whose content lives 
 - page: `app/(root)/portfolio/web-apps/page.tsx`
 - page: `app/(root)/portfolio/miscellaneous/page.tsx`
 - source: `app/(root)/portfolio/page.tsx`
+- source: `app/(root)/portfolio/pages.ts`
+- source: `components/PortfolioPage.tsx`
 - source: `app/(root)/portfolio/web-apps/**`
 - source: `app/(root)/portfolio/miscellaneous/**`
 - source: `components/Header/NavDropdown.tsx`
@@ -29,7 +31,8 @@ The header's Portfolio dropdown and the two portfolio pages whose content lives 
 
 ## Reach
 
-- Portfolio in the header opens a small pane of the cards' frosted glass under it, offering Web Apps and Miscellaneous in the header links' own colours (the current page in the accent, underlined, the other in the text colour); it slides down 3rem into place, starting to fade in as it moves, and closes on a choice, a click outside or Escape, and Portfolio stays underlined on both pages (`components/Header/NavDropdown.tsx`).
+- Portfolio in the header opens a small pane of the cards' frosted glass under it, offering Web Apps and Miscellaneous in the header links' own colours (the current page in the accent, underlined, the other in the text colour); it slides down 3rem into place, starting to fade in as it moves, and closes on a choice, a click outside or Escape, and Portfolio stays underlined on both pages.
+- Closed, the pane stays in the page, hidden, so its two links are in every page's served HTML for search engines; hidden, it has no size, so the scene gives it no glass and no lens layer, and it is no Tab stop (`e2e/seo.e2e.ts::takes no glass and no Tab stop until it opens`) (`components/Header/NavDropdown.tsx`).
 - While it is open everything under it blurs (6px, fading over 0.3s), the 3D scene and the page alike, the whole contact form included, as the scene does behind a focused form field; the header links and the site footer stay sharp, and a click on the blur only closes the pane.
 - The pane sits sharp on top with its own frost and lenses (the photo glass's filter, on a layer just before it, `data-glass-over`), sliding and fading in with it.
 - In the phone menu Portfolio is a button: it turns the menu to a second view listing the two, with a way back (`components/Header/MobileNav/index.tsx`; the menu slides down from above as it opens, fading in on the way, `animate-menu-in` in `tailwind.config.js`), and stays underlined on both pages; the menu's glass is tinted deeper than a card's (`data-glass-deep`, `components/Background/glass.ts`) so its square lenses show plainly, and it covers the footer's glass.
@@ -83,9 +86,9 @@ The header's Portfolio dropdown and the two portfolio pages whose content lives 
 
 ## Verify
 
-Roles: none; every page is public. Content: the `Contents.tsx` beside each page and the images under `public/`.
+Roles: none; every page is public. Content: the `Contents.tsx` beside each page and the images under `public/`. Both pages render `components/PortfolioPage.tsx` with their `Contents`.
 
-1. On any page at 1440 by 900, click Portfolio in the header: a glass pane offers Web Apps and Miscellaneous, each opening its page with Portfolio underlined; Escape or a click outside closes it. Open `/portfolio`: it lands on Web Apps.
+1. On any page at 1440 by 900, click Portfolio in the header: a glass pane offers Web Apps and Miscellaneous, each opening its page with Portfolio underlined; Escape or a click outside closes it. Open `/portfolio`: it lands on Web Apps, by a permanent (308) redirect.
 2. Open `/portfolio/web-apps` at 1280 by 720: a post per entry, first "This website", each with its media and description; no card scrolls inside, and Banner Eyewear's text ends on a whole line with an ellipsis and More right under it, which shows the whole text in place of the images; one scroll moves to the next post; on the first post only Scroll's down arrow shows, clicking it moves one post, and on the last post only its up arrow shows.
 3. On `/portfolio/web-apps` at 1440 by 900, one notch of the mouse wheel lands squarely on the next post with no pause, and one swipe on a trackpad moves exactly one post. Three quick notches down turn one page, then another about 1.4 seconds later; a notch up right after a notch down turns straight back, the card coming back from the right; paging up the cards slide right to left; two cards never show over each other.
 4. Open `/portfolio/miscellaneous` at 375 by 812: only the down scroll arrow shows, centred in the footer, which shows nothing else, and tapping it moves to the next post; each post fits on one screen and one swipe moves to the next; More on Smart Bed shows its whole description in place of its images, the page scrolls through the rest of it before the next swipe turns the page, and Less brings its images back.

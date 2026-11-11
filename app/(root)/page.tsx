@@ -1,14 +1,8 @@
-import { Metadata } from 'next';
-
 import NavHint from '@/components/Home/NavHint';
 import Title from '@/components/Home/Title';
 import TitleBox from '@/components/Home/TitleBox';
 
-export const metadata: Metadata = {
-  title: 'Home - Zack Greenbauer',
-  description: "Zack Greenbauer's Portfolio and Sandbox",
-};
-
+// Its title is the site's own (the root layout's default).
 export default function Page() {
   return (
     // Below lg the head fills the middle of the screen, so the title sits at
