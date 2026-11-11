@@ -51,8 +51,12 @@ export default function NavDropdown({
         aria-hidden
         className="pointer-events-none fixed [backdrop-filter:var(--photo-lens,none)]"
       />
+      {/* Kept in the page while closed (hidden), so its links are in the
+          served HTML for search engines, not only while it is open. A hidden
+          pane has no size, so the scene gives it no glass (glassCards.ts). */}
       <PopoverPanel
         transition
+        unmount={false}
         data-glass
         data-glass-over
         className="absolute left-0 top-full mt-4 flex min-w-60 flex-col rounded-3xl py-4 transition-[transform,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] data-[closed]:opacity-0 data-[leave]:duration-200 data-[leave]:ease-in data-[enter]:[transition-delay:0s,0.1s] motion-safe:data-[closed]:-translate-y-12"
