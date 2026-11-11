@@ -11,6 +11,9 @@
 //
 //   node scripts/build-page-files.mjs
 //
+// It imports TypeScript (shownExpressions.ts, pageFiles.ts) through Node's own
+// type stripping, so it needs Node 22.18 or later.
+//
 // pageFiles.test.ts fails when a file here is out of date with its source.
 
 import fs from 'node:fs';
