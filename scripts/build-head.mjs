@@ -1,4 +1,4 @@
-// Builds public/background/geometry/head.bin: the 3D head (head/myHead.obj),
+// Builds scripts/head/head.bin: the 3D head (head/myHead.obj),
 // smoothed by one subdivision, joined seamlessly to an anatomical bust (neck,
 // shoulders and chest) from MakeHuman's CC0 base mesh, as one welded surface.
 // The file format is described in components/Background/headGeometry.ts.
@@ -44,7 +44,7 @@ import { writeHead } from './head/write.mjs';
 const SOURCE = path.join(import.meta.dirname, 'head/myHead.obj');
 const OUTPUT = path.join(
   import.meta.dirname,
-  '../public/background/geometry/head.bin',
+  'head/head.bin', // the page's copy: build-page-files.mjs
 );
 
 const MAKEHUMAN = 'makehumancommunity/makehuman';
