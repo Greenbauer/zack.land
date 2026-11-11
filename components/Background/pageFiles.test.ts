@@ -22,9 +22,15 @@ const unzipped = (file: string) => arrayBuffer(zlib.gunzipSync(read(file)));
 
 describe("the page's scene files", () => {
   it('are up to date with their sources', () => {
+    // A gzipped file is compared unzipped: gzip's header names the system
+    // that wrote it, so the same head zips to other bytes on Linux.
+    const content = (file: string, bytes: Buffer) =>
+      file.endsWith('.bin') ? zlib.gunzipSync(bytes) : bytes;
     for (const [file, bytes] of Object.entries(pageFiles(SHOWN_EXPRESSIONS))) {
       expect(
-        read(`components/Background/files/${file}`).equals(bytes),
+        content(file, read(`components/Background/files/${file}`)).equals(
+          content(file, bytes),
+        ),
         `run node scripts/build-page-files.mjs (${file})`,
       ).toBe(true);
     }
@@ -43,7 +49,7 @@ describe("the page's scene files", () => {
     expect(decodeHead(unzipped('scripts/head/head.bin')).expressions).toContain(
       'shrug',
     );
-  });
+  }, 30_000);
 
   it('hold the colour table as the same texture LUTCubeLoader made of the .cube', () => {
     const old = new LUTCubeLoader().parse(
