@@ -31,12 +31,18 @@ Roles: none; the page is public. Mail: the QAE container points the five SMTP va
 2. Type a name, a valid email and a message without leaving the message box: Submit enables. An address whose top-level domain is longer than four letters, such as `ada@example.online`, counts as valid: Submit enables and no "invalid" shows under Email.
 3. Type `not-an-email` in Email and leave the field: "invalid" shows under it only once the field is left.
 4. Click into any field: the head and sky behind the form blur, while the form, the header links, CONTACT ME and the footer stay sharp; click outside the form and the blur clears.
-5. With the SMTP variables pointing at a sink, fill the three fields and press Submit: "Your message has been sent" replaces Submit.
+5. With the SMTP variables pointing at a sink, fill the three fields and press Submit: while it sends a spinner takes the button's place (the button stays in the page, with focus, and a screen reader hears "Sending your message"), then "Your message has been sent" replaces Submit and focus moves to that message.
 6. With no SMTP variables set, fill the three fields and press Submit: "An error has occurred" shows and the server logs the missing variables.
 7. Post to `/api/email` directly with the email `not-an-email`, or with no message: the route answers 400 and sends nothing.
+8. By keyboard only: Tab reaches Name, Email and Message in order, each showing a ring in the card's ink; clicking a label puts the caret in its field. A screen reader names each field by its label, Email offers the browser's saved addresses, and a field left empty, or holding only spaces, reads as invalid with "required" as its description, and Submit stays disabled.
 
 - `cypress/e2e/contact-form.cy.ts::enables Submit once valid, without blurring the last field`
 - `cypress/e2e/contact-form.cy.ts::shows a field error only after blur, not while typing`
+- `e2e/a11y-small.e2e.ts::names each field by its label, with its type and autofill`
+- `e2e/a11y-small.e2e.ts::ties an error to its field, and counts only spaces as empty`
+- `e2e/a11y-small.e2e.ts::says it is sending, then sent, keeping focus`
+- `e2e/a11y-small.e2e.ts::says it is sending, then refused, keeping focus`
+- `e2e/a11y-small.e2e.ts::sends once and waits for the answer`
 - `app/api/email/route.test.ts::mails a valid submission`
 - `app/api/email/route.test.ts::mails a submission from %s, whose top-level domain is over four letters`
 - `app/api/email/route.test.ts::escapes markup typed into the name and message`
@@ -57,7 +63,7 @@ Roles: none; the page is public. Mail: the QAE container points the five SMTP va
 - `.github/workflows/tests.yml` runs `npm test` (the `route.test.ts` and `recaptcha.test.ts` cases above) on every pull request and every push to `master`. No workflow runs `contact-form.cy.ts` (the workflow's only Cypress run is the portfolio's `more-less.cy.ts`), so its two cases run only by hand.
 - Off the live site reCAPTCHA is optional: with no `RECAPTCHA_SECRET_KEY` every submission is accepted, and with no `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` the form sends no token. On the live site (`VERCEL_ENV` is `production`) a missing secret refuses every submission with a 400, so the spam gate cannot turn off unnoticed; the log line names `not-configured`. The public key is inlined at build, so setting it needs a redeploy (README).
 - reCAPTCHA's script (about 350 KB) is not on the page as it opens: the form's first focus adds it (`loadRecaptcha` in `utils/recaptcha-client.ts`), and a submit waits for it, up to 10 seconds, then sends without a token (which the live site refuses). So the network tab shows no `recaptcha/api.js` until a field is clicked.
-- The route re-checks every field the browser checks (required, the email pattern, 100 characters for Name and Email, 1000 for Message) from the one set of rules in `utils/contact-fields.ts`; change a limit there, not in either caller. A value the browser lets through but the route refuses shows as "An error has occurred".
+- The browser counts a field of only spaces as empty, as the route does (it trims before it checks), so such a name shows "required" and never reaches the route. The route re-checks every field the browser checks (required, the email pattern, 100 characters for Name and Email, 1000 for Message) from the one set of rules in `utils/contact-fields.ts`; change a limit there, not in either caller. A value the browser lets through but the route refuses shows as "An error has occurred".
 - Every typed value is HTML-escaped before it goes into the mail, and the sender's name travels as a nodemailer address object, so markup or a `<`/`,` in Name cannot add markup or an address.
 - On the live site (`VERCEL_ENV` is `production`) the SMTP transport sets `requireTLS`: it will not sign in or send unless the server encrypts the connection with STARTTLS, which Amazon SES offers on port 587. Everywhere else encryption is used when offered, since the QAE container's sink offers none.
 - The SMTP transport checks the server's certificate. Production and preview send through Amazon SES (`email-smtp.us-east-1.amazonaws.com`), whose certificate is publicly trusted; a local SMTP host with a self-signed certificate now fails to send, so point local runs at a sink without STARTTLS, as the QAE container does.

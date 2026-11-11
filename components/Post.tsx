@@ -281,7 +281,8 @@ function cardStyle(isExpanded: boolean, isOnTop: boolean): CSSProperties {
 // text, and shows only when the text is cut short or open; on a phone it
 // heads the column of links, and in a phone's row of More and links it sits
 // centred on the row at its left, the links at its right under the end of
-// the text.
+// the text. Its text is about 20px tall, so it reaches 12px past it above
+// and below (an empty ::after) for a finger to hit, moving nothing.
 function MoreButton({
   isExpanded,
   onToggle,
@@ -294,7 +295,7 @@ function MoreButton({
   return (
     <button
       type="button"
-      className={`shrink-0 self-start ${className} text-sm uppercase tracking-wider text-[color:var(--card-ink)] underline decoration-[color:var(--card-underline)] underline-offset-4 transition-[text-decoration-color] hover:decoration-[color:var(--card-accent)]`}
+      className={`relative shrink-0 self-start after:absolute after:-inset-x-2 after:-inset-y-3 after:content-[''] ${className} text-sm uppercase tracking-wider text-[color:var(--card-ink)] underline decoration-[color:var(--card-underline)] underline-offset-4 transition-[text-decoration-color] hover:decoration-[color:var(--card-accent)]`}
       onClick={onToggle}
       aria-expanded={isExpanded}
     >

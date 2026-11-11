@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 
 import Button from '@/components/Button';
@@ -17,13 +18,15 @@ const fields1: Field[] = [
   {
     label: 'Name',
     name: 'name',
-    type: 'input',
+    type: 'text',
+    autoComplete: 'name',
     isRequired: true,
   },
   {
     label: 'Email',
     name: 'email',
     type: 'email',
+    autoComplete: 'email',
     isRequired: true,
   },
 ];
@@ -57,6 +60,8 @@ export default function Form() {
     // gated on touchedFields (see FormFields), so it only shows after blur.
   } = useForm<ContactFormData>({ mode: 'onChange' });
 
+  const status = useRef<HTMLDivElement>(null);
+
   const handleOnSubmit = async (data: ContactFormData) => {
     try {
       const recaptchaToken = await getRecaptchaToken('contact');
@@ -72,15 +77,28 @@ export default function Form() {
     trigger();
   };
 
+  // Once sent, Submit goes: focus moves to the message that says so, rather
+  // than dropping to the page.
+  useEffect(() => {
+    if (isSubmitSuccessful) status.current?.focus();
+  }, [isSubmitSuccessful]);
+
   // While any field has focus, the scene behind the form blurs
   // (components/Background/focusBlur.ts); the form itself stays sharp. The
   // first focus loads reCAPTCHA, which the submit needs.
   return (
     <form
       data-focus-blur
+      noValidate
       className="-mt-2 flex gap-1 md:gap-3"
       onFocus={() => void loadRecaptcha()}
-      onSubmit={handleSubmit(handleOnSubmit)}
+      onSubmit={(event) => {
+        // Pressed again while sending (the button stays in place, only
+        // marked disabled, so focus stays on it): not submitted again, which
+        // would end that second submission as a success at once.
+        if (isSubmitting) event.preventDefault();
+        else handleSubmit(handleOnSubmit)(event);
+      }}
     >
       <div className="flex flex-wrap gap-x-6">
         <FormFields
@@ -96,7 +114,7 @@ export default function Form() {
         errors={errors}
         touchedFields={touchedFields}
       />
-      <div className="flex flex-col items-center gap-3">
+      <div className="flex flex-col items-center">
         {!isSubmitSuccessful && (
           <Button
             type="submit"
@@ -106,9 +124,21 @@ export default function Form() {
             Submit
           </Button>
         )}
-        {isSubmitted && (
-          <div className="flex w-full justify-center text-center">
-            {isSubmitSuccessful ? (
+        {/* Always in the page, so a screen reader announces what lands in
+            it: sending, then sent or the error. It takes the old gap under
+            the button only while it shows a result, so empty it moves
+            nothing. */}
+        <div
+          ref={status}
+          role="status"
+          tabIndex={-1}
+          className="flex w-full justify-center text-center outline-none [button+&:has(small)]:mt-3"
+        >
+          {isSubmitting && (
+            <span className="sr-only">Sending your message</span>
+          )}
+          {isSubmitted &&
+            (isSubmitSuccessful ? (
               <small className="text-status-success">
                 Your message has been sent
               </small>
@@ -116,9 +146,8 @@ export default function Form() {
               <small className="text-status-error">
                 An error has occurred{' '}
               </small>
-            )}
-          </div>
-        )}
+            ))}
+        </div>
       </div>
     </form>
   );

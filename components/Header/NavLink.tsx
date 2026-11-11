@@ -2,12 +2,16 @@ import { cva } from 'class-variance-authority';
 import Link from 'next/link';
 import { ForwardedRef, forwardRef } from 'react';
 
+// Focused by the keyboard, a link (or the button that opens a menu) shows a
+// ring in the text colour, which reads on the current page's link too,
+// already in the accent. It is drawn just inside the link's padding (an
+// ::after), since the first link starts past the window's left edge.
 // Only the current page's link is underlined, like a link in running text:
 // the accent, with the underline in the underline colour, turning the accent
 // when hovered. Hovering or focusing another link turns it the accent too,
 // with no underline.
 export const linkStyle = cva(
-  'block w-full border-b border-[color:var(--sky-faint)] px-6 py-3 uppercase underline-offset-[6px] transition-[color,text-decoration-color] duration-300 group-hover:text-[color:var(--sky-accent)] group-focus-visible:text-[color:var(--sky-accent)] md:border-none md:py-2',
+  'relative block w-full border-b border-[color:var(--sky-faint)] px-6 py-3 after:pointer-events-none after:absolute after:inset-x-4 after:inset-y-0 after:rounded-md after:outline after:outline-2 after:outline-transparent group-focus-visible:after:outline-[color:var(--sky-text)] uppercase underline-offset-[6px] transition-[color,text-decoration-color] duration-300 group-hover:text-[color:var(--sky-accent)] group-focus-visible:text-[color:var(--sky-accent)] md:border-none md:py-2',
   {
     variants: {
       isActive: {

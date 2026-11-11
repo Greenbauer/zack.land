@@ -2,9 +2,11 @@ import { cva } from 'class-variance-authority';
 
 const arrowStyle = cva('absolute left-0 top-1/2 opacity-0 ease-in-out', {
   variants: {
+    // With reduced motion they hold still: the first shown, the second
+    // not.
     intent: {
-      first: 'animate-arrow-l',
-      last: 'animate-arrow-l',
+      first: 'motion-safe:animate-arrow-l motion-reduce:opacity-100',
+      last: 'motion-safe:animate-arrow-l motion-reduce:hidden',
     },
   },
 });
@@ -22,8 +24,8 @@ const arrowLineStyle = cva(
 );
 
 // Two chevrons pointing left, each fading in and sliding left in turn, over
-// and over. Turned, they point (and slide) any way: ScrollArrows turns them
-// up and down.
+// and over (one, still, with reduced motion). Turned, they point (and
+// slide) any way: ScrollArrows turns them up and down.
 export function Chevrons() {
   return (
     <>
