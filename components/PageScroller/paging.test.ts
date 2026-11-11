@@ -230,13 +230,21 @@ describe('turning pages with the wheel', () => {
 
 describe('turning pages with the keyboard', () => {
   it('pages with the arrows, page keys and space', () => {
-    expect(keyDirection('ArrowDown', false)).toBe(1);
-    expect(keyDirection('PageDown', false)).toBe(1);
-    expect(keyDirection(' ', false)).toBe(1);
-    expect(keyDirection('ArrowUp', false)).toBe(-1);
-    expect(keyDirection('PageUp', false)).toBe(-1);
-    expect(keyDirection(' ', true)).toBe(-1);
-    expect(keyDirection('a', false)).toBe(0);
+    expect(keyDirection('ArrowDown', false, true)).toBe(1);
+    expect(keyDirection('PageDown', false, true)).toBe(1);
+    expect(keyDirection(' ', false, true)).toBe(1);
+    expect(keyDirection('ArrowUp', false, true)).toBe(-1);
+    expect(keyDirection('PageUp', false, true)).toBe(-1);
+    expect(keyDirection(' ', true, true)).toBe(-1);
+    expect(keyDirection('a', false, true)).toBe(0);
+  });
+
+  it('leaves space to a focused button or link', () => {
+    expect(keyDirection(' ', false, false)).toBe(0);
+    expect(keyDirection(' ', true, false)).toBe(0);
+    // The arrows and page keys still turn the page from there.
+    expect(keyDirection('ArrowDown', false, false)).toBe(1);
+    expect(keyDirection('PageUp', false, false)).toBe(-1);
   });
 });
 

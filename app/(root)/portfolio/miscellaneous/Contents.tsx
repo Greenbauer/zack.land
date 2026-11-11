@@ -24,28 +24,28 @@ const Contents: Content[] = [
     mediaSources: [
       {
         key: '/miscellaneous/bed-1.jpg',
-        alt: 'Smart Bed',
+        alt: 'The walnut smart bed floating off the floor, its LED strips glowing white',
         type: 'img',
         width: 700,
         height: 700,
       },
       {
         key: '/miscellaneous/bed-2.jpg',
-        alt: 'Smart Bed',
+        alt: 'The smart bed at night, its LED strips glowing red underneath',
         type: 'img',
         width: 700,
         height: 700,
       },
       {
         key: '/miscellaneous/bed-3.jpg',
-        alt: 'Smart Bed',
+        alt: "The smart bed's pieces laid out on the floor before assembly",
         type: 'img',
         width: 700,
         height: 700,
       },
       {
         key: '/miscellaneous/bed-4.jpg',
-        alt: 'Smart Bed',
+        alt: "Inside the smart bed's base: circuit boards and wiring between plywood ribs",
         type: 'img',
         width: 1440,
         height: 1440,
@@ -68,14 +68,14 @@ const Contents: Content[] = [
     mediaSources: [
       {
         key: '/miscellaneous/parametric-chair-1.jpg',
-        alt: 'Parametric Lounge Chair',
+        alt: 'The parametric lounge chair from the front, with white cushions and a fur throw',
         type: 'img',
         width: 700,
         height: 700,
       },
       {
         key: '/miscellaneous/parametric-chair-2.jpg',
-        alt: 'Parametric Lounge Chair',
+        alt: 'The lounge chair from the side, showing its interlocking plywood ribs',
         type: 'img',
         width: 700,
         height: 700,
@@ -106,19 +106,19 @@ const Contents: Content[] = [
     mediaSources: [
       {
         key: 'CnYKbnzrn4k',
-        alt: 'Buoyancy Robot',
+        alt: 'Buoyancy Sorting Robot video',
         type: 'YouTube',
       },
       {
         key: '/miscellaneous/gears.mp4',
-        alt: 'Buoyancy Robot',
+        alt: "The sorting robot's clear acrylic gears turning, driven by a servo",
         type: 'video',
         width: 600,
         height: 600,
       },
       {
         key: '/miscellaneous/ballSortB.jpg',
-        alt: 'Buoyancy Sorting Robot',
+        alt: "The sorting robot's Arduino and wiring on a clear acrylic base",
         type: 'img',
         width: 960,
         height: 960,
@@ -138,28 +138,28 @@ const Contents: Content[] = [
     mediaSources: [
       {
         key: '/miscellaneous/shofarA.jpg',
-        alt: 'Shofar Mount',
+        alt: 'A shofar held upright on a wall by the black acrylic mount',
         type: 'img',
         width: 960,
         height: 1285,
       },
       {
         key: '/miscellaneous/shofarB.jpg',
-        alt: 'Shofar Mount',
+        alt: 'The mounted shofar from another angle',
         type: 'img',
         width: 960,
         height: 1285,
       },
       {
         key: '/miscellaneous/shofarC.jpg',
-        alt: 'Shofar Mount',
+        alt: 'The black laser-cut acrylic mount on its own',
         type: 'img',
         width: 960,
         height: 1285,
       },
       {
         key: '/miscellaneous/shofarD.jpg',
-        alt: 'Shofar Mount',
+        alt: 'A 3D model of the shofar on its mount, in Cinema 4D',
         type: 'img',
         width: 960,
         height: 1285,
