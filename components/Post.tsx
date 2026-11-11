@@ -18,7 +18,9 @@ import useHeldCard, { PostPlace } from './useHeldCard';
 import useMoreMotion from './useMoreMotion';
 import usePhoneWhole from './usePhoneWhole';
 
-type PostProps = { content: Content };
+// `isFirst`: the page's first post, in view as the page opens, whose
+// pictures load first.
+type PostProps = { content: Content; isFirst?: boolean };
 
 // Where a post's card waits, by where its post is (PostPlace): in place for
 // the post in view, wholly off the window's right side for posts above it
@@ -49,7 +51,7 @@ const CONTENT_IN =
 const CONTENT_OUT =
   'opacity-0 [transition:opacity_0.8s_linear] motion-reduce:[transition:opacity_0.4s_ease-in]';
 
-export default function Post({ content }: PostProps) {
+export default function Post({ content, isFirst = false }: PostProps) {
   const {
     name,
     mediaSources,
@@ -150,6 +152,7 @@ export default function Post({ content }: PostProps) {
         <PostCollage
           mediaSources={mediaSources}
           isShown={isCurrent}
+          isEager={isFirst}
           style={{ marginLeft: 'var(--head-clear, 0px)' }}
           className={`-mb-2 min-h-0 flex-1 ${isOpen || isTooShort ? 'hidden' : 'block'}`}
         />
@@ -173,7 +176,15 @@ export default function Post({ content }: PostProps) {
                 or on its own line at the left when the title leaves no room
                 (on a wide screen it heads the column of links). */}
             <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-              <h2>{name}</h2>
+              {/* Focused by a page turn from a key or a scroll arrow
+                  (PageScroller/arrival.ts). */}
+              <h2
+                data-post-title
+                tabIndex={-1}
+                className="rounded-md outline-none outline-offset-4 focus-visible:outline-[color:var(--card-ink)]"
+              >
+                {name}
+              </h2>
               {!!coded && (
                 <CodedBadge coded={coded} className="self-center md:hidden" />
               )}

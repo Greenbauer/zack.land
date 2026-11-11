@@ -77,7 +77,7 @@ test.describe('the 404 page', () => {
       const measure = () =>
         page.evaluate(() =>
           [
-            document.querySelector('h3')!,
+            document.querySelector('h1')!,
             [
               ...document.querySelectorAll(
                 '[data-site-chrome] a, [data-site-chrome] button',
@@ -105,7 +105,7 @@ test.describe('the 404 page', () => {
         'visibility',
         'hidden',
       );
-      await expect(page.locator('h3')).toHaveCSS('filter', 'none');
+      await expect(page.locator('h1')).toHaveCSS('filter', 'none');
       for (const part of await page.locator('[data-site-chrome]').all())
         await expect(part).toHaveCSS('filter', 'none');
       const playing = await sharpness(page, parts);

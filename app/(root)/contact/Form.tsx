@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 
 import Button from '@/components/Button';
 import FormFields, { Field } from '@/components/FormFields';
-import { getRecaptchaToken } from '@/utils/recaptcha-client';
+import { getRecaptchaToken, loadRecaptcha } from '@/utils/recaptcha-client';
 import { post } from '@/utils/request';
 
 export type ContactFormData = {
@@ -84,12 +84,14 @@ export default function Form() {
   }, [isSubmitSuccessful]);
 
   // While any field has focus, the scene behind the form blurs
-  // (components/Background/focusBlur.ts); the form itself stays sharp.
+  // (components/Background/focusBlur.ts); the form itself stays sharp. The
+  // first focus loads reCAPTCHA, which the submit needs.
   return (
     <form
       data-focus-blur
       noValidate
       className="-mt-2 flex gap-1 md:gap-3"
+      onFocus={() => void loadRecaptcha()}
       onSubmit={(event) => {
         // Pressed again while sending (the button stays in place, only
         // marked disabled, so focus stays on it): not submitted again, which

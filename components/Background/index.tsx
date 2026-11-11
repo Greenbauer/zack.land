@@ -23,6 +23,7 @@ import {
   slowFrames,
   useDrawsInSoftware,
 } from './quality';
+import SceneBoundary from './SceneBoundary';
 import {
   frameSettler,
   markSceneDrawn,
@@ -49,7 +50,7 @@ export default function Background() {
   // without WebGL it never draws (sceneReady.ts, intro.ts).
   useEffect(() => {
     const wait = setTimeout(() => {
-      markSceneReady();
+      markSceneReady(false);
       endIntro();
     }, READY_AT_MOST_MS);
     return () => clearTimeout(wait);
@@ -94,38 +95,45 @@ export default function Background() {
           in the colour grading's targets (Grading.tsx), and the canvas only
           receives its last full-screen pass. */}
         {isSceneOn && (
-          <Canvas
-            className="bg-[#6864a8]"
-            dpr={renderQuality(width, height, software).dpr}
-            gl={{ antialias: false }}
+          <SceneBoundary
+            onFail={() => {
+              markSceneReady(false);
+              endIntro();
+            }}
           >
-            <Suspense fallback={null}>
-              <ambientLight intensity={Math.PI} />
-              <spotLight
-                intensity={0.5 * Math.PI}
-                decay={0}
-                angle={0.2}
-                penumbra={1}
-                position={[250, 750, 500]}
+            <Canvas
+              className="bg-[#6864a8]"
+              dpr={renderQuality(width, height, software).dpr}
+              gl={{ antialias: false }}
+            >
+              <Suspense fallback={null}>
+                <ambientLight intensity={Math.PI} />
+                <spotLight
+                  intensity={0.5 * Math.PI}
+                  decay={0}
+                  angle={0.2}
+                  penumbra={1}
+                  position={[250, 750, 500]}
+                />
+                <HeadFraming />
+                <MyHead
+                  lookPositionStart={lookPositionStart}
+                  pointer={mousePosition}
+                />
+                <Sky />
+                <Grading />
+                <BackdropSampler />
+                <TitleName />
+                <SceneReady />
+                <SkyEnvironment />
+              </Suspense>
+              <PerspectiveCamera
+                makeDefault
+                position={[...CAMERA_HOME]}
+                onUpdate={handleCameraUpdate}
               />
-              <HeadFraming />
-              <MyHead
-                lookPositionStart={lookPositionStart}
-                pointer={mousePosition}
-              />
-              <Sky />
-              <Grading />
-              <BackdropSampler />
-              <TitleName />
-              <SceneReady />
-              <SkyEnvironment />
-            </Suspense>
-            <PerspectiveCamera
-              makeDefault
-              position={[...CAMERA_HOME]}
-              onUpdate={handleCameraUpdate}
-            />
-          </Canvas>
+            </Canvas>
+          </SceneBoundary>
         )}
       </div>
     </>

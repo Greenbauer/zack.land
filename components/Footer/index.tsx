@@ -16,7 +16,7 @@ const recaptchaEnabled = !!process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 
 function DefaultText() {
   return (
-    <h6>
+    <div className="text-h6">
       <SkyWords text="I can make almost anything and would love to help develop your idea." />{' '}
       <SkyWord>
         <Link
@@ -27,7 +27,7 @@ function DefaultText() {
         </Link>
         .
       </SkyWord>
-    </h6>
+    </div>
   );
 }
 
@@ -37,9 +37,9 @@ function ContactPageText() {
   // bare fragment would lay the two out side by side.
   return (
     <div>
-      <h6>
+      <div className="text-h6">
         <SkyWords text="Please fill out this form. I will respond as soon as I can." />
-      </h6>
+      </div>
       {recaptchaEnabled && (
         <small className="mt-4 block text-[color:var(--sky-text)]">
           This site is protected by reCAPTCHA and the Google{' '}
@@ -139,7 +139,7 @@ export default function Footer() {
         ref={textRef}
         className={`order-first flex flex-1 items-center justify-end gap-4 text-center md:order-last md:text-right ${
           phase === 'arrow' ? 'justify-center' : ''
-        } [&_h6]:text-[color:var(--sky-text)]`}
+        } [&_.text-h6]:text-[color:var(--sky-text)]`}
       >
         <div
           ref={slotRef}

@@ -27,20 +27,24 @@ type MobileNavButtonProps = {
   isActive: boolean;
 };
 
+// A real button, named Menu (its open state is aria-expanded, which the
+// popover sets), in the tab order, with a ring when focused by the keyboard.
 function MobileNavButton(
   { isActive, ...props }: MobileNavButtonProps,
-  ref: ForwardedRef<HTMLDivElement>,
+  ref: ForwardedRef<HTMLButtonElement>,
 ) {
   return (
-    <div
+    <button
       ref={ref}
-      className="relative z-10 mt-4 inline-block size-10 cursor-pointer transition-transform duration-500 ease-in-out"
+      type="button"
+      aria-label="Menu"
+      className="relative z-10 mt-4 inline-block size-10 cursor-pointer rounded-md outline-none outline-offset-4 transition-transform duration-500 ease-in-out focus-visible:outline-[color:var(--sky-text)]"
       {...props}
     >
       <span className={lineStyle({ isActive1: isActive })} />
       <span className={lineStyle({ isActive2: isActive })} />
       <span className={lineStyle({ isActive3: isActive })} />
-    </div>
+    </button>
   );
 }
 
