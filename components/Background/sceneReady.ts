@@ -27,6 +27,23 @@ export function frameSettler(frames = SMOOTH_FRAMES, quick = SMOOTH_SECONDS) {
 export const markPageIn = () =>
   document.documentElement.setAttribute('data-page-in', '');
 
+// Calls `then` once the page is in (data-page-in), at once if it already is.
+// Returns what stops waiting.
+export function whenPageIn(then: () => void): () => void {
+  const html = document.documentElement;
+  if (html.hasAttribute('data-page-in')) {
+    then();
+    return () => {};
+  }
+  const watch = new MutationObserver(() => {
+    if (!html.hasAttribute('data-page-in')) return;
+    watch.disconnect();
+    then();
+  });
+  watch.observe(html, { attributes: true, attributeFilter: ['data-page-in'] });
+  return () => watch.disconnect();
+}
+
 // When the scene has drawn its first frame, the 3D titles with it: until
 // then, where WebGL is drawn in software, the page's own titles show as text
 // (data-scene-drawn on <html>, styles/globals.css), as they do if the dark
