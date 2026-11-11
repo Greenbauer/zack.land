@@ -7,6 +7,9 @@ import { expect, Page, test } from '@playwright/test';
 // e2e/more-less.e2e.ts`.
 
 test.use({ viewport: { width: 390, height: 844 } });
+// Every post of a page in one test, about 12 seconds each at rest: past the
+// suite's 90 seconds on a CI runner that draws the scene in software.
+test.describe.configure({ timeout: 300_000 });
 
 // Chrome only, as the Cypress spec it replaces was. In WebKit (Playwright's,
 // with or without phone emulation) More then Less leaves a post's tiles 12
