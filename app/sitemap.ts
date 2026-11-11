@@ -1,18 +1,22 @@
 import { MetadataRoute } from 'next';
 
-const SITE_URL = 'https://www.zack.land';
+import { PORTFOLIO_PAGES } from '@/app/(root)/portfolio/pages';
+import { SITE_URL } from '@/utils/site';
 
-const routes = [
-  '',
-  '/portfolio/web-apps',
-  '/portfolio/miscellaneous',
-  '/contact',
-];
-
+// Every page, and for each portfolio page the photos its posts show (their
+// videos and YouTube films are left out: a sitemap's video entry needs a
+// title, a description and a thumbnail of its own).
 export default function sitemap(): MetadataRoute.Sitemap {
-  return routes.map((route) => ({
-    url: `${SITE_URL}${route}`,
-    changeFrequency: 'monthly',
-    priority: route === '' ? 1 : 0.7,
-  }));
+  return [
+    { url: SITE_URL },
+    ...PORTFOLIO_PAGES.map(({ path, contents }) => ({
+      url: `${SITE_URL}${path}`,
+      images: contents.flatMap(({ mediaSources = [] }) =>
+        mediaSources
+          .filter(({ type }) => type === 'img')
+          .map(({ key }) => `${SITE_URL}${key}`),
+      ),
+    })),
+    { url: `${SITE_URL}/contact` },
+  ];
 }
