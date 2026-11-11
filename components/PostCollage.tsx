@@ -5,6 +5,7 @@ import { flushSync } from 'react-dom';
 
 import { MediaSource } from '@/types';
 
+import { whenPageIn } from './Background/sceneReady';
 import { collage, cropFor, Tile } from './collageLayout';
 import Media from './Media';
 import { melt } from './MediaMelt';
@@ -33,7 +34,9 @@ export default function PostCollage({
 }: {
   mediaSources: MediaSource[];
   isShown: boolean;
-  // Its pictures load at once (Media's isEager): the page's first post.
+  // Its pictures load at once and first: the page's first post. Every other
+  // post draws its pictures only once the page is in (data-page-in), so
+  // they don't download under the dark screen alongside the scene's files.
   isEager?: boolean;
   className?: string;
   style?: CSSProperties;
@@ -107,9 +110,15 @@ export default function PostCollage({
   // tiles' own space, which on a short phone is too small a strip to count
   // as in view.)
   const isLaidOut = size.width > 0 && size.height > 0;
+  const [isPageIn, setIsPageIn] = useState(false);
+  useEffect(() => whenPageIn(() => setIsPageIn(true)), []);
+  const isDrawn = isEager || isPageIn;
+  // The melt runs over the pictures there are, so it waits for them: a post
+  // turned to as the camera comes out of the mouth, before the page is in,
+  // melts in once they are drawn.
   useEffect(() => {
     const box = boxRef.current;
-    if (!box || !isLaidOut) return;
+    if (!box || !isLaidOut || !isDrawn) return;
     for (const tile of box.querySelectorAll<HTMLElement>('.collage-tile')) {
       tile.style.setProperty(
         '--wait',
@@ -118,7 +127,7 @@ export default function PostCollage({
     }
     box.toggleAttribute('data-shown', isShown);
     melt(box, isShown ? 1 : -1);
-  }, [isLaidOut, isShown]);
+  }, [isLaidOut, isShown, isDrawn]);
 
   const { sources, tiles } = layOut(mediaSources, size.width, size.height);
 
@@ -163,7 +172,7 @@ export default function PostCollage({
               // A press outside the playing YouTube video stops only it.
               paused={!isShown || (isVideo && isDismissed)}
               shownWidth={laidOut.width}
-              isEager={isEager}
+              load={isEager ? 'first' : isDrawn ? 'now' : 'held'}
             />
           </div>
         );

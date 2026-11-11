@@ -19,12 +19,24 @@ type MediaProps = {
   // How wide it shows, in CSS pixels, so a phone's screen gets a copy the
   // size of its tile rather than the widest (the picture's `sizes`).
   shownWidth?: number;
-  // Asked for at once, ahead of the rest: its post is the one in view as
-  // the page opens. Other posts' pictures wait for the page to be in
-  // (data-page-in), so they don't download under the dark screen alongside
-  // the scene's files, and are there by the time their post is paged to.
-  isEager?: boolean;
+  // When a picture loads (PostCollage decides): 'first', at once and ahead
+  // of the rest (the post in view as the page opens); 'now', at once; or
+  // 'held', not drawn at all yet (a later post, until the page is in).
+  load?: Load;
 };
+
+type Load = 'first' | 'now' | 'held';
+
+// next/image's loading for each Load. Not lazy for 'held': Safari's engine
+// fetched a later post's large tiles under the dark screen all the same.
+// Not next/image's `preload` for 'first': its <link> is made with the
+// tile's first width, which the footer can still change, and the picture
+// was then fetched twice.
+const LOADING = {
+  first: { loading: 'eager', fetchPriority: 'high' },
+  now: { loading: 'eager' },
+  held: null,
+} as const;
 
 // One image or video, filling its box (cropped to cover it): a silent loop,
 // which plays while its post is in view, or a YouTube video, which tells
@@ -36,10 +48,10 @@ export default function Media({
   onPress,
   paused,
   shownWidth,
-  isEager = false,
+  load = 'now',
 }: MediaProps) {
   const { key, alt, type, width = 800, height = 800 } = mediaSource;
-  const loading = useLoading(isEager);
+  const loading = LOADING[load];
   const sizes = useSizes(shownWidth);
 
   switch (type) {
@@ -81,21 +93,6 @@ function useSizes(shownWidth?: number) {
   const [widest, setWidest] = useState(shownWidth ?? 0);
   if (shownWidth && shownWidth > widest) setWidest(shownWidth);
   return widest ? `${Math.max(widest, shownWidth ?? 0)}px` : undefined;
-}
-
-// How a picture loads: at once and first when `isEager`; else not at all
-// (null: it isn't drawn) until the page is in, then at once. (Not lazily
-// meanwhile: Safari's engine fetched a later post's large tiles under the
-// dark screen all the same. Not next/image's `preload`: its <link> is made
-// with the tile's first width, which the footer can still change, and the
-// picture was then fetched twice.)
-function useLoading(isEager: boolean) {
-  const [isPageIn, setIsPageIn] = useState(false);
-  useEffect(() => {
-    if (!isEager) return whenPageIn(() => setIsPageIn(true));
-  }, [isEager]);
-  if (isEager) return { loading: 'eager', fetchPriority: 'high' } as const;
-  return isPageIn ? ({ loading: 'eager' } as const) : null;
 }
 
 // A silent loop. It shows its poster and loads nothing more until it plays:
@@ -157,9 +154,9 @@ function YouTubeVideo({
   paused = false,
   sizes,
   loading,
-}: Omit<MediaProps, 'isEager' | 'shownWidth'> & {
+}: Omit<MediaProps, 'load' | 'shownWidth'> & {
   sizes?: string;
-  loading: ReturnType<typeof useLoading>;
+  loading: (typeof LOADING)[Load];
 }) {
   const { key, alt } = mediaSource;
   const player = useRef<YouTubePlayer | null>(null);

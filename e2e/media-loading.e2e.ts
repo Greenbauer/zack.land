@@ -146,4 +146,33 @@ test.describe("a post's pictures and loops", () => {
       .poll(() => loop.evaluate((video: HTMLVideoElement) => video.paused))
       .toBe(true);
   });
+
+  // The dark screen lets the pointer through as the camera starts out of
+  // the mouth (data-intro), seconds before the page is in: a post turned to
+  // then has no pictures drawn yet, and must still come in once they are.
+  test('a post turned to before the page is in still comes in', async ({
+    page,
+  }) => {
+    await page.goto('/portfolio/miscellaneous');
+    await page.waitForFunction(
+      () => document.documentElement.hasAttribute('data-intro'),
+      null,
+      { timeout: 60_000, polling: 50 },
+    );
+    const flies = await page.evaluate(
+      () => !document.documentElement.hasAttribute('data-page-in'),
+    );
+    // Where the scene is drawn in software the intro doesn't fly: the page
+    // is in as the dark screen fades, and there is no such moment.
+    test.skip(!flies, 'the intro did not fly');
+    await page.evaluate(() =>
+      dispatchEvent(new CustomEvent('page-glide', { detail: 1 })),
+    );
+    const post = page.locator('.collage').nth(1);
+    await expect(post).toHaveAttribute('data-shown', '');
+    for (const tile of await post.locator('.collage-tile').all()) {
+      await expect(tile.locator('img')).toHaveCount(1);
+      await expect(tile).toHaveCSS('opacity', '1');
+    }
+  });
 });
