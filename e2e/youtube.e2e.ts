@@ -409,7 +409,7 @@ test.describe('a YouTube video on a phone', () => {
     await play.click();
     await expect(box).toHaveAttribute('data-playing');
     await page.waitForTimeout(1200);
-    await page.locator('[id^="headlessui-menu-button"]').click();
+    await page.getByRole('button', { name: 'Menu', exact: true }).click();
     for (const part of await page.locator('[data-site-chrome]').all())
       await expect(part).toHaveCSS('filter', 'none', { timeout: 400 });
     // Its height, which its slide in does not change.

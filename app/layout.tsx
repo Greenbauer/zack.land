@@ -1,30 +1,27 @@
 import '@/styles/globals.css';
 
 import { Analytics } from '@vercel/analytics/react';
-import { Metadata } from 'next';
+import { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
 import { ReactNode } from 'react';
 
-const SITE_URL = 'https://www.zack.land';
-const SITE_DESCRIPTION = "Zack Greenbauer's Portfolio and Sandbox";
+import head from '@/theme/head.json';
+import {
+  OWNER_NAME,
+  SITE_DESCRIPTION,
+  SITE_IMAGE,
+  SITE_NAME,
+  SITE_URL,
+  structuredData,
+} from '@/utils/site';
 
-const SOCIAL_LINKS = [
-  'https://github.com/Greenbauer',
-  'https://www.linkedin.com/in/greenbauer',
-  'https://x.com/greenbauer',
-];
-
-const personJsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'Person',
-  name: 'Zack Greenbauer',
-  url: SITE_URL,
-  description: SITE_DESCRIPTION,
-  sameAs: SOCIAL_LINKS,
-};
-
+// Each page names only itself (its `title`), and the template puts the
+// owner's name after it; the home page has the name alone. The share tags
+// take the page's title when they set none, and their address is the page's
+// own (`./`, resolved per route as the canonical tag is).
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
+  title: { default: OWNER_NAME, template: `%s - ${OWNER_NAME}` },
   description: SITE_DESCRIPTION,
   keywords: [
     'Zack Greenbauer',
@@ -35,21 +32,20 @@ export const metadata: Metadata = {
     'creative developer',
     'designer',
   ],
-  authors: [{ name: 'Zack Greenbauer', url: SITE_URL }],
-  creator: 'Zack Greenbauer',
+  authors: [{ name: OWNER_NAME, url: SITE_URL }],
+  creator: OWNER_NAME,
   alternates: {
     canonical: './',
   },
   openGraph: {
-    title: 'Zack Greenbauer',
     description: SITE_DESCRIPTION,
-    url: SITE_URL,
-    siteName: 'zack.land',
+    url: './',
+    siteName: SITE_NAME,
     locale: 'en_US',
     type: 'website',
     images: [
       {
-        url: '/brand/og-image.png',
+        url: SITE_IMAGE,
         width: 1200,
         height: 630,
         alt: 'Zack Greenbauer — Portfolio and Sandbox',
@@ -59,15 +55,17 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     creator: '@greenbauer',
-    title: 'Zack Greenbauer',
     description: SITE_DESCRIPTION,
-    images: ['/brand/og-image.png'],
+    images: [SITE_IMAGE],
   },
   icons: {
     icon: '/favicon.ico',
     apple: '/brand/apple-touch-icon.png',
   },
 };
+
+// The phone browser's toolbar takes the page's own dark (theme/head.json).
+export const viewport: Viewport = { themeColor: head.dark };
 
 // The two typefaces, served from the site itself (app/fonts, their Latin
 // subsets as Google Fonts serves them; Kanit under the SIL Open Font Licence,
@@ -99,7 +97,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
       >
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData()) }}
         />
         {children}
         <Analytics />

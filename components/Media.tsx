@@ -5,7 +5,10 @@ import { useEffect, useRef, useState } from 'react';
 import { HiPlay } from 'react-icons/hi2';
 import YouTube, { YouTubePlayer } from 'react-youtube';
 
+import { whenPageIn } from '@/components/Background/sceneReady';
 import { MediaSource } from '@/types';
+
+import { posterOf } from './videoPoster';
 
 type MediaProps = {
   mediaSource: MediaSource;
@@ -13,18 +16,43 @@ type MediaProps = {
   // Its play button was pressed, which lifts whatever stopped it (`paused`).
   onPress?: () => void;
   paused?: boolean;
+  // How wide it shows, in CSS pixels, so a phone's screen gets a copy the
+  // size of its tile rather than the widest (the picture's `sizes`).
+  shownWidth?: number;
+  // When a picture loads (PostCollage decides): 'first', at once and ahead
+  // of the rest (the post in view as the page opens); 'now', at once; or
+  // 'held', not drawn at all yet (a later post, until the page is in).
+  load?: Load;
 };
 
-// One image or video, filling its box (cropped to cover it): a silent loop, or
-// a YouTube video, which tells `onPlaying` when it starts and stops, and
-// pauses while `paused` (its post has left the window).
+type Load = 'first' | 'now' | 'held';
+
+// next/image's loading for each Load. Not lazy for 'held': Safari's engine
+// fetched a later post's large tiles under the dark screen all the same.
+// Not next/image's `preload` for 'first': its <link> is made with the
+// tile's first width, which the footer can still change, and the picture
+// was then fetched twice.
+const LOADING = {
+  first: { loading: 'eager', fetchPriority: 'high' },
+  now: { loading: 'eager' },
+  held: null,
+} as const;
+
+// One image or video, filling its box (cropped to cover it): a silent loop,
+// which plays while its post is in view, or a YouTube video, which tells
+// `onPlaying` when it starts and stops; either pauses while `paused` (its
+// post has left the window).
 export default function Media({
   mediaSource,
   onPlaying,
   onPress,
   paused,
+  shownWidth,
+  load = 'now',
 }: MediaProps) {
   const { key, alt, type, width = 800, height = 800 } = mediaSource;
+  const loading = LOADING[load];
+  const sizes = useSizes(shownWidth);
 
   switch (type) {
     case 'YouTube':
@@ -34,34 +62,76 @@ export default function Media({
           onPlaying={onPlaying}
           onPress={onPress}
           paused={paused}
+          sizes={sizes}
+          loading={loading}
         />
       );
     case 'video':
-      return (
-        <video
-          src={key}
-          aria-label={alt}
-          width={width}
-          height={height}
-          className="size-full object-cover"
-          autoPlay
-          loop
-          muted
-          playsInline
-        />
-      );
+      return <LoopVideo mediaSource={mediaSource} paused={paused} />;
     default:
       return (
-        <Image
-          src={key}
-          alt={alt}
-          width={width}
-          height={height}
-          className="size-full object-cover"
-          preload
-        />
+        loading && (
+          <Image
+            src={key}
+            alt={alt}
+            width={width}
+            height={height}
+            sizes={sizes}
+            className="size-full object-cover"
+            {...loading}
+          />
+        )
       );
   }
+}
+
+// The `sizes` for a picture shown `shownWidth` wide: its widest so far. A
+// post's first layout can be a passing one (the footer shrinking under a
+// phone's arrow), and a `sizes` that shrank after it fetched the picture
+// again, smaller.
+function useSizes(shownWidth?: number) {
+  const [widest, setWidest] = useState(shownWidth ?? 0);
+  if (shownWidth && shownWidth > widest) setWidest(shownWidth);
+  return widest ? `${Math.max(widest, shownWidth ?? 0)}px` : undefined;
+}
+
+// A silent loop. It shows its poster and loads nothing more until it plays:
+// once its post is in view and the page is in (data-page-in), so under the
+// dark screen it doesn't download alongside the scene's files. Its melt
+// draws the poster until it has a frame (MediaMelt.tsx).
+function LoopVideo({
+  mediaSource,
+  paused = false,
+}: Pick<MediaProps, 'mediaSource' | 'paused'>) {
+  const { key, alt, width = 800, height = 800 } = mediaSource;
+  const video = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    const loop = video.current;
+    if (!loop) return;
+    if (paused) {
+      loop.pause();
+      return;
+    }
+    // A pause before it starts turns down play()'s promise.
+    return whenPageIn(() => void loop.play().catch(() => {}));
+  }, [paused]);
+
+  return (
+    <video
+      ref={video}
+      src={key}
+      poster={posterOf(key)}
+      aria-label={alt}
+      width={width}
+      height={height}
+      className="size-full object-cover"
+      preload="none"
+      loop
+      muted
+      playsInline
+    />
+  );
 }
 
 // YouTube's largest thumbnail every video has is 480 by 360: the video between
@@ -82,7 +152,12 @@ function YouTubeVideo({
   onPlaying,
   onPress,
   paused = false,
-}: MediaProps) {
+  sizes,
+  loading,
+}: Omit<MediaProps, 'load' | 'shownWidth'> & {
+  sizes?: string;
+  loading: (typeof LOADING)[Load];
+}) {
   const { key, alt } = mediaSource;
   const player = useRef<YouTubePlayer | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -105,13 +180,16 @@ function YouTubeVideo({
 
   return (
     <>
-      <Image
-        src={`https://i.ytimg.com/vi/${key}/hqdefault.jpg`}
-        alt={alt}
-        {...THUMBNAIL}
-        className="size-full object-cover"
-        preload
-      />
+      {loading && (
+        <Image
+          src={`https://i.ytimg.com/vi/${key}/hqdefault.jpg`}
+          alt={alt}
+          {...THUMBNAIL}
+          sizes={sizes}
+          className="size-full object-cover"
+          {...loading}
+        />
+      )}
       {!isStarting && (
         <button
           type="button"

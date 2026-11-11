@@ -64,6 +64,10 @@
 }
 
 @layer base {
+  /* Each heading's look is also a class (.text-h3 to .text-h6), so a heading
+     can be the level the page's outline needs, and a line that is not a
+     heading (a header link, the footer's line) can keep the look: one h1 per
+     page, header and footer free of headings. */
   h1 {
     background: var(--head-dark) linear-gradient(
       80deg,
@@ -82,22 +86,22 @@
     @apply text-2xl lg:text-4xl;
   }
 
-  h3 {
+  h3, .text-h3 {
     @apply text-head-light tracking-wide uppercase font-sans font-normal;
     @apply text-2xl xl:text-3xl;
   }
 
-  h4 {
+  h4, .text-h4 {
     @apply text-head-light/60 tracking-wide uppercase font-sans font-normal;
     @apply text-xl md:text-3xl;
   }
 
-  h5 {
+  h5, .text-h5 {
     @apply text-head-light/60 tracking-wide uppercase font-sans font-normal;
     @apply text-2xl md:text-lg;
   }
 
-  h6 {
+  h6, .text-h6 {
     @apply text-head-light tracking-wide font-thin leading-8 font-display;
     @apply text-xl md:text-2xl;
   }
@@ -155,6 +159,9 @@
   input {
     @apply text-lg font-sans font-normal; 
     @apply outline-none rounded-md;
+    /* A ring in the card's ink while focused (outline-none's transparent
+       outline, coloured): the field shows nothing else. */
+    @apply focus-visible:outline-[color:var(--card-ink)];
     @apply bg-head-dark/40 text-head-light/80 placeholder-head-light/40;
     @apply px-3 py-2 shadow-none;
   }
@@ -162,6 +169,9 @@
   textarea {
     @apply text-lg font-sans font-normal;
     @apply outline-none rounded-md;
+    /* A ring in the card's ink while focused (outline-none's transparent
+       outline, coloured): the field shows nothing else. */
+    @apply focus-visible:outline-[color:var(--card-ink)];
     @apply bg-head-dark/40 text-head-light/80 placeholder-head-light/40;
     @apply px-3 py-2 shadow-none;
   }
@@ -190,7 +200,7 @@
 
   /* Text and fields on a glass card take the card's text colour (above), at
      full strength. */
-  :where(section, [data-glass]) :is(h2, h3, h6) {
+  :where(section, [data-glass]) :is(h2, h3, h6, .text-h3, .text-h6) {
     color: var(--card-ink);
   }
 
@@ -472,9 +482,21 @@ html:not([data-page-in]):has([data-scene])
    components/Background/index.tsx) the scene loads only after the page has
    moved in, so until it draws its first frame the titles it draws in 3D (the
    home page's name, a page's title in the header) show as text instead,
-   moving with the page (--title-fallback, else the sky's text colour). */
-html[data-software]:not([data-scene-drawn]) [data-scene-title] {
+   moving with the page (--title-fallback, else the sky's text colour). So
+   do they on any page that has moved in with no scene drawn: without WebGL
+   it never draws, and the page moves in when the wait for it runs out
+   (sceneReady.ts). */
+html:is([data-software], [data-page-in]):not([data-scene-drawn])
+  [data-scene-title] {
   color: var(--title-fallback, var(--sky-text)) !important;
+}
+/* In a forced-colours mode (Windows high contrast) the browser would paint
+   the see-through title text in the system's text colour, over the scene's
+   3D letters: once those are drawn, the text stays see-through. */
+@media (forced-colors: active) {
+  html[data-scene-drawn] [data-scene-title] {
+    forced-color-adjust: none;
+  }
 }
 
 /* While the phone menu is open (components/Header/MobileNav), its glass pane

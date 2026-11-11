@@ -187,7 +187,7 @@ test.describe('a phone coming back to a page', () => {
 
   test('its images hold still once at rest', async ({ page }) => {
     await atRest(page);
-    const menu = page.locator('[id^="headlessui-menu-button"]');
+    const menu = page.getByRole('button', { name: 'Menu', exact: true });
     await menu.click();
     await page.locator('.mobile-menu a', { hasText: 'Contact' }).click();
     await expect(page).toHaveURL(/contact/);

@@ -18,7 +18,9 @@ import useHeldCard, { PostPlace } from './useHeldCard';
 import useMoreMotion from './useMoreMotion';
 import usePhoneWhole from './usePhoneWhole';
 
-type PostProps = { content: Content };
+// `isFirst`: the page's first post, in view as the page opens, whose
+// pictures load first.
+type PostProps = { content: Content; isFirst?: boolean };
 
 // Where a post's card waits, by where its post is (PostPlace): in place for
 // the post in view, wholly off the window's right side for posts above it
@@ -49,7 +51,7 @@ const CONTENT_IN =
 const CONTENT_OUT =
   'opacity-0 [transition:opacity_0.8s_linear] motion-reduce:[transition:opacity_0.4s_ease-in]';
 
-export default function Post({ content }: PostProps) {
+export default function Post({ content, isFirst = false }: PostProps) {
   const {
     name,
     mediaSources,
@@ -150,6 +152,7 @@ export default function Post({ content }: PostProps) {
         <PostCollage
           mediaSources={mediaSources}
           isShown={isCurrent}
+          isEager={isFirst}
           style={{ marginLeft: 'var(--head-clear, 0px)' }}
           className={`-mb-2 min-h-0 flex-1 ${isOpen || isTooShort ? 'hidden' : 'block'}`}
         />
@@ -173,7 +176,15 @@ export default function Post({ content }: PostProps) {
                 or on its own line at the left when the title leaves no room
                 (on a wide screen it heads the column of links). */}
             <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-              <h2>{name}</h2>
+              {/* Focused by a page turn from a key or a scroll arrow
+                  (PageScroller/arrival.ts). */}
+              <h2
+                data-post-title
+                tabIndex={-1}
+                className="rounded-md outline-none outline-offset-4 focus-visible:outline-[color:var(--card-ink)]"
+              >
+                {name}
+              </h2>
               {!!coded && (
                 <CodedBadge coded={coded} className="self-center md:hidden" />
               )}
@@ -278,7 +289,8 @@ function cardStyle(isExpanded: boolean, isOnTop: boolean): CSSProperties {
 // text, and shows only when the text is cut short or open; on a phone it
 // heads the column of links, and in a phone's row of More and links it sits
 // centred on the row at its left, the links at its right under the end of
-// the text.
+// the text. Its text is about 20px tall, so it reaches 12px past it above
+// and below (an empty ::after) for a finger to hit, moving nothing.
 function MoreButton({
   isExpanded,
   onToggle,
@@ -291,7 +303,7 @@ function MoreButton({
   return (
     <button
       type="button"
-      className={`shrink-0 self-start ${className} text-sm uppercase tracking-wider text-[color:var(--card-ink)] underline decoration-[color:var(--card-underline)] underline-offset-4 transition-[text-decoration-color] hover:decoration-[color:var(--card-accent)]`}
+      className={`relative shrink-0 self-start after:absolute after:-inset-x-2 after:-inset-y-3 after:content-[''] ${className} text-sm uppercase tracking-wider text-[color:var(--card-ink)] underline decoration-[color:var(--card-underline)] underline-offset-4 transition-[text-decoration-color] hover:decoration-[color:var(--card-accent)]`}
       onClick={onToggle}
       aria-expanded={isExpanded}
     >

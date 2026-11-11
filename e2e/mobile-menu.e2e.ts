@@ -14,7 +14,7 @@ const sceneUp = (page: Page) =>
 
 const openMenu = async (page: Page) => {
   await sceneUp(page);
-  await page.locator('[id^="headlessui-menu-button"]').tap();
+  await page.getByRole('button', { name: 'Menu', exact: true }).tap();
   await expect(page.locator('.mobile-menu.fixed')).toBeVisible();
   // Where the slide in ends, so the tap finds its link.
   await page.waitForFunction(() =>
@@ -237,7 +237,7 @@ test('the menu button fades the menu away and reopens it on its links', async ({
   await page.locator('.mobile-menu button', { hasText: 'Portfolio' }).tap();
   await expect(page.locator('.mobile-menu a')).toHaveCount(2);
   await record(page);
-  await page.locator('[id^="headlessui-menu-button"]').tap();
+  await page.getByRole('button', { name: 'Menu', exact: true }).tap();
   await expect(page.locator('.mobile-menu.hidden')).toBeAttached();
   expect((await steps(page)).some(({ menu }) => menu === 'closing')).toBe(true);
 
@@ -265,7 +265,7 @@ test('the menu fades evenly, leaving no tint for a sudden end', async ({
         });
       }),
   );
-  await page.locator('[id^="headlessui-menu-button"]').tap();
+  await page.getByRole('button', { name: 'Menu', exact: true }).tap();
   expect(await halfway).toBeLessThan(0.5);
 });
 

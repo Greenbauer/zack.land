@@ -55,7 +55,9 @@ export default function NotFoundVideo() {
       <MediaMelt />
       <EdgeCard className="relative z-20 motion-safe:animate-card-in">
         <article className="flex flex-col gap-4 motion-safe:animate-content-in md:gap-6">
-          <h3>404 - Page not found</h3>
+          <h1 className="text-h3 !bg-transparent !bg-none">
+            404 - Page not found
+          </h1>
           {/* 16:9, as wide as the card, or narrower where the space between
               the header's and footer's fades (less the title) is the
               limit, so it stays 16:9 rather than being cut shorter. */}

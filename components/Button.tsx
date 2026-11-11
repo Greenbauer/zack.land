@@ -41,13 +41,6 @@ export default function Button({
   className,
   ...props
 }: ButtonProps) {
-  if (showSpinner)
-    return (
-      <div className="p-1.5">
-        <Spinner size="sm" />
-      </div>
-    );
-
   if (!!href) {
     return (
       <a
@@ -64,6 +57,17 @@ export default function Button({
       </a>
     );
   }
+
+  // While its action runs, the button shows only a spinner in its place,
+  // but stays in the page (marked disabled, not removed) so focus stays on
+  // it; the form ignores a second press while it sends (Form.tsx).
+  if (showSpinner)
+    return (
+      <button {...props} aria-disabled className="p-1.5">
+        <Spinner size="sm" />
+        <span className="sr-only">{children}</span>
+      </button>
+    );
 
   return (
     <button

@@ -9,11 +9,11 @@ import {
 export type Field = {
   label: string;
   name: string;
-  type: string;
+  type: 'text' | 'email' | 'textarea';
+  // The browser's autofill hint (`autocomplete`), for a field it can fill.
+  autoComplete?: string;
   isRequired: boolean;
 };
-
-type Validation = (_: string) => RegExp | undefined;
 
 type FormFieldsProps = {
   fields: Field[];
@@ -22,56 +22,62 @@ type FormFieldsProps = {
   touchedFields: Partial<Record<string, boolean>>;
 };
 
+// Each field's label names it (`htmlFor`, its id), and its error, shown once
+// the field has been left, is tied to it (`aria-describedby`) and marks it
+// invalid. A field of only spaces counts as empty, as the server reads it
+// (app/api/email/route.ts trims before it checks).
 export default function FormFields({
   fields,
   register,
   errors,
   touchedFields,
 }: FormFieldsProps) {
-  const validation: Validation = (type: string) => {
-    if (type === 'email') {
-      return EMAIL_PATTERN;
-    }
-
-    return undefined;
-  };
-
   return (
     <>
       {fields.map((field) => {
-        const { name, label, type, isRequired } = field;
+        const { name, label, type, autoComplete, isRequired } = field;
+        const id = `contact-${name}`;
+        const errorId = `${id}-error`;
+        const error = touchedFields[name] ? errors[name]?.type : undefined;
+        const message =
+          error === 'pattern'
+            ? 'invalid'
+            : error === 'required' || error === 'validate'
+              ? 'required'
+              : undefined;
+        const rules = {
+          required: isRequired,
+          validate: (value: string) => !isRequired || value.trim().length > 0,
+          maxLength:
+            type === 'textarea' ? TEXTAREA_MAX_LENGTH : INPUT_MAX_LENGTH,
+          pattern: type === 'email' ? EMAIL_PATTERN : undefined,
+        };
+        const shared = {
+          id,
+          'aria-required': isRequired,
+          'aria-invalid': !!message,
+          'aria-describedby': message ? errorId : undefined,
+          ...register(name, rules),
+        };
 
         return (
           <div className="flex flex-1 flex-col" key={name}>
-            <label htmlFor={name} className="mb-2">
+            <label htmlFor={id} className="mb-2">
               {label}
             </label>
             {type === 'textarea' ? (
-              <textarea
-                rows={6}
-                {...register(name, {
-                  required: isRequired,
-                  maxLength: TEXTAREA_MAX_LENGTH,
-                })}
-              />
+              <textarea rows={6} {...shared} />
             ) : (
               <input
-                {...register(name, {
-                  required: isRequired,
-                  pattern: validation(type),
-                  maxLength: INPUT_MAX_LENGTH,
-                })}
+                type={type}
+                autoComplete={autoComplete}
+                {...shared}
                 size={10}
               />
             )}
             <div className="flex h-6 w-full justify-end text-right">
-              <small className="py-1 text-status-error">
-                {touchedFields[name] &&
-                  errors[name]?.type === 'required' &&
-                  'required'}
-                {touchedFields[name] &&
-                  errors[name]?.type === 'pattern' &&
-                  'invalid'}
+              <small id={errorId} className="py-1 text-status-error">
+                {message}
               </small>
             </div>
           </div>

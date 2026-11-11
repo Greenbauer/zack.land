@@ -1,6 +1,6 @@
 'use client';
 
-import { Environment, PerspectiveCamera } from '@react-three/drei';
+import { PerspectiveCamera } from '@react-three/drei';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { PerspectiveCamera as PerspectiveCameraType } from 'three';
@@ -23,6 +23,7 @@ import {
   slowFrames,
   useDrawsInSoftware,
 } from './quality';
+import SceneBoundary from './SceneBoundary';
 import {
   frameSettler,
   markSceneDrawn,
@@ -30,6 +31,7 @@ import {
   READY_AT_MOST_MS,
 } from './sceneReady';
 import Sky from './Sky';
+import SkyEnvironment from './SkyEnvironment';
 import TitleName from './TitleName';
 
 export default function Background() {
@@ -48,7 +50,7 @@ export default function Background() {
   // without WebGL it never draws (sceneReady.ts, intro.ts).
   useEffect(() => {
     const wait = setTimeout(() => {
-      markSceneReady();
+      markSceneReady(false);
       endIntro();
     }, READY_AT_MOST_MS);
     return () => clearTimeout(wait);
@@ -93,43 +95,45 @@ export default function Background() {
           in the colour grading's targets (Grading.tsx), and the canvas only
           receives its last full-screen pass. */}
         {isSceneOn && (
-          <Canvas
-            className="bg-[#6864a8]"
-            dpr={renderQuality(width, height, software).dpr}
-            gl={{ antialias: false }}
+          <SceneBoundary
+            onFail={() => {
+              markSceneReady(false);
+              endIntro();
+            }}
           >
-            <Suspense fallback={null}>
-              <ambientLight intensity={Math.PI} />
-              <spotLight
-                intensity={0.5 * Math.PI}
-                decay={0}
-                angle={0.2}
-                penumbra={1}
-                position={[250, 750, 500]}
+            <Canvas
+              className="bg-[#6864a8]"
+              dpr={renderQuality(width, height, software).dpr}
+              gl={{ antialias: false }}
+            >
+              <Suspense fallback={null}>
+                <ambientLight intensity={Math.PI} />
+                <spotLight
+                  intensity={0.5 * Math.PI}
+                  decay={0}
+                  angle={0.2}
+                  penumbra={1}
+                  position={[250, 750, 500]}
+                />
+                <HeadFraming />
+                <MyHead
+                  lookPositionStart={lookPositionStart}
+                  pointer={mousePosition}
+                />
+                <Sky />
+                <Grading />
+                <BackdropSampler />
+                <TitleName />
+                <SceneReady />
+                <SkyEnvironment />
+              </Suspense>
+              <PerspectiveCamera
+                makeDefault
+                position={[...CAMERA_HOME]}
+                onUpdate={handleCameraUpdate}
               />
-              <HeadFraming />
-              <MyHead
-                lookPositionStart={lookPositionStart}
-                pointer={mousePosition}
-              />
-              <Sky />
-              <Grading />
-              <BackdropSampler />
-              <TitleName />
-              <SceneReady />
-              <Environment
-                files="/background/environment/kiara_1_dawn_1k.hdr"
-                background
-                backgroundBlurriness={0.6}
-                backgroundIntensity={0.45}
-              />
-            </Suspense>
-            <PerspectiveCamera
-              makeDefault
-              position={[...CAMERA_HOME]}
-              onUpdate={handleCameraUpdate}
-            />
-          </Canvas>
+            </Canvas>
+          </SceneBoundary>
         )}
       </div>
     </>
