@@ -121,6 +121,28 @@ export const skySpeed = (gap: number, headSpeed: number) =>
 // Where the view's home has glided to, and how fast it is moving.
 type Home = { x: number; y: number; speed: { x: number; y: number } };
 
+// With reduced motion (stillScene.ts) the sky rests at its view's resting
+// place (`viewHome`), reached in this one frame from wherever it was, and
+// the forecast (`motion`) says it stays there. `home` and `turn` are the
+// sky's own, updated in place.
+export function holdAtHome(
+  home: Home,
+  turn: { x: number; y: number },
+  viewHome: { x: number; y: number },
+) {
+  Object.assign(home, viewHome, { speed: { x: 0, y: 0 } });
+  const step = Math.hypot(viewHome.x - turn.x, viewHome.y - turn.y);
+  Object.assign(turn, viewHome);
+  Object.assign(motion, {
+    aim: { ...viewHome },
+    drift: { x: 0, y: 0 },
+    speed: 1,
+    rate: step,
+    low: { ...viewHome },
+    high: { ...viewHome },
+  });
+}
+
 export default function Sky() {
   const turn = useRef(motion.turn);
   // The view on screen's station, checked a few times a second, and the home
@@ -172,20 +194,7 @@ export default function Sky() {
     // With reduced motion it rests where the view sets it, and jumps there
     // when the view changes (stillScene.ts).
     if (isStill()) {
-      Object.assign(home.current, view.home, { speed: { x: 0, y: 0 } });
-      const step = Math.hypot(
-        view.home.x - turn.current.x,
-        view.home.y - turn.current.y,
-      );
-      Object.assign(turn.current, view.home);
-      Object.assign(motion, {
-        aim: { ...view.home },
-        drift: { x: 0, y: 0 },
-        speed: 1,
-        rate: step,
-        low: { ...view.home },
-        high: { ...view.home },
-      });
+      holdAtHome(home.current, turn.current, view.home);
     } else {
       const seconds = Math.min(delta, 0.1);
       for (const axis of ['x', 'y'] as const) {
