@@ -308,6 +308,32 @@ test.describe('a YouTube video', () => {
     });
   });
 
+  // Finding A13 (docs/audit/2026-11.md): pressed from the keyboard, the play
+  // button goes, so focus moves into the player rather than to the page, and
+  // back to the button as it stops; the faded card's links are out of reach
+  // meanwhile.
+  test('played by keyboard, focus goes into the player and back as it stops', async ({
+    page,
+  }) => {
+    const { box, play } = await atVideoPost(page);
+    const card = page.locator('[data-post]').nth(2).locator('section');
+    await play.focus();
+    await page.keyboard.press('Enter');
+    await expect(box).toHaveAttribute('data-playing');
+    await expect(box.locator('iframe')).toBeFocused();
+    await expect(card).toHaveJSProperty('inert', true);
+    await page.evaluate(() =>
+      (window as never as { yt: { pause: () => void } }).yt.pause(),
+    );
+    await expect(box).not.toHaveAttribute('data-playing');
+    await expect(play).toBeFocused();
+    await expect(card).toHaveJSProperty('inert', false);
+    // Played again, the player is already there, hidden: focus still goes in.
+    await page.keyboard.press('Enter');
+    await expect(box).toHaveAttribute('data-playing');
+    await expect(box.locator('iframe')).toBeFocused();
+  });
+
   test('a pause as short as a seek does not stop it', async ({ page }) => {
     const { box, play } = await atVideoPost(page);
     await play.click();
