@@ -5,8 +5,9 @@
 // muscles pull: the eyes and brows stay still. Built with
 // scripts/head/faceRig.mjs; distances in head.bin units (about 1.7 mm).
 
-import { bump, crease, lips, minus, smoothstep } from './faceRig.mjs';
-import { add } from './mesh.mjs';
+import { crease, lips } from './faceRig.mjs';
+import { bump, smoothstep } from './falloff.mjs';
+import { add, minus } from './mesh.mjs';
 import {
   evenOut,
   finishMouth,

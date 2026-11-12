@@ -25,7 +25,8 @@ export function watchBackdrop(
 
 export const backdropWatchers = (): ReadonlySet<Watcher> => watchers;
 
-const toLinear = (c: number) => {
+// An sRGB channel, 0 to 255, in linear light, 0 to 1.
+export const toLinear = (c: number) => {
   const s = c / 255;
   return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
 };

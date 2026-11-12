@@ -187,12 +187,14 @@ export function slowFrames() {
 
 // From then on it draws in software, as if its renderer had said so: the
 // scene, already drawing, takes the smaller size and drops its smoothing
-// (useDrawsInSoftware).
+// (useDrawsInSoftware). Also called once the renderer has said so
+// (index.tsx), for data-software on <html>, which the page's CSS and the
+// tests read: this is its one writer.
 const listeners = new Set<() => void>();
 export function markSoftware() {
+  document.documentElement.setAttribute('data-software', '');
   if (software) return;
   software = true;
-  document.documentElement.setAttribute('data-software', '');
   for (const listener of listeners) listener();
 }
 export const onSoftware = (listener: () => void) => {

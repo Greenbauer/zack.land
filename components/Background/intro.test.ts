@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { AWAY_HEIGHTS, headCentre } from './headPlace';
+import { BODY_TURN } from './headLook';
+import { AWAY_HEIGHTS, HEAD_LIFT, headCentre } from './headPlace';
 import {
   CAMERA_HOME,
   COVERED_PAGE_IN,
@@ -25,7 +26,6 @@ import {
   SURPRISED,
   TIP_BACK,
 } from './intro';
-import { BODY_TURN, HEAD_LIFT } from './MyHead';
 
 const mouthAt = (tip: number) =>
   onFacingHead(IN_MOUTH, BODY_TURN, HEAD_LIFT, tip);

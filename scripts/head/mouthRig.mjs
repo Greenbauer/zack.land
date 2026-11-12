@@ -3,17 +3,9 @@
 // sealing the lips, the jaw's opening, and holding still what a mouth move
 // must not reach. Distances in head.bin units (about 1.7 mm).
 
-import {
-  bump,
-  finish,
-  HINGE,
-  length,
-  minus,
-  smoothstep,
-  still,
-  turn,
-} from './faceRig.mjs';
-import { add } from './mesh.mjs';
+import { finish, HINGE, still, turn } from './faceRig.mjs';
+import { bump, smoothstep } from './falloff.mjs';
+import { add, length, minus } from './mesh.mjs';
 
 // Everything above this height stays still for the mouth's moves: the eyes,
 // brows and the top of the nose.

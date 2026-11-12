@@ -32,6 +32,18 @@ export const skin = (() => {
   };
 })();
 
+// Each expression's move of every skin point at full strength (head.bin
+// keeps only the points it moves).
+export const skinMoves = (name: string) => {
+  const { indices, moves } =
+    meshes.get('skin')!.morphs[expressions.indexOf(name)]!;
+  const d = skin.vertices.map((): Point => [0, 0, 0]);
+  indices.forEach((v, k) => {
+    d[v] = [moves[k * 3]!, moves[k * 3 + 1]!, moves[k * 3 + 2]!];
+  });
+  return d;
+};
+
 // The join between the head and the body (scripts/build-head.mjs, JOIN).
 export const joinY = (z: number) => -38 + ((z + 56) * (-76 + 38)) / (15 + 56);
 

@@ -3,8 +3,10 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useRef, useState } from 'react';
 import { Euler, Vector2, Vector3, Vector4 } from 'three';
 
+import { contrastRatio } from './backdrop';
 import { TITLE_LAYER } from './focusBlur';
-import { heading } from './MyHead';
+import { heading } from './headLook';
+import { everyFrames } from './maths';
 import { skyAhead, skyRate } from './Sky';
 import {
   Aim,
@@ -132,7 +134,7 @@ export default function TitleName() {
   // last read, misses the target contrast.
   const flipping = useRef(false);
   const failing = useRef(false);
-  const frame = useRef(0);
+  const [isDue] = useState(() => everyFrames(EVERY));
   const left = new Vector3();
   const right = new Vector3();
   const aim = new Vector4();
@@ -238,10 +240,8 @@ export default function TitleName() {
     // A flip runs to its end before the next choice: on the way, the name
     // passes through the tones it is leaving.
     if (flipping.current) return;
-    const ratio = (a: number, b: number) =>
-      (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
     failing.current = checks.some(({ shown, behind }) =>
-      behind.some((b) => ratio(shown, b) < TARGET),
+      behind.some((b) => contrastRatio(shown, b) < TARGET),
     );
     const time = performance.now();
     if (!failing.current) lastReadable.current = time;
@@ -272,8 +272,7 @@ export default function TitleName() {
   // behind them, then (once that arrives, pixelReader.ts) measure the probe
   // at those points, then (once that arrives) calibrate it and aim.
   useFrame(() => {
-    frame.current = (frame.current + 1) % EVERY;
-    if (frame.current || !entries.length || !probe.current) return;
+    if (!isDue() || !entries.length || !probe.current) return;
     if (words.busy || measured.busy) return;
     const canvas = gl.domElement;
     const boxes = entries.map(({ word }) => word.getBoundingClientRect());

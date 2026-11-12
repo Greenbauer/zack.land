@@ -6,21 +6,18 @@
 
 import {
   brows,
-  bump,
   crease,
   EYE_RADIUS,
   field,
   finish,
-  length,
   lids,
   lips,
-  minus,
   smileFold,
-  smoothstep,
   still,
   turn,
 } from './faceRig.mjs';
-import { add } from './mesh.mjs';
+import { bump, smoothstep } from './falloff.mjs';
+import { add, length, minus } from './mesh.mjs';
 
 // How far a closed lid stands off the eyeball (the lid's thickness), upper
 // and lower: the upper lid closes over the lower one. A morph moves points in

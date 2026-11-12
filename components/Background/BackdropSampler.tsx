@@ -1,7 +1,8 @@
 import { useFrame, useThree } from '@react-three/fiber';
-import { useRef } from 'react';
+import { useState } from 'react';
 
 import { backdropWatchers, relativeLuminance, type Watcher } from './backdrop';
+import { everyFrames } from './maths';
 import usePixelReader from './usePixelReader';
 
 // A few times a second, reads back the rendered pixels behind each watched
@@ -19,11 +20,10 @@ const PRIORITY = 2;
 export default function BackdropSampler() {
   const gl = useThree((state) => state.gl);
   const reader = usePixelReader();
-  const frame = useRef(0);
+  const [isDue] = useState(() => everyFrames(EVERY));
 
   useFrame(() => {
-    frame.current = (frame.current + 1) % EVERY;
-    if (frame.current || reader.busy || backdropWatchers().size === 0) return;
+    if (!isDue() || reader.busy || backdropWatchers().size === 0) return;
     const canvas = gl.domElement;
     const bounds = canvas.getBoundingClientRect();
     const scale = canvas.width / bounds.width;

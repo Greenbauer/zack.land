@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { expressions, meshes, Point, skin } from './headFixture';
+import { meshes, Point, skin, skinMoves } from './headFixture';
 import { BODY_SHARE } from './headTurn';
 import { FAR_TURN, FULL_TURN } from './neckPose';
 
@@ -8,15 +8,7 @@ import { FAR_TURN, FULL_TURN } from './neckPose';
 // neckCords.mjs, added to bodyShapes.mjs's turn shapes), checked on the
 // built head.
 
-const moves = (name: string) => {
-  const { indices, moves: sparse } =
-    meshes.get('skin')!.morphs[expressions.indexOf(name)]!;
-  const d = skin.vertices.map((): Point => [0, 0, 0]);
-  indices.forEach((v, k) => {
-    d[v] = [sparse[k * 3]!, sparse[k * 3 + 1]!, sparse[k * 3 + 2]!];
-  });
-  return d;
-};
+const moves = skinMoves;
 
 describe("the neck's cords as the head turns", () => {
   it('tightens the far neck muscle into a straight cord as the head turns', () => {

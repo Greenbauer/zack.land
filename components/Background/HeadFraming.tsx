@@ -5,7 +5,8 @@ import { useEffect, useRef } from 'react';
 import { PerspectiveCamera } from 'three';
 
 import { menuOpen } from './focusBlur';
-import { framedHead, headCentre, stepHead } from './headPlace';
+import { BODY_TURN } from './headLook';
+import { framedHead, HEAD_LIFT, headCentre, stepHead } from './headPlace';
 import {
   IN_MOUTH,
   intro,
@@ -14,7 +15,6 @@ import {
   introPlaces,
   onFacingHead,
 } from './intro';
-import { BODY_TURN, HEAD_LIFT } from './MyHead';
 import {
   headLeft,
   headSeen,
@@ -108,11 +108,13 @@ export default function HeadFraming() {
       const frame = document
         .querySelector('[data-frame]')
         ?.getBoundingClientRect() ?? { left: 0, right: innerWidth };
-      const place = (covered: boolean, by = beside) =>
+      const place = (covered: boolean) =>
         headCentre(
           innerWidth,
           innerHeight,
-          by.length ? Math.min(...by.map((box) => box.left)) : undefined,
+          beside.length
+            ? Math.min(...beside.map((box) => box.left))
+            : undefined,
           covered,
           { left: frame.left, right: frame.right },
         );

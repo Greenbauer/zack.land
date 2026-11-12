@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { expressions, meshes, openEdges, Point, skin } from './headFixture';
+import { openEdges, Point, skin, skinMoves } from './headFixture';
 
 // Stripes: narrow ridges right beside narrow grooves that an expression
 // carves into the skin, which read as wrinkles or cut lines no real face
@@ -86,12 +86,9 @@ const cheeks = skin.vertices.flatMap(([x, y, z], i) =>
     : [],
 );
 const stripes = (name: string) => {
-  const { indices, moves } =
-    meshes.get('skin')!.morphs[expressions.indexOf(name)]!;
-  const posed = skin.vertices.map((v) => [...v] as Point);
-  indices.forEach((v, k) => {
-    for (let a = 0; a < 3; a++) posed[v]![a]! += moves[k * 3 + a]!;
-  });
+  const posed = skinMoves(name).map(
+    (d, i) => skin.vertices[i]!.map((c, a) => c + d[a]!) as Point,
+  );
   const change = bend(posed).map((b, i) => b - rest[i]!);
   const smooth = evened(change, 12);
   const fine = cheeks.map((i) => change[i]! - smooth[i]!);

@@ -5,12 +5,13 @@
 // (components/Background/headTurn.ts), so the neck twists and bends smoothly
 // between a moving head and still shoulders.
 
+import {
+  NECK_BASE_POINT,
+  SKULL_PIVOT,
+} from '../../components/Background/neckRig.ts';
+import { smoothstep } from './falloff.mjs';
 import { smooth } from './mesh.mjs';
-
-const smoothstep = (x, low, high) => {
-  const t = Math.min(Math.max((x - low) / (high - low), 0), 1);
-  return t * t * (3 - 2 * t);
-};
+import { axisZ } from './neckAxis.mjs';
 
 // Heights over the seam (`height`, head.bin units) over which the weight goes
 // from 0 at the base of the neck to 1. It reaches 1 well below the seam, so
@@ -43,10 +44,6 @@ const TRAPEZIUS = {
   below: [-165, -100],
   behind: [-5, 20],
 };
-
-// The neck's axis: the middle of its front and back, measured on the built
-// mesh at -72 and -120.
-const axisZ = (y) => -25 + (y + 72) * 0.43;
 
 // How far up MakeHuman's neck each bone sits, as the share of the head's
 // turn it takes (data/rigs/default_weights.mhw, CC0): the body's points
@@ -143,8 +140,9 @@ export function headWeights({ vertices, faces }, height, neck) {
 const JOINTS = [2, 6, 7, 7, 7, 3];
 const UNDER_SKULL = 0.5;
 // The spine from the base of the neck (C7 on T1) to the skull (the joint
-// behind the earlobes): components/Background/headTurn.ts NECK_BASE and PIVOT.
-const SPINE = { base: [0, -120, -45.6], top: [0, -28, -22] };
+// behind the earlobes), as the page's shader bends it (components/Background/
+// neckRig.ts).
+const SPINE = { base: NECK_BASE_POINT, top: SKULL_PIVOT };
 // What turns whole, as the skull and jaw do: above the line from the back of
 // the skull to under the chin (z, y in a side view). The skin below it takes
 // the joint under the skull's half over BELOW_SKULL (height): the soft parts

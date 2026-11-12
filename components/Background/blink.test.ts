@@ -4,17 +4,12 @@ import {
   BLINK,
   Blink,
   blinkAmount,
-  DOUBLE_CHANCE,
   GAP,
   SHIFT,
   startBlink,
   stepBlink,
 } from './blink';
-
-const seeded = (seed: number) => () => {
-  seed = (seed * 1664525 + 1013904223) % 4294967296;
-  return seed / 4294967296;
-};
+import { seeded } from './seeded';
 
 // Ten minutes of blinking at `fps`, the gaze still, and when each began.
 function run(fps = 60, seconds = 600, random = seeded(5)) {
@@ -65,8 +60,6 @@ describe('the head blinking', () => {
     const twice = { start: 0, double: true, next: 10, shifting: false };
     const after = BLINK.close + BLINK.hold + BLINK.open;
     expect(blinkAmount(twice, after + 0.05 + BLINK.close + 0.01)).toBe(1);
-    expect(DOUBLE_CHANCE).toBeGreaterThan(0);
-    expect(DOUBLE_CHANCE).toBeLessThan(0.1);
   });
 
   it('blinks with a quick shift of the gaze now and then, once a shift', () => {

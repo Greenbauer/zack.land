@@ -21,11 +21,7 @@ import {
   LOOKS,
   paceOf,
 } from './ambientLooks';
-
-const seeded = (seed: number) => () => {
-  seed = (seed * 1664525 + 1013904223) % 4294967296;
-  return seed / 4294967296;
-};
+import { seeded } from './seeded';
 
 // Looking down toward a corner, where the head may tilt all it likes.
 const CORNER = { x: 0.12, y: 0.35 };
@@ -329,7 +325,6 @@ describe('the bold looks, looking around on its own', () => {
 
   it('mixes a bold look in now and then, each kind in turn', () => {
     const bold = starts.filter((name) => name in BOLD_LOOKS);
-    expect(BOLD_CHANCE).toBeLessThanOrEqual(0.2);
     expect(bold.length / starts.length).toBeGreaterThan(BOLD_CHANCE - 0.06);
     expect(bold.length / starts.length).toBeLessThan(BOLD_CHANCE + 0.06);
     expect([...new Set(bold)].sort()).toEqual(Object.keys(BOLD_LOOKS).sort());

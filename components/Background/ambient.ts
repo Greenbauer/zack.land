@@ -8,6 +8,7 @@ import {
   paceOf,
 } from './ambientLooks';
 import { glide } from './headPlace';
+import { clamp, smoothstep } from './maths';
 import { SIDES } from './sideMorphs';
 
 // Little things the head does on its own, whatever else it is doing and on
@@ -58,16 +59,11 @@ export type Ambient = {
 const between = ([low, high]: readonly [number, number], r: number) =>
   low + (high - low) * r;
 
-const ramp = (v: number, low: number, high: number) => {
-  const t = Math.min(Math.max((v - low) / (high - low), 0), 1);
-  return t * t * (3 - 2 * t);
-};
-
 // How much of its tilt the head takes looking `look` (radians: x tips it,
 // down positive; y turns it, which does not count): 0 looking level, to 1
 // looking clearly up or down, toward a corner included.
 export const tiltRoom = ({ x }: { x: number; y: number }) =>
-  ramp(Math.abs(x), 0.04, 0.1);
+  smoothstep(0.04, 0.1, Math.abs(x));
 
 export const startAmbient = (
   time: number,
@@ -195,7 +191,7 @@ export function stepAmbient(
 // fastest midway, settling gently (the minimum-jerk curve of reaching
 // movements).
 const minimumJerk = (t: number) => {
-  const c = Math.min(Math.max(t, 0), 1);
+  const c = clamp(t, 0, 1);
   return c * c * c * (10 - 15 * c + 6 * c * c);
 };
 // At its height a look is never quite still: it eases off by SAG over
@@ -210,7 +206,7 @@ const SAG_SECONDS = 1.2;
 const RELAX = 9;
 const settle = (u: number) => (1 + u + (u * u) / 2) * Math.exp(-u);
 const relaxed = (t: number) => {
-  const c = Math.min(Math.max(t, 0), 1);
+  const c = clamp(t, 0, 1);
   const rest = settle(RELAX);
   return (settle(RELAX * (1 - c)) - rest) / (1 - rest);
 };
