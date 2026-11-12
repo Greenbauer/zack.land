@@ -1,4 +1,6 @@
-export async function post(url: string, data: any): Promise<any> {
+// POSTs `data` as JSON to `url`: the reply's JSON, or nothing (and the
+// error in the console) when the request fails or is refused.
+export async function post(url: string, data: unknown): Promise<unknown> {
   try {
     const res = await fetch(url, {
       method: 'POST',

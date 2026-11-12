@@ -1,5 +1,15 @@
 // @ts-check
 
+// The site's easings, the distance off the window where cards and tiles wait,
+// and a post's card timings (theme/motion.json): shared with the code that
+// animates (Post.tsx, PageLeave.tsx, useMoreMotion.ts, paging.ts) and, as
+// custom properties, with styles/globals.css.
+const motion = require('./theme/motion.json');
+
+// Seconds, as CSS writes them, from milliseconds.
+/** @param {number} ms */
+const seconds = (ms) => `${ms / 1000}s`;
+
 module.exports = {
   content: [
     './app/**/*.{js,ts,jsx,tsx,mdx}',
@@ -28,6 +38,13 @@ module.exports = {
       },
     },
     extend: {
+      transitionTimingFunction: motion.ease,
+      transitionDuration: {
+        'card-leave': seconds(motion.cardMs.leave),
+        'card-wait': seconds(motion.cardMs.wait),
+        'card-arrive': seconds(motion.cardMs.arrive),
+      },
+      translate: { 'off-window': motion.offWindow },
       keyframes: {
         'arrow-l': {
           '0%': {
@@ -42,19 +59,14 @@ module.exports = {
           },
         },
         // The contact card arriving: it slides in from wholly off the
-        // window's left side (its glass reaches 15rem past the right edge, so
-        // a window's width and 20rem) over 1.4 seconds, slowing gently to a
-        // stop, its glass whole all the way, as a post's card does (Post.tsx);
-        // the form on it fades in slowly and evenly from the start of the
-        // slide, for as long as it lasts (content-in).
+        // window's left side (offWindow), slowing gently to a stop, its glass
+        // whole all the way, as a post's card does (Post.tsx).
         'card-in': {
-          '0%': { translate: 'calc(-100vw - 20rem) 0' },
+          '0%': { translate: `calc(-1 * ${motion.offWindow}) 0` },
           '100%': { translate: '0 0' },
         },
-        // What is on a card arriving fades in with it, evenly from the start
-        // of the card's slide (content-in, as long as card-in).
         // The footer's scroll arrow, after its text has faded out
-        // (Footer/arrowSwap.ts).
+        // (Footer/arrowSwap.ts); and what is on a card arriving (content-in).
         'fade-in': {
           '0%': { opacity: '0' },
           '100%': { opacity: '1' },
@@ -78,11 +90,13 @@ module.exports = {
       },
       animation: {
         'arrow-l': 'arrow-l 2.5s ease-in-out infinite',
-        'card-in': 'card-in 1.4s cubic-bezier(0.22, 1, 0.36, 1) both',
+        'card-in': `card-in ${seconds(motion.cardMs.arrive)} ${motion.ease.arrive} both`,
         'fade-in': 'fade-in 0.4s ease-out both',
-        'content-in': 'fade-in 1.4s linear both',
-        'from-right': 'from-right 1.4s cubic-bezier(0.22, 1, 0.36, 1) both',
-        'menu-in': 'menu-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) both',
+        // What is on a card arriving fades in with it, slowly and evenly from
+        // the start of the card's slide, for as long as it lasts.
+        'content-in': `fade-in ${seconds(motion.cardMs.arrive)} linear both`,
+        'from-right': `from-right 1.4s ${motion.ease.arrive} both`,
+        'menu-in': `menu-in 0.8s ${motion.ease.arrive} both`,
         'menu-out': 'menu-out 0.5s ease-out both',
       },
     },

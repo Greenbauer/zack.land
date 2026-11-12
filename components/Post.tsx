@@ -24,32 +24,30 @@ type PostProps = { content: Content; isFirst?: boolean };
 
 // Where a post's card waits, by where its post is (PostPlace): in place for
 // the post in view, wholly off the window's right side for posts above it
-// and off its left side for posts below (a window's width and 20rem: its
-// glass reaches 15rem past the window's edge, and the glass over photos 64px
-// past that, photoLens.ts). Paging down, a card slides out to the right
-// and the next comes in from the left; paging up, the other way. They are
-// transitions, so a card turned back part way reverses from where it is.
-// Leaving, it gathers speed off the window's edge (0.8 seconds) and then
-// hides; arriving, after a pause for the last to leave (--turn-delay, 0.7
-// seconds unless a quick turn back sets it to 0, SnapPager.tsx), it slows
-// gently into place (1.4 seconds). Its glass stays whole; only what is on it
-// fades, slowly and evenly for the length of the slide, in or out. With reduced
-// motion the card just shows or hides, and what is on it fades.
-// Arriving slows gently to a stop, cubic-bezier(0.22,1,0.36,1); leaving
-// gathers speed, cubic-bezier(0.32,0,0.67,0). (Written out whole, as
-// Tailwind only finds class names it can read in full.)
+// and off its left side for posts below (--off-window, styles/globals.css).
+// Paging down, a card slides out to the right and the next comes in from
+// the left; paging up, the other way. They are transitions, so a card turned
+// back part way reverses from where it is. Leaving, it gathers speed off the
+// window's edge (--card-leave) and then hides; arriving, after a pause for
+// the last to leave (--turn-delay, --card-wait unless a quick turn back sets
+// it to 0, SnapPager.tsx), it slows gently into place (--card-arrive). Its
+// glass stays whole; only what is on it fades, slowly and evenly for the
+// length of the slide, in or out. With reduced motion the card just shows or
+// hides, and what is on it fades. (Written out whole, as Tailwind only finds
+// class names it can read in full; the timings and easings are
+// theme/motion.json's.)
 const LEAVING =
-  'pointer-events-none invisible motion-safe:[transition:translate_0.8s_cubic-bezier(0.32,0,0.67,0),visibility_0s_0.8s] motion-reduce:[transition:visibility_0s_0.4s]';
+  'pointer-events-none invisible motion-safe:[transition:translate_var(--card-leave)_var(--ease-gather),visibility_0s_var(--card-leave)] motion-reduce:[transition:visibility_0s_0.4s]';
 const CARD: Record<PostPlace, string> = {
   current:
-    'motion-safe:[transition:translate_1.4s_cubic-bezier(0.22,1,0.36,1)_var(--turn-delay,0.7s),visibility_0s] motion-reduce:[transition:visibility_0s_0.7s]',
-  before: `motion-safe:[translate:calc(100vw+20rem)_0] ${LEAVING}`,
-  after: `motion-safe:[translate:calc(-100vw-20rem)_0] ${LEAVING}`,
+    'motion-safe:[transition:translate_var(--card-arrive)_var(--ease-arrive)_var(--turn-delay,var(--card-wait)),visibility_0s] motion-reduce:[transition:visibility_0s_0.7s]',
+  before: `motion-safe:[translate:var(--off-window)_0] ${LEAVING}`,
+  after: `motion-safe:[translate:calc(-1*var(--off-window))_0] ${LEAVING}`,
 };
 const CONTENT_IN =
-  'motion-safe:[transition:opacity_1.4s_linear_var(--turn-delay,0.7s)] motion-reduce:[transition:opacity_1.2s_ease-out_0.7s]';
+  'motion-safe:[transition:opacity_var(--card-arrive)_linear_var(--turn-delay,var(--card-wait))] motion-reduce:[transition:opacity_1.2s_ease-out_0.7s]';
 const CONTENT_OUT =
-  'opacity-0 [transition:opacity_0.8s_linear] motion-reduce:[transition:opacity_0.4s_ease-in]';
+  'opacity-0 [transition:opacity_var(--card-leave)_linear] motion-reduce:[transition:opacity_0.4s_ease-in]';
 
 export default function Post({ content, isFirst = false }: PostProps) {
   const {
@@ -63,12 +61,14 @@ export default function Post({ content, isFirst = false }: PostProps) {
   } = content;
 
   const postRef = useRef<HTMLDivElement | null>(null);
-  const place = useHeldCard(postRef);
+  const cardRef = useRef<HTMLElement | null>(null);
+  const place = useHeldCard(postRef, cardRef);
   const isCurrent = place === 'current';
   // More and Less move rather than jump, and a post left open closes again
   // once the page has moved on from it (useMoreMotion).
   const { isExpanded, isOpen, isClosed, toggle } = useMoreMotion(
     postRef,
+    cardRef,
     isCurrent,
   );
   const hasMedia = !!mediaSources?.length;
@@ -81,7 +81,12 @@ export default function Post({ content, isFirst = false }: PostProps) {
   // measured only while the card is closed and still: measured open, or
   // while Less brings it down, it kept a wrong answer and Less left the card
   // tall and the images small.
-  const isWhole = usePhoneWhole(postRef, mediaSources, hasMedia && isClosed);
+  const isWhole = usePhoneWhole(
+    postRef,
+    cardRef,
+    mediaSources,
+    hasMedia && isClosed,
+  );
   // The card never scrolls inside: on any screen, text that doesn't fit is
   // cut after its last whole line, with an ellipsis (FitText), and More
   // shows under it.
@@ -95,6 +100,7 @@ export default function Post({ content, isFirst = false }: PostProps) {
   const descriptionRef = useRef<HTMLDivElement | null>(null);
   const linksRef = useRef<HTMLDivElement | null>(null);
   const isTooShort = useCardFloor(
+    cardRef,
     articleRef,
     linksRef,
     descriptionRef,
@@ -112,7 +118,7 @@ export default function Post({ content, isFirst = false }: PostProps) {
   // beside the head: the card sits at the top of the post instead of the
   // bottom, where it ends above the head's brows, and the head stays centred
   // under it, so the post isn't empty (useCardOnTop).
-  const isOnTop = useCardOnTop(postRef, !hasMedia && !isLaidOpen);
+  const isOnTop = useCardOnTop(postRef, cardRef, !hasMedia && !isLaidOpen);
 
   // Each post fills the space between the page's fades (--post-height, from
   // PageScroller), and the page snaps from post to post (data-post, found by
@@ -151,6 +157,7 @@ export default function Post({ content, isFirst = false }: PostProps) {
       {hasMedia && (
         <PostCollage
           mediaSources={mediaSources}
+          cardRef={cardRef}
           isShown={isCurrent}
           isEager={isFirst}
           style={{ marginLeft: 'var(--head-clear, 0px)' }}
@@ -158,6 +165,7 @@ export default function Post({ content, isFirst = false }: PostProps) {
         />
       )}
       <EdgeCard
+        ref={cardRef}
         isAboveHead={isOnTop}
         isOffView={!isCurrent}
         style={cardStyle(isLaidOpen, isOnTop)}

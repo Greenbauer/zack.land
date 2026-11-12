@@ -1,6 +1,6 @@
 import { Content } from '@/types';
 
-const Contents: Content[] = [
+const posts: Content[] = [
   {
     name: 'Smart Bed',
     description: (
@@ -168,4 +168,4 @@ const Contents: Content[] = [
   },
 ];
 
-export default Contents;
+export default posts;

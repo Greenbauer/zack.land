@@ -1,27 +1,10 @@
-import { cva } from 'class-variance-authority';
 import { ForwardedRef, forwardRef } from 'react';
 
-const lineStyle = cva(
-  // The lines take the sky's text colour, open or closed: the open menu's
-  // glass matches the sky around it.
-  'absolute block h-px w-full bg-[color:var(--sky-text)] transition-all duration-200 ease-in-out',
-  {
-    variants: {
-      isActive1: {
-        false: 'left-0 top-0 opacity-100 ',
-        true: 'top-3 rotate-[135deg] opacity-100 ',
-      },
-      isActive2: {
-        false: 'left-0 top-3 opacity-100',
-        true: '-left-16 top-3 opacity-0',
-      },
-      isActive3: {
-        false: 'left-0 top-6 opacity-100 ',
-        true: 'top-3 rotate-[-135deg] opacity-100',
-      },
-    },
-  },
-);
+// The lines take the sky's text colour, open or closed: the open menu's
+// glass matches the sky around it. Open, the middle one slides away and the
+// other two turn to a cross.
+const LINE =
+  'absolute block h-px w-full bg-[color:var(--sky-text)] transition-all duration-200 ease-in-out';
 
 type MobileNavButtonProps = {
   isActive: boolean;
@@ -41,9 +24,15 @@ function MobileNavButton(
       className="relative z-10 mt-4 inline-block size-10 cursor-pointer rounded-md outline-none outline-offset-4 transition-transform duration-500 ease-in-out focus-visible:outline-[color:var(--sky-text)]"
       {...props}
     >
-      <span className={lineStyle({ isActive1: isActive })} />
-      <span className={lineStyle({ isActive2: isActive })} />
-      <span className={lineStyle({ isActive3: isActive })} />
+      <span
+        className={`${LINE} ${isActive ? 'top-3 rotate-[135deg] opacity-100' : 'left-0 top-0 opacity-100'}`}
+      />
+      <span
+        className={`${LINE} ${isActive ? '-left-16 top-3 opacity-0' : 'left-0 top-3 opacity-100'}`}
+      />
+      <span
+        className={`${LINE} ${isActive ? 'top-3 rotate-[-135deg] opacity-100' : 'left-0 top-6 opacity-100'}`}
+      />
     </button>
   );
 }

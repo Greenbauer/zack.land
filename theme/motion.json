@@ -1,0 +1,9 @@
+{
+  "ease": {
+    "arrive": "cubic-bezier(0.22, 1, 0.36, 1)",
+    "gather": "cubic-bezier(0.32, 0, 0.67, 0)",
+    "smooth": "cubic-bezier(0.65, 0, 0.35, 1)"
+  },
+  "offWindow": "calc(100vw + 20rem)",
+  "cardMs": { "leave": 800, "wait": 700, "arrive": 1400 }
+}

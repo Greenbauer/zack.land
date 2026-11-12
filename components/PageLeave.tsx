@@ -3,19 +3,17 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
-import { viewBound } from './Background/skyViews';
-import { slideAwayTo } from './leaveTo';
-import { announceTurn } from './PageScroller/pageGlide';
+import motion from '@/theme/motion.json';
 
-// How the page moves out, in milliseconds: gathering speed, as a post's card
-// leaves when the portfolio turns (Post.tsx's LEAVING), what is on a card
-// fading evenly for as long as the card slides.
-const CARD_MS = 800;
-const TITLE_MS = 600;
-// The image tiles' melt out (components/mediaMelter.ts) ends by then: up to
-// about 0.95s, after a wait of up to 0.08s.
-const TILES_MS = 1100;
-const GATHER = 'cubic-bezier(0.32, 0, 0.67, 0)';
+import { viewBound } from './Background/skyViews';
+import { CARD_MS, slideAwayTo, TILES_MS, TITLE_MS } from './leaveTo';
+import { announceTurn } from './PageScroller/pageGlide';
+import { isStill } from './viewport';
+
+// Leaving, the cards and the title gather speed, as a post's card does
+// (Post.tsx's LEAVING), what is on a card fading evenly for as long as the
+// card slides.
+const GATHER = motion.ease.gather;
 
 // When a link to another page of the site is clicked, the page moves out
 // before the site goes there, the way a post leaves as the portfolio turns:
@@ -26,7 +24,9 @@ const GATHER = 'cubic-bezier(0.32, 0, 0.67, 0)';
 // body[data-leaving], styles/globals.css) and the scroll arrows fade. Then the next page arrives as it
 // does on opening. A click with a modifier key, a link to another site or a
 // new tab, the browser's back and forward, and reduced motion go at once.
-// The sky sets off for the next page's home with the click (viewBound).
+// The sky sets off for the next page's home with the click (viewBound). The
+// browser's back or forward while the page moves out calls the trip off, so
+// the site stays where the visitor sent it.
 //
 // A link in the phone menu has no page to move out: the page is hidden under
 // the menu, and closing the menu now would bring it back. So the click goes no
@@ -39,6 +39,8 @@ export default function PageLeave() {
 
   useEffect(() => {
     let leaving = false;
+    let going = 0;
+    const callOff = () => clearTimeout(going);
     // Ahead of the link's own handler (Next's Link leaves a prevented click
     // alone), so the page stays until it has moved out.
     const onClick = (event: MouseEvent) => {
@@ -48,7 +50,7 @@ export default function PageLeave() {
       if (!to) return;
       const page = new URL(to, location.href).pathname;
       const inMenu = link.closest('.mobile-menu') !== null;
-      if (!inMenu && matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      if (!inMenu && isStill()) {
         viewBound(page);
         return;
       }
@@ -64,7 +66,7 @@ export default function PageLeave() {
       document.body.toggleAttribute('data-leaving', true);
       announceTurn({ to: -1 });
       for (const card of shownCards()) {
-        card.animate([{ translate: 'calc(100vw + 20rem) 0' }], {
+        card.animate([{ translate: `${motion.offWindow} 0` }], {
           duration: CARD_MS,
           easing: GATHER,
           fill: 'forwards',
@@ -82,11 +84,14 @@ export default function PageLeave() {
           easing: GATHER,
           fill: 'forwards',
         });
-      setTimeout(() => router.push(to), TILES_MS);
+      going = window.setTimeout(() => router.push(to), TILES_MS);
     };
     document.addEventListener('click', onClick, true);
+    addEventListener('popstate', callOff);
     return () => {
+      callOff();
       document.removeEventListener('click', onClick, true);
+      removeEventListener('popstate', callOff);
       document.body.toggleAttribute('data-leaving', false);
     };
   }, [router, pathname]);

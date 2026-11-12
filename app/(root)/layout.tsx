@@ -1,12 +1,11 @@
 import { ReactNode } from 'react';
 
 import Background from '@/components/Background';
-
-import Footer from '../../components/Footer';
-import Header from '../../components/Header';
-import MediaBend from '../../components/MediaBend';
-import PageLeave from '../../components/PageLeave';
-import PageScroller from '../../components/PageScroller';
+import Footer from '@/components/Footer';
+import Header from '@/components/Header';
+import MediaBend from '@/components/MediaBend';
+import PageLeave from '@/components/PageLeave';
+import PageScroller from '@/components/PageScroller';
 
 type LayoutProps = {
   children: ReactNode;

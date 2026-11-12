@@ -2,16 +2,18 @@ import { Popover, PopoverButton, PopoverPanel } from '@headlessui/react';
 import { cva } from 'class-variance-authority';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { isStill } from '@/components/viewport';
+
 import { Route } from '..';
 import NavLink, { isRouteActive, linkStyle, ON_GLASS } from '../NavLink';
 import MobileNavButton from './MobileNavButton';
 
 // The open menu is a pane of the cards' frosted glass (data-glass, drawn in
 // the 3D scene by components/Background/glass.ts) over the whole screen,
-// tinted deeper than a card (data-glass-deep) so its lenses show plainly. The
-// glass rounds and feathers a pane's corners (at least 120px), so the pane
-// reaches 15rem past every edge of the screen, its padding putting the links
-// back where they were: its corners fall off screen and the menu stays square.
+// tinted deeper than a card (data-glass-deep) so its lenses show plainly. As a
+// card's does at the window's edge (EdgeCard.tsx), the pane reaches 15rem
+// past every edge of the screen, its padding putting the links back where
+// they were, so its rounded corners fall off screen and the menu stays square.
 // It slides down from above as it opens, fading in on the way
 // (animate-menu-in), and closing it fades out evenly as it rises a little
 // (animate-menu-out): it is far taller than the screen, so a slide away would
@@ -77,9 +79,7 @@ function MenuPane({ isOpen, close, pathname, routes }: MenuPaneProps) {
   const [closing, setClosing] = useState(false);
   if (isOpen !== wasOpen) {
     setWasOpen(isOpen);
-    setClosing(
-      !isOpen && !matchMedia('(prefers-reduced-motion: reduce)').matches,
-    );
+    setClosing(!isOpen && !isStill());
   }
 
   // The page chosen from the menu has come in under it. (Only on a change
@@ -165,40 +165,38 @@ function MenuViews({
     );
   }
 
-  return routes
-    .filter(({ label }) => label)
-    .map((route, index) => {
-      const { label, path, children = [] } = route;
-      const isFirst = index === 0;
-      if (children.length)
-        return (
-          <button
-            key={path}
-            ref={first}
-            type="button"
-            onClick={() => turn(route)}
-            className="group flex w-full text-center outline-none"
-          >
-            <span
-              className={`text-h5 ${linkStyle({
-                isActive: isRouteActive(path, pathname),
-                isFirst,
-              })}`}
-            >
-              {label}
-            </span>
-          </button>
-        );
+  return routes.map((route, index) => {
+    const { label, path, children = [] } = route;
+    const isFirst = index === 0;
+    if (children.length)
       return (
-        <div key={path} className="flex flex-nowrap">
-          <NavLink
-            path={path}
-            isActive={pathname === path}
-            isFirst={isFirst}
-            label={label!}
-            onClick={close}
-          />
-        </div>
+        <button
+          key={path}
+          ref={first}
+          type="button"
+          onClick={() => turn(route)}
+          className="group flex w-full text-center outline-none"
+        >
+          <span
+            className={`text-h5 ${linkStyle({
+              isActive: isRouteActive(path, pathname),
+              isFirst,
+            })}`}
+          >
+            {label}
+          </span>
+        </button>
       );
-    });
+    return (
+      <div key={path} className="flex flex-nowrap">
+        <NavLink
+          path={path}
+          isActive={pathname === path}
+          isFirst={isFirst}
+          label={label}
+          onClick={close}
+        />
+      </div>
+    );
+  });
 }

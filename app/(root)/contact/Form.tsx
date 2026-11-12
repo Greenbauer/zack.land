@@ -5,16 +5,12 @@ import { useForm } from 'react-hook-form';
 
 import Button from '@/components/Button';
 import FormFields, { Field } from '@/components/FormFields';
+import { ContactFormData } from '@/utils/contact-fields';
 import { getRecaptchaToken, loadRecaptcha } from '@/utils/recaptcha-client';
 import { post } from '@/utils/request';
 
-export type ContactFormData = {
-  name: string;
-  email: string;
-  message: string;
-};
-
-const fields1: Field[] = [
+// Name and email side by side, then the message under them.
+const NAME_AND_EMAIL: Field[] = [
   {
     label: 'Name',
     name: 'name',
@@ -31,7 +27,7 @@ const fields1: Field[] = [
   },
 ];
 
-const fields2: Field[] = [
+const MESSAGE: Field[] = [
   {
     label: 'Message',
     name: 'message',
@@ -102,14 +98,14 @@ export default function Form() {
     >
       <div className="flex flex-wrap gap-x-6">
         <FormFields
-          fields={fields1}
+          fields={NAME_AND_EMAIL}
           register={register}
           errors={errors}
           touchedFields={touchedFields}
         />
       </div>
       <FormFields
-        fields={fields2}
+        fields={MESSAGE}
         register={register}
         errors={errors}
         touchedFields={touchedFields}

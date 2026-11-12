@@ -4,6 +4,7 @@ import { CSSProperties, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { Chevrons } from '@/components/PageScroller/Chevrons';
+import { isShowing } from '@/components/viewport';
 
 import { watchIdle } from './idleWatch';
 
@@ -29,7 +30,7 @@ export default function NavHint() {
   useEffect(() => {
     const place = () => {
       const link = document.querySelector<HTMLElement>('[data-nav-dropdown]');
-      if (!link?.checkVisibility()) return setAt(null);
+      if (!link || !isShowing(link)) return setAt(null);
       const box = link.getBoundingClientRect();
       setAt({ x: box.left + box.width / 2, y: box.bottom });
     };

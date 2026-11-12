@@ -1,7 +1,7 @@
 import { RefObject, useEffect } from 'react';
 
 import { headRight } from './collageLayout';
-import { WIDE_FROM } from './PageScroller/edgeFade';
+import { isWide, watchSize } from './viewport';
 
 // The space kept between the head's face and a post, and the least width a
 // post needs beside it before it gives up keeping clear, in pixels.
@@ -21,18 +21,9 @@ export default function useHeadClear(ref: RefObject<HTMLElement | null>) {
       const { width } = post.getBoundingClientRect();
       const reach = headRight(width, innerHeight) + HEAD_GAP;
       const clear =
-        innerWidth >= WIDE_FROM && width - reach >= MIN_WIDTH
-          ? Math.max(0, reach)
-          : 0;
+        isWide() && width - reach >= MIN_WIDTH ? Math.max(0, reach) : 0;
       post.style.setProperty('--head-clear', `${Math.round(clear)}px`);
     };
-    measure();
-    const resize = new ResizeObserver(measure);
-    resize.observe(post);
-    addEventListener('resize', measure);
-    return () => {
-      resize.disconnect();
-      removeEventListener('resize', measure);
-    };
+    return watchSize([post], measure, true);
   }, [ref]);
 }

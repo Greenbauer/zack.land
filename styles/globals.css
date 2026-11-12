@@ -18,6 +18,20 @@
   --sky-faint: theme('colors.head.light / 30%');
   --sky-accent: theme('colors.head.peach');
   --sky-underline: theme('colors.head.rose');
+  /* The site's motion (theme/motion.json, through tailwind.config.js):
+     arriving slows to a stop, leaving gathers speed, a move is smooth both
+     ways; and a post's card's times (Post.tsx). */
+  --ease-arrive: theme('transitionTimingFunction.arrive');
+  --ease-gather: theme('transitionTimingFunction.gather');
+  --ease-smooth: theme('transitionTimingFunction.smooth');
+  --card-leave: theme('transitionDuration.card-leave');
+  --card-wait: theme('transitionDuration.card-wait');
+  --card-arrive: theme('transitionDuration.card-arrive');
+  /* Wholly off the window, where a card or an image tile waits and goes: a
+     window's width and 20rem. A card's glass reaches 15rem past its edge
+     (EdgeCard.tsx) and the glass over photos 64px past that (photoLens.ts),
+     so nothing waiting there shows or counts as under a card. */
+  --off-window: theme('translate.off-window');
 }
 
 /* The sky colours (components/SkyText) are registered as colours so a group
@@ -123,9 +137,9 @@
 
   /* A link in running text is underlined in the theme's accent: over the
      sky the sky's own (--sky-accent and --sky-underline, components/SkyText),
-     as the footer's Contact me link is; on a glass card the card's accent
-     (tailwind.config.js). Hovered or focused, its underline takes the accent
-     too. */
+     as the footer's Contact me link is; on a glass card the card's own
+     (--card-ink and --card-underline, above). Hovered or focused, its
+     underline takes the accent too. */
   :is(p, small) a {
     --link: var(--sky-accent);
     --link-underline: var(--sky-underline);
@@ -156,17 +170,7 @@
     @apply flex justify-start flex-col w-full;
   }
 
-  input {
-    @apply text-lg font-sans font-normal; 
-    @apply outline-none rounded-md;
-    /* A ring in the card's ink while focused (outline-none's transparent
-       outline, coloured): the field shows nothing else. */
-    @apply focus-visible:outline-[color:var(--card-ink)];
-    @apply bg-head-dark/40 text-head-light/80 placeholder-head-light/40;
-    @apply px-3 py-2 shadow-none;
-  }
-
-  textarea {
+  input, textarea {
     @apply text-lg font-sans font-normal;
     @apply outline-none rounded-md;
     /* A ring in the card's ink while focused (outline-none's transparent
@@ -261,18 +265,16 @@
   visibility: hidden;
 }
 /* A post's image tiles (components/PostCollage.tsx). Out of view a tile waits
-   hidden, wholly off the window's right side (past the 15rem a card's glass
-   reaches beyond it, and the 64px of photo glass past that, so a waiting
-   tile never counts as under a card: photoLens.ts); in view it slides in
+   hidden, wholly off the window's right side (--off-window); in view it slides in
    from there after its own wait (--wait), slowing gently into place, and
    then rests. Leaving, it gathers speed back off to the right and hides. No
    bounce, spin or fade.
    The hover's bend is components/MediaBend.tsx. */
 .collage-tile {
   visibility: hidden;
-  transform: translateX(calc(100vw + 20rem));
+  transform: translateX(var(--off-window));
   transition:
-    transform 0.6s cubic-bezier(0.32, 0, 0.67, 0) var(--wait, 0s),
+    transform 0.6s var(--ease-gather) var(--wait, 0s),
     visibility 0s calc(var(--wait, 0s) + 0.6s);
 }
 
@@ -281,7 +283,7 @@
   visibility: inherit;
   transform: none;
   transition:
-    transform 0.9s cubic-bezier(0.22, 1, 0.36, 1) var(--wait, 0s),
+    transform 0.9s var(--ease-arrive) var(--wait, 0s),
     visibility 0s var(--wait, 0s),
     filter 0.3s ease-out,
     opacity 0.3s ease-out;
@@ -318,25 +320,23 @@ html[data-melts] .collage[data-playing] .collage-tile:not([data-video]) {
 .collage .collage-tile[data-video][data-playing] {
   z-index: 20;
 }
-.collage[data-shown] .collage-tile[data-video] {
-  transition:
-    transform 0.9s cubic-bezier(0.22, 1, 0.36, 1) var(--wait, 0s),
-    visibility 0s var(--wait, 0s),
-    border-radius 0.6s cubic-bezier(0.65, 0, 0.35, 1),
-    left 0.6s cubic-bezier(0.65, 0, 0.35, 1),
-    top 0.6s cubic-bezier(0.65, 0, 0.35, 1),
-    width 0.6s cubic-bezier(0.65, 0, 0.35, 1),
-    height 0.6s cubic-bezier(0.65, 0, 0.35, 1),
+.collage-tile[data-video] {
+  --video-move:
+    border-radius 0.6s var(--ease-smooth),
+    left 0.6s var(--ease-smooth),
+    top 0.6s var(--ease-smooth),
+    width 0.6s var(--ease-smooth),
+    height 0.6s var(--ease-smooth),
     z-index 0s 0.6s;
 }
-html[data-melts] .collage[data-shown] .collage-tile[data-video] {
+.collage[data-shown] .collage-tile[data-video] {
   transition:
-    border-radius 0.6s cubic-bezier(0.65, 0, 0.35, 1),
-    left 0.6s cubic-bezier(0.65, 0, 0.35, 1),
-    top 0.6s cubic-bezier(0.65, 0, 0.35, 1),
-    width 0.6s cubic-bezier(0.65, 0, 0.35, 1),
-    height 0.6s cubic-bezier(0.65, 0, 0.35, 1),
-    z-index 0s 0.6s;
+    transform 0.9s var(--ease-arrive) var(--wait, 0s),
+    visibility 0s var(--wait, 0s),
+    var(--video-move);
+}
+html[data-melts] .collage[data-shown] .collage-tile[data-video] {
+  transition: var(--video-move);
 }
 .collage[data-shown] .collage-tile[data-video][data-playing] {
   transition-delay: var(--wait, 0s), var(--wait, 0s), 0s, 0s, 0s, 0s, 0s, 0s;
@@ -365,9 +365,9 @@ body:has(.collage[data-playing]) [data-scroll-arrows] button[data-glass] {
    waits, and the scroll arrows fade. */
 html:not([data-melts]) body[data-leaving] .collage[data-shown] .collage-tile {
   visibility: hidden;
-  transform: translateX(calc(100vw + 20rem));
+  transform: translateX(var(--off-window));
   transition:
-    transform 0.6s cubic-bezier(0.32, 0, 0.67, 0) calc(var(--wait, 0s) * 0.4),
+    transform 0.6s var(--ease-gather) calc(var(--wait, 0s) * 0.4),
     visibility 0s calc(var(--wait, 0s) * 0.4 + 0.6s);
 }
 body[data-leaving] [data-scroll-arrows] button {
@@ -414,7 +414,7 @@ html:not([data-page-in]):has([data-scene]) #page * {
 }
 html:not([data-page-in]):has([data-scene]) .post-card {
   visibility: hidden;
-  translate: calc(-100vw - 20rem) 0;
+  translate: calc(-1 * var(--off-window)) 0;
 }
 html:not([data-page-in]):has([data-scene]) .post-card article {
   opacity: 0;
@@ -423,7 +423,7 @@ html:not([data-page-in]):has([data-scene])
   .collage[data-shown]
   .collage-tile {
   visibility: hidden;
-  transform: translateX(calc(100vw + 20rem));
+  transform: translateX(var(--off-window));
 }
 [data-site-chrome],
 [data-scroll-arrows] {

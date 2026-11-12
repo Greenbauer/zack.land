@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 
+import { isStill } from '../viewport';
 import { ARRIVAL_REGION_ID, arrive, POST_TITLE } from './arrival';
 import { PAGE_SCROLLER_ID } from './edgeFade';
 import { announceTurn, GLIDE_EVENT, postSpans } from './pageGlide';
@@ -44,7 +45,6 @@ export default function SnapPager() {
     const turn = wheelPager();
     // The first card is arriving as the page loads.
     const gate = turnGate({ playingFrom: performance.now() });
-    const still = matchMedia('(prefers-reduced-motion: reduce)');
     let frame = 0;
     // When the wheel last scrolled through a post.
     let throughAt = -Infinity;
@@ -112,7 +112,7 @@ export default function SnapPager() {
       // glide, or a jump part way through a tall post to its top), so it is
       // off until the page lands, then as fits there (fitSnap).
       scroller.style.scrollSnapType = 'none';
-      if (still.matches) {
+      if (isStill()) {
         scroller.scrollTop = to();
         isGliding = false;
         take();

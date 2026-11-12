@@ -47,7 +47,8 @@ jobs:
   # Every Playwright spec (e2e/*.e2e.ts): the media grid and melt (media-grid.e2e.ts), the 404 video's
   # melt (not-found.e2e.ts), More then Less on a phone putting each post back as it was
   # (more-less.e2e.ts), the contact form's Submit button and field errors (contact-form.e2e.ts), a
-  # post's YouTube video played, stopped and paused against a stand-in player (youtube.e2e.ts), and
+  # post's YouTube video played, stopped and paused against a stand-in player (youtube.e2e.ts), the
+  # browser's Back while a page moves out (page-leave.e2e.ts), and
   # every way a
   # post moves and comes back (moving-views.e2e.ts): each kind of post, left open or
   # closed, down or up and back, upright and sideways phones and two desktop sizes, and the window resized

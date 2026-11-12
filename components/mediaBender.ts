@@ -1,4 +1,5 @@
 import { Mark, PATH_MARKS, TRAIL_RADIUS_PX } from './pointerInk';
+import { bindQuad, quadProgram, uniformsOf } from './quadProgram';
 
 // Draws an image or video bent by the pointer's trail (MediaBend.tsx), with
 // one WebGL context shared by every picture: where the trail's ink lies, the
@@ -77,15 +78,6 @@ export const naturalSize = (media: Picture) =>
     ? { width: media.naturalWidth, height: media.naturalHeight }
     : { width: media.videoWidth, height: media.videoHeight };
 
-const VERTEX = `
-  attribute vec2 position;
-  varying vec2 vUv;
-  void main() {
-    // From the top left, as the page counts.
-    vUv = vec2(position.x * 0.5 + 0.5, 0.5 - position.y * 0.5);
-    gl_Position = vec4(position, 0.0, 1.0);
-  }`;
-
 const FRAGMENT = `
   precision mediump float;
   uniform sampler2D tMedia;
@@ -140,7 +132,7 @@ export class MediaBender {
     HTMLImageElement | HTMLVideoElement,
     { texture: WebGLTexture; src: string }
   >();
-  private readonly at: Record<string, WebGLUniformLocation | null> = {};
+  private readonly at: Record<string, WebGLUniformLocation | null>;
 
   constructor() {
     const gl = this.canvas.getContext('webgl', {
@@ -148,20 +140,9 @@ export class MediaBender {
       preserveDrawingBuffer: true,
     })!;
     this.gl = gl;
-    const shader = (type: number, source: string) => {
-      const s = gl.createShader(type)!;
-      gl.shaderSource(s, source);
-      gl.compileShader(s);
-      return s;
-    };
-    const program = gl.createProgram()!;
-    gl.attachShader(program, shader(gl.VERTEX_SHADER, VERTEX));
-    gl.attachShader(program, shader(gl.FRAGMENT_SHADER, FRAGMENT));
-    gl.linkProgram(program);
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS))
-      console.error(gl.getProgramInfoLog(program));
+    const program = quadProgram(gl, FRAGMENT);
     gl.useProgram(program);
-    for (const name of [
+    this.at = uniformsOf(gl, program, [
       'tMedia',
       'uSize',
       'uMedia',
@@ -172,17 +153,8 @@ export class MediaBender {
       'uRadius',
       'uBend',
       'uEase',
-    ])
-      this.at[name] = gl.getUniformLocation(program, name);
-    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
-    gl.bufferData(
-      gl.ARRAY_BUFFER,
-      new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]),
-      gl.STATIC_DRAW,
-    );
-    const position = gl.getAttribLocation(program, 'position');
-    gl.enableVertexAttribArray(position);
-    gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
+    ]);
+    bindQuad(gl);
   }
 
   // The picture's texture (uploadsAgain says when it is uploaded).

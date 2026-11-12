@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { slideAwayTo } from './leaveTo';
+import { CARD_MS, slideAwayTo, TILES_MS, TITLE_MS } from './leaveTo';
+import { GO_WAIT_S } from './MediaMelt';
+import { MELT_OUT_S, paceOf } from './mediaMelter';
 
 const plain = {
   button: 0,
@@ -54,5 +56,14 @@ describe('which link clicks move the page out first', () => {
       slideAwayTo(plain, { href: 'https://github.com/x', target: '' }, here),
     ).toBeNull();
     expect(slideAwayTo(plain, { href: '/#name', target: '' }, here)).toBeNull();
+  });
+});
+
+describe("the page's way out", () => {
+  it('goes only once the slowest tile has melted out, and the cards have left', () => {
+    const slowestOut = GO_WAIT_S + MELT_OUT_S / paceOf(-1, 0);
+    expect(TILES_MS / 1000).toBeGreaterThanOrEqual(slowestOut);
+    expect(TILES_MS).toBeGreaterThanOrEqual(CARD_MS);
+    expect(TILES_MS).toBeGreaterThanOrEqual(TITLE_MS);
   });
 });

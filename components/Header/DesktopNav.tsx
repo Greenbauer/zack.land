@@ -15,7 +15,6 @@ export default function DesktopNav({ pathname, routes }: DesktopNavProps) {
           footer's icons and the page below. */}
       <div className="relative -ml-6 flex w-auto flex-row focus:outline-none">
         {routes.map(({ label, path, children }) => {
-          if (!label) return null;
           const isActive = isRouteActive(path, pathname);
 
           return children ? (

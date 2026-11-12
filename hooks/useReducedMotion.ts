@@ -1,8 +1,9 @@
 import { useSyncExternalStore } from 'react';
 
+import { isStill, REDUCED_MOTION as QUERY } from '@/components/viewport';
+
 // Whether the visitor asks for reduced motion, kept live (the setting can
 // change while the page is open); false on the server.
-const QUERY = '(prefers-reduced-motion: reduce)';
 
 const subscribe = (change: () => void) => {
   const query = matchMedia(QUERY);
@@ -11,9 +12,5 @@ const subscribe = (change: () => void) => {
 };
 
 export default function useReducedMotion() {
-  return useSyncExternalStore(
-    subscribe,
-    () => matchMedia(QUERY).matches,
-    () => false,
-  );
+  return useSyncExternalStore(subscribe, isStill, () => false);
 }

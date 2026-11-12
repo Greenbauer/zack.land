@@ -1,6 +1,7 @@
 import { FieldErrors, UseFormRegister } from 'react-hook-form';
 
 import {
+  ContactFormData,
   EMAIL_PATTERN,
   INPUT_MAX_LENGTH,
   TEXTAREA_MAX_LENGTH,
@@ -8,7 +9,7 @@ import {
 
 export type Field = {
   label: string;
-  name: string;
+  name: keyof ContactFormData;
   type: 'text' | 'email' | 'textarea';
   // The browser's autofill hint (`autocomplete`), for a field it can fill.
   autoComplete?: string;
@@ -17,8 +18,8 @@ export type Field = {
 
 type FormFieldsProps = {
   fields: Field[];
-  register: UseFormRegister<any>;
-  errors: FieldErrors;
+  register: UseFormRegister<ContactFormData>;
+  errors: FieldErrors<ContactFormData>;
   touchedFields: Partial<Record<string, boolean>>;
 };
 

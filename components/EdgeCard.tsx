@@ -1,8 +1,9 @@
 'use client';
 
-import { CSSProperties, ReactNode, useEffect, useRef } from 'react';
+import { CSSProperties, ReactNode, RefObject, useEffect, useRef } from 'react';
 
 import { bleedsPast } from './edgeBleed';
+import { watchSize } from './viewport';
 
 // A frosted-glass card (a `section`: components/Background/glass.ts draws its
 // glass) whose glass runs flat out past the window's right side when that
@@ -23,20 +24,24 @@ import { bleedsPast } from './edgeBleed';
 // Background/HeadFraming.tsx) rather than moving away.
 // `isOffView`: the card of a post out of view (data-off-view), hidden, which
 // the head's place on the page's first load does not wait for (intro.ts).
+// `ref`: the card's own element, for a post's hooks that measure it.
 export default function EdgeCard({
+  ref,
   className = '',
   style,
   isAboveHead = false,
   isOffView = false,
   children,
 }: {
+  ref?: RefObject<HTMLElement | null>;
   className?: string;
   style?: CSSProperties;
   isAboveHead?: boolean;
   isOffView?: boolean;
   children: ReactNode;
 }) {
-  const cardRef = useRef<HTMLElement | null>(null);
+  const ownRef = useRef<HTMLElement | null>(null);
+  const cardRef = ref ?? ownRef;
 
   useEffect(() => {
     const card = cardRef.current;
@@ -52,15 +57,8 @@ export default function EdgeCard({
         bleedsPast(toRight) ? `calc(${toRight}px + 15rem)` : '0px',
       );
     };
-    measure();
-    const resize = new ResizeObserver(measure);
-    resize.observe(space);
-    addEventListener('resize', measure);
-    return () => {
-      resize.disconnect();
-      removeEventListener('resize', measure);
-    };
-  }, []);
+    return watchSize([space], measure, true);
+  }, [cardRef]);
 
   // The glass over any photos under the card is drawn on the layer before it,
   // outside the card so it fades with the card rather than popping on at the
