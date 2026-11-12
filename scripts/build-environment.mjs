@@ -1,4 +1,4 @@
-// Builds public/background/environment/kiara_1_dawn_1k_pmrem.hdr: the scene's
+// Builds components/Background/files/kiara_1_dawn_1k_pmrem.hdr: the scene's
 // sky (scripts/environment/kiara_1_dawn_1k.hdr) as three draws it for reflections and the blurred
 // background, prefiltered here once instead of in every visitor's browser.
 //
@@ -29,7 +29,7 @@ const THREE_VERSION = JSON.parse(
 ).version;
 const OUT = path.join(
   ROOT,
-  'public/background/environment/kiara_1_dawn_1k_pmrem.hdr',
+  'components/Background/files/kiara_1_dawn_1k_pmrem.hdr',
 );
 
 // The page: the sky prefiltered by three, read back as half floats, bottom

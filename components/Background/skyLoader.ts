@@ -9,7 +9,11 @@ import { RGBELoader } from 'three-stdlib';
 // with the page's main thread waiting on all of it, the dark screen's own
 // cap (READY_AT_MOST_MS, sceneReady.ts) included. The file is three's "cube
 // UV" atlas of it, which three uses as it is (SkyEnvironment.tsx).
-export const SKY_FILE = '/background/environment/kiara_1_dawn_1k_pmrem.hdr';
+// Imported, so the build serves it under a hashed name with a year's cache.
+export const SKY_FILE = new URL(
+  './files/kiara_1_dawn_1k_pmrem.hdr',
+  import.meta.url,
+).href;
 
 // Loads SKY_FILE as that atlas: RGBE, as the sky itself, read as half floats.
 export class SkyLoader extends RGBELoader {

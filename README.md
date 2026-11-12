@@ -35,9 +35,12 @@ When the secret is unset, submissions skip verification, except on the live site
 
 ## The 3D head
 
-`public/background/geometry/head.bin` is built by hand, not by `npm run build`: run `npm run build:head`
-(`node scripts/build-head.mjs`, with its parts in `scripts/head/`) after changing the head's model or
-expressions, and commit the new file with the scripts that made it.
+The head is built by hand, not by `npm run build`: run `npm run build:head` after changing the head's
+model or expressions, and commit the new files with the scripts that made them. It runs
+`node scripts/build-head.mjs` (with its parts in `scripts/head/`), which writes `scripts/head/head.bin`
+with every expression, then `node scripts/build-page-files.mjs`, which writes the page's copy,
+`components/Background/files/head.bin`, with only the expressions the page shows (and the colour
+table beside it). It needs Node 22.18 or later.
 
 ## Credits
 

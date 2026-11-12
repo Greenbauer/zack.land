@@ -23,8 +23,9 @@ import { TitleWord } from './titleWords';
 // head's skin on a plane in front of the head, laid over its word on the
 // page, the skin's normals bent as one curved sheet across the whole name.
 
-// The title font (scripts/build-title-font.mjs).
-export const FONT = '/background/fonts/kanit.json';
+// The title font (scripts/build-title-font.mjs), imported, so the build
+// serves it under a hashed name with a year's cache.
+export const FONT = new URL('./files/kanit.json', import.meta.url).href;
 // three's TTFLoader stores glyphs at 100000 / 72 units to the em against a
 // resolution of 1000, so shapes of size 1 are 1.39 em: this size makes them
 // one em.

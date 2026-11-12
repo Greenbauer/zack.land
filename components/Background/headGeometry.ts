@@ -1,8 +1,10 @@
 import { FileLoader } from 'three';
 
-// public/background/geometry/head.bin, written by scripts/build-head.mjs: the
-// head's meshes and expressions in a compact binary form, gzipped (the site
-// serves it as it is, so it is compressed ahead). Unzipped, little-endian:
+// head.bin, written by scripts/build-head.mjs (all its expressions, in
+// scripts/head/) and scripts/build-page-files.mjs (the page's copy, with
+// only the shown ones, in ./files/): the head's meshes and expressions in a
+// compact binary form, gzipped (the site serves it as it is, so it is
+// compressed ahead). Unzipped, little-endian:
 //
 //   'HEAD', u32 version (5), u32 mesh count,
 //   f32 min x, y, z, f32 max x, y, z (the box positions are quantized over),
@@ -34,7 +36,8 @@ export type HeadMesh = {
 
 export type Head = { meshes: Map<string, HeadMesh>; expressions: string[] };
 
-export const HEAD_URL = '/background/geometry/head.bin';
+// Imported, so the build serves it under a hashed name with a year's cache.
+export const HEAD_URL = new URL('./files/head.bin', import.meta.url).href;
 
 // Moves are stored in this many parts of a unit (scripts/head/write.mjs).
 const MOVE_SCALE = 500;

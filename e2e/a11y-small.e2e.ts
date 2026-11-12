@@ -113,6 +113,9 @@ test.describe('the contact form, pressed twice', () => {
     await submit.click();
     const region = page.getByRole('status').filter({ hasNotText: 'Loading' });
     await expect(region).toHaveText('Sending your message');
+    // The first request is out (where reCAPTCHA runs, only once it has given
+    // its token).
+    await expect.poll(() => requests, { timeout: 15_000 }).toBe(1);
     // A real press still reaches it (it is only aria-disabled); Playwright
     // would wait for it to be enabled, so the press is forced.
     await submit.click({ force: true });

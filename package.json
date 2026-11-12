@@ -11,7 +11,7 @@
     "start": "next start",
     "lint": "eslint --fix . && tsc",
     "test": "vitest run",
-    "build:head": "node scripts/build-head.mjs"
+    "build:head": "node scripts/build-head.mjs && node scripts/build-page-files.mjs"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.0",

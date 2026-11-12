@@ -72,7 +72,11 @@ export default function PostCollage({
     const dismiss = () => setIsDismissed(true);
     document.addEventListener('pointerdown', dismiss, true);
     // The card fades away, glass and all, and back when the video stops.
-    const fade = post.querySelector('section')?.animate([{ opacity: 0 }], {
+    // Faded, its links and buttons are out of reach (inert), for the
+    // keyboard and a screen reader as for the eye.
+    const card = post.querySelector('section');
+    if (card) card.inert = true;
+    const fade = card?.animate([{ opacity: 0 }], {
       duration: 400,
       easing: 'ease-out',
       fill: 'forwards',
@@ -80,6 +84,7 @@ export default function PostCollage({
     return () => {
       removeEventListener('resize', place);
       document.removeEventListener('pointerdown', dismiss, true);
+      if (card) card.inert = false;
       if (!fade) return;
       fade.reverse();
       fade.finished.then(

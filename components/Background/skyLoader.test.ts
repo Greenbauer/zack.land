@@ -22,8 +22,11 @@ const parse = (file: string) => {
   return { width, height, data: halves };
 };
 
+// The page's sky file (SKY_FILE), read from the repository.
+const ATLAS = 'components/Background/files/kiara_1_dawn_1k_pmrem.hdr';
+
 describe('the prefiltered sky', () => {
-  const atlas = parse(`public${SKY_FILE}`);
+  const atlas = parse(ATLAS);
 
   it('is the atlas three makes of the sky, the size its PMREM gives it', () => {
     // PMREMGenerator.fromEquirectangular: cube faces a quarter of the sky's
@@ -44,7 +47,7 @@ describe('the prefiltered sky', () => {
   });
 
   it("was built by the three the page runs (its atlas's layout is three's)", () => {
-    const header = Buffer.from(read(`public${SKY_FILE}`).slice(0, 200))
+    const header = Buffer.from(read(ATLAS).slice(0, 200))
       .toString('latin1')
       .match(/# three ([\d.]+)'s PMREM/);
     const three = JSON.parse(

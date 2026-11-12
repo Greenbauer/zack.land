@@ -6,6 +6,7 @@ import { HiPlay } from 'react-icons/hi2';
 import YouTube, { YouTubePlayer } from 'react-youtube';
 
 import { whenPageIn } from '@/components/Background/sceneReady';
+import useReducedMotion from '@/hooks/useReducedMotion';
 import { MediaSource } from '@/types';
 
 import { posterOf } from './videoPoster';
@@ -98,24 +99,26 @@ function useSizes(shownWidth?: number) {
 // A silent loop. It shows its poster and loads nothing more until it plays:
 // once its post is in view and the page is in (data-page-in), so under the
 // dark screen it doesn't download alongside the scene's files. Its melt
-// draws the poster until it has a frame (MediaMelt.tsx).
+// draws the poster until it has a frame (MediaMelt.tsx). With reduced motion
+// it does not play: its poster stands still in its place.
 function LoopVideo({
   mediaSource,
   paused = false,
 }: Pick<MediaProps, 'mediaSource' | 'paused'>) {
   const { key, alt, width = 800, height = 800 } = mediaSource;
   const video = useRef<HTMLVideoElement | null>(null);
+  const isStill = useReducedMotion();
 
   useEffect(() => {
     const loop = video.current;
     if (!loop) return;
-    if (paused) {
+    if (paused || isStill) {
       loop.pause();
       return;
     }
     // A pause before it starts turns down play()'s promise.
     return whenPageIn(() => void loop.play().catch(() => {}));
-  }, [paused]);
+  }, [paused, isStill]);
 
   return (
     <video
@@ -160,6 +163,10 @@ function YouTubeVideo({
 }) {
   const { key, alt } = mediaSource;
   const player = useRef<YouTubePlayer | null>(null);
+  const playButton = useRef<HTMLButtonElement | null>(null);
+  // Whether focus was in the player as it stopped, so it goes back to the
+  // play button rather than dropping to the page.
+  const refocus = useRef(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   // Read as the player readies and starts, which can come after its post has
@@ -172,9 +179,30 @@ function YouTubeVideo({
   }, [paused]);
 
   const stopped = () => {
+    const iframe = player.current?.getIframe?.();
+    refocus.current = !!iframe && document.activeElement === iframe;
     setIsStarting(false);
     onPlaying?.(false);
   };
+  useEffect(() => {
+    if (isStarting || !refocus.current) return;
+    refocus.current = false;
+    playButton.current?.focus();
+  }, [isStarting]);
+  // Pressed, the play button goes: focus moves into the player, which takes
+  // the keys from there, not to the page. Once the player shows (it is
+  // hidden until it starts, and a hidden frame takes no focus), or once it
+  // is ready, on a first press.
+  const wantsFocus = useRef(false);
+  const focusPlayer = () => {
+    const iframe = player.current?.getIframe?.();
+    if (!wantsFocus.current || !iframe) return;
+    wantsFocus.current = false;
+    iframe.focus();
+  };
+  useEffect(() => {
+    if (isStarting) focusPlayer();
+  }, [isStarting]);
   // A pause can be a moment of a seek: only one that lasts stops it.
   const pauseTimer = useRef(0);
 
@@ -192,6 +220,7 @@ function YouTubeVideo({
       )}
       {!isStarting && (
         <button
+          ref={playButton}
           type="button"
           aria-label={`Play ${alt}`}
           className="absolute inset-0 grid place-items-center"
@@ -200,6 +229,7 @@ function YouTubeVideo({
             setIsStarting(true);
             setIsLoaded(true);
             player.current?.playVideo();
+            wantsFocus.current = true;
           }}
         >
           <span className="rounded-full bg-head-dark/60 p-3 text-head-light backdrop-blur-sm">
@@ -216,7 +246,12 @@ function YouTubeVideo({
           onReady={({ target }) => {
             player.current = target;
             if (isPaused.current) target.pauseVideo();
-            else target.playVideo();
+            else {
+              target.playVideo();
+              // Unless the visitor has moved on while it loaded.
+              if (document.activeElement === document.body) focusPlayer();
+              else wantsFocus.current = false;
+            }
           }}
           onPlay={({ target }) => {
             clearTimeout(pauseTimer.current);
