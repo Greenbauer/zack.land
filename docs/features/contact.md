@@ -36,8 +36,8 @@ Roles: none; the page is public. Mail: the QAE container points the five SMTP va
 7. Post to `/api/email` directly with the email `not-an-email`, or with no message: the route answers 400 and sends nothing.
 8. By keyboard only: Tab reaches Name, Email and Message in order, each showing a ring in the card's ink; clicking a label puts the caret in its field. A screen reader names each field by its label, Email offers the browser's saved addresses, and a field left empty, or holding only spaces, reads as invalid with "required" as its description, and Submit stays disabled.
 
-- `cypress/e2e/contact-form.cy.ts::enables Submit once valid, without blurring the last field`
-- `cypress/e2e/contact-form.cy.ts::shows a field error only after blur, not while typing`
+- `e2e/contact-form.e2e.ts::enables Submit once valid, without blurring the last field`
+- `e2e/contact-form.e2e.ts::shows a field error only after blur, not while typing`
 - `e2e/a11y-small.e2e.ts::names each field by its label, with its type and autofill`
 - `e2e/a11y-small.e2e.ts::ties an error to its field, and counts only spaces as empty`
 - `e2e/a11y-small.e2e.ts::says it is sending, then sent, keeping focus`
@@ -60,7 +60,7 @@ Roles: none; the page is public. Mail: the QAE container points the five SMTP va
 
 ## Gotchas
 
-- `.github/workflows/tests.yml` runs `npm test` (the `route.test.ts` and `recaptcha.test.ts` cases above) on every pull request and every push to `master`. No workflow runs `contact-form.cy.ts` (the workflow's only Cypress run is the portfolio's `more-less.cy.ts`), so its two cases run only by hand.
+- `.github/workflows/tests.yml` runs `npm test` (the `route.test.ts` and `recaptcha.test.ts` cases above) on every pull request and every push to `master`, and the two `e2e/contact-form.e2e.ts` cases against the built site in Chromium and WebKit (the checks `Moving views (1/4)` to `(4/4)`).
 - Off the live site reCAPTCHA is optional: with no `RECAPTCHA_SECRET_KEY` every submission is accepted, and with no `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` the form sends no token. On the live site (`VERCEL_ENV` is `production`) a missing secret refuses every submission with a 400, so the spam gate cannot turn off unnoticed; the log line names `not-configured`. The public key is inlined at build, so setting it needs a redeploy (README).
 - reCAPTCHA's script (about 350 KB) is not on the page as it opens: the form's first focus adds it (`loadRecaptcha` in `utils/recaptcha-client.ts`), and a submit waits for it, up to 10 seconds, then sends without a token (which the live site refuses). So the network tab shows no `recaptcha/api.js` until a field is clicked.
 - The browser counts a field of only spaces as empty, as the route does (it trims before it checks), so such a name shows "required" and never reaches the route. The route re-checks every field the browser checks (required, the email pattern, 100 characters for Name and Email, 1000 for Message) from the one set of rules in `utils/contact-fields.ts`; change a limit there, not in either caller. A value the browser lets through but the route refuses shows as "An error has occurred".
