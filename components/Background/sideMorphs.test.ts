@@ -1,10 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
 import { expressions, meshes } from './headFixture';
-import { SIDED, sideWeight, withSides } from './sideMorphs';
+import { SHOWN_SIDED } from './shownExpressions';
+import { sideWeight, withSides } from './sideMorphs';
+
+// The expressions the page splits, and the shrug, whose halves blend across
+// the whole neck.
+const SIDED = [...SHOWN_SIDED, 'shrug'];
 
 describe("the head's one-sided expressions", () => {
-  const head = withSides({ meshes, expressions });
+  const head = withSides({ meshes, expressions }, SIDED);
   const skin = head.meshes.get('skin')!;
   const morph = (name: string) => skin.morphs[head.expressions.indexOf(name)]!;
   // The total move, by side of the face (+x is the head's own left).

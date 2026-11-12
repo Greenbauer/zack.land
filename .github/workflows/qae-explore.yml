@@ -317,7 +317,7 @@ jobs:
           docker run --detach --name qae-site --user node --cap-drop ALL --security-opt no-new-privileges \
             --sysctl net.ipv4.ip_unprivileged_port_start=0 --publish 3000:3000 \
             --volume "$src/tree:/src:ro" --volume "$src/mail-sink.js:/mail-sink.js:ro" \
-            --env NEXT_TELEMETRY_DISABLED=1 --env HUSKY=0 \
+            --env NEXT_TELEMETRY_DISABLED=1 \
             --env EMAIL_HOST=127.0.0.1 --env EMAIL_USER=qae --env EMAIL_PASS=qae \
             --env FROM_EMAIL=qae@example.com --env TO_EMAIL=qae@example.com \
             "$IMAGE" sh -ec 'node /mail-sink.js & cp -R /src /home/node/site && cd /home/node/site && npm ci && npm run build && exec npm start -- --hostname 0.0.0.0'
