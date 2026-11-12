@@ -1,9 +1,6 @@
-const SIZE = { sm: 'size-8', xl: 'size-60' };
-
-export default function Spinner({ size = 'xl' }: { size?: keyof typeof SIZE }) {
+// A turning ring, in place of a button while its action runs (Button.tsx).
+export default function Spinner() {
   return (
-    <div
-      className={`relative animate-spin rounded-full border border-head-light/20 border-l-head-light ${SIZE[size]}`}
-    />
+    <div className="relative size-8 animate-spin rounded-full border border-head-light/20 border-l-head-light" />
   );
 }

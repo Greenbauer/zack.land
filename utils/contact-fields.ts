@@ -1,6 +1,7 @@
 // Field rules shared by the contact form's fields (components/FormFields.tsx)
 // and the route that mails them (app/api/email/route.ts), so the server
 // accepts exactly what the browser lets through.
+
 // What the contact form sends (with a reCAPTCHA token, app/api/email/route.ts).
 export type ContactFormData = {
   name: string;

@@ -55,7 +55,7 @@ export default function Button({
   if (showSpinner)
     return (
       <button {...props} aria-disabled className="p-1.5">
-        <Spinner size="sm" />
+        <Spinner />
         <span className="sr-only">{children}</span>
       </button>
     );

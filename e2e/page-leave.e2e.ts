@@ -36,4 +36,5 @@ test('back while the page moves out stays where back went', async ({
   // Well past the moment the site would have gone on (TILES_MS, leaveTo.ts).
   await page.waitForTimeout(2500);
   await expect(page).toHaveURL(/\/portfolio\/web-apps$/);
+  await expect(page.locator('[data-post]').first()).toBeVisible();
 });

@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 
+import { watchSize } from '../viewport';
 import { PAGE_SCROLLER_ID } from './edgeFade';
 
 // Keeps --scrollbar-width on the page's scroller: how wide its scrollbar is
@@ -16,11 +17,8 @@ export default function ScrollbarWidth() {
         '--scrollbar-width',
         `${scroller.offsetWidth - scroller.clientWidth}px`,
       );
-    measure();
-    const resize = new ResizeObserver(measure);
-    resize.observe(scroller);
-    if (scroller.firstElementChild) resize.observe(scroller.firstElementChild);
-    return () => resize.disconnect();
+    const page = scroller.firstElementChild;
+    return watchSize(page ? [scroller, page] : [scroller], measure);
   }, []);
 
   return null;
