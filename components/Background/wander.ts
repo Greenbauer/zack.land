@@ -1,4 +1,5 @@
 import { glide } from './headPlace';
+import { clamp } from './maths';
 
 // How the head looks around on its own (leftAlone.ts: after its greeting on a
 // still page, and from the start on a touch screen), modelled on how people
@@ -53,9 +54,9 @@ export type Wander = {
   next: number;
 };
 
-const clamp = (v: number, [low, high]: readonly [number, number]) => {
+const within = (v: number, [low, high]: readonly [number, number]) => {
   const inset = (high - low) * MARGIN;
-  return Math.min(Math.max(v, low + inset), high - inset);
+  return clamp(v, low + inset, high - inset);
 };
 
 // The next look from `from`, using `random` (0 to 1, as Math.random), and
@@ -79,7 +80,7 @@ export function nextLook(
       y: from.y + Math.cos(angle) * size,
     };
   }
-  target = { x: clamp(target.x, TIP), y: clamp(target.y, WANDER_TURN) };
+  target = { x: within(target.x, TIP), y: within(target.y, WANDER_TURN) };
   const distance = Math.hypot(target.x - from.x, target.y - from.y);
   return {
     target,

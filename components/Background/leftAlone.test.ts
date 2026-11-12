@@ -2,12 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { greetingOn, SMILE_SECONDS, SURPRISE_SECONDS } from './idleGreeting';
 import { LeftAlone, stepPage, usedAt, watched } from './leftAlone';
-
-// A repeatable random number generator (a linear congruential one).
-const seeded = (seed: number) => () => {
-  seed = (seed * 1664525 + 1013904223) % 4294967296;
-  return seed / 4294967296;
-};
+import { seeded } from './seeded';
 
 const WAIT = 12;
 const STEP = 1 / 30;

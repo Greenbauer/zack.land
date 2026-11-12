@@ -1,3 +1,5 @@
+import { smoothstep } from './maths';
+
 // The head blinks on its own clock, in every state (MyHead.tsx lays it over
 // whatever else the face is doing), sparsely: every twenty seconds or so at
 // irregular gaps, each blink closing fast and opening more slowly, now and
@@ -13,7 +15,7 @@ const LENGTH = BLINK.close + BLINK.hold + BLINK.open;
 // (about 3 a minute), never more than `most`.
 export const GAP = { least: 8, mean: 20, most: 40 } as const;
 // How often a blink comes twice, the second just after the first.
-export const DOUBLE_CHANCE = 0.03;
+const DOUBLE_CHANCE = 0.03;
 const DOUBLE_AFTER = LENGTH + 0.05;
 // A quick shift of the gaze (faster than `speed`, radians a second) brings a
 // blink with it `chance` of the time, if the last began over `after` seconds
@@ -76,20 +78,15 @@ export function stepBlink(
   return { ...blink, shifting };
 }
 
-const smoothstep = (t: number) => {
-  const c = Math.min(Math.max(t, 0), 1);
-  return c * c * (3 - 2 * c);
-};
-
 // How shut one blink's lids are `t` seconds into it, 0 to 1.
 const course = (t: number) =>
   t < 0 || t > LENGTH
     ? 0
     : t < BLINK.close
-      ? smoothstep(t / BLINK.close)
+      ? smoothstep(0, 1, t / BLINK.close)
       : t < BLINK.close + BLINK.hold
         ? 1
-        : 1 - smoothstep((t - BLINK.close - BLINK.hold) / BLINK.open);
+        : 1 - smoothstep(0, 1, (t - BLINK.close - BLINK.hold) / BLINK.open);
 
 // How shut the lids are at `time` (head.bin's blink), 0 to 1.
 export const blinkAmount = ({ start, double }: Blink, time: number) =>

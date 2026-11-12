@@ -2,17 +2,13 @@
 // its turn shapes (scripts/head/bodyShapes.mjs bodyMoves). Distances in
 // head.bin units (about 1.7 mm).
 
-import { bump, smoothstep } from './faceRig.mjs';
-
-// The neck's axis in depth (as scripts/head/rig.mjs measures it), where a
-// point sits round it (0 at the front, positive toward its own left), and
-// the direction straight out from it.
-const axisZ = (y) => -25 + (y + 72) * 0.43;
-const around = ([x, y, z]) => Math.atan2(x, z - axisZ(y));
-const radial = ([x, y, z]) => {
-  const r = Math.hypot(x, z - axisZ(y)) || 1;
-  return [x / r, 0, (z - axisZ(y)) / r];
-};
+import {
+  BODY_SHARE,
+  FAR_TURN,
+  FULL_TURN,
+} from '../../components/Background/neckRig.ts';
+import { bump, smoothstep } from './falloff.mjs';
+import { around, radial, twisted } from './neckAxis.mjs';
 
 // Turning the head to one side, the neck muscle on the other side (the
 // sternocleidomastoid, which makes the turn) tightens and stands out as a cord
@@ -35,8 +31,8 @@ const radial = ([x, y, z]) => {
 // front of the notch and the collarbones, turned far). SCM:
 // how far it stands out (units, at full turn), its ends at rest (on the
 // head's left, x mirrored for its right), the neck's turns it is shaped for
-// (neckPose.ts FULL_TURN and FAR_TURN, less the body's share: headTurn.ts
-// BODY_SHARE), its width (radians round the neck) at the top and
+// (neckRig.ts FULL_TURN and FAR_TURN, less the body's share, BODY_SHARE),
+// its width (radians round the neck) at the top and
 // the bottom, and the heights it fades in over (`from`, by `ends` at each).
 //
 // The muscle on the side the head turns toward is drawn out long and taut
@@ -49,24 +45,17 @@ export const SCM = {
   taut: 8,
   mastoid: [33, -34, -26],
   notch: [8, -126, -8],
-  turn: 0.79 * 0.9,
-  far: 1.55 * 0.9,
+  turn: FULL_TURN * (1 - BODY_SHARE.turn),
+  far: FAR_TURN * (1 - BODY_SHARE.turn),
   width: [0.5, 0.26],
   from: [-70, -104],
   ends: [32, 18],
 };
-// Where the twist that turns the head by `angle` (toward +x) carries `p`:
-// about the vertical through the top of the spine (headTurn.ts PIVOT).
-const PIVOT_Z = -22;
-const twisted = ([x, y, z], angle) => [
-  x * Math.cos(angle) + (z - PIVOT_Z) * Math.sin(angle),
-  y,
-  -x * Math.sin(angle) + (z - PIVOT_Z) * Math.cos(angle) + PIVOT_Z,
-];
 // The cord of the muscle on `side` (of x) for a turn by `angle` (toward +x),
 // standing out by `rise`.
 // It fades out over ACROSS units short of the middle of the throat (cut off
-// there, it left a step at the base of the throat turned).
+// there, it left a step at the base of the throat turned). `twisted` carries
+// each point where the turn takes it (neckAxis.mjs).
 const ACROSS = 6;
 export const scmCord = (p, side, share, angle, rise) => {
   const across = smoothstep(side * p[0], 0, ACROSS);

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { seeded } from './seeded';
 import {
   currentView,
   DARK_SKIES,
@@ -15,10 +16,6 @@ import {
   viewBoundOff,
 } from './skyViews';
 
-const seeded = (seed: number) => () => {
-  seed = (seed * 1664525 + 1013904223) % 4294967296;
-  return seed / 4294967296;
-};
 type Sky = (typeof STATIONS)[number];
 // Which of the skies a view's station is (each view's carries its own hue).
 const which = (station: Sky) =>

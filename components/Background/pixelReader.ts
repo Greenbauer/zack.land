@@ -31,7 +31,19 @@ export class PixelReader {
 
   constructor(gl: WebGL2RenderingContext) {
     this.gl = gl;
+    gl.canvas.addEventListener('webglcontextlost', this.forget);
   }
+
+  // A lost context takes its buffers, and the batch on its way, with it: the
+  // batch never arrives (its sync never signals), so it is dropped, and the
+  // buffers are made afresh for the next once the context is back.
+  private readonly forget = () => {
+    this.buffers.length = 0;
+    this.gathered = null;
+    this.reads = [];
+    this.sync = null;
+    this.done = null;
+  };
 
   // Whether a batch is on its way: no new one starts until it has arrived.
   get busy() {
@@ -43,6 +55,7 @@ export class PixelReader {
   // rows from the bottom up, as readPixels gives them.
   read(region: Region, float = false) {
     const { gl } = this;
+    if (gl.isContextLost()) return;
     const bytes = region.width * region.height * 4 * (float ? 4 : 1);
     let slot = this.buffers[this.reads.length];
     if (!slot) {
@@ -130,12 +143,10 @@ export class PixelReader {
 
   dispose() {
     const { gl } = this;
+    gl.canvas.removeEventListener('webglcontextlost', this.forget);
     if (this.sync) gl.deleteSync(this.sync);
     for (const { buffer } of this.buffers) gl.deleteBuffer(buffer);
     if (this.gathered) gl.deleteBuffer(this.gathered);
-    this.buffers.length = 0;
-    this.gathered = null;
-    this.reads = [];
-    this.sync = null;
+    this.forget();
   }
 }

@@ -27,6 +27,7 @@ import { GlassPass, GlassTintPass, tintStrength } from './glass';
 import { findCards, findFields, pageFade } from './glassCards';
 import { CardTints, Rgb, skyOf, skyPoints } from './glassTint';
 import { LUT_URL, LUTBytesLoader } from './lutBytes';
+import { everyFrames } from './maths';
 import { photoLenses } from './photoLens';
 import { TrailPass } from './pointerTrail';
 import { renderQuality, useDrawsInSoftware } from './quality';
@@ -66,7 +67,7 @@ export default function Grading() {
   const [titles] = useState(() => new TitlePass(get));
   const [tints] = useState(() => new CardTints());
   const [trail] = useState(() => new TrailPass());
-  const frame = useRef(0);
+  const [isDue] = useState(() => everyFrames(SAMPLE_EVERY));
   const reader = usePixelReader();
   // How far the focus blur has come in, from 0 to 1.
   const blur = useRef(0);
@@ -136,8 +137,7 @@ export default function Grading() {
   // BackdropSampler), each card's tint is aimed at the sky around it, when
   // that has been read back (pixelReader.ts).
   useFrame(({ gl }) => {
-    frame.current = (frame.current + 1) % SAMPLE_EVERY;
-    if (frame.current || reader.busy) return;
+    if (!isDue() || reader.busy) return;
     const reads = glass.cards
       .map(({ element }) => ({
         element,

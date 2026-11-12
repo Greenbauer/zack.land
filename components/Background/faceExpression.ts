@@ -1,3 +1,5 @@
+import { clamp, smoothstep } from './maths';
+
 // When the face makes its expressions, from where the head is looking (the
 // pointer, or the spot it wanders to when the pointer is still), in screen
 // pixels, against where its eyes are on screen:
@@ -31,11 +33,6 @@ export const EASE_RATE = 4;
 // quick smile each time.
 export const SMILE_AWAY_RATE = 1;
 
-const smoothstep = (x: number, [low, high]: readonly [number, number]) => {
-  const t = Math.min(Math.max((x - low) / (high - low), 0), 1);
-  return t * t * (3 - 2 * t);
-};
-
 // The target strength of each expression, 0 to 1. A spot off the screen
 // counts as its nearest edge.
 export function pointerExpressions(
@@ -43,13 +40,16 @@ export function pointerExpressions(
   eyes: Point,
   { width, height }: Size,
 ): { browsUp: number; squint: number } {
-  const x = Math.min(Math.max(spot.x, 0), width);
-  const y = Math.min(Math.max(spot.y, 0), height);
+  const x = clamp(spot.x, 0, width);
+  const y = clamp(spot.y, 0, height);
   return {
-    browsUp: smoothstep((eyes.y - y) / height, BROWS_ABOVE),
+    browsUp: smoothstep(...BROWS_ABOVE, (eyes.y - y) / height),
     squint:
       SQUINT_MAX *
-      smoothstep(Math.hypot(x - eyes.x, y - eyes.y) / width, SQUINT_DISTANCE),
+      smoothstep(
+        ...SQUINT_DISTANCE,
+        Math.hypot(x - eyes.x, y - eyes.y) / width,
+      ),
   };
 }
 
@@ -71,7 +71,7 @@ export const shareOver = (share: number, seconds: number) =>
 // The smile's target from the head's turn (radians: x tips, y turns, both 0
 // facing the camera).
 export const facingSmile = ({ x, y }: Point) =>
-  FACING_SMILE * (1 - smoothstep(Math.hypot(x, y), FACING));
+  FACING_SMILE * (1 - smoothstep(...FACING, Math.hypot(x, y)));
 
 // The rate an expression (`name`) eases at, the head turned `look`: the
 // smile slowly unless the head faces the camera (within FACING's nearer

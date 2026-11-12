@@ -10,6 +10,7 @@
 // `front`, a range of the sine of the angle around the axis (1 is straight
 // ahead), where the head's surface curves up into the jaw too soon for it.
 
+import { smoothstep } from './falloff.mjs';
 import { smooth } from './mesh.mjs';
 
 const BINS = 72;
@@ -18,11 +19,6 @@ const HARMONICS = 12;
 // misses the surface there by the fit's small error, and snapping onto it all
 // at once left a faint step that showed as a ring round the neck.
 const EASE = 8;
-
-const smoothstep = (x, low, high) => {
-  const t = Math.min(Math.max((x - low) / (high - low), 0), 1);
-  return t * t * (3 - 2 * t);
-};
 
 // The tube's distance from the axis at one height, as a smooth function of
 // the angle: the vertices within a unit of that height, averaged per angle

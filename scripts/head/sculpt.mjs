@@ -6,13 +6,8 @@
 // unit).
 
 import { fitBack } from './backOutline.mjs';
-import { normals } from './mesh.mjs';
-
-const smoothstep = (x, low, high) => {
-  const t = Math.min(Math.max((x - low) / (high - low), 0), 1);
-  return t * t * (3 - 2 * t);
-};
-const bump = (d, width) => Math.exp(-((d / width) ** 2));
+import { bump, smoothstep } from './falloff.mjs';
+import { edgeNeighbours, normals } from './mesh.mjs';
 
 // An Adam's apple (MakeHuman has none), a little over a third of the way
 // from the chin to the notch.
@@ -154,13 +149,7 @@ function toLine(line, p, shift) {
 
 // The skin evened out where `reach(p, normal)` (0 to 1) says, `passes` times.
 function even(vertices, faces, reach, passes) {
-  const near = vertices.map(() => new Set());
-  for (const f of faces)
-    f.forEach((a, k) => {
-      const b = f[(k + 1) % f.length];
-      near[a].add(b);
-      near[b].add(a);
-    });
+  const near = edgeNeighbours({ vertices, faces });
   const n = normals({ vertices, faces });
   const weight = vertices.map((p, i) => reach(p, n[i]));
   let p = vertices.map((v) => [...v]);

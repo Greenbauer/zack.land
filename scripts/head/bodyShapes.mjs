@@ -6,17 +6,18 @@
 // throat near -124, the collarbones running out from it to the shoulders'
 // tips about 150 from the midline, the bust cut at the nipples, -195.
 
-import { bump, smoothstep } from './faceRig.mjs';
+import { bump, smoothstep } from './falloff.mjs';
+import { cross, dot, edgeNeighbours } from './mesh.mjs';
 import { mhrNeck } from './mhr.mjs';
 import { napeLine } from './napeLine.mjs';
+import { around, axisZ, radial } from './neckAxis.mjs';
 import { SCM, scmCord } from './neckCords.mjs';
 import { throatFill } from './throatFill.mjs';
 
-// The neck's axis in depth (as scripts/head/rig.mjs measures it), and how
-// much of a point belongs to the neck rather than the shoulders below it: the
-// neck, within about NECK_RADIUS of its axis and above the shoulders, stays
-// still, fading to the shoulders over the second distance.
-const axisZ = (y) => -25 + (y + 72) * 0.43;
+// How much of a point belongs to the neck rather than the shoulders below
+// it: the neck, within about NECK_RADIUS of its axis (neckAxis.mjs) and above
+// the shoulders, stays still, fading to the shoulders over the second
+// distance.
 const NECK_RADIUS = [34, 50];
 const neck = ([x, y, z]) =>
   (1 - smoothstep(Math.hypot(x, z - axisZ(y)), ...NECK_RADIUS)) *
@@ -44,13 +45,11 @@ const SHRUG = {
 function turnAbout(p, c, k, angle) {
   const v = p.map((x, a) => x - c[a]);
   const [cos, sin] = [Math.cos(angle), Math.sin(angle)];
-  const dot = v[0] * k[0] + v[1] * k[1] + v[2] * k[2];
-  const cr = [
-    k[1] * v[2] - k[2] * v[1],
-    k[2] * v[0] - k[0] * v[2],
-    k[0] * v[1] - k[1] * v[0],
-  ];
-  return v.map((x, a) => c[a] + x * cos + cr[a] * sin + k[a] * dot * (1 - cos));
+  const along = dot(v, k);
+  const cr = cross(k, v);
+  return v.map(
+    (x, a) => c[a] + x * cos + cr[a] * sin + k[a] * along * (1 - cos),
+  );
 }
 
 function shrug({ vertices }) {
@@ -183,13 +182,6 @@ function swallow({ vertices }, normal) {
   });
 }
 
-// Where a point sits round the neck's axis (`around`, 0 at the front,
-// positive toward its own left), and the direction straight out from it.
-const around = ([x, y, z]) => Math.atan2(x, z - axisZ(y));
-const radial = ([x, y, z]) => {
-  const r = Math.hypot(x, z - axisZ(y)) || 1;
-  return [x / r, 0, (z - axisZ(y)) / r];
-};
 export const BODY_SHAPES = {
   shrug,
   breathe,
@@ -252,13 +244,7 @@ const NECK_PASSES = 30;
 // along the bust's cut edges, its neighbours on the edge only (with
 // neighbours on one side, it would be pulled in and fold).
 function evenNeighbours({ vertices, faces }) {
-  const neighbours = vertices.map(() => new Set());
-  for (const f of faces)
-    f.forEach((a, k) => {
-      const b = f[(k + 1) % f.length];
-      neighbours[a].add(b);
-      neighbours[b].add(a);
-    });
+  const neighbours = edgeNeighbours({ vertices, faces });
   const uses = new Map();
   const along = {};
   for (const f of faces)

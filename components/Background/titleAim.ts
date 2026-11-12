@@ -1,3 +1,5 @@
+import { contrastRatio } from './backdrop';
+
 // Where the name's curved sheet should face, so every part of the name
 // mirrors sky that stands out from what is behind it (TitleName.tsx).
 //
@@ -43,6 +45,18 @@ export function aimAt(row: number): Aim {
   };
 }
 
+// How a sheet facing `aim` (tilt x, y; sweep direction z, w) bends a surface
+// normal at `across` (-1 at its left end to 1 at its right), when its full
+// sweep tips the normal by `sweep` (the tangent of the angle) at each end:
+// GLSL, shared by the letters and the probe so both bend alike.
+export function bendSheet(sweep: number) {
+  return `
+    vec3 sheetBend(vec3 n, float across, vec4 aim) {
+      vec3 tilt = vec3(aim.xy + across * ${sweep.toFixed(3)} * aim.zw, 0.0);
+      return normalize(n + tilt * n.z);
+    }`;
+}
+
 // three's ACES filmic tone mapping (exposure 1) on a luminance, as the page
 // shows it: Narkowicz's fit, after three's 1 / 0.6 exposure scale.
 export const toneMap = (l: number) => {
@@ -63,9 +77,6 @@ export function untoneMap(shown: number) {
   }
   return (low + high) / 2;
 }
-
-const ratio = (a: number, b: number) =>
-  (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
 
 // How the page shows the probe's light: tone mapped after a gain, then
 // scaled by a ceiling. The colour grading darkens and compresses the
@@ -219,8 +230,8 @@ class Grader {
         );
         if (!t) shownSum += shown;
         for (const b of this.behind[t]![k]!) {
-          if (t) ahead = Math.min(ahead, ratio(shown, b));
-          else worst = Math.min(worst, ratio(shown, b));
+          if (t) ahead = Math.min(ahead, contrastRatio(shown, b));
+          else worst = Math.min(worst, contrastRatio(shown, b));
           if (!t) {
             behindSum += b;
             behindCount++;

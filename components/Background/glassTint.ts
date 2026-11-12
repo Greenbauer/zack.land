@@ -1,6 +1,7 @@
 import { isOnDark } from '@/components/SkyText/skyColours';
 import { hasLeftView } from '@/components/useHeldCard';
 
+import { relativeLuminance, toLinear } from './backdrop';
 import { skyState } from './skyState';
 
 // Which side of the sky a glass card is on, so its text is dark on a light sky
@@ -28,14 +29,9 @@ export const DIMMEST = 0.205;
 // tint still follows the sky every frame.
 export const CHANGE_SECONDS = 0.8;
 
-const toLinear = (c: number) => {
-  const s = c / 255;
-  return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
-};
 const toSrgb = (l: number) =>
   255 * (l <= 0.0031308 ? 12.92 * l : 1.055 * l ** (1 / 2.4) - 0.055);
-const luminance = (c: Rgb) =>
-  0.2126 * toLinear(c[0]) + 0.7152 * toLinear(c[1]) + 0.0722 * toLinear(c[2]);
+const luminance = (c: Rgb) => relativeLuminance(...c);
 
 // What the glass shader is given for a card: how far it is on the light
 // side (0 dark, 1 light), and the dimmest and brightest the glass may be,

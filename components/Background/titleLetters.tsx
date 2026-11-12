@@ -15,8 +15,8 @@ import {
 } from 'three';
 
 import { TITLE_LAYER } from './focusBlur';
-import { GLOSS, SKIN_COLOR } from './MyHead';
-import { bendSheet } from './titleProbe';
+import { GLOSS, SKIN_COLOR } from './headSkin';
+import { bendSheet } from './titleAim';
 import { TitleWord } from './titleWords';
 
 // The name's letters (TitleName.tsx): each word drawn as flat letters in the

@@ -18,7 +18,7 @@ import path from 'node:path';
 import { BODY_SHAPES, bodyMoves } from './head/bodyShapes.mjs';
 import { bridge, evenSeam } from './head/bridge.mjs';
 import { bustMoves, EXPRESSIONS, expressions } from './head/expressions.mjs';
-import { smoothstep } from './head/faceRig.mjs';
+import { smoothstep } from './head/falloff.mjs';
 import { ictMoves } from './head/ict.mjs';
 import {
   add,
@@ -27,6 +27,7 @@ import {
   clip,
   compact,
   component,
+  cross,
   normals,
   scale,
   smooth,
@@ -414,11 +415,7 @@ const [a, b, c] = band[0].map((i) => vertices[i]);
 const facing = (() => {
   const u = add(b, scale(a, -1));
   const w = add(c, scale(a, -1));
-  const n = [
-    u[1] * w[2] - u[2] * w[1],
-    u[2] * w[0] - u[0] * w[2],
-    u[0] * w[1] - u[1] * w[0],
-  ];
+  const n = cross(u, w);
   const out = add(a, scale(average(upper.map(({ i }) => vertices[i])), -1));
   return n[0] * out[0] + n[2] * out[2];
 })();

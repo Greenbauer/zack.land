@@ -25,8 +25,17 @@ import { blinkAmount, startBlink, stepBlink } from './blink';
 import { easeRate, easeToward, shareOver } from './faceExpression';
 import { faceTargets } from './headFace';
 import { decodeHead, loadHead } from './headGeometry';
+import {
+  gazeTarget,
+  heading,
+  lookOnScreen,
+  lookToRadians,
+  Point,
+  splitLook,
+} from './headLook';
 import { headMood } from './headMood';
-import { lookOrigin } from './headPlace';
+import { HEAD_LIFT, lookOrigin } from './headPlace';
+import { EYE_COLOR, GLOSS, MOUTH_COLOR, SKIN_COLOR } from './headSkin';
 import {
   HeadTaps,
   onHead,
@@ -45,6 +54,7 @@ import {
 } from './idleGreeting';
 import { intro, introFace, introHolds, introTip } from './intro';
 import { Own, stepPage, usedAt, watched } from './leftAlone';
+import { clamp } from './maths';
 import { morphGeometry } from './morphGeometry';
 import { fadeNeck, fadeTime } from './neckFade';
 import { neckExpressions } from './neckPose';
@@ -54,50 +64,15 @@ import { withSides } from './sideMorphs';
 import { isStill } from './stillScene';
 import { startWander, TIP, TURN, WANDER_TURN } from './wander';
 
-export type Point = { x: number; y: number };
-// A look in radians (x tips, y turns) in the pointer's units, x the turn.
-const asPosition = (gaze: Point): Point => ({
-  x: gaze.y * 1000,
-  y: gaze.x * 1000,
-});
-
 type MyHeadGeometry = { [key: string]: BufferGeometry };
 
 type MyHeadProps = {
-  // Where the pointer has the head look, now.
+  // Where the pointer has the head look, now, as a look target (headLook.ts).
   lookPositionStart: () => Point;
   // The pointer (useMousePosition): the head clears `moved` and `left` once
   // it has seen them (leftAlone.ts).
   pointer: MousePosition;
 };
-
-// The look of pmndrs' "Color grading" sandbox (codesandbox.io/p/sandbox/wvgxp):
-// its terrazzo sphere's black base without the flakes, and eyes in its
-// lightest flake color.
-export const SKIN_COLOR = '#000000';
-// The mouth's inside: flat black, so it shows no detail.
-const MOUTH_COLOR = '#000000';
-const EYE_COLOR = '#aca8a3';
-export const GLOSS = {
-  clearcoat: 0.6,
-  clearcoatRoughness: 0.1,
-  roughness: 0.22,
-  metalness: 0.25,
-};
-
-// The shoulders stay still, turned this far (radians) in toward the middle of
-// the page; the head and neck do all the turning, so where the head looks is
-// unchanged and the neck twists between it and the shoulders.
-export const BODY_TURN = 0.25;
-// How far the head is raised in the scene, in its units.
-export const HEAD_LIFT = 5;
-
-// The look (x tips, y turns, radians) split into the body's fixed turn and
-// the head's turn on the neck relative to it.
-export const splitLook = (look: { x: number; y: number }) => ({
-  body: { x: 0, y: BODY_TURN },
-  head: { x: look.x, y: look.y - BODY_TURN },
-});
 
 const skinShader: Material['onBeforeCompile'] = (shader) => {
   turnHead(shader);
@@ -107,11 +82,7 @@ const skinShader: Material['onBeforeCompile'] = (shader) => {
 // The point between the eyes, in head.bin units.
 const EYES = new Vector3(-0.7, 2.7, 29.3);
 
-// Where the head is heading this frame, in the same pointer units as
-// lookPositionStart, and how fast it eases there. The sky follows it too.
-export const heading = { target: { x: 0, y: 0 }, speed: 0.05 };
-// Where the head looks with reduced motion: straight at the camera. One
-// object, so the sky can tell the head has not moved (Sky.tsx's `first`).
+// Where the head looks with reduced motion: straight at the camera.
 const STILL_LOOK = { x: 0, y: 0 };
 
 // How quickly the sky follows the head while it looks around on its own: a
@@ -142,7 +113,7 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
     return { geometry, expressions };
   }, [myHeadFile]);
   // Each expression's strength now, eased toward what the look calls for.
-  const strengths = useRef<number[]>([]);
+  const strengths = useRef<Record<string, number>>({});
   // The blinks' clock (blink.ts), and where the head looked last frame.
   const blink = useRef(startBlink(0));
   const lastLook = useRef({ x: 0, y: 0 });
@@ -176,16 +147,6 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
     addEventListener('click', onTap);
     return () => removeEventListener('click', onTap);
   }, []);
-
-  const lookPositionLimit = (
-    coordinate: number,
-    min: number,
-    max: number,
-  ): number => {
-    if (coordinate > max) return max;
-    if (coordinate < min) return min;
-    return coordinate;
-  };
 
   // While the face can't be seen clearly there is no greeting, and its clock
   // only counts the time it can, never time away from the page (watched).
@@ -230,23 +191,15 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
 
   // Whether every expression has eased out (the strengths are the last
   // frame's), for the greeting.
-  const neutral = () =>
-    faceNeutral(
-      withFace(
-        Object.fromEntries(
-          expressions.map((name, k) => [name, strengths.current[k] ?? 0]),
-        ),
-        face.current,
-      ),
-    );
+  const neutral = () => faceNeutral(withFace(strengths.current, face.current));
 
-  // Where the head looks, left alone (leftAlone.ts), in the pointer's
-  // units, how fast it turns there, and how fast the sky follows.
+  // Where the head looks, left alone (leftAlone.ts), as a look target, how
+  // fast it turns there, and how fast the sky follows.
   const ownHeading = (own: NonNullable<Own>) => {
     if (own.kind === 'greeting')
       return { lookPosition: { x: 0, y: 0 }, rotationSpeed: 0.05 };
     return {
-      lookPosition: asPosition(own.gaze),
+      lookPosition: gazeTarget(own.gaze),
       rotationSpeed: 1,
       skySpeed: own.kind === 'wander' ? WANDER_SKY_SPEED : undefined,
     };
@@ -301,8 +254,8 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
     // can turn it (wander.ts WANDER_TURN).
     const [left, right] = alone.current.wandering ? WANDER_TURN : TURN;
     lookPosition = {
-      x: lookPositionLimit(lookPosition.x * 0.001, left, right),
-      y: lookPositionLimit(lookPosition.y * 0.001, ...TIP),
+      x: clamp(lookToRadians(lookPosition.x), left, right),
+      y: clamp(lookToRadians(lookPosition.y), ...TIP),
     };
 
     const share = shareOver(rotationSpeed, seconds);
@@ -343,6 +296,32 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
     );
   };
 
+  // Each expression's strength this frame: the neck's shapes as `neck` has
+  // them; the intro's face shown as it is (surprised from the first frame,
+  // the camera inside its open mouth, then smiling, on the intro's own
+  // curves); otherwise eased toward `targets`, quickly while `held` (the
+  // greeting, the search or a tap's reaction), as each eases from there.
+  const stepStrengths = (
+    targets: Record<string, number>,
+    neck: Record<string, number>,
+    seconds: number,
+    held: boolean | 'intro',
+  ): void => {
+    for (const name of expressions) {
+      const target = targets[name] ?? 0;
+      strengths.current[name] =
+        neck[name] ??
+        (held === 'intro'
+          ? target
+          : easeToward(
+              strengths.current[name] ?? 0,
+              target,
+              seconds,
+              held ? GREETING_EASE_RATE : easeRate(name, look.current),
+            ));
+    }
+  };
+
   useFrame(({ clock, camera, size }, delta) => {
     fadeTime.value = clock.elapsedTime;
     // A tap or click that lands on the head (its skin, not the neck or the
@@ -368,13 +347,12 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
       }
     }
     rotateMyHead(clock.elapsedTime, delta);
-    // Where the head is looking, back in screen pixels (index.tsx measures
-    // the look from lookOrigin across and halfway down), against where the
+    // Where the head is looking, back in screen pixels, against where the
     // eyes are on screen.
-    const spot = {
-      x: heading.target.x * 2 + lookOrigin(size.width),
-      y: heading.target.y * 2 + size.height / 2,
-    };
+    const spot = lookOnScreen(heading.target, {
+      x: lookOrigin(size.width),
+      y: size.height / 2,
+    });
     const eyes = myHeadRef.current!.localToWorld(EYES.clone()).project(camera);
     // A tap's reaction, the greeting and the search are each eased in
     // quickly (headFace.ts).
@@ -397,25 +375,10 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
           size,
         );
     stepFace(isGreeting || headMood.worried, clock.elapsedTime, delta);
-    // The intro's face is shown as it is: surprised from the first frame,
-    // the camera inside its open mouth, then smiling, on the intro's own
-    // curves; once it lets go, each eases from there as usual.
-    strengths.current = expressions.map((name, k) =>
-      isIntro
-        ? (targets[name] ?? 0)
-        : easeToward(
-            strengths.current[k] ?? 0,
-            targets[name] ?? 0,
-            delta,
-            isGreeting ? GREETING_EASE_RATE : easeRate(name, look.current),
-          ),
-    );
     // The neck's shapes follow the head's turn this frame, not eased: they
     // are part of the turn (neckPose.ts).
     const neck: Record<string, number> = neckExpressions(headTurn.value);
-    strengths.current = strengths.current.map(
-      (s, k) => neck[expressions[k]!] ?? s,
-    );
+    stepStrengths(targets, neck, delta, isIntro ? 'intro' : isGreeting);
     // The passing look over it all, and a blink over that, on its own clock and with quick shifts of the
     // gaze; shown, not eased, so the lids snap shut and open as lids do.
     const gazeSpeed =
@@ -429,11 +392,10 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
     // With reduced motion the face makes no expression: only the neck's
     // shapes for its (still) turn, and the blinks.
     const still = isStill();
-    const shown = strengths.current.map((s, k) => {
-      const name = expressions[k]!;
+    const shown = expressions.map((name) => {
       const made = still
         ? (neck[name] ?? 0)
-        : Math.min(1, s + (face.current[name] ?? 0));
+        : Math.min(1, strengths.current[name]! + (face.current[name] ?? 0));
       return name === 'blink' ? Math.max(made, lids) : made;
     });
     for (const mesh of [skinRef.current, mouthRef.current, liningRef.current])

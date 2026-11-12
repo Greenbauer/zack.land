@@ -1,42 +1,39 @@
 import { Euler, Matrix4, Vector3 } from 'three';
 import { describe, expect, it } from 'vitest';
 
+import { lookAt } from './headLook';
 import { glide, GLIDE_SECONDS } from './headPlace';
 import {
   forecastTurn,
   holdAtHome,
   setSkyRotation,
+  skyPointer,
   skySpeed,
-  skyTurn,
 } from './Sky';
 
-// MyHead's pointer units for a pointer at (x, y) on a screen of this size.
+// The look target (headLook.ts) for a pointer at (x, y) on a screen of this
+// size, as skyPointer reads it: from a third of the way across.
 const size = { width: 1200, height: 800 };
-const target = (x: number, y: number) => ({
-  x: (x - size.width / 3) * 0.5,
-  y: (y - size.height / 2) * 0.5,
-});
+const target = (x: number, y: number) =>
+  lookAt({ x, y }, { x: size.width / 3, y: size.height / 2 });
 
 describe('the sky turning with the head', () => {
-  it('turns 180° from one edge of the screen to the other', () => {
-    expect(skyTurn(target(0, 400), size).y).toBeCloseTo(-Math.PI / 2);
-    expect(skyTurn(target(1200, 400), size).y).toBeCloseTo(Math.PI / 2);
-    expect(skyTurn(target(600, 0), size).x).toBeCloseTo(-Math.PI / 2);
-    expect(skyTurn(target(600, 800), size).x).toBeCloseTo(Math.PI / 2);
+  it('turns its full reach either way from one edge of the screen to the other', () => {
+    expect(skyPointer(target(0, 400), size).y).toBeCloseTo(-1);
+    expect(skyPointer(target(1200, 400), size).y).toBeCloseTo(1);
+    expect(skyPointer(target(600, 0), size).x).toBeCloseTo(-1);
+    expect(skyPointer(target(600, 800), size).x).toBeCloseTo(1);
   });
 
   it('is level with the pointer at the middle of the screen', () => {
-    const turn = skyTurn(target(600, 400), size);
+    const turn = skyPointer(target(600, 400), size);
     expect(turn.x).toBeCloseTo(0);
     expect(turn.y).toBeCloseTo(0);
   });
 
   it('turns no further when an idle look aims past the edges', () => {
-    // MyHead's wandering picks targets as far as -2000 pointer units.
-    expect(skyTurn({ x: -2000, y: -600 }, size)).toEqual({
-      x: -Math.PI / 2,
-      y: -Math.PI / 2,
-    });
+    // The head's wandering picks targets as far as -2000 look units.
+    expect(skyPointer({ x: -2000, y: -600 }, size)).toEqual({ x: -1, y: -1 });
   });
 
   it('keeps the horizon level while turning, tipping it only up and down', () => {

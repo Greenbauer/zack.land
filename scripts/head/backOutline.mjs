@@ -20,6 +20,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { smoothstep } from './falloff.mjs';
+import { axisZ } from './neckAxis.mjs';
+
 // The photo's outline, [height, how far back] in head.bin units every 2.8
 // units down it (photoBack.json, read by headBust.test.ts too).
 const PHOTO_BACK = JSON.parse(
@@ -43,12 +46,6 @@ const LEVEL = { top: -82, bottom: -102, beside: 10, weight: 4 };
 // against 20): there its bend, each unit down, is also fitted to the photo
 // shape's, `weight` times over.
 const TURN = { top: -62, bottom: -80, weight: 3 };
-
-const smoothstep = (x, low, high) => {
-  const t = Math.min(Math.max((x - low) / (high - low), 0), 1);
-  return t * t * (3 - 2 * t);
-};
-const axisZ = (y) => -25 + (y + 72) * 0.43;
 
 // The photo's outline at height y, between its traced points.
 const photoAt = (y) => {

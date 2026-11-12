@@ -39,6 +39,9 @@ export function headCentre(
   return frame.left + free / 2;
 }
 
+// How far the head is raised in the scene, in its units (head.bin's).
+export const HEAD_LIFT = 5;
+
 // Where the head's middle is this frame, gliding toward headCentre, and how
 // fast it is moving (pixels a second); x is NaN until the scene's first
 // frame.

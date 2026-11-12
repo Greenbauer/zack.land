@@ -5,15 +5,14 @@
 // field), so the movement spreads through the face instead of bunching at the
 // pins. Distances are in head.bin units (about 1.7 mm).
 
-import { boundaryLoops, normals } from './mesh.mjs';
-
-export const smoothstep = (x, low, high) => {
-  const t = Math.min(Math.max((x - low) / (high - low), 0), 1);
-  return t * t * (3 - 2 * t);
-};
-export const bump = (d, width) => Math.exp(-((d / width) ** 2));
-export const length = (v) => Math.hypot(...v);
-export const minus = (a, b) => a.map((c, axis) => c - b[axis]);
+import { bump, smoothstep } from './falloff.mjs';
+import {
+  boundaryLoops,
+  edgeNeighbours,
+  length,
+  minus,
+  normals,
+} from './mesh.mjs';
 
 // A turn of p about the axis through c parallel to x (positive tips forward
 // points down).
@@ -35,13 +34,7 @@ export const EYE_RADIUS = 7.72;
 export function setUp(face, eyes, height) {
   const { vertices } = face;
   const faces = [...face.skinFaces, ...face.pocketFaces];
-  const neighbours = vertices.map(() => new Set());
-  for (const f of faces)
-    f.forEach((a, k) => {
-      const b = f[(k + 1) % f.length];
-      neighbours[a].add(b);
-      neighbours[b].add(a);
-    });
+  const neighbours = edgeNeighbours({ vertices, faces });
   const rims = boundaryLoops({ vertices, faces: face.skinFaces })
     .filter((loop) => Math.abs(vertices[loop[0]][1]) < 10)
     .map((loop) => {

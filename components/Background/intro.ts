@@ -5,6 +5,7 @@ import {
   NECK_BASE_POINT,
   SKULL_PIVOT,
 } from './headTurn';
+import { smoothstep } from './maths';
 import { markPageIn } from './sceneReady';
 
 // The page's first load: a dark screen with a spinner (data-loader,
@@ -155,10 +156,6 @@ export const introTip = (state: Intro, time: number) =>
 
 const easeInOut = (t: number) =>
   t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
-const smoothstep = (from: number, to: number, t: number) => {
-  const k = Math.min(1, Math.max(0, (t - from) / (to - from)));
-  return k * k * (3 - 2 * k);
-};
 
 // How far into the intro it is at `time` (seconds on the scene's clock): 0
 // while loading, and past its end once done.

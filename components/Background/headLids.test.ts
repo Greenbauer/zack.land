@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { expressions, meshes, openEdges, skin } from './headFixture';
+import { meshes, openEdges, skin, skinMoves } from './headFixture';
 
 // The eyelids in head.bin's expressions, measured on one eye's rim (the skin's
 // open edge round the eye): heights against the line through the eye's
@@ -10,15 +10,8 @@ import { expressions, meshes, openEdges, skin } from './headFixture';
 
 // Each expression's move of a skin point at full strength.
 const mover = (name: string) => {
-  const { indices, moves } =
-    meshes.get('skin')!.morphs[expressions.indexOf(name)]!;
-  const at = new Map(Array.from(indices, (v, k) => [v, k]));
-  return (i: number) => {
-    const k = at.get(i);
-    return k === undefined
-      ? [0, 0, 0]
-      : [moves[k * 3]!, moves[k * 3 + 1]!, moves[k * 3 + 2]!];
-  };
+  const d = skinMoves(name);
+  return (i: number) => d[i]!;
 };
 
 // The left eye's rim, its corners' line, and its lower lid in order across.
