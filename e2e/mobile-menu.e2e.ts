@@ -290,13 +290,18 @@ test.describe('at a desktop size', () => {
       step();
     });
     await page.keyboard.press('ArrowDown');
-    await expect
-      .poll(() =>
-        page.evaluate(
-          () => (window as unknown as { skyMovedAt?: number }).skyMovedAt ?? 0,
-        ),
-      )
-      .toBeGreaterThan(0);
+    // Waited for in the page, apart from where the page was: where software
+    // draws the scene (CI) one frame can take seconds, so the scroll, and the
+    // sky with it, can start more than 5 s after the key, and a poll from
+    // here waits behind those frames too.
+    await page.waitForFunction(() => 'skyMovedAt' in window, undefined, {
+      timeout: 30_000,
+    });
+    expect(
+      await page.evaluate(
+        () => (window as unknown as { skyMovedAt: number }).skyMovedAt,
+      ),
+    ).toBeGreaterThan(0);
   });
 
   for (const reducedMotion of ['no-preference', 'reduce'] as const)
