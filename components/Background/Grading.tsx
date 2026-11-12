@@ -11,7 +11,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { HorizontalBlurShader } from 'three/addons/shaders/HorizontalBlurShader.js';
 import { VerticalBlurShader } from 'three/addons/shaders/VerticalBlurShader.js';
-import { LUTCubeLoader, LUTPass } from 'three-stdlib';
+import { LUTPass } from 'three-stdlib';
 
 import { leavesTrail } from '@/components/pointerInk';
 
@@ -26,6 +26,7 @@ import {
 import { GlassPass, GlassTintPass, tintStrength } from './glass';
 import { findCards, findFields, pageFade } from './glassCards';
 import { CardTints, Rgb, skyOf, skyPoints } from './glassTint';
+import { LUT_URL, LUTBytesLoader } from './lutBytes';
 import { photoLenses } from './photoLens';
 import { TrailPass } from './pointerTrail';
 import { renderQuality, useDrawsInSoftware } from './quality';
@@ -49,10 +50,7 @@ const BLUR_STEPS = 2.7;
 const SAMPLE_EVERY = 6;
 
 export default function Grading() {
-  const { texture3D } = useLoader(
-    LUTCubeLoader,
-    '/background/environment/cubicle-99.cube',
-  );
+  const { texture3D } = useLoader(LUTBytesLoader, LUT_URL);
   const get = useThree((state) => state.get);
   // The composer's targets are made once, so their smoothing is chosen once,
   // by the window's size as the scene loads; they are made again (the key

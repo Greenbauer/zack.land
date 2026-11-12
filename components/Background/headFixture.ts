@@ -10,12 +10,11 @@ import { decodeHead } from './headGeometry';
 
 export type Point = [x: number, y: number, z: number];
 
-// public/background/geometry/head.bin, built by scripts/build-head.mjs and
-// read as the page reads it (unzipped): the skin's vertices and triangles.
+// scripts/head/head.bin, built by scripts/build-head.mjs, with every
+// expression (the page's copy keeps only the shown ones), read as the page
+// reads it (unzipped): the skin's vertices and triangles.
 const file = zlib.gunzipSync(
-  fs.readFileSync(
-    path.join(__dirname, '../../public/background/geometry/head.bin'),
-  ),
+  fs.readFileSync(path.join(__dirname, '../../scripts/head/head.bin')),
 );
 export const { meshes, expressions } = decodeHead(
   file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength),
