@@ -5,10 +5,6 @@ import { WIDE_FROM } from '@/components/PageScroller/edgeFade';
 // How long the footer's text and links take to fade out, and the arrow to
 // fade in after them, in milliseconds.
 export const SWAP_MS = 400;
-// How long the text waits before it fades back in, in milliseconds: the
-// scroll arrows' own fade as they come back over the page (ScrollArrows.tsx,
-// duration-500), so the two never fade at once.
-export const RETURN_WAIT_MS = 500;
 
 // The footer's two looks on the portfolio's pages: its text and links, or,
 // where the head can't fit, only the scroll arrow (Footer/index.tsx).

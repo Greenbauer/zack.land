@@ -1,13 +1,12 @@
 name: Code
 
 # Runs the unit tests (npm test: Vitest over every *.test.ts file) and the type check on every pull
-# request and on every push to master, and against the built site the phone More/Less spec (cypress/e2e/more-less.cy.ts)
-# and the Playwright specs (e2e/*.e2e.ts: the moving views, the phone menu, a card's content, the media grid, the 404 video, a YouTube video).
-# Target: GitHub's ubuntu-latest, with the Node version .nvmrc names and its installed Chrome for
-# Cypress; the Playwright specs run in Playwright's own image of the version package-lock.json pins,
-# which carries its Chromium and WebKit and their system libraries.
-#
-# The other Cypress specs in cypress/e2e are not run here.
+# request and on every push to master, and against the built site the Playwright specs (e2e/*.e2e.ts:
+# the moving views, More then Less on a phone, the phone menu, a card's content, the media grid, the
+# 404 video, a YouTube video, the contact form).
+# Target: GitHub's ubuntu-latest, with the Node version .nvmrc names; the Playwright specs run in
+# Playwright's own image of the version package-lock.json pins, which carries its Chromium and WebKit
+# and their system libraries.
 
 on:
   pull_request:
@@ -38,9 +37,6 @@ jobs:
           node-version-file: .nvmrc
       - name: Install dependencies
         run: npm ci
-        env:
-          # The unit tests never open a browser, so the Cypress download is skipped.
-          CYPRESS_INSTALL_BINARY: '0'
       - name: Unit tests
         run: npm test
       # The type check half of `npm run lint`. Its ESLint half is the eslint gate in the Gates check
@@ -48,33 +44,11 @@ jobs:
       - name: Types
         run: npx tsc
 
-  # More then Less on a phone puts each post back as it was: measured only in a real browser (the
-  # card's height, its images' layout), so it is a Cypress spec, run on the production build. The
-  # runner has no GPU: Chrome draws the 3D scene in software (cypress.config.ts).
-  more-less:
-    name: Phone More/Less
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
-        with:
-          node-version-file: .nvmrc
-      - name: Install dependencies
-        run: npm ci
-      - name: Build
-        run: npm run build
-      - name: More then Less on a phone
-        run: |
-          npm start -- --port 3000 > server.log 2>&1 &
-          for _ in $(seq 60); do curl -fsS -o /dev/null http://localhost:3000/ && break; sleep 1; done
-          npx cypress run --browser chrome --spec cypress/e2e/more-less.cy.ts --config baseUrl=http://localhost:3000
-
   # Every Playwright spec (e2e/*.e2e.ts): the media grid and melt (media-grid.e2e.ts), the 404 video's
-  # melt (not-found.e2e.ts), a post's YouTube video played, stopped and paused against a stand-in
-  # player (youtube.e2e.ts), and every way a
+  # melt (not-found.e2e.ts), More then Less on a phone putting each post back as it was
+  # (more-less.e2e.ts), the contact form's Submit button and field errors (contact-form.e2e.ts), a
+  # post's YouTube video played, stopped and paused against a stand-in player (youtube.e2e.ts), and
+  # every way a
   # post moves and comes back (moving-views.e2e.ts): each kind of post, left open or
   # closed, down or up and back, upright and sideways phones and two desktop sizes, and the window resized
   # while a post is open, the phone menu's hand-over to the next page (e2e/mobile-menu.e2e.ts) and what
@@ -126,9 +100,6 @@ jobs:
           node-version-file: .nvmrc
       - name: Install dependencies
         run: npm ci
-        env:
-          # This job runs Playwright, not Cypress.
-          CYPRESS_INSTALL_BINARY: '0'
       - name: Build
         run: npm run build
       - name: Every moving view, in Chromium and WebKit

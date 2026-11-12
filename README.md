@@ -6,7 +6,7 @@
 <dl>
   This is the frontend of my <a href="https://zack.land">portfolio website</a>.
 
-  See more <a href="https://zack.land/portfolio/web-apps#this-web-site">here</a>.
+  See more <a href="https://zack.land/portfolio/web-apps">here</a>: the first post on Web Apps is this site.
 </dl>
 
 ## Environment
@@ -33,6 +33,12 @@
 
 When the secret is unset, submissions skip verification, except on the live site (Vercel production), which then refuses every submission; when set, a submission must clear a 0.5 score threshold on the `contact` action. Verification logic is unit-tested: run `npm test`.
 
+## The 3D head
+
+`public/background/geometry/head.bin` is built by hand, not by `npm run build`: run `npm run build:head`
+(`node scripts/build-head.mjs`, with its parts in `scripts/head/`) after changing the head's model or
+expressions, and commit the new file with the scripts that made it.
+
 ## Credits
 
 <dl>
@@ -46,12 +52,10 @@ When the secret is unset, submissions skip verification, except on the live site
 Every pull request and every push to `master` runs the unit tests (`npm test`: Vitest over every
 `*.test.ts` file) through `.github/workflows/tests.yml`, as the check `Unit tests` (shown as `Code / Unit tests`). The same job then runs the type check. ESLint runs as the `eslint` gate of the `Gates` check (Vibe Verifier, `.vibe-verifier-tools/eslint.json`) on the files a pull request changed: an error blocks, a warning is reported. `npm run lint` runs both locally (and applies ESLint's fixes). The workflow has no
 path filter and the job no condition, so the check always reports. The same workflow builds and
-starts the site and runs two end-to-end checks against it: the Cypress spec
-`cypress/e2e/more-less.cy.ts` in Chrome (the check `Phone More/Less`), and the Playwright tests in
-`e2e/` in Chromium and WebKit (split by test across four runners, the checks `Moving views (1/4)` to `Moving views (4/4)`, each in
+starts the site and runs the Playwright tests in
+`e2e/` against it in Chromium and WebKit (split by test across four runners, the checks `Moving views (1/4)` to `Moving views (4/4)`, each in
 Playwright's own image of the version `package-lock.json` pins, read by the check `Playwright version`; `playwright.config.ts`, run locally with
-`npx playwright test` against `BASE_URL`, default `http://localhost:3000`). The other specs in
-`cypress/e2e` are not run.
+`npx playwright test` against `BASE_URL`, default `http://localhost:3000`).
 
 Every pull request runs the [Vibe Verifier](https://github.com/Greenbauer/vibe-verifier) gates listed
 in `.vibe-verifier` through `.github/workflows/vibe-verifier.yml`, pinned to a catalog commit: the

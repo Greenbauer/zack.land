@@ -8,20 +8,6 @@ import type { Head } from './headGeometry';
 // They are named after the expression and the side, from the head's own
 // point of view: browsUpLeft lifts its left brow (the viewer's right).
 
-export const SIDED = [
-  'browsUp',
-  'squint',
-  // For the one-sided expressions (oneSided.ts).
-  'blink',
-  'blinkTight',
-  'smile',
-  'sneer',
-  'dimple',
-  'press',
-  'browDown',
-  'browOuterUp',
-  'shrug',
-] as const;
 export const SIDES = ['Left', 'Right'] as const;
 export type Side = (typeof SIDES)[number];
 
@@ -48,7 +34,7 @@ export function sideWeight(x: number, side: Side, name = '') {
 // its own expressions.
 export function withSides(
   { meshes, expressions }: Head,
-  names: readonly string[] = SIDED,
+  names: readonly string[],
 ): Head {
   const split = names
     .filter((name) => expressions.includes(name))
