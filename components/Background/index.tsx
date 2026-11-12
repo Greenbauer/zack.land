@@ -11,10 +11,11 @@ import useWindowSize from '@/hooks/useWindowSize';
 import BackdropSampler from './BackdropSampler';
 import Grading from './Grading';
 import HeadFraming from './HeadFraming';
+import { lookAt } from './headLook';
 import { lookOrigin } from './headPlace';
 import { CAMERA_HOME, endIntro, startIntro, stepIntro } from './intro';
 import Loader from './Loader';
-import MyHead, { Point } from './MyHead';
+import MyHead from './MyHead';
 import {
   askDrawsInSoftware,
   drawsInSoftware,
@@ -41,10 +42,8 @@ export default function Background() {
 
   // Read by the head every frame: the pointer moves without re-rendering
   // (useMousePosition).
-  const lookPositionStart = (): Point => ({
-    x: (mousePosition.x - lookOrigin(width)) * 0.5,
-    y: (mousePosition.y - height / 2) * 0.5,
-  });
+  const lookPositionStart = () =>
+    lookAt(mousePosition, { x: lookOrigin(width), y: height / 2 });
 
   // The dark screen waits for the scene no longer than READY_AT_MOST_MS, as
   // without WebGL it never draws (sceneReady.ts, intro.ts).
@@ -66,7 +65,7 @@ export default function Background() {
     let isGone = false;
     askDrawsInSoftware().then((software) => {
       if (isGone) return;
-      if (software) document.documentElement.setAttribute('data-software', '');
+      if (software) markSoftware();
       setIsSceneOn(true);
     });
     return () => {

@@ -5,6 +5,8 @@
 // vertex moves by its weights' share of that swing, so the shoulder bends
 // smoothly into the arm.
 
+import { edgeNeighbours } from './mesh.mjs';
+
 // Measured on the base mesh the upper arm hangs 50 degrees below level, 40
 // off vertical. Lowered these 22 degrees it hangs just clear of the lats, as
 // in the back photo; further, the back of the armpit crushed between the arm
@@ -55,13 +57,7 @@ export function hangArms(vertices, faces, skeleton, skinWeights) {
 // band, weighted most where the share is a half, is evened out
 // (ARMS.passes times, keeping its size).
 function relax(vertices, faces, weights) {
-  const near = vertices.map(() => new Set());
-  for (const f of faces)
-    f.forEach((a, k) => {
-      const b = f[(k + 1) % f.length];
-      near[a].add(b);
-      near[b].add(a);
-    });
+  const near = edgeNeighbours({ vertices, faces });
   for (let pass = 0; pass < ARMS.passes; pass++)
     for (const factor of [0.5, -0.53]) {
       const next = new Map();

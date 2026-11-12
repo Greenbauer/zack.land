@@ -5,12 +5,27 @@ export const add = (...points) =>
   points.reduce((sum, p) => sum.map((c, axis) => c + p[axis]), [0, 0, 0]);
 export const scale = (p, s) => p.map((c) => c * s);
 export const average = (points) => scale(add(...points), 1 / points.length);
-const minus = (a, b) => a.map((c, axis) => c - b[axis]);
-const cross = (u, w) => [
+export const minus = (a, b) => a.map((c, axis) => c - b[axis]);
+export const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+export const cross = (u, w) => [
   u[1] * w[2] - u[2] * w[1],
   u[2] * w[0] - u[0] * w[2],
   u[0] * w[1] - u[1] * w[0],
 ];
+export const length = (v) => Math.hypot(...v);
+
+// Each vertex's neighbours along the faces' edges, as a Set per vertex (in
+// the order the faces reach them).
+export function edgeNeighbours({ vertices, faces }) {
+  const neighbours = vertices.map(() => new Set());
+  for (const face of faces)
+    face.forEach((a, k) => {
+      const b = face[(k + 1) % face.length];
+      neighbours[a].add(b);
+      neighbours[b].add(a);
+    });
+  return neighbours;
+}
 
 const edgeKey = (a, b) => (a < b ? `${a}_${b}` : `${b}_${a}`);
 
@@ -218,13 +233,7 @@ export function component({ vertices, faces }, seed) {
 // also keeps a sharp turn; plain smoothing rounds a turn off, shrinking a
 // little where it works.
 export function smooth({ vertices, faces }, weights, passes, taubin = true) {
-  const neighbours = vertices.map(() => new Set());
-  for (const face of faces)
-    face.forEach((a, k) => {
-      const b = face[(k + 1) % face.length];
-      neighbours[a].add(b);
-      neighbours[b].add(a);
-    });
+  const neighbours = edgeNeighbours({ vertices, faces });
   let current = vertices;
   for (let pass = 0; pass < passes; pass++)
     for (const factor of taubin ? [0.5, -0.53] : [0.5])

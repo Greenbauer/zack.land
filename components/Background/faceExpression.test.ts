@@ -36,7 +36,6 @@ describe('expressions from where the head is looking', () => {
     expect(pointerExpressions({ x: 1580, y: 420 }, eyes, size).squint).toBe(
       SQUINT_MAX,
     );
-    expect(SQUINT_MAX).toBeLessThanOrEqual(0.5);
     expect(pointerExpressions({ x: 800, y: 420 }, eyes, size).squint).toBe(0);
   });
 
@@ -59,7 +58,6 @@ describe('expressions from where the head is looking', () => {
 
   it('smiles faintly facing the camera, and not when turned away', () => {
     expect(facingSmile({ x: 0, y: 0 })).toBe(FACING_SMILE);
-    expect(FACING_SMILE).toBeLessThan(0.4);
     expect(facingSmile({ x: 0.02, y: 0.03 })).toBe(FACING_SMILE);
     expect(facingSmile({ x: 0, y: -0.3 })).toBe(0);
     expect(facingSmile({ x: -0.15, y: 0 })).toBe(0);

@@ -9,9 +9,9 @@ import { WebGLProgramParametersWithUniforms } from 'three';
 //
 // Heights are in the head model's own units (head.bin): the chin ends near
 // -64, the notch at the base of the throat sits near -124, and the bust is
-// cut at -150 through the upper arms and -250 under the chest. The haze is
+// cut level at -195 (BUST_BOTTOM in scripts/build-head.mjs). The haze is
 // solid from FADE_BOTTOM down, and FADE_BOTTOM less the noise's reach stays
-// above every cut, so no cut ever shows.
+// above the cut, so it never shows.
 export const FADE_TOP = -66;
 export const FADE_BOTTOM = -132;
 export const FADE_NOISE = 16;

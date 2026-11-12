@@ -1,4 +1,5 @@
 import { glide } from './headPlace';
+import { clamp } from './maths';
 import { Gaze, TIP, TURN } from './wander';
 
 // What the head does when it loses the pointer it has been following
@@ -40,7 +41,7 @@ export type Search = {
 const between = ([low, high]: readonly [number, number], r: number) =>
   low + (high - low) * r;
 const inside = (v: number, [low, high]: readonly [number, number]) =>
-  Math.min(Math.max(v, low * 0.96), high * 0.96);
+  clamp(v, low * 0.96, high * 0.96);
 
 // A search starting at `time` from where the head looks now (`from`).
 export function startSearch(

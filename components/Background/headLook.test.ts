@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { BODY_TURN, splitLook } from './MyHead';
+import {
+  BODY_TURN,
+  gazeTarget,
+  lookAt,
+  lookOnScreen,
+  lookToRadians,
+  splitLook,
+} from './headLook';
 import { FAR_TURN } from './neckPose';
 import { WANDER_TURN } from './wander';
 
@@ -28,5 +35,30 @@ describe('the head and body turn', () => {
     expect(-splitLook({ x: 0, y: WANDER_TURN[0] }).head.y).toBeLessThan(
       FAR_TURN,
     );
+  });
+});
+
+describe('look targets', () => {
+  const origin = { x: 400, y: 300 };
+
+  it('measure the pointer from where the head looks out, at half a unit a pixel', () => {
+    expect(lookAt(origin, origin)).toEqual({ x: 0, y: 0 });
+    expect(lookAt({ x: 600, y: 100 }, origin)).toEqual({ x: 100, y: -100 });
+  });
+
+  it('point back at the pixel they were measured from', () => {
+    const pointer = { x: 123, y: 456 };
+    expect(lookOnScreen(lookAt(pointer, origin), origin)).toEqual(pointer);
+  });
+
+  it('turn the head a thousandth of a radian a unit', () => {
+    expect(lookToRadians(250)).toBeCloseTo(0.25);
+  });
+
+  it('take a gaze tipping down and turning right to a target below and right', () => {
+    const target = gazeTarget({ x: 0.1, y: 0.3 });
+    expect(target.x).toBeCloseTo(300);
+    expect(target.y).toBeCloseTo(100);
+    expect(lookToRadians(target.x)).toBeCloseTo(0.3);
   });
 });

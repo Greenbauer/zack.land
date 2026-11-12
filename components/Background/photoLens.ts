@@ -6,6 +6,7 @@ import {
   FROST_PX,
   SPREAD_PX,
 } from './glass';
+import { smoothstep } from './maths';
 
 // The glass over the photos under a card. The card's glass is drawn in the
 // 3D scene (glass.ts), which cannot see the page's photos (the image tiles
@@ -70,8 +71,7 @@ function map() {
 // The glass's strength, 0 to 1, `edge` CSS pixels in from the layer's edge
 // (along one axis; a point's strength is the product of both axes').
 export function strengthAt(edge: number) {
-  const t = Math.min(Math.max(edge / FADE_PX, 0), 1);
-  return t * t * (3 - 2 * t);
+  return smoothstep(0, FADE_PX, edge);
 }
 
 // How strongly the lenses bend, 0 to 1, `edge` CSS pixels in from the
@@ -116,7 +116,7 @@ function defsElement() {
 }
 
 type Lens = { id: string; key: string };
-const lenses = new WeakMap<HTMLElement, Lens>();
+const lenses = new Map<HTMLElement, Lens>();
 let count = 0;
 
 // The filter for a card whose lenses are `cellX` by `cellY` CSS pixels, on
@@ -209,6 +209,13 @@ function placeLayer(layer: HTMLElement, card: HTMLElement, box: DOMRect) {
 // rest: a card that has faded out leaves its layer's glass off.
 export function photoLenses(cards: HTMLElement[], calm: boolean) {
   for (const card of cards) photoLens(card, calm);
+  // A card gone from the page (another page's, or a post's left behind)
+  // takes its filter with it.
+  for (const [card, lens] of lenses)
+    if (!card.isConnected) {
+      defs?.querySelector(`#${lens.id}`)?.remove();
+      lenses.delete(card);
+    }
   const showing = new Set(cards.map(layerOf));
   for (const layer of document.querySelectorAll<HTMLElement>(
     '[data-photo-lens]',

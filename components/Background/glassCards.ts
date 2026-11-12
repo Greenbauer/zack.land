@@ -62,13 +62,14 @@ function find(canvas: HTMLCanvasElement, selector: string, most: number) {
   const scale = canvas.width / bounds.width;
   const found: Card[] = [];
   for (const element of document.querySelectorAll<HTMLElement>(selector)) {
+    if (found.length === most) break;
     const box = element.getBoundingClientRect();
     const onScreen =
       box.width > 0 &&
       box.height > 0 &&
       box.bottom > bounds.top &&
       box.top < bounds.bottom;
-    if (!onScreen || found.length === most) continue;
+    if (!onScreen) continue;
     // A card faded out or hidden (a post's card while another post shows,
     // components/useHeldCard.ts) takes no glass and no place in the limit.
     const opacity = shownOpacity(element);

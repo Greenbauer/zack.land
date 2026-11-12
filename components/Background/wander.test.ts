@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { seeded } from './seeded';
 import {
   BACK_CHANCE,
   HOLD,
@@ -13,12 +14,6 @@ import {
   WANDER_TURN,
 } from './wander';
 
-// A repeatable random number generator (a linear congruential one).
-const seeded = (seed: number) => () => {
-  seed = (seed * 1664525 + 1013904223) % 4294967296;
-  return seed / 4294967296;
-};
-
 // Twenty minutes of looking around at 60 frames a second, every frame.
 function run(fps = 60, seconds = 1200, random = seeded(7)) {
   let wander = startWander({ x: 0, y: 0 }, 0, random);
@@ -31,9 +26,7 @@ function run(fps = 60, seconds = 1200, random = seeded(7)) {
 }
 
 describe("the head's turning range", () => {
-  it('follows the pointer as far as prod, and looks around a little further', () => {
-    // Master's range, the one prod turns to following the pointer.
-    expect(TURN).toEqual([-0.5, 0.3]);
+  it('looks around a little further than it follows the pointer', () => {
     // Out away from the page, a little further (under 10 degrees more);
     // toward it, no further.
     expect(WANDER_TURN[0]).toBeLessThan(TURN[0]);

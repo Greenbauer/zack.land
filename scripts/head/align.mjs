@@ -1,10 +1,7 @@
 // Placing one scanned surface on another: used to carry ICT-FaceKit's face
 // (scripts/head/ict.mjs) and MHR's neck (scripts/head/mhr.mjs) onto ours.
 
-import { add } from './mesh.mjs';
-
-const sub = (a, b) => a.map((c, k) => c - b[k]);
-const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+import { add, dot, minus as sub } from './mesh.mjs';
 
 // Points by cell, for nearest-point searches.
 export const gridOf = (points, keep = () => true, cell = 2) => {

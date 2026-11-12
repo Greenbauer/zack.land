@@ -1,8 +1,9 @@
-// What the head does when it is tapped on a touch screen (MyHead.tsx): it
+// What the head does when its face is tapped, or clicked (MyHead.tsx): it
 // turns quickly to face the camera, angry and surprised; a second tap does
 // the same, a third makes it really angry, and a fourth starts over. Left
 // alone for REACT_SECONDS, it blends into a smile held for SMILE_SECONDS,
-// then goes back to looking around.
+// then goes back to looking around on a touch screen, or to following the
+// pointer.
 
 export type HeadTaps =
   | { phase: 'none' }

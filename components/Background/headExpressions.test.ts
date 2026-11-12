@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { expressions, meshes, openEdges, Point, skin } from './headFixture';
+import { expressions, openEdges, Point, skin, skinMoves } from './headFixture';
 
 // The bust's own moves (scripts/head/bodyShapes.mjs), which move the
 // shoulders and chest on purpose.
@@ -21,15 +21,7 @@ const NECK_INTO_SHOULDERS = 2.5;
 describe('the head joined to its neck and shoulders', () => {
   describe('expressions', () => {
     // Each expression's move of every skin point at full strength.
-    const moves = (name: string) => {
-      const { indices, moves: sparse } =
-        meshes.get('skin')!.morphs[expressions.indexOf(name)]!;
-      const d = skin.vertices.map((): Point => [0, 0, 0]);
-      indices.forEach((v, k) => {
-        d[v] = [sparse[k * 3]!, sparse[k * 3 + 1]!, sparse[k * 3 + 2]!];
-      });
-      return d;
-    };
+    const moves = skinMoves;
     // The average move of the skin near (x, y), on the front of the face.
     const near = (d: Point[], x: number, y: number, r = 1.5) => {
       const at = skin.vertices.flatMap(([vx, vy, vz], i) =>
