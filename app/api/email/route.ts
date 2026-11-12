@@ -1,13 +1,12 @@
 import { createTransport } from 'nodemailer';
 
 import {
+  ContactFormData,
   EMAIL_PATTERN,
   INPUT_MAX_LENGTH,
   TEXTAREA_MAX_LENGTH,
 } from '@/utils/contact-fields';
 import { verifyRecaptcha } from '@/utils/recaptcha';
-
-import type { ContactFormData } from '../../(root)/contact/Form';
 
 // nodemailer needs the Node.js runtime (not Edge).
 export const runtime = 'nodejs';

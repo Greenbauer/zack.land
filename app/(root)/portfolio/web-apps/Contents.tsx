@@ -1,6 +1,6 @@
 import { Content } from '@/types';
 
-const Contents: Content[] = [
+const posts: Content[] = [
   {
     name: 'This website',
     coded: 'vibe',
@@ -114,4 +114,4 @@ const Contents: Content[] = [
   },
 ];
 
-export default Contents;
+export default posts;

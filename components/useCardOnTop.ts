@@ -1,6 +1,6 @@
 import { RefObject, useEffect, useState } from 'react';
 
-import { WIDE_FROM } from './PageScroller/edgeFade';
+import { isWide, watchSize } from './viewport';
 
 // How far down the window a card at its top may reach, as a fraction of its
 // height: above the 3D head's brows (measured at 957 by 1246, they sit at
@@ -23,28 +23,24 @@ export const endsAboveBrows = (
 // head moves off the window (Background/headPlace.ts).
 export default function useCardOnTop(
   postRef: RefObject<HTMLElement | null>,
+  cardRef: RefObject<HTMLElement | null>,
   isWanted: boolean,
 ) {
   const [isOnTop, setIsOnTop] = useState(false);
   useEffect(() => {
     const post = postRef.current;
-    const card = post?.querySelector<HTMLElement>('.post-card');
+    const card = cardRef.current;
     if (!post || !card || !isWanted) return setIsOnTop(false);
     const measure = () => {
       const style = getComputedStyle(post);
       const pageTop = parseFloat(style.getPropertyValue('--page-top')) || 0;
       const isCramped =
-        innerWidth >= WIDE_FROM &&
-        !parseFloat(style.getPropertyValue('--head-clear'));
+        isWide() && !parseFloat(style.getPropertyValue('--head-clear'));
       setIsOnTop(
         isCramped && endsAboveBrows(pageTop, card.offsetHeight, innerHeight),
       );
     };
-    measure();
-    const resize = new ResizeObserver(measure);
-    resize.observe(post);
-    resize.observe(card);
-    return () => resize.disconnect();
-  }, [postRef, isWanted]);
+    return watchSize([post, card], measure);
+  }, [postRef, cardRef, isWanted]);
   return isOnTop;
 }

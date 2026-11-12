@@ -6,6 +6,7 @@ import { useEffect, useRef } from 'react';
 
 import SkyWords, { SkyWord } from '@/components/SkyText/SkyWords';
 import useSkyColours from '@/components/SkyText/useSkyColours';
+import { watchSize } from '@/components/viewport';
 
 import { Swap, useArrowSwap } from './arrowSwap';
 import SocialLinks from './SocialLinks';
@@ -109,10 +110,7 @@ export default function Footer() {
         '--footer-height',
         `${footer.offsetHeight}px`,
       );
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(footer);
-    return () => observer.disconnect();
+    return watchSize([footer], measure);
   }, []);
 
   return (

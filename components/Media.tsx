@@ -178,10 +178,21 @@ function YouTubeVideo({
     if (paused) player.current?.pauseVideo();
   }, [paused]);
 
+  // Whether it has told `onPlaying` it plays. Dropped while playing (its
+  // post's tiles go when the box they fill does, as on a window turned too
+  // short for them), it says it has stopped, or its post would stay given
+  // over to it, its card faded away.
+  const playingRef = useRef(false);
+  const playing = () => {
+    setIsStarting(true);
+    playingRef.current = true;
+    onPlaying?.(true);
+  };
   const stopped = () => {
     const iframe = player.current?.getIframe?.();
     refocus.current = !!iframe && document.activeElement === iframe;
     setIsStarting(false);
+    playingRef.current = false;
     onPlaying?.(false);
   };
   useEffect(() => {
@@ -205,6 +216,17 @@ function YouTubeVideo({
   }, [isStarting]);
   // A pause can be a moment of a seek: only one that lasts stops it.
   const pauseTimer = useRef(0);
+  const onPlayingRef = useRef(onPlaying);
+  useEffect(() => {
+    onPlayingRef.current = onPlaying;
+  });
+  useEffect(
+    () => () => {
+      clearTimeout(pauseTimer.current);
+      if (playingRef.current) onPlayingRef.current?.(false);
+    },
+    [],
+  );
 
   return (
     <>
@@ -256,8 +278,7 @@ function YouTubeVideo({
           onPlay={({ target }) => {
             clearTimeout(pauseTimer.current);
             if (isPaused.current) return target.pauseVideo();
-            setIsStarting(true);
-            onPlaying?.(true);
+            playing();
           }}
           onPause={() => {
             pauseTimer.current = window.setTimeout(stopped, SEEK_MS);

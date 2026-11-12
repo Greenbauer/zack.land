@@ -1,3 +1,5 @@
+import motion from '@/theme/motion.json';
+
 // Paging the portfolio's posts: one wheel turn, swipe or key press moves
 // straight to the next post (or back) in a short, quick glide, instead of
 // the browser's own snapping, which waits for the scroll to settle first.
@@ -12,9 +14,10 @@ export const GLIDE_MS = 300;
 export const easeOutCubic = (t: number) => 1 - (1 - t) ** 3;
 
 // The pause before a page turn's next card sets off while the last card
-// leaves, in milliseconds (Post.tsx's --turn-delay, 0.7s by default): a turn
-// back inside it is quick, as that card has not set off yet.
-export const QUICK_MS = 700;
+// leaves, in milliseconds (Post.tsx's --turn-delay, by default
+// theme/motion.json's cardMs.wait): a turn back inside it is quick, as that
+// card has not set off yet.
+export const QUICK_MS = motion.cardMs.wait;
 // How long after a turn a push the same way is let go, in milliseconds: the
 // pause and most of the next card's slide in, so it never sets off across
 // the whole window only to be sent straight back out, and a long or uneven

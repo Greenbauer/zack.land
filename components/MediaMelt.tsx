@@ -21,6 +21,7 @@ import {
   streakLine,
 } from './mediaMelter';
 import { Turn, TURN_EVENT } from './PageScroller/pageGlide';
+import { isStill } from './viewport';
 
 // Every picture on the site, a post's tiles and the 404 page's video, melts in
 // and out of the window's right side (mediaMelter.ts) on one canvas over the
@@ -39,7 +40,7 @@ import { Turn, TURN_EVENT } from './PageScroller/pageGlide';
 // The longest a tile waits to set off, in seconds: coming, enough for each to
 // arrive on its own; going, hardly at all, as it turns to liquid at once.
 const COME_WAIT_S = 0.35;
-const GO_WAIT_S = 0.08;
+export const GO_WAIT_S = 0.08;
 // How long a tile waits for its picture before it just shows.
 const LOAD_LIMIT_S = 3;
 
@@ -269,8 +270,7 @@ export default function MediaMelt() {
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || matchMedia('(prefers-reduced-motion: reduce)').matches)
-      return;
+    if (!canvas || isStill()) return;
     const melter = MediaMelter.on(canvas);
     if (!melter) return;
     const root = document.documentElement;

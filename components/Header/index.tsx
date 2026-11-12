@@ -10,18 +10,14 @@ import HeaderTitle from './HeaderTitle';
 import MobileNav from './MobileNav';
 
 export type Route = {
-  label?: string;
+  label: string;
   path: string;
-  headerTitle?: string;
   // Pages under it, offered in a dropdown (Portfolio's two).
   children?: { label: string; path: string }[];
 };
 
 const routes: Route[] = [
-  {
-    label: 'Home',
-    path: '/',
-  },
+  { label: 'Home', path: '/' },
   {
     label: 'Portfolio',
     path: '/portfolio',
@@ -30,20 +26,15 @@ const routes: Route[] = [
       { label: 'Miscellaneous', path: '/portfolio/miscellaneous' },
     ],
   },
-  {
-    label: 'Contact',
-    path: '/contact',
-    headerTitle: 'Contact Me',
-  },
-  {
-    path: '/portfolio/miscellaneous',
-    headerTitle: 'Miscellaneous',
-  },
-  {
-    path: '/portfolio/web-apps',
-    headerTitle: 'Web Apps',
-  },
+  { label: 'Contact', path: '/contact' },
 ];
+
+// The title the header shows on each page that has one.
+const TITLES: Record<string, string> = {
+  '/contact': 'Contact Me',
+  '/portfolio/web-apps': 'Web Apps',
+  '/portfolio/miscellaneous': 'Miscellaneous',
+};
 
 export default function Header() {
   const pathname = usePathname();
@@ -52,7 +43,7 @@ export default function Header() {
   const linksRef = useRef<HTMLElement | null>(null);
   useSkyColours(linksRef);
 
-  const { headerTitle } = routes.find(({ path }) => path === pathname) || {};
+  const headerTitle = TITLES[pathname];
 
   return (
     <header

@@ -13,6 +13,7 @@ import { watchBackdrop } from '@/components/Background/backdrop';
 import { framedHead } from '@/components/Background/headPlace';
 import head from '@/theme/head.json';
 
+import { isWide } from '../viewport';
 import { isLight } from './arrowInk';
 import { Chevrons } from './Chevrons';
 import { PAGE_SCROLLER_ID, WIDE_FROM } from './edgeFade';
@@ -50,7 +51,7 @@ const HEAD_GAP = '0.5rem';
 // the arriving card has slid past them: SETTLE_MS after the page last
 // scrolled (its 0.3s glide), or after the page opens (its first card
 // arriving), so they show about 1.2s into a turn, as the card (sliding in
-// from 0.7s, useHeldCard.ts) clears the head.
+// from 0.7s, Post.tsx) clears the head.
 const SETTLE_MS = 900;
 const OPEN_SETTLE_MS = 1200;
 
@@ -92,7 +93,7 @@ export default function ScrollArrows() {
   );
   const isPhone = useSyncExternalStore(
     watchPhone,
-    () => innerWidth < WIDE_FROM,
+    () => !isWide(),
     () => false,
   );
   // The footer's place for the down arrow.

@@ -55,16 +55,19 @@ export function placeOf(
   return boundingClientRect.bottom <= line ? 'before' : 'after';
 }
 
-// For a post whose card is held still while the page pages past it (Post.tsx):
-// where the post is (PostPlace; below until first measured), and
-// --card-height on the post, the room its card needs below its images (the
-// card itself is fixed, so it takes up none).
-export default function useHeldCard(ref: RefObject<HTMLElement | null>) {
+// For a post whose card (`cardRef`) is held still while the page pages past
+// it (Post.tsx): where the post is (PostPlace; below until first measured),
+// and --card-height on the post, the room its card needs below its images
+// (the card itself is fixed, so it takes up none).
+export default function useHeldCard(
+  postRef: RefObject<HTMLElement | null>,
+  cardRef: RefObject<HTMLElement | null>,
+) {
   const [place, setPlace] = useState<PostPlace>('after');
 
   useEffect(() => {
-    const post = ref.current;
-    const card = post?.querySelector('section');
+    const post = postRef.current;
+    const card = cardRef.current;
     if (!post || !card) return;
     // The line moves when the window's height or the footer's does
     // (--footer-height, which the footer sets on the root element), so the
@@ -103,7 +106,7 @@ export default function useHeldCard(ref: RefObject<HTMLElement | null>) {
       footer.disconnect();
       resize.disconnect();
     };
-  }, [ref]);
+  }, [postRef, cardRef]);
 
   return place;
 }

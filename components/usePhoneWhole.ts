@@ -3,8 +3,8 @@ import { RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { MediaSource } from '@/types';
 
 import { Tile } from './collageLayout';
-import { WIDE_FROM } from './PageScroller/edgeFade';
 import { layOut } from './PostCollage';
+import { isWide } from './viewport';
 
 // How much of their width a post's images must keep for its card to show
 // whole on a phone.
@@ -57,6 +57,7 @@ export const frameChanged = (was: Frame | null, now: Frame) =>
 // padding.
 export default function usePhoneWhole(
   postRef: RefObject<HTMLElement | null>,
+  cardRef: RefObject<HTMLElement | null>,
   mediaSources: readonly MediaSource[] | undefined,
   isWanted: boolean,
 ) {
@@ -86,10 +87,9 @@ export default function usePhoneWhole(
 
   useLayoutEffect(() => {
     const post = postRef.current;
-    const card = post?.querySelector<HTMLElement>('section');
+    const card = cardRef.current;
     const box = post?.querySelector<HTMLElement>('.collage');
-    if (!round || !card || !box || !mediaSources || innerWidth >= WIDE_FROM)
-      return;
+    if (!round || !card || !box || !mediaSources || isWide()) return;
     if (step === 'short') {
       if (measured.current === round) return;
       measured.current = round;
@@ -115,7 +115,7 @@ export default function usePhoneWhole(
       );
       setStep(fits ? 'whole' : 'short');
     }
-  }, [round, step, postRef, mediaSources]);
+  }, [round, step, postRef, cardRef, mediaSources]);
 
   return isWanted && step !== 'short';
 }

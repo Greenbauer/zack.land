@@ -366,6 +366,26 @@ test.describe('a YouTube video', () => {
     await expect(play).toBeVisible();
   });
 
+  // A window turned too short for the post's images drops its tiles, the
+  // playing video's with them: its post is given back, the card shown and in
+  // reach again, rather than left blank (audit B9).
+  test('dropped while playing, as the window turns too short, it gives its post back', async ({
+    page,
+  }) => {
+    const { box, play } = await atVideoPost(page);
+    await play.click();
+    await expect(box).toHaveAttribute('data-playing');
+    const card = page.locator('[data-post]').nth(2).locator('section');
+    await expect(card).toHaveCSS('opacity', '0');
+    await page.setViewportSize({ width: 844, height: 390 });
+    await expect(box).toBeHidden();
+    await expect(box).not.toHaveAttribute('data-playing');
+    await expect(card).toHaveCSS('opacity', '1');
+    expect(
+      await card.evaluate((section) => (section as HTMLElement).inert),
+    ).toBe(false);
+  });
+
   test('readying after its post has left, it stays paused', async ({
     page,
   }) => {

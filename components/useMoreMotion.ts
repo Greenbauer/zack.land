@@ -1,15 +1,18 @@
 import { RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
+import motion from '@/theme/motion.json';
+
 import { melt } from './MediaMelt';
+import { isStill } from './viewport';
 
 // How long More and Less take, in milliseconds, and how long after its post
 // has stopped being the one in view (useHeldCard) an opened card closes
 // again.
 const OPEN_MS = 600;
 const CLOSE_AWAY_MS = 900;
-const SMOOTH = 'cubic-bezier(0.65, 0, 0.35, 1)';
+const SMOOTH = motion.ease.smooth;
 // Where images that can't melt go, wholly past the window's right side.
-const OFF_RIGHT = 'calc(100vw + 20rem) 0';
+const OFF_RIGHT = `${motion.offWindow} 0`;
 
 type Phase = 'closed' | 'opening' | 'open' | 'closing';
 
@@ -30,39 +33,38 @@ type Phase = 'closed' | 'opening' | 'open' | 'closing';
 // closes it.
 export default function useMoreMotion(
   postRef: RefObject<HTMLElement | null>,
+  cardRef: RefObject<HTMLElement | null>,
   isCurrent: boolean,
 ) {
   const [phase, setPhase] = useState<Phase>('closed');
   // Where the card and the images were as the change began.
   const from = useRef<{ card: DOMRect; images: DOMRect | null } | null>(null);
 
-  const still = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
-
   const toggle = () => {
-    const { post, card, images } = partsOf(postRef.current);
+    const { post, card, images } = partsOf(postRef.current, cardRef.current);
     if (!post || !card) return;
     if (phase === 'opening' || phase === 'open') {
       // Back to the post's top first, if the page has scrolled down it.
       post.scrollIntoView({ block: 'start' });
       from.current = { card: card.getBoundingClientRect(), images: null };
-      setPhase(still() ? 'closed' : 'closing');
+      setPhase(isStill() ? 'closed' : 'closing');
     } else {
       from.current = {
         card: card.getBoundingClientRect(),
         images: images?.getBoundingClientRect() ?? null,
       };
-      setPhase(still() ? 'open' : 'opening');
+      setPhase(isStill() ? 'open' : 'opening');
     }
   };
 
   useLayoutEffect(() => {
-    const { post, card, images } = partsOf(postRef.current);
+    const { post, card, images } = partsOf(postRef.current, cardRef.current);
     const was = from.current;
     if (!post || !card || !was || (phase !== 'opening' && phase !== 'closing'))
       return;
     from.current = null;
     const timing = { duration: OPEN_MS, easing: SMOOTH };
-    let motion: Animation;
+    let move: Animation;
     const flights: Animation[] = [];
     let release = () => {};
     if (phase === 'opening') {
@@ -86,7 +88,7 @@ export default function useMoreMotion(
               // them (`open`): without it they show back in place for a frame.
               {
                 duration: OPEN_MS,
-                easing: 'cubic-bezier(0.32, 0, 0.67, 0)',
+                easing: motion.ease.gather,
                 fill: 'forwards',
               },
             ),
@@ -96,7 +98,7 @@ export default function useMoreMotion(
       // are out of the layout, or it would still sit below them); it starts
       // at its old top, the space above it given back as it rises.
       const now = card.getBoundingClientRect();
-      motion = card.animate(
+      move = card.animate(
         [{ marginTop: `${was.card.top - now.top}px` }, { marginTop: '0px' }],
         timing,
       );
@@ -104,7 +106,7 @@ export default function useMoreMotion(
       const now = card.getBoundingClientRect();
       // The card is fixed at the bottom again; it starts at its open top,
       // free of its usual height limit until it has come down.
-      motion = card.animate(
+      move = card.animate(
         [
           { top: `${was.card.top}px`, maxHeight: 'none' },
           { top: `${now.top}px`, maxHeight: 'none' },
@@ -123,16 +125,16 @@ export default function useMoreMotion(
         );
       }
     }
-    motion.finished.then(
+    move.finished.then(
       () => setPhase(phase === 'opening' ? 'open' : 'closed'),
       () => {},
     );
     return () => {
-      motion.cancel();
+      move.cancel();
       flights.forEach((flight) => flight.cancel());
       release();
     };
-  }, [phase, postRef]);
+  }, [phase, postRef, cardRef]);
 
   // Closes, at once, an opened post the page has moved on from: a moment
   // after it leaves, or, if the page comes back to it sooner, as it
@@ -173,10 +175,10 @@ export function closeOnReturn(
 
 const melts = () => document.documentElement.hasAttribute('data-melts');
 
-// A post's card and its images.
-const partsOf = (post: HTMLElement | null) => ({
+// A post, its card and its images.
+const partsOf = (post: HTMLElement | null, card: HTMLElement | null) => ({
   post,
-  card: post?.querySelector<HTMLElement>('section') ?? null,
+  card,
   images: post?.querySelector<HTMLElement>('.collage') ?? null,
 });
 

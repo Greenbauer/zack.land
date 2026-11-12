@@ -1,6 +1,6 @@
 import { RefObject, useEffect, useRef, useState } from 'react';
 
-import { WIDE_FROM } from '@/components/PageScroller/edgeFade';
+import { isWide } from '@/components/viewport';
 
 // How long the footer's text and links take to fade out, and the arrow to
 // fade in after them, in milliseconds.
@@ -90,7 +90,7 @@ export function useArrowSwap(
       hasArrow &&
       goesStraight({
         isPageIn: document.documentElement.hasAttribute('data-page-in'),
-        isPhone: innerWidth < WIDE_FROM,
+        isPhone: !isWide(),
         isFirstOnPage,
       })
     )

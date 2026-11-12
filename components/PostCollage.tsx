@@ -1,6 +1,6 @@
 'use client';
 
-import { CSSProperties, useEffect, useRef, useState } from 'react';
+import { CSSProperties, RefObject, useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 
 import { MediaSource } from '@/types';
@@ -27,12 +27,15 @@ const CORNER = '1rem';
 
 export default function PostCollage({
   mediaSources,
+  cardRef,
   isShown,
   isEager = false,
   className = '',
   style,
 }: {
   mediaSources: MediaSource[];
+  // The post's card, faded away while a video plays.
+  cardRef: RefObject<HTMLElement | null>;
   isShown: boolean;
   // Its pictures load at once and first: the page's first post. Every other
   // post draws its pictures only once the page is in (data-page-in), so
@@ -74,7 +77,7 @@ export default function PostCollage({
     // The card fades away, glass and all, and back when the video stops.
     // Faded, its links and buttons are out of reach (inert), for the
     // keyboard and a screen reader as for the eye.
-    const card = post.querySelector('section');
+    const card = cardRef.current;
     if (card) card.inert = true;
     const fade = card?.animate([{ opacity: 0 }], {
       duration: 400,
@@ -92,7 +95,7 @@ export default function PostCollage({
         () => {},
       );
     };
-  }, [isPlaying]);
+  }, [isPlaying, cardRef]);
 
   useEffect(() => {
     const box = boxRef.current;

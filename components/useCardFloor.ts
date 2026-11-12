@@ -1,5 +1,7 @@
 import { RefObject, useEffect, useState } from 'react';
 
+import { isWide } from './viewport';
+
 // The least height a post's card can take and still show its two columns
 // whole, as --card-floor on the card: its own edges, the article's padding
 // and the taller of its column of links (`linksRef`: its badge, technology
@@ -47,6 +49,7 @@ export function textFloor(
 }
 
 export default function useCardFloor(
+  cardRef: RefObject<HTMLElement | null>,
   articleRef: RefObject<HTMLElement | null>,
   linksRef: RefObject<HTMLElement | null>,
   descriptionRef: RefObject<HTMLElement | null>,
@@ -54,12 +57,11 @@ export default function useCardFloor(
 ) {
   const [isTooShort, setIsTooShort] = useState(false);
   useEffect(() => {
+    const card = cardRef.current;
     const article = articleRef.current;
     const links = linksRef.current;
-    const card = article?.parentElement;
     const post = card?.parentElement;
     if (!article || !links || !card || !post) return;
-    const wide = matchMedia('(min-width: 768px)');
     // The post's height between the page's fades, whatever its own is now.
     const postHeight = () => {
       const probe = document.createElement('div');
@@ -112,9 +114,7 @@ export default function useCardFloor(
         parseFloat(paddingBottom) +
         Math.max(links.offsetHeight, textHeight());
       card.style.setProperty('--card-floor', `${floor}px`);
-      setIsTooShort(
-        wide.matches && isTooShortFor(floor, postHeight(), hasPhotos),
-      );
+      setIsTooShort(isWide() && isTooShortFor(floor, postHeight(), hasPhotos));
     };
     measure();
     // Measured again a frame after anything changes, once every other
@@ -156,7 +156,7 @@ export default function useCardFloor(
       parts.disconnect();
       removeEventListener('resize', remeasure);
     };
-  }, [articleRef, linksRef, descriptionRef, hasPhotos]);
+  }, [cardRef, articleRef, linksRef, descriptionRef, hasPhotos]);
 
   return isTooShort;
 }

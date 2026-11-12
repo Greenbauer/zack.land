@@ -1,3 +1,5 @@
+import { isStill } from './viewport';
+
 // The pointer's trail, shared by the 3D scene's glass lenses
 // (Background/pointerTrail.ts) and the bend over the page's images and
 // videos (MediaBend.tsx): soft ink laid along the pointer's path, fading
@@ -21,8 +23,7 @@ export const trailShows = (seconds: number) => seconds < TRAIL_SECONDS;
 // Whether a pointer event leaves a trail: a mouse's or a pen's, not a
 // finger's (it scrolls the page), and not where motion is reduced.
 export const leavesTrail = (event: PointerEvent) =>
-  event.pointerType !== 'touch' &&
-  !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  event.pointerType !== 'touch' && !isStill();
 
 // The pointer's path as marks (window CSS pixels, and the time in seconds
 // each was made), newest last: a new mark once the pointer has gone

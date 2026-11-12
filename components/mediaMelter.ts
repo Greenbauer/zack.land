@@ -1,4 +1,5 @@
 import { Box, Picture, uploadsAgain } from './mediaBender';
+import { bindQuad, quadProgram, uniformsOf } from './quadProgram';
 
 // Draws a post's pictures melting: going out each turns to liquid at once and
 // runs off to the window's right side, narrowing into a streak, a band at a
@@ -92,15 +93,6 @@ export function restingBox(
     height: tile.height,
   };
 }
-
-const VERTEX = `
-  attribute vec2 position;
-  varying vec2 vUv;
-  void main() {
-    // From the top left, as the page counts.
-    vUv = vec2(position.x * 0.5 + 0.5, 0.5 - position.y * 0.5);
-    gl_Position = vec4(position, 0.0, 1.0);
-  }`;
 
 const NOISE = `
   float hash(vec2 p) {
@@ -283,9 +275,9 @@ export class MediaMelter {
 
   private constructor(gl: WebGLRenderingContext) {
     this.gl = gl;
-    this.melting = this.program(FRAGMENT);
-    this.mixing = this.program(MIX);
-    this.at = this.uniforms(this.melting, [
+    this.melting = quadProgram(gl, FRAGMENT);
+    this.mixing = quadProgram(gl, MIX);
+    this.at = uniformsOf(gl, this.melting, [
       'tMedia',
       'uSize',
       'uRest',
@@ -297,7 +289,7 @@ export class MediaMelter {
       'uStreak',
       'uTime',
     ]);
-    this.mixAt = this.uniforms(this.mixing, [
+    this.mixAt = uniformsOf(gl, this.mixing, [
       'tLeaving',
       'tComing',
       'uSize',
@@ -307,40 +299,8 @@ export class MediaMelter {
       'uTime',
     ]);
     this.layers = [this.layer(), this.layer()];
-    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
-    gl.bufferData(
-      gl.ARRAY_BUFFER,
-      new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]),
-      gl.STATIC_DRAW,
-    );
-    gl.enableVertexAttribArray(0);
-    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    bindQuad(gl);
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-  }
-
-  private program(fragment: string) {
-    const { gl } = this;
-    const shader = (type: number, source: string) => {
-      const s = gl.createShader(type)!;
-      gl.shaderSource(s, source);
-      gl.compileShader(s);
-      return s;
-    };
-    const program = gl.createProgram()!;
-    gl.attachShader(program, shader(gl.VERTEX_SHADER, VERTEX));
-    gl.attachShader(program, shader(gl.FRAGMENT_SHADER, fragment));
-    gl.bindAttribLocation(program, 0, 'position');
-    gl.linkProgram(program);
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS))
-      console.error(gl.getProgramInfoLog(program));
-    return program;
-  }
-
-  private uniforms(program: WebGLProgram, names: string[]) {
-    const { gl } = this;
-    return Object.fromEntries(
-      names.map((name) => [name, gl.getUniformLocation(program, name)]),
-    );
   }
 
   private layer(): Layer {

@@ -1,5 +1,7 @@
 import { ReactNode, RefObject, useLayoutEffect } from 'react';
 
+import { watchSize } from './viewport';
+
 // How many whole lines of text fit in `room` pixels, or null when all of it
 // (`content` pixels tall) fits. Never less than one line.
 export function linesThatFit(
@@ -53,12 +55,9 @@ export function useFitLines(ref: RefObject<HTMLElement | null>, isOn: boolean) {
       box.style.setProperty('-webkit-line-clamp', `${lines}`);
       box.style.setProperty('overflow', 'hidden');
     };
-    fit();
-    const resize = new ResizeObserver(fit);
-    resize.observe(box);
-    resize.observe(card);
+    const stop = watchSize([box, card], fit);
     return () => {
-      resize.disconnect();
+      stop();
       for (const name of CLAMP) box.style.removeProperty(name);
     };
   }, [ref, isOn]);

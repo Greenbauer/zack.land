@@ -1,8 +1,6 @@
 import { useSyncExternalStore } from 'react';
 
-// Whether the visitor asks for reduced motion, kept live (the setting can
-// change while the page is open); false on the server.
-const QUERY = '(prefers-reduced-motion: reduce)';
+import { isStill, REDUCED_MOTION as QUERY } from '@/components/viewport';
 
 const subscribe = (change: () => void) => {
   const query = matchMedia(QUERY);
@@ -10,10 +8,8 @@ const subscribe = (change: () => void) => {
   return () => query.removeEventListener('change', change);
 };
 
+// Whether the visitor asks for reduced motion, kept live (the setting can
+// change while the page is open); false on the server.
 export default function useReducedMotion() {
-  return useSyncExternalStore(
-    subscribe,
-    () => matchMedia(QUERY).matches,
-    () => false,
-  );
+  return useSyncExternalStore(subscribe, isStill, () => false);
 }
