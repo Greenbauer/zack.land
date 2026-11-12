@@ -2,8 +2,9 @@ import { useFrame } from '@react-three/fiber';
 import { useEffect, useRef } from 'react';
 import { Euler } from 'three';
 
+import { heading, lookOnScreen, Point } from './headLook';
 import { glide, GLIDE_SECONDS } from './headPlace';
-import { heading } from './MyHead';
+import { clamp } from './maths';
 import { SKY_SIDE, skyState } from './skyState';
 import {
   currentView,
@@ -25,7 +26,7 @@ import { isStill } from './stillScene';
 // the dawn. It follows the head's own look target, mouse or idle wandering,
 // and eases there at the head's speed, or at HOMING_SPEED while it is on its
 // way home. The head's reflections turn with it.
-// skyTurn's full range, which the view's reach scales down.
+// The sky's full turn either way, which each view's reach scales down.
 const REACH = Math.PI / 2;
 // How close to its view's home the gliding home counts as there, in radians.
 const HOME_NEAR = 0.02;
@@ -38,19 +39,21 @@ const DRAWN_SECONDS = 1;
 // How often the view on screen is checked, in milliseconds.
 const VIEW_MS = 300;
 
-const clamp = (value: number) => Math.min(Math.max(value, -1), 1);
-
-// The sky's turn for a look target in MyHead's pointer units
-// ((pointer - (width / 3, height / 2)) * 0.5): x tips it, y turns it,
-// in radians. The pointer at the left or top edge gives -REACH, at the right
-// or bottom edge REACH.
-export function skyTurn(
-  target: { x: number; y: number },
+// How far a look target (headLook.ts) has the sky turn, as a share of the
+// view's reach, -1 to 1: x tips it, y turns it. The pointer at the left or
+// top edge gives -1, at the right or bottom edge 1. It reads the target as
+// measured from a third of the way across, where the head used to look out
+// from; the head now looks out from lookOrigin (audit B10, the owner's to
+// decide).
+export function skyPointer(
+  target: Point,
   size: { width: number; height: number },
 ) {
-  const across = ((target.x / 0.5 + size.width / 3) / size.width) * 2 - 1;
-  const down = ((target.y / 0.5 + size.height / 2) / size.height) * 2 - 1;
-  return { x: clamp(down) * REACH, y: clamp(across) * REACH };
+  const at = lookOnScreen(target, { x: size.width / 3, y: size.height / 2 });
+  return {
+    x: clamp((at.y / size.height) * 2 - 1, -1, 1),
+    y: clamp((at.x / size.width) * 2 - 1, -1, 1),
+  };
 }
 
 // Sets a scene rotation (the sky's or its reflections') to a turn. The order
@@ -85,7 +88,7 @@ export const skyRate = () => motion.rate;
 const DRIFT_SMOOTHING = 0.2;
 
 const clampTurn = (value: number, low = -REACH, high = REACH) =>
-  Math.min(Math.max(value, low), high);
+  clamp(value, low, high);
 
 // Where a sky turning as `now` says will have turned `frames` from now, if
 // its aim keeps moving as it is: the aim drifting on (as far as its view's
@@ -144,14 +147,10 @@ export function holdAtHome(
 }
 
 export default function Sky() {
-  const turn = useRef(motion.turn);
   // The view on screen's station, checked a few times a second, and the home
   // gliding toward it (starting there, so a page opens on its own sky).
   const station = useRef<Station | null>(null);
   const home = useRef<Home | null>(null);
-  // The pointer reads (0, 0) until it first moves; until then it counts as
-  // the middle of the screen, so the sky sits at its home.
-  const first = useRef<typeof heading.target | null>(null);
   // When the scene first drew the sky (clock seconds).
   const drawnSince = useRef<number | null>(null);
 
@@ -189,12 +188,12 @@ export default function Sky() {
     if (!view) return;
     if (!home.current) {
       home.current = { ...view.home, speed: { x: 0, y: 0 } };
-      Object.assign(turn.current, view.home);
+      Object.assign(motion.turn, view.home);
     }
     // With reduced motion it rests where the view sets it, and jumps there
     // when the view changes (stillScene.ts).
     if (isStill()) {
-      holdAtHome(home.current, turn.current, view.home);
+      holdAtHome(home.current, motion.turn, view.home);
     } else {
       const seconds = Math.min(delta, 0.1);
       for (const axis of ['x', 'y'] as const) {
@@ -207,16 +206,11 @@ export default function Sky() {
         home.current[axis] = step.x;
         home.current.speed[axis] = step.speed;
       }
-      first.current ??= heading.target;
-      const pointer =
-        heading.target === first.current
-          ? { x: 0, y: 0 }
-          : skyTurn(heading.target, size);
-      // The pointer's turn, scaled from REACH down to the view's reach, about
-      // the home.
+      // The head's look, as far as the view's reach, about the home.
+      const pointer = skyPointer(heading.target, size);
       const aim = {
-        x: home.current.x + (pointer.x / REACH) * view.reach.x,
-        y: home.current.y + (pointer.y / REACH) * view.reach.y,
+        x: home.current.x + pointer.x * view.reach.x,
+        y: home.current.y + pointer.y * view.reach.y,
       };
       Object.assign(motion, {
         low: {
@@ -239,11 +233,11 @@ export default function Sky() {
       const speed = skySpeed(gap, heading.speed);
       Object.assign(motion, { aim, speed });
       const step = {
-        x: speed * (aim.x - turn.current.x),
-        y: speed * (aim.y - turn.current.y),
+        x: speed * (aim.x - motion.turn.x),
+        y: speed * (aim.y - motion.turn.y),
       };
-      turn.current.x += step.x;
-      turn.current.y += step.y;
+      motion.turn.x += step.x;
+      motion.turn.y += step.y;
       motion.rate = Math.hypot(step.x, step.y);
       // Text and cards take the side of the view the sky is bound for from the
       // moment it sets off (skyViews.ts), so they turn over with it rather than
@@ -260,7 +254,7 @@ export default function Sky() {
       scene.backgroundRotation,
       scene.environmentRotation,
     ])
-      setSkyRotation(rotation, turn.current);
+      setSkyRotation(rotation, motion.turn);
   });
 
   return null;

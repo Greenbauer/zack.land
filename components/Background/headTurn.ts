@@ -1,5 +1,18 @@
 import { Vector3, WebGLProgramParametersWithUniforms } from 'three';
 
+import {
+  BODY_SHARE,
+  CHEST_PIVOT,
+  NAPE_BACK,
+  NAPE_HEIGHT,
+  NECK_BASE_POINT,
+  SKULL_PIVOT,
+  SKULL_TUCK,
+  TUCK,
+} from './neckRig';
+
+export { BODY_SHARE, CHEST_PIVOT, NECK_BASE_POINT, SKULL_PIVOT };
+
 // Turns the head on its neck in the vertex shader. Each vertex carries two
 // weights from head.bin (1 on the head, falling to 0 down the neck, 0 on the
 // shoulders: scripts/head/rig.mjs). Turning the head to the side twists the
@@ -20,14 +33,12 @@ export const headTurn = { value: new Vector3() };
 const glsl = (point: readonly number[]) =>
   point.map((v) => v.toFixed(1)).join(', ');
 
-// Where the skull sits on the spine, in head.bin units: behind the jaw, level
-// with the earlobes.
-export const SKULL_PIVOT = [0, -28, -22] as const;
+// Where the skull sits on the spine (SKULL_PIVOT, neckRig.ts, in head.bin
+// units): behind the jaw, level with the earlobes.
 const PIVOT = glsl(SKULL_PIVOT);
 // The base of the neck on its axis, where it meets the shoulders (the neck's
 // axis as scripts/head/rig.mjs measures it). The neck bends between here and
 // PIVOT.
-export const NECK_BASE_POINT = [0, -120, -45.6] as const;
 const NECK_BASE = glsl(NECK_BASE_POINT);
 // The neck bends between its base and the skull (PIVOT, NECK_BASE): forward
 // and back for the tip (about x) and to the side for the tilt (rolling the
@@ -36,34 +47,31 @@ const NECK_BASE = glsl(NECK_BASE_POINT);
 // neck held upright, the head looked hinged onto it.) Looking down, a share
 // of the tip (TUCK) is instead taken at the joint between the skull and the
 // spine, as a real chin tuck is: bent evenly all the way, the head slid
-// forward like a slouch. The skull's share fades in over SKULL (heights in
-// head.bin units), over the top half of the neck up to the jaw, so the throat
-// folds gradually under the chin. (Faded in from the base of the neck, the
-// skin low on the back of the neck turned about the skull's joint too, which
-// swung it backward into a hump above the shoulders. At 0.75 of the tip,
-// faded in from -85, the soft skin under the chin swung back and up into
-// the throat with the skull and folded into a sharp notch, 96 degrees on
-// the chin's middle; at 0.6 from -95 it rounds into the throat, 80, and the
-// face slides forward 5 mm. The neckDown shape's chin tuck,
+// forward like a slouch. The skull's share fades in over SKULL (SKULL_TUCK,
+// heights in head.bin units), over the top half of the neck up to the jaw,
+// so the throat folds gradually under the chin. (Faded in from the base of
+// the neck, the skin low on the back of the neck turned about the skull's
+// joint too, which swung it backward into a hump above the shoulders. At
+// 0.75 of the tip, faded in from -85, the soft skin under the chin swung
+// back and up into the throat with the skull and folded into a sharp
+// notch, 96 degrees on the chin's middle; at 0.6 from -95 it rounds into
+// the throat, 80, and the face slides forward 5 mm. The neckDown shape's chin tuck,
 // scripts/head/bodyShapes.mjs, rolls the skin there forward too.)
-const TUCK = 0.6;
-const SKULL = '-95.0, -52.0';
+const SKULL = glsl(SKULL_TUCK);
 // The back of the neck that the skull's share leaves out (skullTip): fading
 // in from 5 back to -50 (z), and from -50 up to the skull's base at -28 (y),
 // in head.bin units. (Faded in from -10 to -30, the change ran down the side
 // of the neck just behind the jaw and showed there as a sharp fold looking
 // down.)
-const NAPE_BACK = '5.0, -50.0';
-const NAPE_HEIGHT = '-50.0, -28.0';
+const NAPE_Z = glsl(NAPE_BACK);
+const NAPE_Y = glsl(NAPE_HEIGHT);
 // The body's share of each turn and nod, taken as one piece about the middle
 // of the chest (BODY_PIVOT, by the spine at the height of the shoulder
 // blades); the neck and head take the rest. A real neck does not turn or
 // tip on a still body: the upper back turns and rounds a little with it.
 // With the shoulders held still the neck looked like it moved on its own.
 // (scripts/head/napeLine.mjs and neckCords.mjs SCM take the neck's share as
-// their full pose: keep them in step.)
-export const BODY_SHARE = { turn: 0.1, nod: 0.15 };
-export const CHEST_PIVOT = [0, -230, -45] as const;
+// their full pose, from neckRig.ts as this does.)
 const BODY_PIVOT = glsl(CHEST_PIVOT);
 
 const TURN_GLSL = `
@@ -111,7 +119,7 @@ mat3 twistRotation() {
 // about the skull's joint, skin behind and below the joint swings backward,
 // and it bulged out as a hump at the back of the neck.
 float skullTip() {
-  float nape = smoothstep(${NAPE_BACK}, position.z) * (1.0 - smoothstep(${NAPE_HEIGHT}, position.y));
+  float nape = smoothstep(${NAPE_Z}, position.z) * (1.0 - smoothstep(${NAPE_Y}, position.y));
   return max(neckTurn().x, 0.0) * ${TUCK} * headWeight * smoothstep(${SKULL}, position.y) * (1.0 - nape);
 }
 float neckTip() {

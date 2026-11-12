@@ -4,6 +4,8 @@ import { PixelReader } from './pixelReader';
 
 // A stand-in for WebGL2: a framebuffer whose every channel is `fill()`,
 // buffers that keep what is copied into them, and a fence the test signals.
+// `loseContext` and `restoreContext` do what the browser does: while lost
+// no fence signals, and once restored nothing made before counts.
 function fakeGl(fill: () => number) {
   type Buffer = { data: Uint8Array };
   const PIXEL_PACK_BUFFER = 1;
@@ -14,9 +16,13 @@ function fakeGl(fill: () => number) {
   const FLOAT = 6;
   const bound = new Map<number, Buffer | null>();
   const at = (target: number) => bound.get(target)!;
-  const fence = { signaled: false };
+  const context = { lost: false, generation: 0 };
+  const fence = { signaled: false, generation: 0 };
   const calls = { sync: 0, fetches: 0 };
+  const canvas = new EventTarget();
   const gl = {
+    canvas,
+    isContextLost: () => context.lost,
     PIXEL_PACK_BUFFER,
     COPY_READ_BUFFER,
     COPY_WRITE_BUFFER,
@@ -66,11 +72,16 @@ function fakeGl(fill: () => number) {
     fenceSync: () => {
       calls.sync++;
       fence.signaled = false;
+      fence.generation = context.generation;
       return fence;
     },
     flush: () => {},
     getSyncParameter: (sync: typeof fence) =>
-      sync.signaled ? SIGNALED : SYNC_STATUS,
+      context.lost || sync.generation !== context.generation
+        ? null
+        : sync.signaled
+          ? SIGNALED
+          : SYNC_STATUS,
     deleteSync: () => {},
     deleteBuffer: () => {},
     getBufferSubData: (target: number, offset: number, out: Uint8Array) => {
@@ -78,7 +89,22 @@ function fakeGl(fill: () => number) {
       out.set(at(target).data.subarray(offset, offset + out.length));
     },
   };
-  return { gl: gl as unknown as WebGL2RenderingContext, fence, calls };
+  const loseContext = () => {
+    context.lost = true;
+    canvas.dispatchEvent(new Event('webglcontextlost'));
+  };
+  const restoreContext = () => {
+    context.lost = false;
+    context.generation++;
+    canvas.dispatchEvent(new Event('webglcontextrestored'));
+  };
+  return {
+    gl: gl as unknown as WebGL2RenderingContext,
+    fence,
+    calls,
+    loseContext,
+    restoreContext,
+  };
 }
 
 describe('reading pixels without waiting on the GPU', () => {
@@ -155,5 +181,35 @@ describe('reading pixels without waiting on the GPU', () => {
     }
     // One a read, and the one they are gathered into.
     expect(made).toBe(3);
+  });
+
+  it('reads again once a lost context is back, with buffers made afresh', () => {
+    const { gl, fence, loseContext, restoreContext } = fakeGl(() => 9);
+    let made = 0;
+    const createBuffer = gl.createBuffer.bind(gl);
+    gl.createBuffer = () => {
+      made++;
+      return createBuffer();
+    };
+    const reader = new PixelReader(gl);
+    reader.read({ x: 0, y: 0, width: 1, height: 1 });
+    reader.send(() => {
+      throw new Error('a batch from the lost context was delivered');
+    });
+    loseContext();
+    reader.poll();
+    restoreContext();
+    reader.poll();
+    expect(reader.busy).toBe(false);
+    made = 0;
+    let got: Uint8Array | undefined;
+    reader.read({ x: 0, y: 0, width: 1, height: 1 });
+    reader.send(([pixels]) => {
+      got = pixels as Uint8Array;
+    });
+    fence.signaled = true;
+    reader.poll();
+    expect(made).toBe(2);
+    expect([...got!]).toEqual([9, 9, 9, 9]);
   });
 });

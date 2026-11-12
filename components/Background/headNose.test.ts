@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { expressions, meshes, skin } from './headFixture';
+import { skin, skinMoves } from './headFixture';
 
 // The nose in head.bin's expressions: its bridge and tip are bone and
 // cartilage, so only the nose's own muscles move them much, and a flare
@@ -9,15 +9,7 @@ import { expressions, meshes, skin } from './headFixture';
 // 1.7 mm each).
 
 // Each expression's move of every skin point at full strength.
-const moves = (name: string) => {
-  const { indices, moves: sparse } =
-    meshes.get('skin')!.morphs[expressions.indexOf(name)]!;
-  const d = skin.vertices.map(() => 0);
-  indices.forEach((v, k) => {
-    d[v] = Math.hypot(sparse[k * 3]!, sparse[k * 3 + 1]!, sparse[k * 3 + 2]!);
-  });
-  return d;
-};
+const moves = (name: string) => skinMoves(name).map((d) => Math.hypot(...d));
 // The most any point within `where` moves.
 const most = (name: string, where: (_p: number[]) => boolean) => {
   const d = moves(name);

@@ -11,7 +11,19 @@
 // turned back to the still one, since the shapes go on before the shader
 // turns them.
 
-import { smoothstep } from './faceRig.mjs';
+import {
+  BODY_SHARE,
+  FULL_NOD,
+  NAPE_BACK,
+  NAPE_HEIGHT,
+  NECK_BASE_POINT as NECK_BASE,
+  SKULL_PIVOT as PIVOT,
+  SKULL_TUCK as SKULL,
+  TUCK,
+} from '../../components/Background/neckRig.ts';
+import { turn } from './faceRig.mjs';
+import { smoothstep } from './falloff.mjs';
+import { axisZ } from './neckAxis.mjs';
 
 const LINE = { top: -14, bottom: -86 };
 // How far round the neck the move reaches: all of it straight behind the
@@ -21,46 +33,39 @@ const AROUND = { from: 0.2, full: 0.8 };
 // Within this distance of the midline, the outline as seen from the side.
 const MIDDLE = 30;
 
-// The neck's nod when the shape is full (components/Background/neckPose.ts
-// FULL_NOD, less the body's share: headTurn.ts BODY_SHARE) and the shader's
-// neck (headTurn.ts): keep these in step with it.
-const FULL_NOD = 0.52 * 0.85;
-const PIVOT = [0, -28, -22];
-const NECK_BASE = [0, -120, -45.6];
-const TUCK = 0.6;
-const SKULL = [-95, -52];
-const NAPE_BACK = [5, -50];
-const NAPE_HEIGHT = [-50, -28];
+// The neck's nod when the shape is full (neckRig.ts FULL_NOD, less the
+// body's share), with the shader's neck (neckRig.ts, as headTurn.ts reads it).
+const NOD = FULL_NOD * (1 - BODY_SHARE.nod);
 
 // How far a point at rest turns about x, nodded fully down: the skull's
 // share at its joint and the neck's bend, both about x (headTurn.ts).
 const turnOf = ([, y, z], weight) => {
   const nape =
     smoothstep(z, ...NAPE_BACK) * (1 - smoothstep(y, ...NAPE_HEIGHT));
-  const skull = FULL_NOD * TUCK * weight * smoothstep(y, ...SKULL) * (1 - nape);
-  return { skull, neck: FULL_NOD * (1 - TUCK) * weight };
+  const skull = NOD * TUCK * weight * smoothstep(y, ...SKULL) * (1 - nape);
+  return { skull, neck: NOD * (1 - TUCK) * weight };
 };
-const turnX = ([x, y, z], a, [, cy, cz] = [0, 0, 0]) => [
-  x,
-  cy + (y - cy) * Math.cos(a) - (z - cz) * Math.sin(a),
-  cz + (y - cy) * Math.sin(a) + (z - cz) * Math.cos(a),
-];
+const ORIGIN = [0, 0, 0];
 // A point nodded fully down, as the shader nods it: turned about the skull's
 // joint by its share, then carried along the neck's even bend.
 const nodded = (p, weight) => {
   const { skull, neck } = turnOf(p, weight);
-  const t = turnX(p, skull, PIVOT);
+  const t = turn(p, PIVOT, skull);
   const axis = [1, 2].map((k) => PIVOT[k] - NECK_BASE[k]);
   const length = Math.hypot(...axis);
   const [ay, az] = axis.map((c) => c / length);
   const s = weight * length;
-  const total = FULL_NOD * (1 - TUCK);
+  const total = NOD * (1 - TUCK);
   const along = total ? (Math.sin(neck) * length) / total : s;
   const aside = total ? ((1 - Math.cos(neck)) * length) / total : 0;
   // The neck's side direction, x crossed with its axis.
   const [sy, sz] = [-az, ay];
   const from = [0, NECK_BASE[1] + ay * s, NECK_BASE[2] + az * s];
-  const [rx, ry, rz] = turnX([t[0], t[1] - from[1], t[2] - from[2]], neck);
+  const [rx, ry, rz] = turn(
+    [t[0], t[1] - from[1], t[2] - from[2]],
+    ORIGIN,
+    neck,
+  );
   return [
     rx,
     NECK_BASE[1] + ay * along + sy * aside + ry,
@@ -126,13 +131,12 @@ export function napeLine(skin, weights) {
     const f = Math.floor(k);
     return gap[f] + (gap[f + 1] - gap[f]) * (k - f);
   };
-  const axisZ = (y) => -25 + (y + 72) * 0.43;
   return skin.vertices.map((p, i) => {
     const out = p[2] - axisZ(p[1]);
     const facing = -out / (Math.hypot(p[0], out) || 1);
     const move =
       gapAt(posed[i][1]) * smoothstep(facing, AROUND.from, AROUND.full);
     const { skull, neck } = turnOf(p, weights[i]);
-    return turnX([0, 0, move], -(skull + neck));
+    return turn([0, 0, move], ORIGIN, -(skull + neck));
   });
 }

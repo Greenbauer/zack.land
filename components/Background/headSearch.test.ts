@@ -7,13 +7,8 @@ import {
   startSearch,
   stepSearch,
 } from './headSearch';
+import { seeded } from './seeded';
 import { TIP, TURN } from './wander';
-
-// A repeatable random number generator (a linear congruential one).
-const seeded = (seed: number) => () => {
-  seed = (seed * 1664525 + 1013904223) % 4294967296;
-  return seed / 4294967296;
-};
 
 // A search from `from`, every frame at 60 a second until it gives up.
 function run(from: { x: number; y: number }, seed: number) {

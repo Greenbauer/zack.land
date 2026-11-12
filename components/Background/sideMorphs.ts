@@ -1,4 +1,5 @@
 import type { Head } from './headGeometry';
+import { clamp } from './maths';
 
 // One-sided versions of some of the head's expressions, made when it loads:
 // head.bin's expressions move both sides of the face together, so a single
@@ -25,7 +26,7 @@ const WIDE = new Set(['shrug']);
 // The head faces +z, so its own left is +x.
 export function sideWeight(x: number, side: Side, name = '') {
   const blend = WIDE.has(name) ? WIDE_BLEND : BLEND;
-  const t = Math.min(Math.max((x - MIDDLE + blend) / (2 * blend), 0), 1);
+  const t = clamp((x - MIDDLE + blend) / (2 * blend), 0, 1);
   const left = t * t * (3 - 2 * t);
   return side === 'Left' ? left : 1 - left;
 }

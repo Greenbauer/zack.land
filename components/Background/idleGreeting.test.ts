@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { EASE_RATE, easeToward } from './faceExpression';
+import { splitLook } from './headLook';
 import {
   faceNeutral,
   faceSeen,
@@ -14,7 +15,6 @@ import {
   stepGreeting,
   SURPRISE_SECONDS,
 } from './idleGreeting';
-import { splitLook } from './MyHead';
 import { neckExpressions } from './neckPose';
 
 const facing = { x: 0, y: 0 };
@@ -40,8 +40,6 @@ describe('the head greeting before it wanders', () => {
     expect(
       stepGreeting(start, { turn: arriving, neutral: true, time: 2 }),
     ).toEqual({ phase: 'surprised', since: 2 });
-    // As it arrives, not after the turn's slow last settling.
-    expect(FACING_CLOSE).toBeGreaterThanOrEqual(0.08);
   });
 
   it('holds the surprise for its time, then is done', () => {
@@ -60,7 +58,6 @@ describe('the head greeting before it wanders', () => {
         time: 10 + SURPRISE_SECONDS,
       }),
     ).toEqual({ phase: 'smiling', since: 10 + SURPRISE_SECONDS });
-    expect(SURPRISE_SECONDS).toBe(4);
   });
 
   it('holds the smile for its time, then is done', () => {

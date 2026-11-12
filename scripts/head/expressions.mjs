@@ -7,21 +7,18 @@
 
 import {
   brows,
-  bump,
   finish,
   HINGE,
-  length,
   lids,
   lips,
-  minus,
   raiseLowerLids,
   setUp,
-  smoothstep,
   still,
   turn,
 } from './faceRig.mjs';
 import { FACE_SHAPES } from './faceShapes.mjs';
-import { add, scale } from './mesh.mjs';
+import { bump, smoothstep } from './falloff.mjs';
+import { add, length, minus, scale } from './mesh.mjs';
 import { MOUTH_SHAPES } from './mouthShapes.mjs';
 
 // How far the skin round a smiling mouth corner follows it.
@@ -161,7 +158,7 @@ const wide = (rig, face) =>
 
 // Gasp (reference: brows up with their inner ends, the jaw dropped into an
 // oval). Its jaw reaches the neck, so nothing near the join is held here: the
-// build carries it on down the throat (headExpressions in build-head.mjs).
+// build carries it on down the throat (bustMoves and carryDown, below).
 const gasp = (rig, face) =>
   surprise(rig, face, {
     lid: 0.15,

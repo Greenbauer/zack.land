@@ -17,8 +17,15 @@ import zlib from 'node:zlib';
 
 import { gridOf, similarity } from './align.mjs';
 import { carryDown } from './expressions.mjs';
-import { smoothstep } from './faceRig.mjs';
-import { add, boundaryLoops } from './mesh.mjs';
+import { smoothstep } from './falloff.mjs';
+import {
+  add,
+  boundaryLoops,
+  cross,
+  dot,
+  length as size,
+  minus as sub,
+} from './mesh.mjs';
 import { jawPose } from './mouthRig.mjs';
 
 // Our expressions made from ICT's: each a mix of its shapes, by weight.
@@ -60,10 +67,6 @@ const noseHeld = ([x, y, z]) =>
   (1 - smoothstep(y, -8, -4)) *
   (1 - smoothstep(Math.abs(x), 8, 11)) *
   smoothstep(z, 38, 42);
-
-const sub = (a, b) => a.map((c, k) => c - b[k]);
-const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-const size = (a) => Math.hypot(...a);
 
 // A neighbour list of a triangle mesh.
 const neighboursOf = (count, faces) => {
@@ -362,11 +365,7 @@ function unfold(skin, d, neighbours) {
   const v = skin.vertices;
   const normal = (p, [a, b, c]) => {
     const [u, w] = [sub(p[b], p[a]), sub(p[c], p[a])];
-    const n = [
-      u[1] * w[2] - u[2] * w[1],
-      u[2] * w[0] - u[0] * w[2],
-      u[0] * w[1] - u[1] * w[0],
-    ];
+    const n = cross(u, w);
     return n.map((x) => x / (size(n) || 1));
   };
   const rest = skin.faces.map((f) => normal(v, f));

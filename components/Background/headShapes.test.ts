@@ -7,21 +7,14 @@ import {
   openEdges,
   Point,
   skin,
+  skinMoves,
 } from './headFixture';
 import { BODY_SHARE } from './headTurn';
 
 // The rig's own moves beyond the page's first seven (scripts/head/
 // faceShapes.mjs, mouthShapes.mjs, bodyShapes.mjs), checked on the built head.
 
-const moves = (name: string) => {
-  const { indices, moves: sparse } =
-    meshes.get('skin')!.morphs[expressions.indexOf(name)]!;
-  const d = skin.vertices.map((): Point => [0, 0, 0]);
-  indices.forEach((v, k) => {
-    d[v] = [sparse[k * 3]!, sparse[k * 3 + 1]!, sparse[k * 3 + 2]!];
-  });
-  return d;
-};
+const moves = skinMoves;
 // The average move of the skin near (x, y), on the front of the face.
 const near = (d: Point[], x: number, y: number, r = 1.5, front = 25) => {
   const at = skin.vertices.flatMap(([vx, vy, vz], i) =>

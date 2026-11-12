@@ -16,7 +16,7 @@ import {
 } from 'three';
 
 import type { PixelReader } from './pixelReader';
-import { Aim, AIM_REACH, AIM_STEPS, AIMS, SWEEPS } from './titleAim';
+import { Aim, AIM_REACH, AIM_STEPS, AIMS, bendSheet, SWEEPS } from './titleAim';
 
 // What the name's letters would show, facing each possible aim
 // (titleAim.ts), measured by three's own shading rather than guessed: the
@@ -32,18 +32,6 @@ import { Aim, AIM_REACH, AIM_STEPS, AIMS, SWEEPS } from './titleAim';
 export const POINTS = 32;
 const BACKDROP = AIMS + 1;
 const ROWS = AIMS + 2;
-
-// How a sheet facing `aim` (tilt x, y; sweep direction z, w) bends a surface
-// normal at `across` (-1 at its left end to 1 at its right), when its full
-// sweep tips the normal by `sweep` (the tangent of the angle) at each end:
-// GLSL, shared by the letters and the probe so both bend alike.
-export function bendSheet(sweep: number) {
-  return `
-    vec3 sheetBend(vec3 n, float across, vec4 aim) {
-      vec3 tilt = vec3(aim.xy + across * ${sweep.toFixed(3)} * aim.zw, 0.0);
-      return normalize(n + tilt * n.z);
-    }`;
-}
 
 const glslFloat = (n: number) => n.toFixed(3);
 

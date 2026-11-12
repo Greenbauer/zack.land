@@ -9,6 +9,9 @@
 // over `around` radians either side), their depths fitted so that, turned,
 // the outline above the apple dips below it no further than at rest.
 
+import { bump } from './falloff.mjs';
+import { around, axisZ, radial, twisted } from './neckAxis.mjs';
+
 const FILL = { centres: [-70, -74, -78, -82, -86], height: 5, around: 0.6 };
 // The throat's front, where the fill and the outline are measured.
 const REGION = { top: -60, bottom: -100, across: 40 };
@@ -16,20 +19,6 @@ const REGION = { top: -60, bottom: -100, across: 40 };
 const APPLE = [-84, -92];
 const ROWS = [-74, -76, -78, -80, -82, -84];
 const ROUNDS = 6;
-
-const axisZ = (y) => -25 + (y + 72) * 0.43;
-const around = ([x, y, z]) => Math.atan2(x, z - axisZ(y));
-const radial = ([x, y, z]) => {
-  const r = Math.hypot(x, z - axisZ(y)) || 1;
-  return [x / r, 0, (z - axisZ(y)) / r];
-};
-// p turned by `angle` toward +x about the top of the spine (headTurn.ts
-// PIVOT), as the page's shader turns it.
-const twisted = ([x, y, z], angle) => [
-  x * Math.cos(angle) + (z + 22) * Math.sin(angle),
-  y,
-  -x * Math.sin(angle) + (z + 22) * Math.cos(angle) - 22,
-];
 
 // The fill's move of every point of the skin for a turn of the neck by
 // `angle` toward `toward` (+1 for +x), given the turn shape's other moves
@@ -51,9 +40,7 @@ export function throatFill(skin, turns, moves, angle, toward, even) {
     even(
       vertices.map((p, i) => {
         const turnedAround = around(twisted(p, a(i)));
-        const g =
-          Math.exp(-(((p[1] - c) / FILL.height) ** 2)) *
-          Math.exp(-((turnedAround / FILL.around) ** 2));
+        const g = bump(p[1] - c, FILL.height) * bump(turnedAround, FILL.around);
         return inRegion.has(i) ? radial(p).map((r) => r * g) : [0, 0, 0];
       }),
     ),
