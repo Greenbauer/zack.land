@@ -31,7 +31,10 @@ test('back while the page moves out stays where back went', async ({
     .getByRole('link', { name: 'Contact' })
     .click();
   await expect(page.locator('body')).toHaveAttribute('data-leaving', '');
-  await page.evaluate(() => history.back());
+  // The browser's own Back, to the entry before: a script's history.back()
+  // may skip an entry the page added long after a click (as a slow CI
+  // runner's can), which no visitor's Back button does.
+  await page.goBack({ waitUntil: 'commit' });
   await expect(page).toHaveURL(/\/portfolio\/web-apps$/);
   // Well past the moment the site would have gone on (TILES_MS, leaveTo.ts).
   await page.waitForTimeout(2500);
