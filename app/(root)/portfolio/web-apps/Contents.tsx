@@ -66,7 +66,11 @@ const posts: Content[] = [
     name: 'Passero',
     description: (
       <p>
-        <a href="https://www.travelpassero.com" target="_blank" rel="noreferrer">
+        <a
+          href="https://www.travelpassero.com"
+          target="_blank"
+          rel="noreferrer"
+        >
           Passero
         </a>{' '}
         is a travel planning technology startup, with an app to help people plan
