@@ -100,6 +100,10 @@ export class TitlePass extends Pass {
         target.texture;
       this.over.render(renderer);
     } else {
+      // Smoothing dropped (the scene found it draws in software): its target
+      // goes with it.
+      this.smoothed?.dispose();
+      this.smoothed = undefined;
       renderer.setRenderTarget(out);
       // The blur's full-screen passes leave their own depth behind; the
       // titles sit in front of the whole scene, so they are drawn over it
@@ -118,7 +122,6 @@ export class TitlePass extends Pass {
       type: frame.texture.type,
       samples: this.samples,
     });
-    this.smoothed.samples = this.samples;
     if (
       this.smoothed.width !== frame.width ||
       this.smoothed.height !== frame.height
@@ -129,6 +132,7 @@ export class TitlePass extends Pass {
 
   dispose() {
     this.smoothed?.dispose();
+    this.over.material.dispose();
     this.over.dispose();
   }
 }
