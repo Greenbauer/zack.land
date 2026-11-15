@@ -14,7 +14,7 @@ import {
 } from './quality';
 
 describe('how finely the scene is drawn', () => {
-  it('draws a phone at up to 1.5 pixels per CSS pixel, unsmoothed', () => {
+  it('draws a phone at up to 1.5 pixels per CSS pixel, unsmoothed but for its titles', () => {
     // An iPhone 13 Pro, upright and on its side.
     for (const [width, height] of [
       [390, 844],
@@ -23,11 +23,16 @@ describe('how finely the scene is drawn', () => {
       expect(renderQuality(width!, height!)).toEqual({
         dpr: [1, 1.5],
         samples: 0,
+        titleSamples: 4,
       });
   });
 
   it('draws a larger screen at up to 2, with 4 samples', () => {
-    expect(renderQuality(1440, 900)).toEqual({ dpr: [1, 2], samples: 4 });
+    expect(renderQuality(1440, 900)).toEqual({
+      dpr: [1, 2],
+      samples: 4,
+      titleSamples: 0,
+    });
   });
 
   it('draws at half a pixel, unsmoothed, where the browser has no GPU', () => {
@@ -38,6 +43,7 @@ describe('how finely the scene is drawn', () => {
       expect(renderQuality(width!, height!, true)).toEqual({
         dpr: [0.5, 0.5],
         samples: 0,
+        titleSamples: 0,
       });
   });
 
