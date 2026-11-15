@@ -1,4 +1,5 @@
 import { contrastRatio } from './backdrop';
+import { shareOver } from './faceExpression';
 
 // Where the name's curved sheet should face, so every part of the name
 // mirrors sky that stands out from what is behind it (TitleName.tsx).
@@ -362,4 +363,19 @@ function survey(
       picks.richest = pick;
   }
   return picks;
+}
+
+// The share of its way (`gap`) to its aim the sheet moves this frame,
+// `seconds` after the last: `ease` of the way each 60th of a second, as the
+// head eases (shareOver), and never more than `fastest` each 60th of a
+// second, so it moves as fast at any frame rate (audit B4).
+export function sheetShare(
+  gap: number,
+  ease: number,
+  fastest: number,
+  seconds: number,
+) {
+  const share = shareOver(ease, seconds);
+  const most = fastest * Math.max(seconds, 1e-3) * 60;
+  return gap * share > most ? most / gap : share;
 }

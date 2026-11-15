@@ -53,9 +53,10 @@ describe('the sky on its first frames', () => {
       frames[0]!({ clock: { elapsedTime: frame / 60 }, scene, size }, 1 / 60);
       turns.push(scene.backgroundRotation.y);
     }
-    // That look is left of the sky's middle, so the sky turns left from its
-    // home, a share each frame, from the first.
-    const steps = turns.map((turn, k) => (k ? turns[k - 1]! : -0.3) - turn);
+    // That look points where the head looks out from (lookOrigin: before the
+    // head is placed, a twelfth of the screen right of its middle), so the
+    // sky turns right from its home, a share each frame, from the first.
+    const steps = turns.map((turn, k) => turn - (k ? turns[k - 1]! : -0.3));
     expect(steps[0]).toBeGreaterThan(0);
     expect(steps[1]! / steps[0]!).toBeCloseTo(1 - heading.speed);
     expect(steps[2]! / steps[1]!).toBeCloseTo(1 - heading.speed);

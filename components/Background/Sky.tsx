@@ -2,8 +2,9 @@ import { useFrame } from '@react-three/fiber';
 import { useEffect, useRef } from 'react';
 import { Euler } from 'three';
 
+import { shareOver } from './faceExpression';
 import { heading, lookOnScreen, Point } from './headLook';
-import { glide, GLIDE_SECONDS } from './headPlace';
+import { glide, GLIDE_SECONDS, lookOrigin } from './headPlace';
 import { clamp } from './maths';
 import { SKY_SIDE, skyState } from './skyState';
 import {
@@ -30,7 +31,8 @@ import { isStill } from './stillScene';
 const REACH = Math.PI / 2;
 // How close to its view's home the gliding home counts as there, in radians.
 const HOME_NEAR = 0.02;
-// How closely the sky keeps to its gliding home, a share each frame: the
+// How closely the sky keeps to its gliding home, a share each 60th of a
+// second: the
 // head's own speed trails it by a second or more (its idle wandering's most).
 const HOMING_SPEED = 0.3;
 // How long the scene must have drawn the sky before text over it takes its
@@ -41,15 +43,15 @@ const VIEW_MS = 300;
 
 // How far a look target (headLook.ts) has the sky turn, as a share of the
 // view's reach, -1 to 1: x tips it, y turns it. The pointer at the left or
-// top edge gives -1, at the right or bottom edge 1. It reads the target as
-// measured from a third of the way across, where the head used to look out
-// from; the head now looks out from lookOrigin (audit B10, the owner's to
-// decide).
+// top edge gives -1, at the right or bottom edge 1. It reads the target from
+// where the head looks out from (`originX`: lookOrigin), as the head made it,
+// so it finds the pointer where it is wherever the head sits (audit B10).
 export function skyPointer(
   target: Point,
   size: { width: number; height: number },
+  originX: number,
 ) {
-  const at = lookOnScreen(target, { x: size.width / 3, y: size.height / 2 });
+  const at = lookOnScreen(target, { x: originX, y: size.height / 2 });
   return {
     x: clamp((at.y / size.height) * 2 - 1, -1, 1),
     y: clamp((at.x / size.width) * 2 - 1, -1, 1),
@@ -68,29 +70,33 @@ export function setSkyRotation(
 }
 
 // The sky's turn now, where it is easing to, and how fast that aim is
-// moving (per frame, smoothed): read by the title (TitleName.tsx) to see
-// where the sky is going.
+// moving (each 60th of a second, smoothed): read by the title
+// (TitleName.tsx) to see where the sky is going. Its speeds are per 60th of
+// a second at any frame rate (stepSky), so the forecast's frames are 60ths
+// of a second too.
 const motion = {
   turn: { x: 0, y: 0 },
   aim: { x: 0, y: 0 },
   drift: { x: 0, y: 0 },
   speed: 0,
-  // How far the sky turned in the last frame, in radians.
+  // How fast the sky is turning, in radians each 60th of a second.
   rate: 0,
   // How far the aim can go: the view's home, its reach either way.
   low: { x: -REACH, y: -REACH },
   high: { x: REACH, y: REACH },
 };
 
-// How far the sky turned in the last frame, in radians.
+// How fast the sky is turning, in radians each 60th of a second.
 export const skyRate = () => motion.rate;
-// How much of each frame's aim change goes into its smoothed drift.
+// How much of the aim's change each 60th of a second goes into its smoothed
+// drift.
 const DRIFT_SMOOTHING = 0.2;
 
 const clampTurn = (value: number, low = -REACH, high = REACH) =>
   clamp(value, low, high);
 
-// Where a sky turning as `now` says will have turned `frames` from now, if
+// Where a sky turning as `now` says will have turned `frames` 60ths of a
+// second from now, if
 // its aim keeps moving as it is: the aim drifting on (as far as its view's
 // reach, or REACH), the sky easing after it at its speed.
 export function forecastTurn(
@@ -110,16 +116,46 @@ export function forecastTurn(
   return turn;
 }
 
-// The sky's rotation `frames` from now.
+// The sky's rotation `frames` 60ths of a second from now.
 export function skyAhead(frames: number, rotation: Euler) {
   setSkyRotation(rotation, forecastTurn(motion, frames));
   return rotation;
 }
 
-// The share of its way to its aim the sky moves this frame: `gap` is how far
-// the gliding home is from its view's home, in radians.
+// The share of its way to its aim the sky moves each 60th of a second: `gap`
+// is how far the gliding home is from its view's home, in radians.
 export const skySpeed = (gap: number, headSpeed: number) =>
   gap < HOME_NEAR ? headSpeed : Math.max(headSpeed, HOMING_SPEED);
+
+// One frame of the sky easing after `aim` at `speed`, `seconds` after the
+// last, as the head eases (shareOver): it moves as far in a second at any
+// frame rate, so on a 120 Hz screen it keeps pace with the head rather than
+// moving twice as fast (audit B4). `now` (the sky's motion) is updated in
+// place.
+export function stepSky(
+  now: Pick<typeof motion, 'turn' | 'aim' | 'drift' | 'speed' | 'rate'>,
+  aim: { x: number; y: number },
+  speed: number,
+  seconds: number,
+) {
+  const sixtieths = Math.max(seconds, 1e-3) * 60;
+  const smoothing = shareOver(DRIFT_SMOOTHING, seconds);
+  const share = shareOver(speed, seconds);
+  for (const axis of ['x', 'y'] as const)
+    now.drift[axis] +=
+      smoothing * ((aim[axis] - now.aim[axis]) / sixtieths - now.drift[axis]);
+  const step = {
+    x: share * (aim.x - now.turn.x),
+    y: share * (aim.y - now.turn.y),
+  };
+  now.turn.x += step.x;
+  now.turn.y += step.y;
+  Object.assign(now, {
+    aim: { ...aim },
+    speed,
+    rate: Math.hypot(step.x, step.y) / sixtieths,
+  });
+}
 
 // Where the view's home has glided to, and how fast it is moving.
 type Home = { x: number; y: number; speed: { x: number; y: number } };
@@ -207,7 +243,7 @@ export default function Sky() {
         home.current.speed[axis] = step.speed;
       }
       // The head's look, as far as the view's reach, about the home.
-      const pointer = skyPointer(heading.target, size);
+      const pointer = skyPointer(heading.target, size, lookOrigin(size.width));
       const aim = {
         x: home.current.x + pointer.x * view.reach.x,
         y: home.current.y + pointer.y * view.reach.y,
@@ -222,23 +258,12 @@ export default function Sky() {
           y: home.current.y + view.reach.y,
         },
       });
-      for (const axis of ['x', 'y'] as const)
-        motion.drift[axis] +=
-          DRIFT_SMOOTHING * (aim[axis] - motion.aim[axis] - motion.drift[axis]);
       const gap = Math.hypot(
         home.current.x - view.home.x,
         home.current.y - view.home.y,
       );
       // The sky eases after its aim.
-      const speed = skySpeed(gap, heading.speed);
-      Object.assign(motion, { aim, speed });
-      const step = {
-        x: speed * (aim.x - motion.turn.x),
-        y: speed * (aim.y - motion.turn.y),
-      };
-      motion.turn.x += step.x;
-      motion.turn.y += step.y;
-      motion.rate = Math.hypot(step.x, step.y);
+      stepSky(motion, aim, skySpeed(gap, heading.speed), seconds);
       // Text and cards take the side of the view the sky is bound for from the
       // moment it sets off (skyViews.ts), so they turn over with it rather than
       // after it.
