@@ -236,6 +236,13 @@ describe('the sheet at any frame rate', () => {
     expect(after(60, 0.05, 1)).toBeCloseTo(1 - 0.95 ** 60);
   });
 
+  it('stays a number when catching up faster than the head', () => {
+    // CATCH_UP twice a head speed of 1, at a frame time not exactly 1/60.
+    const share = sheetShare(0.5, 2, 0.015, 0.0168);
+    expect(share).toBeCloseTo((0.015 * 0.0168 * 60) / 0.5);
+    expect(sheetShare(0.001, 2, 0.015, 0.0168)).toBe(1);
+  });
+
   it('keeps to its fastest per second at any frame rate', () => {
     // Capped at 0.005 each 60th of a second: 0.3 in a second.
     expect(after(60, 0.6, 0.005)).toBeCloseTo(0.3);

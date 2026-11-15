@@ -66,11 +66,11 @@ import usePixelReader from './usePixelReader';
 const TARGET = 2;
 // How often (frames) the name is read and re-aimed.
 const EVERY = 4;
-// How fast the sheet eases to a new aim, a share each 60th of a second: when its colours drift,
-// at a little under the pace the head and sky turn, so the name moves calmly
-// with the world; when it flips between lighter and darker than what is
-// behind it, in about half a second, as any path between the two passes
-// through tones that blend into the sky.
+// How fast the sheet eases to a new aim, a share each 60th of a second: when
+// its colours drift, at a little under the pace the head and sky turn, so the
+// name moves calmly with the world; when it flips between lighter and darker
+// than what is behind it, in about half a second, as any path between the two
+// passes through tones that blend into the sky.
 const DRIFT = 0.6;
 const FLIP = 0.08;
 // While the name is not readable, it catches up at this many times the
@@ -81,12 +81,11 @@ const CATCH_UP = 2;
 const CATCH_UP_LEAST = 0.03;
 // While the sky swings fast, the name may catch up and flip faster too, in
 // step with it: this much ease per radian the sky turns each 60th of a
-// second, up to
-// SWING_MOST.
+// second, up to SWING_MOST.
 const SWING = 10;
 const SWING_MOST = 0.3;
-// How far ahead (60ths of a second) the name looks at where the sky is turning, to stay
-// readable on the way.
+// How far ahead (60ths of a second) the name looks at where the sky is
+// turning, to stay readable on the way.
 const AHEAD = [15, 30];
 // After a flip, the name keeps its new side at least this long (ms), so it
 // never flickers between the two.
@@ -95,10 +94,10 @@ const HOLD = 2000;
 // make it readable, even when its own side is only a little short.
 const PATIENCE = 1000;
 // The fastest the sheet turns, each 60th of a second, in tilt and sweep
-// direction
-// together: about a full tilt (45°) a second while the sky is still, so the
-// name's colours never rush; while the sky turns, faster by FOLLOW per radian
-// it turns each 60th of a second, so the name keeps pace with the world.
+// direction together: about a full tilt (45°) a second while the sky is
+// still, so the name's colours never rush; while the sky turns, faster by
+// FOLLOW per radian it turns each 60th of a second, so the name keeps pace
+// with the world.
 const FASTEST = 0.015;
 const FOLLOW = 1;
 // The sheet chooses a new target at most every DWELL ms, or every RECHOOSE

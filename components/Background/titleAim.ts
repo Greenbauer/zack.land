@@ -368,14 +368,16 @@ function survey(
 // The share of its way (`gap`) to its aim the sheet moves this frame,
 // `seconds` after the last: `ease` of the way each 60th of a second, as the
 // head eases (shareOver), and never more than `fastest` each 60th of a
-// second, so it moves as fast at any frame rate (audit B4).
+// second, so it moves as fast at any frame rate (audit B4). An ease above
+// 1 (catching up at twice the head's pace, CATCH_UP) closes as much of the
+// gap as `fastest` allows.
 export function sheetShare(
   gap: number,
   ease: number,
   fastest: number,
   seconds: number,
 ) {
-  const share = shareOver(ease, seconds);
+  const share = shareOver(Math.min(ease, 1), seconds);
   const most = fastest * Math.max(seconds, 1e-3) * 60;
   return gap * share > most ? most / gap : share;
 }

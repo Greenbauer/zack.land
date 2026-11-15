@@ -32,8 +32,8 @@ const REACH = Math.PI / 2;
 // How close to its view's home the gliding home counts as there, in radians.
 const HOME_NEAR = 0.02;
 // How closely the sky keeps to its gliding home, a share each 60th of a
-// second: the
-// head's own speed trails it by a second or more (its idle wandering's most).
+// second: the head's own speed trails it by a second or more (its idle
+// wandering's most).
 const HOMING_SPEED = 0.3;
 // How long the scene must have drawn the sky before text over it takes its
 // station's side (skyState.ts), in seconds.
@@ -96,9 +96,8 @@ const clampTurn = (value: number, low = -REACH, high = REACH) =>
   clamp(value, low, high);
 
 // Where a sky turning as `now` says will have turned `frames` 60ths of a
-// second from now, if
-// its aim keeps moving as it is: the aim drifting on (as far as its view's
-// reach, or REACH), the sky easing after it at its speed.
+// second from now, if its aim keeps moving as it is: the aim drifting on (as
+// far as its view's reach, or REACH), the sky easing after it at its speed.
 export function forecastTurn(
   now: Omit<typeof motion, 'low' | 'high'> &
     Partial<Pick<typeof motion, 'low' | 'high'>>,
