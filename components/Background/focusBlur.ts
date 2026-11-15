@@ -1,5 +1,17 @@
-import { Camera, Scene, WebGLRenderer, WebGLRenderTarget } from 'three';
-import { Pass } from 'three/addons/postprocessing/Pass.js';
+import {
+  Camera,
+  Color,
+  CustomBlending,
+  OneFactor,
+  OneMinusSrcAlphaFactor,
+  Scene,
+  ShaderMaterial,
+  UniformsUtils,
+  WebGLRenderer,
+  WebGLRenderTarget,
+} from 'three';
+import { FullScreenQuad, Pass } from 'three/addons/postprocessing/Pass.js';
+import { CopyShader } from 'three/addons/shaders/CopyShader.js';
 
 // While a field of a form marked `data-focus-blur` (the contact form) has
 // focus, or a video marked it is playing (the 404 page's, a post's video
@@ -34,9 +46,26 @@ export const menuShown = () =>
 
 // Draws the titles' layer over the frame so far, without the sky behind it,
 // with the scene and camera `world` gives as it draws (the camera can change
-// after the pass is made).
+// after the pass is made). With `samples` (quality.ts's titleSamples: where
+// the frame itself is not smoothed), the titles are drawn smoothed into a
+// target of their own, then laid over the frame: the letters' coverage at
+// their edges, cleared to nothing around them, is their alpha.
 export class TitlePass extends Pass {
   private readonly world: () => { scene: Scene; camera: Camera };
+  samples = 0;
+  private smoothed?: WebGLRenderTarget;
+  private readonly over = new FullScreenQuad(
+    new ShaderMaterial({
+      ...CopyShader,
+      uniforms: UniformsUtils.clone(CopyShader.uniforms),
+      blending: CustomBlending,
+      blendSrc: OneFactor,
+      blendDst: OneMinusSrcAlphaFactor,
+      depthTest: false,
+      depthWrite: false,
+    }),
+  );
+  private readonly clearColour = new Color();
 
   constructor(world: () => { scene: Scene; camera: Camera }) {
     super();
@@ -56,13 +85,54 @@ export class TitlePass extends Pass {
     scene.background = null;
     camera.layers.set(TITLE_LAYER);
     renderer.autoClear = false;
-    renderer.setRenderTarget(this.renderToScreen ? null : readBuffer);
-    // The blur's full-screen passes leave their own depth behind; the titles
-    // sit in front of the whole scene, so they are drawn over it regardless.
-    renderer.clearDepth();
-    renderer.render(scene, camera);
+    const out = this.renderToScreen ? null : readBuffer;
+    if (this.samples > 0) {
+      const target = this.target(readBuffer);
+      const alpha = renderer.getClearAlpha();
+      renderer.getClearColor(this.clearColour);
+      renderer.setClearColor(0x000000, 0);
+      renderer.setRenderTarget(target);
+      renderer.clear();
+      renderer.render(scene, camera);
+      renderer.setClearColor(this.clearColour, alpha);
+      renderer.setRenderTarget(out);
+      (this.over.material as ShaderMaterial).uniforms.tDiffuse!.value =
+        target.texture;
+      this.over.render(renderer);
+    } else {
+      // Smoothing dropped (the scene found it draws in software): its target
+      // goes with it.
+      this.smoothed?.dispose();
+      this.smoothed = undefined;
+      renderer.setRenderTarget(out);
+      // The blur's full-screen passes leave their own depth behind; the
+      // titles sit in front of the whole scene, so they are drawn over it
+      // regardless.
+      renderer.clearDepth();
+      renderer.render(scene, camera);
+    }
     scene.background = background;
     camera.layers.mask = layers;
     renderer.autoClear = autoClear;
+  }
+
+  // The titles' own smoothed target, the frame's size and kind.
+  private target(frame: WebGLRenderTarget) {
+    this.smoothed ??= new WebGLRenderTarget(1, 1, {
+      type: frame.texture.type,
+      samples: this.samples,
+    });
+    if (
+      this.smoothed.width !== frame.width ||
+      this.smoothed.height !== frame.height
+    )
+      this.smoothed.setSize(frame.width, frame.height);
+    return this.smoothed;
+  }
+
+  dispose() {
+    this.smoothed?.dispose();
+    this.over.material.dispose();
+    this.over.dispose();
   }
 }

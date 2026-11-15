@@ -59,7 +59,11 @@ export default function Grading() {
   // (quality.ts).
   const [size] = useState(() => get().size);
   const software = useDrawsInSoftware();
-  const { samples } = renderQuality(size.width, size.height, software);
+  const { samples, titleSamples } = renderQuality(
+    size.width,
+    size.height,
+    software,
+  );
   const [across] = useState(() => new ShaderPass(HorizontalBlurShader));
   const [down] = useState(() => new ShaderPass(VerticalBlurShader));
   const [glass] = useState(() => new GlassPass());
@@ -130,7 +134,7 @@ export default function Grading() {
     Object.assign(down.uniforms.v!, { value: spacing / size.height });
     Object.assign(across, { enabled });
     Object.assign(down, { enabled });
-    Object.assign(titles, { enabled: !menuOpen() });
+    Object.assign(titles, { enabled: !menuOpen(), samples: titleSamples });
   });
 
   // Every few frames, once the frame is drawn (priority 2, as
