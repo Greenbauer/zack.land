@@ -66,7 +66,7 @@ const posts: Content[] = [
     name: 'Passero',
     description: (
       <p>
-        <a href="http://www.travelpassero.com" target="_blank" rel="noreferrer">
+        <a href="https://www.travelpassero.com" target="_blank" rel="noreferrer">
           Passero
         </a>{' '}
         is a travel planning technology startup, with an app to help people plan
@@ -78,7 +78,7 @@ const posts: Content[] = [
     ),
     technology:
       'AWS, Serverless, DynamoDB, Node.js, React, Ant Design, Styled Components',
-    siteUrl: 'http://app.travelpassero.com',
+    siteUrl: 'https://app.travelpassero.com',
     mediaSources: [
       {
         key: '/web-apps/passero-app.jpg',
