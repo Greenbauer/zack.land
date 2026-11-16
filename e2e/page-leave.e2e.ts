@@ -26,6 +26,12 @@ test('back while the page moves out stays where back went', async ({
   await expect(page).toHaveURL(/\/$/);
   await pageIn(page);
 
+  // The page's timers held from the click to Back: the site goes on
+  // TILES_MS after the click (leaveTo.ts), and a slow CI runner can take
+  // longer than that to get from the click to Back, which then rightly
+  // returns to the home page.
+  await page.clock.install();
+  await page.clock.pauseAt(Date.now() + 1000);
   await page
     .getByRole('navigation', { name: 'Main' })
     .getByRole('link', { name: 'Contact' })
@@ -36,7 +42,8 @@ test('back while the page moves out stays where back went', async ({
   // runner's can), which no visitor's Back button does.
   await page.goBack({ waitUntil: 'commit' });
   await expect(page).toHaveURL(/\/portfolio\/web-apps$/);
-  // Well past the moment the site would have gone on (TILES_MS, leaveTo.ts).
+  // The timers run again, well past the moment the site would have gone on.
+  await page.clock.resume();
   await page.waitForTimeout(2500);
   await expect(page).toHaveURL(/\/portfolio\/web-apps$/);
   await expect(page.locator('[data-post]').first()).toBeVisible();
