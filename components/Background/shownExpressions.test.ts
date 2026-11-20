@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { CHAPTERS } from '@/components/Home/chapters';
+
 import { BOLD_LOOKS, LOOKS } from './ambientLooks';
 import { pointerExpressions } from './faceExpression';
 import { expressions } from './headFixture';
@@ -9,7 +11,6 @@ import { greetingExpressions } from './idleGreeting';
 import { neckExpressions } from './neckPose';
 import { SHOWN_EXPRESSIONS, SHOWN_SIDED } from './shownExpressions';
 import { SIDES } from './sideMorphs';
-import { CHAPTERS } from '@/components/Home/chapters';
 
 // Every expression the home page's story asks for (components/Home/chapters.ts).
 const storyFaces = CHAPTERS.flatMap(({ beats }) =>

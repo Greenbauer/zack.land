@@ -1,9 +1,9 @@
 import { facingSmile, pointerExpressions } from './faceExpression';
 import { headMood, WORRIED } from './headMood';
 import { SEARCH_FACE } from './headSearch';
-import { cueFace } from './storyCue';
 import { HeadTaps, tapExpressions, tapsOn } from './headTaps';
 import { Greeting, greetingExpressions, greetingOn } from './idleGreeting';
+import { cueFace } from './storyCue';
 
 type Point = { x: number; y: number };
 
