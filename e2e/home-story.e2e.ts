@@ -7,9 +7,9 @@ import { CHAPTERS } from '../components/Home/chapters';
 // chapter's card under it. Against a built site: `npx playwright test
 // e2e/home-story.e2e.ts`.
 
-// Every chapter in turn, about two seconds a turn: past the suite's 90
-// seconds on a runner that draws the scene in software.
-test.describe.configure({ timeout: 240_000 });
+// Every chapter in turn: on CI's runner, which draws the scene in software,
+// about 18 seconds a chapter (the walk reached 13 of 16 in four minutes).
+test.describe.configure({ timeout: 480_000 });
 
 const bubble = (page: Page) => page.locator('[data-bubble]');
 // The chapter whose card shows now.
