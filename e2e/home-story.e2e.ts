@@ -103,6 +103,19 @@ test.describe('on a wide screen', () => {
     expect(await shownChapter(page)).toBe(keyedOn);
   });
 
+  test('a key sent to the window itself turns the page without an error', async ({
+    page,
+  }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    await open(page);
+    await page.evaluate(() =>
+      dispatchEvent(new KeyboardEvent('keydown', { key: 'PageDown' })),
+    );
+    await expect(card(page, CHAPTERS[0]!.id).locator('h2')).toBeVisible();
+    expect(errors).toEqual([]);
+  });
+
   test('Chapters jumps straight to one', async ({ page }) => {
     await open(page);
     await page.keyboard.press('PageDown');
