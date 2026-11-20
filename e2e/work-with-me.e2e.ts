@@ -34,8 +34,23 @@ test('the header links to the page, which shows the offer and its price', async 
     }),
   ).toBeVisible();
   await expect(page.getByText('$7,500 fixed')).toBeVisible();
+  await expect(page.getByText('Done in two weeks.')).toBeVisible();
+  await expect(
+    page.getByText('Bigger work is quoted after the first two weeks.'),
+  ).toBeAttached();
   await expect(
     page.getByRole('heading', { name: 'The first two are free' }),
+  ).toBeAttached();
+  await expect(
+    page.getByText(
+      'The first two teams get the build free. In return, I publish a write-up of what changed, with your team named.',
+    ),
+  ).toBeAttached();
+  await expect(
+    page.getByText(
+      'Right now I lead AI agent work at a distribution company.',
+      { exact: false },
+    ),
   ).toBeAttached();
   await expect(
     page.getByRole('link', { name: 'Vibe Verifier on GitHub' }),

@@ -40,13 +40,14 @@ test.describe('the phone menu', () => {
     await expect(menu).toHaveAttribute('aria-expanded', 'true');
     await expect(page.locator('.mobile-menu.fixed')).toBeVisible();
     const stops = [];
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 4; i++) {
       await page.keyboard.press(tabKey());
       stops.push(await focusedName(page));
     }
-    expect(stops).toEqual(['Home', 'Portfolio', 'Contact']);
+    expect(stops).toEqual(['Home', 'Portfolio', 'Work with me', 'Contact']);
 
     // Portfolio turns the menu to its pages, focus on the way back.
+    await page.keyboard.press(`Shift+${tabKey()}`);
     await page.keyboard.press(`Shift+${tabKey()}`);
     await page.keyboard.press('Enter');
     await expect(page.locator('.mobile-menu a')).toHaveCount(2);

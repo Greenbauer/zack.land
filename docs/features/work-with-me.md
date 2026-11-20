@@ -12,7 +12,7 @@ The consulting page: who it is for (software teams already using AI coding agent
 
 Work with me in the header (between Portfolio and Contact, and in the phone menu) opens `/work-with-me`; the header's title reads WORK WITH ME. The offer sits on the contact page's frosted-glass card (`components/EdgeCard.tsx`), sliding in the same way, so the head moves aside for it as it does for the contact form. Under the headline are the starter (Agent-ready repo, $7,500 fixed, two weeks, four lines of what is done), "The first two are free", "Where I'm at" with a link to Vibe Verifier on GitHub, then the form: Your email and "What do you want your agents to do?". "Ask about a build" stays disabled until both are valid, then posts to `/api/email` with `kind: 'build'` and no name; the route mails it under the subject "Build Request - zack.land", names the sender by their email, and heads the answer "What they want their agents to do:". The reply replaces the button with "Sent. I'll reply by email." or shows "An error has occurred". The form is the contact form's (`components/MailForm.tsx`), so focus, errors, the blur behind it and reCAPTCHA work as there (contact.md).
 
-The page sells nothing in ERP, freight or import documents, and names neither Zack's employer nor its numbers: his offer letter bars work that competes with it. Keep any new copy to that.
+Keep any new copy to the stated offer, and leave the "Where I'm at" line general: it names no company.
 
 ## Verify
 

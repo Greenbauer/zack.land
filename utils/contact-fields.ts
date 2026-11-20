@@ -8,13 +8,6 @@ export type ContactFormData = {
   email: string;
   message: string;
 };
-
-// What the Work with me page's form sends (app/(root)/work-with-me): no
-// name, and `kind` so the route labels the mail as a build request.
-export type BuildRequestData = Pick<ContactFormData, 'email' | 'message'> & {
-  kind: 'build';
-};
-
 export const EMAIL_PATTERN = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
 export const INPUT_MAX_LENGTH = 100;
 export const TEXTAREA_MAX_LENGTH = 1000;
