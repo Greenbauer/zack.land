@@ -17,6 +17,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
           .map(({ key }) => `${SITE_URL}${key}`),
       ),
     })),
+    { url: `${SITE_URL}/work-with-me` },
     { url: `${SITE_URL}/contact` },
   ];
 }

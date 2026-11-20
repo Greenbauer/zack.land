@@ -67,6 +67,7 @@ for (const [path, title] of [
   ['/', "Zack Greenbauer's"],
   ['/portfolio/web-apps', 'Web Apps'],
   ['/portfolio/miscellaneous', 'Miscellaneous'],
+  ['/work-with-me', 'Work With Me'],
   ['/contact', 'Contact Me'],
   ['/no-such-page', '404 - Page not found'],
 ] as const)
