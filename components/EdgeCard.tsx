@@ -19,9 +19,11 @@ import { watchSize } from './viewport';
 // the post sets (components/useHeadClear.ts). On a wide screen the 3D head
 // centres itself in the space left of it (data-head-avoid,
 // components/Background/headPlace.ts).
-// `isAboveHead`: the card sits at the top of the window, over the head's
-// crown, and the head stays centred under it (data-head-avoid="above",
-// Background/HeadFraming.tsx) rather than moving away.
+// `isAboveHead`: the card lies over the head (at the top of the window, over
+// its crown; or a home-page chapter's card over its chest on a phone,
+// components/Home/ChapterPost.tsx), and the head stays centred under it
+// (data-head-avoid="above", Background/HeadFraming.tsx) rather than moving
+// away.
 // `isOffView`: the card of a post out of view (data-off-view), hidden, which
 // the head's place on the page's first load does not wait for (intro.ts).
 // `ref`: the card's own element, for a post's hooks that measure it.

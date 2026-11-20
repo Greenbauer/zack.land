@@ -35,5 +35,6 @@ export const SHOWN_EXPRESSIONS = [
 ] as const;
 
 // The expressions the page splits into left and right halves (sideMorphs.ts),
-// each a further pair of copies on the GPU: only those it drives one-sided.
-export const SHOWN_SIDED = ['browsUp', 'squint'] as const;
+// each a further pair of copies on the GPU: only those it drives one-sided
+// (blink: the home page's story ends on a wink, components/Home/chapters.ts).
+export const SHOWN_SIDED = ['browsUp', 'squint', 'blink'] as const;

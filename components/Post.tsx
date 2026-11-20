@@ -38,15 +38,15 @@ type PostProps = { content: Content; isFirst?: boolean };
 // theme/motion.json's.)
 const LEAVING =
   'pointer-events-none invisible motion-safe:[transition:translate_var(--card-leave)_var(--ease-gather),visibility_0s_var(--card-leave)] motion-reduce:[transition:visibility_0s_0.4s]';
-const CARD: Record<PostPlace, string> = {
+export const CARD: Record<PostPlace, string> = {
   current:
     'motion-safe:[transition:translate_var(--card-arrive)_var(--ease-arrive)_var(--turn-delay,var(--card-wait)),visibility_0s] motion-reduce:[transition:visibility_0s_0.7s]',
   before: `motion-safe:[translate:var(--off-window)_0] ${LEAVING}`,
   after: `motion-safe:[translate:calc(-1*var(--off-window))_0] ${LEAVING}`,
 };
-const CONTENT_IN =
+export const CONTENT_IN =
   'motion-safe:[transition:opacity_var(--card-arrive)_linear_var(--turn-delay,var(--card-wait))] motion-reduce:[transition:opacity_1.2s_ease-out_0.7s]';
-const CONTENT_OUT =
+export const CONTENT_OUT =
   'opacity-0 [transition:opacity_var(--card-leave)_linear] motion-reduce:[transition:opacity_0.4s_ease-in]';
 
 export default function Post({ content, isFirst = false }: PostProps) {

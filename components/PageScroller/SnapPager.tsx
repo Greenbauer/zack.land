@@ -5,7 +5,7 @@ import { useEffect } from 'react';
 import { isStill } from '../viewport';
 import { ARRIVAL_REGION_ID, arrive, POST_TITLE } from './arrival';
 import { PAGE_SCROLLER_ID } from './edgeFade';
-import { announceTurn, GLIDE_EVENT, postSpans } from './pageGlide';
+import { announceTurn, GLIDE_EVENT, JUMP_EVENT, postSpans } from './pageGlide';
 import {
   easeOutCubic,
   GLIDE_MS,
@@ -292,6 +292,22 @@ export default function SnapPager() {
     const onRequest = (event: Event) =>
       step((event as CustomEvent<1 | -1>).detail, true);
 
+    // Straight to a post picked from a list: at once, as a link to a place
+    // on a page goes, rather than gliding past every post between.
+    const onJump = (event: Event) => {
+      const to = (event as CustomEvent<number>).detail;
+      const span = spans()[to];
+      if (!span) return;
+      cancelAnimationFrame(frame);
+      isGliding = false;
+      announceTurn({ to });
+      scroller.style.scrollSnapType = 'none';
+      scroller.scrollTop = landing(span, 1);
+      take();
+      fitSnap();
+      arrive(scroller, to);
+    };
+
     scroller.addEventListener('scroll', remember, { passive: true });
     scroller.addEventListener('wheel', onWheel, { passive: false });
     scroller.addEventListener('touchstart', onTouchStart, { passive: true });
@@ -299,6 +315,7 @@ export default function SnapPager() {
     scroller.addEventListener('touchend', onTouchEnd);
     window.addEventListener('keydown', onKey);
     window.addEventListener(GLIDE_EVENT, onRequest);
+    window.addEventListener(JUMP_EVENT, onJump);
     return () => {
       cancelAnimationFrame(frame);
       resize.disconnect();
@@ -311,6 +328,7 @@ export default function SnapPager() {
       scroller.removeEventListener('touchend', onTouchEnd);
       window.removeEventListener('keydown', onKey);
       window.removeEventListener(GLIDE_EVENT, onRequest);
+      window.removeEventListener(JUMP_EVENT, onJump);
     };
   }, []);
 

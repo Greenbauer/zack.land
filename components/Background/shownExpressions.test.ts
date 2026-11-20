@@ -9,6 +9,12 @@ import { greetingExpressions } from './idleGreeting';
 import { neckExpressions } from './neckPose';
 import { SHOWN_EXPRESSIONS, SHOWN_SIDED } from './shownExpressions';
 import { SIDES } from './sideMorphs';
+import { CHAPTERS } from '@/components/Home/chapters';
+
+// Every expression the home page's story asks for (components/Home/chapters.ts).
+const storyFaces = CHAPTERS.flatMap(({ beats }) =>
+  beats.flatMap(({ face }) => Object.keys(face)),
+);
 
 // The expression a name drives: itself, when head.bin has it whole (the
 // mouth pulled left or right), or the one it is a half of (sideMorphs.ts).
@@ -48,6 +54,7 @@ describe('the expressions the page loads', () => {
       ...[...Object.values(LOOKS), ...Object.values(BOLD_LOOKS)].flatMap(
         (look) => Object.keys(look('Left', 'Right')).map(whole),
       ),
+      ...storyFaces.map(whole),
     ]);
     for (const name of asked) expect(SHOWN_EXPRESSIONS).toContain(name);
   });
@@ -58,6 +65,10 @@ describe('the expressions the page loads', () => {
         const base = whole(name);
         if (base !== name) expect(SHOWN_SIDED).toContain(base);
       }
+    for (const name of storyFaces) {
+      const base = whole(name);
+      if (base !== name) expect(SHOWN_SIDED).toContain(base);
+    }
     for (const name of SHOWN_SIDED) expect(SHOWN_EXPRESSIONS).toContain(name);
   });
 });
