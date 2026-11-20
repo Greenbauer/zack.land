@@ -12,6 +12,12 @@ import { CHAPTERS } from '../components/Home/chapters';
 test.describe.configure({ timeout: 240_000 });
 
 const bubble = (page: Page) => page.locator('[data-bubble]');
+// The chapter whose card shows now.
+const shownChapter = async (page: Page) => {
+  for (const { id } of CHAPTERS)
+    if (await card(page, id).locator('h2').isVisible()) return id;
+  return '';
+};
 // Where across the head is (px), as the bubble follows it (Bubble.tsx).
 const headAcross = (page: Page) =>
   bubble(page).evaluate((el) =>
@@ -62,31 +68,39 @@ test.describe('on a wide screen', () => {
   }) => {
     await open(page);
     await page.getByRole('button', { name: 'Watch my story' }).click();
-    const [first, second, third] = CHAPTERS;
+    const [first, second] = CHAPTERS;
     await expect(card(page, first!.id).locator('h2')).toBeVisible();
     // It moves on by itself after the first chapter's lines.
     await expect(card(page, second!.id).locator('h2')).toBeVisible({
       timeout: 15_000,
     });
+    // A turn of the wheel (which may turn the page itself) stops it: it
+    // stays on the chapter it lands on, past when Watch would have moved
+    // on (watch.ts watchWait: under 12 seconds a chapter).
     await page.mouse.move(640, 300);
-    await page.mouse.wheel(0, 0.5);
-    // Stopped: it stays on the chapter it was on, past when it would have
-    // moved on.
-    await page.waitForTimeout(12_000);
-    await expect(card(page, third!.id).locator('h2')).toBeHidden();
-    // Played again from the card, a key press stops it too.
-    await card(page, second!.id).getByRole('button', { name: 'Play' }).click();
-    await expect(card(page, third!.id).locator('h2')).toBeVisible({
-      timeout: 15_000,
-    });
-    // From the page itself: a key on Play or Pause (data-watch) is the
-    // story's own control, and does not stop it (watch.ts takesOver).
+    await page.mouse.wheel(0, 120);
+    await page.waitForTimeout(2000);
+    const stoppedOn = await shownChapter(page);
+    await expect(
+      card(page, stoppedOn).getByRole('button', { name: 'Play' }),
+    ).toBeVisible();
+    await page.waitForTimeout(15_000);
+    expect(await shownChapter(page)).toBe(stoppedOn);
+    // Played again from the card, it moves on; a key press from the page
+    // stops it too. (A key on Play or Pause, data-watch, is the story's own
+    // control and does not stop it: watch.ts takesOver.)
+    await card(page, stoppedOn).getByRole('button', { name: 'Play' }).click();
+    await expect
+      .poll(() => shownChapter(page), { timeout: 15_000 })
+      .not.toBe(stoppedOn);
+    const keyedOn = await shownChapter(page);
     await page.evaluate(() => (document.activeElement as HTMLElement).blur());
     await page.keyboard.press('Shift');
-    // Past when it would have turned (its 11.1 seconds on this chapter,
-    // watch.ts watchWait), with room for a slow runner.
+    await expect(
+      card(page, keyedOn).getByRole('button', { name: 'Play' }),
+    ).toBeVisible();
     await page.waitForTimeout(15_000);
-    await expect(card(page, CHAPTERS[3]!.id).locator('h2')).toBeHidden();
+    expect(await shownChapter(page)).toBe(keyedOn);
   });
 
   test('Chapters jumps straight to one', async ({ page }) => {
