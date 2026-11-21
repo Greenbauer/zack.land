@@ -37,6 +37,20 @@ const settledChapter = async (page: Page) => {
   return last;
 };
 
+// One page turn by Page Down. A press the pager did not hear (on CI's slow
+// runner, one sent before the page has hydrated, or while a card's arrival
+// still holds turns) moves nothing, so it is sent again; one that was heard
+// starts the glide at once, so it never turns twice.
+async function turn(page: Page) {
+  const top = () =>
+    page.evaluate(() => document.getElementById('page')!.scrollTop);
+  const from = await top();
+  await expect(async () => {
+    if ((await top()) === from) await page.keyboard.press('PageDown');
+    await expect.poll(top, { timeout: 3000 }).not.toBe(from);
+  }).toPass({ timeout: 30_000 });
+}
+
 // The page as it opens: the name, and the pager ready for a first turn
 // (the first card's arrival holds turns for a moment, SnapPager.tsx).
 async function open(page: Page, path = '/') {
@@ -53,7 +67,7 @@ test.describe('on a wide screen', () => {
   }) => {
     await open(page);
     for (const [k, chapter] of CHAPTERS.entries()) {
-      await page.keyboard.press('PageDown');
+      await turn(page);
       await expect(title(page, k)).toBeVisible();
       await expect(title(page, k)).toHaveText(chapter.content.name);
       if (chapter.content.mediaSources?.length)
@@ -87,9 +101,9 @@ test.describe('on a wide screen', () => {
   }) => {
     const k = CHAPTERS.findIndex((c) => c.id === 'banner-eyewear');
     await open(page);
-    for (let turn = 0; turn <= k; turn++) {
-      await page.keyboard.press('PageDown');
-      await expect(title(page, turn)).toBeVisible();
+    for (let n = 0; n <= k; n++) {
+      await turn(page);
+      await expect(title(page, n)).toBeVisible();
       await page.waitForTimeout(1500);
     }
     const card = await post(page, k).locator('section').innerText();
@@ -97,7 +111,7 @@ test.describe('on a wide screen', () => {
 
     // On Web Apps it is the second post: turned to, so its card shows.
     await open(page, '/portfolio/web-apps');
-    await page.keyboard.press('PageDown');
+    await turn(page);
     const there = page.locator('[data-post]').nth(1);
     await expect(there.locator('section h2')).toHaveText('Banner Eyewear');
     await expect(there.locator('section h2')).toBeVisible();
@@ -163,7 +177,7 @@ test.describe('on a tall laptop window', () => {
 
   test("the lounge chair's photos still sit side by side", async ({ page }) => {
     await open(page, '/portfolio/miscellaneous');
-    await page.keyboard.press('PageDown');
+    await turn(page);
     const chair = page.locator('[data-post]').nth(1);
     await expect(chair.locator('section h2')).toHaveText(
       'Parametric Lounge Chair',
@@ -186,7 +200,7 @@ test.describe('on a phone', () => {
     page,
   }) => {
     await open(page);
-    await page.keyboard.press('PageDown');
+    await turn(page);
     await expect(title(page, 0)).toBeVisible();
     const tile = await post(page, 0)
       .locator('.collage-tile')
@@ -209,7 +223,7 @@ test.describe('with reduced motion', () => {
     await expect(
       page.getByRole('button', { name: 'Watch my story' }),
     ).toHaveCount(0);
-    await page.keyboard.press('PageDown');
+    await turn(page);
     await expect(title(page, 0)).toBeVisible();
     await page.waitForTimeout(15_000);
     await expect(title(page, 0)).toBeVisible();
