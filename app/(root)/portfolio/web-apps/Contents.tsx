@@ -64,7 +64,6 @@ const posts: Content[] = [
     name: 'Passero',
     description: (
       <p>
-        Then startups.{' '}
         <a
           href="https://www.travelpassero.com"
           target="_blank"

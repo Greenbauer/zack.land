@@ -30,9 +30,11 @@ import { propTarget } from './storyProp';
 // that pop up around it, and a paper plane that flies past. Each eases in
 // as its chapter arrives (propTarget, storyProp.ts) and out as it goes;
 // with reduced motion none shows. The sunglasses and the wireframe turn
-// with the head (turnHead), as its eyes do. What it has drawn is named on
-// the page as data-story-prop on <html> (space-separated, empty for none):
-// a prop well in, and the bang once it has gone off in this chapter.
+// with the head (turnHead), as its eyes do. What it shows is named on the
+// page as data-story-prop on <html> (space-separated, empty for none): a 3D
+// prop once it is well in, and the bang once its moment has come in this
+// chapter (the flash itself is the page's, components/Home/StoryFlash.tsx,
+// timed by the same propTarget).
 
 const skinShader: Material['onBeforeCompile'] = (shader) => {
   turnHead(shader);
