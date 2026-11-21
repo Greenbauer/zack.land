@@ -22,14 +22,16 @@ const shownChapter = async (page: Page) => {
     if (await title(page, k).isVisible()) return k;
   return -1;
 };
-// The chapter the page settles on: the same one twice, three seconds apart
-// (a turn under way, slow on CI's software renderer, finishes first).
+// The chapter the page settles on: the same one three times running, three
+// seconds apart (a turn under way, slow on CI's software renderer, and
+// slower still in WebKit there, finishes first).
 const settledChapter = async (page: Page) => {
   let last = await shownChapter(page);
-  for (let k = 0; k < 8; k++) {
+  let same = 1;
+  for (let k = 0; k < 12 && same < 3; k++) {
     await page.waitForTimeout(3000);
     const now = await shownChapter(page);
-    if (now === last) return now;
+    same = now === last ? same + 1 : 1;
     last = now;
   }
   return last;
@@ -137,7 +139,12 @@ test.describe('on a wide screen', () => {
     page,
   }) => {
     const errors: string[] = [];
-    page.on('pageerror', (error) => errors.push(error.message));
+    page.on('pageerror', (error) => {
+      // WebKit reports a ResizeObserver that had more to say next frame as
+      // an error; it is a notice, not a fault.
+      if (!error.message.startsWith('ResizeObserver loop'))
+        errors.push(error.message);
+    });
     await open(page);
     await page.evaluate(() =>
       dispatchEvent(new KeyboardEvent('keydown', { key: 'PageDown' })),

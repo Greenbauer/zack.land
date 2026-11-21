@@ -22,7 +22,7 @@ import { turnHead } from './headTurn';
 import { fadeNeck } from './neckFade';
 import { isStill } from './stillScene';
 import { StoryCue, StoryProp } from './storyCue';
-import { propTarget } from './storyProp';
+import { PROP_DELAY, propTarget } from './storyProp';
 
 // What a chapter of the home page's story brings into the scene around the
 // head (components/Home/chapters.ts, through headMood.cue): sunglasses that
@@ -203,7 +203,11 @@ export default function StoryProps({
       amount.current[prop] = was + (target - was) * Math.min(1, rate * delta);
     }
     const { sunglasses: glasses, wireframe, agents, plane } = amount.current;
-    if (amount.current.bang > 0.05) banged.current = cue;
+    // The bang's moment is told by the clock, not by a frame that caught its
+    // flash: at a frame a second (a browser drawing in software) a frame
+    // can miss it.
+    if (!still && cue?.prop === 'bang' && now >= cue.since + PROP_DELAY.bang)
+      banged.current = cue;
     const drawn: StoryProp[] = (
       ['sunglasses', 'plane', 'agents', 'wireframe'] as const
     ).filter((prop) => amount.current[prop] > 0.5);
