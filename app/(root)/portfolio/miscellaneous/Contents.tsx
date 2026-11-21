@@ -5,14 +5,17 @@ const posts: Content[] = [
     name: 'Smart Bed',
     description: (
       <p>
-        I like building things you can touch, too. I designed and built this
-        king-size smart bed from plywood with walnut veneer. It floats: its base
-        is hidden and it mounts to the wall, and it breaks down into ten pieces,
-        each light enough for one person to carry. Load cells tell it when
-        someone is in bed and on which side, and it sets its LED strips by the
-        time of day and whether you&rsquo;re asleep. Buttons by the built-in
-        nightstands work the lights too, and its API ties into the rest of my
-        home automation.
+        I like building things you can touch, too, not just software. I designed
+        and built this king-size smart bed myself, mostly from plywood with
+        walnut veneer added on. I went with a modern floating design: its base
+        is hidden and it mounts to the wall. I made it modular, too: it breaks
+        down into ten pieces, each light enough for just one person to carry. It
+        uses load cells to tell when someone is in bed, and on which side
+        they&rsquo;re lying. Depending on the time of day, and whether
+        you&rsquo;re asleep, it sets several LED strips to a certain color, and
+        buttons built in next to the nightstands control the LED strips by hand
+        too. It also has its own API, which ties into my home automation system
+        to run other automations throughout the rest of the house.
       </p>
     ),
     technology:
@@ -87,14 +90,16 @@ const posts: Content[] = [
         <a href="https://www.perfsealers.com" target="_blank" rel="noreferrer">
           Perf Sealers
         </a>
-        , I designed, programmed and built a robot that sorts plastic balls by
-        buoyancy. It weighs each ball and works out whether it will float, sink
-        or stay neutral in a given fluid: one ball about every 3 seconds,
-        accurate to a fraction of a gram, from 0.625&rdquo; to 1.25&rdquo;
-        across. An Arduino Mega turns a central motor 45 degrees at a time, and
-        it&rsquo;s built mostly from laser-cut acrylic and 3D-printed ABS. Six
-        months after I built it, it had sorted thousands of balls and was still
-        working beautifully.
+        , I designed, programmed and built a custom robot that sorts plastic
+        balls by buoyancy. It weighs each ball, then works out whether it will
+        float, sink or stay neutral in a given fluid. It weighs one ball about
+        every 3 seconds or so, accurate to a fraction of a gram, and it can
+        handle different ball sizes as well, from 0.625&rdquo; to 1.25&rdquo;
+        across. An Arduino Mega controls a single central motor that turns 45
+        degrees at a time, and I built it mostly from laser-cut acrylic and
+        3D-printed ABS plastic. Six months after I built it, it had already
+        sorted thousands of balls and was still working beautifully, day in and
+        day out.
       </p>
     ),
     technology:

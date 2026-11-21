@@ -6,9 +6,10 @@ const posts: Content[] = [
     coded: 'vibe',
     description: (
       <p>
-        This website, the one you&rsquo;re on, is where I show what I can make
-        and try new ideas. I built it with AI coding agents. Wait. That&rsquo;s
-        me. I built this head too, and every face it makes.
+        This website, the one you&rsquo;re on right now, is where I show what I
+        can make and try out all kinds of new ideas. I built it with the help of
+        AI coding agents. Wait. That&rsquo;s me. I built this head too, and
+        every face it makes.
       </p>
     ),
     technology:
@@ -21,16 +22,17 @@ const posts: Content[] = [
     description: (
       <p>
         Banner Eyewear was my first coding project, and the one that made me
-        switch to software. I built it so people could design and buy their own
-        3D-printed sunglasses: type some text and watch it wrap around the arms
-        of a realistic 3D pair, then pick the font, the ear tip icons and the
-        colors.{' '}
+        switch to software. I built it so people could design and buy their very
+        own custom 3D-printed sunglasses: type some text and watch it wrap
+        around the arms of a realistic 3D pair, true to the real product, then
+        pick the font, the ear tip icons and the colors.{' '}
         <a href="https://www.shapeways.com" target="_blank" rel="noreferrer">
           Shapeways
         </a>
         , one of the world&rsquo;s largest 3D printing companies, featured it on
-        its website. The WordPress shop has closed, but the designer still lives
-        on as a static site on AWS, so you can still try the designer.
+        its website. The WordPress shop has since closed, but the designer still
+        lives on as a static site on AWS, so you can still go and try it
+        yourself.
       </p>
     ),
     technology: 'AWS, Serverless, jQuery, PHP, three.js, WordPress',
