@@ -14,6 +14,7 @@ const pages = [
     path: '/portfolio/miscellaneous',
     title: 'Miscellaneous - Zack Greenbauer',
   },
+  { path: '/work-with-me', title: 'Work With Me - Zack Greenbauer' },
   { path: '/contact', title: 'Contact - Zack Greenbauer' },
 ];
 

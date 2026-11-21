@@ -26,11 +26,13 @@ const routes: Route[] = [
       { label: 'Miscellaneous', path: '/portfolio/miscellaneous' },
     ],
   },
+  { label: 'Work with me', path: '/work-with-me' },
   { label: 'Contact', path: '/contact' },
 ];
 
 // The title the header shows on each page that has one.
 const TITLES: Record<string, string> = {
+  '/work-with-me': 'Work With Me',
   '/contact': 'Contact Me',
   '/portfolio/web-apps': 'Web Apps',
   '/portfolio/miscellaneous': 'Miscellaneous',

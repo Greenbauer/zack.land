@@ -34,20 +34,28 @@ const isText = (value: unknown, maxLength: number): value is string =>
   value.trim().length > 0 &&
   value.length <= maxLength;
 
+type Submission = ContactFormData & {
+  isBuild: boolean;
+  recaptchaToken?: string;
+};
+
 // The browser checks these fields too (components/FormFields.tsx), but the
-// route is public, so it re-checks them before anything is mailed.
+// route is public, so it re-checks them before anything is mailed. A build
+// request from the Work with me page (`kind: 'build'`) has no name field, so
+// its sender is named by their email.
 async function readSubmission(
   request: Request,
-): Promise<(ContactFormData & { recaptchaToken?: string }) | undefined> {
+): Promise<Submission | undefined> {
   const body: unknown = await request.json().catch(() => undefined);
   if (typeof body !== 'object' || body === null) return undefined;
 
-  const { name, email, message, recaptchaToken } = body as Record<
+  const { kind, name, email, message, recaptchaToken } = body as Record<
     string,
     unknown
   >;
+  const isBuild = kind === 'build';
   if (
-    !isText(name, INPUT_MAX_LENGTH) ||
+    (!isBuild && !isText(name, INPUT_MAX_LENGTH)) ||
     !isText(email, INPUT_MAX_LENGTH) ||
     !EMAIL_PATTERN.test(email) ||
     !isText(message, TEXTAREA_MAX_LENGTH)
@@ -56,9 +64,10 @@ async function readSubmission(
   }
 
   return {
-    name,
+    name: isBuild ? email : (name as string),
     email,
     message,
+    isBuild,
     recaptchaToken:
       typeof recaptchaToken === 'string' ? recaptchaToken : undefined,
   };
@@ -99,7 +108,7 @@ export async function POST(request: Request): Promise<Response> {
       400,
     );
   }
-  const { name, email, message, recaptchaToken } = submission;
+  const { name, email, message, isBuild, recaptchaToken } = submission;
 
   // Spam gate: skipped where RECAPTCHA_SECRET_KEY is not set, except on the
   // live site, which then refuses (see utils/recaptcha).
@@ -123,13 +132,15 @@ export async function POST(request: Request): Promise<Response> {
       },
       to: `zack.land <${process.env.TO_EMAIL}>`,
       replyTo: { name, address: email },
-      subject: 'New Message - zack.land',
+      subject: isBuild
+        ? 'Build Request - zack.land'
+        : 'New Message - zack.land',
       html: `
       <html>
         <body>
           <small> From: <b>${escapeHtml(name)}</b> &lt;${escapeHtml(email)}&gt; </small>
           <br />
-          <h2> Message: </h2>
+          <h2> ${isBuild ? 'The task they want off their plate:' : 'Message:'} </h2>
           <p> ${escapeHtml(message)} </p>
         </body>
       </html>
