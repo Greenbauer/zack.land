@@ -30,11 +30,14 @@ test('back while the page moves out stays where back went', async ({
   // TILES_MS after the click (leaveTo.ts), and a slow CI runner can take
   // longer than that to get from the click to Back, which then rightly
   // returns to the home page.
-  // A second on from the page's own clock, read after installing it: from
-  // the test's clock, a slow install on a busy CI runner left the time to
-  // pause at in the past ("Cannot fast-forward to the past").
+  // Paused 30 seconds on from the page's own clock, read after installing
+  // it. The margin is wide because on a CI runner drawing WebGL in software
+  // the page's main thread can stall for seconds between reading the time
+  // and pausing, and a 1-second margin was then already in the past
+  // ("Cannot fast-forward to the past"). Fast-forwarding only fires the home
+  // page's idle timers, all before the click this test is about.
   await page.clock.install();
-  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 1000));
+  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 30_000));
   await page
     .getByRole('navigation', { name: 'Main' })
     .getByRole('link', { name: 'Contact' })
