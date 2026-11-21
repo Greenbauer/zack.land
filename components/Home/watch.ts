@@ -19,6 +19,21 @@ export function watchWait(
   return LEAD_SECONDS + dwellSeconds(chapters[index]!);
 }
 
+// How long from `now` until Watch turns the page on story index `index`,
+// whose lines started at `since` (seconds): what is left of its wait, so
+// Play pressed on a chapter already read moves on soon (at least a second
+// on), not after its whole wait again. Null on the last chapter.
+export function watchDelay(
+  index: number,
+  since: number,
+  now: number,
+  chapters: readonly Pick<Chapter, 'lines'>[] = CHAPTERS,
+): number | null {
+  const wait = watchWait(index, chapters);
+  if (wait === null || index < 0) return wait;
+  return Math.max(1, since - LEAD_SECONDS + wait - now);
+}
+
 // Whether an input someone made stops Watch: anything outside the story's
 // own controls (data-watch), which start, pause and step it themselves.
 export const takesOver = (target: EventTarget | null) =>

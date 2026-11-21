@@ -15,7 +15,7 @@ import StoryControls from './StoryControls';
 import { StoryContext } from './storyState';
 import Title from './Title';
 import TitleBox from './TitleBox';
-import { takesOver, watchWait } from './watch';
+import { takesOver, watchDelay, watchWait } from './watch';
 
 const INPUTS = ['wheel', 'keydown', 'touchstart', 'pointerdown'] as const;
 
@@ -41,13 +41,13 @@ export default function Story() {
   );
 
   // Watch turns the page after each chapter's lines, and stops at the end.
-  const wait = watchWait(index);
-  const isPlaying = isWatching && wait !== null;
+  const isPlaying = isWatching && watchWait(index) !== null;
   useEffect(() => {
-    if (!isPlaying || wait === null) return;
-    const timer = setTimeout(() => requestGlide(1), wait * 1000);
+    if (!isPlaying) return;
+    const delay = watchDelay(index, since, performance.now() / 1000) ?? 0;
+    const timer = setTimeout(() => requestGlide(1), delay * 1000);
     return () => clearTimeout(timer);
-  }, [isPlaying, wait, since]);
+  }, [isPlaying, index, since]);
 
   // Any wheel, key, touch or press of someone's own stops it.
   useEffect(() => {

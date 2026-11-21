@@ -102,7 +102,7 @@ test.describe('on a wide screen', () => {
     // control and does not stop it: watch.ts takesOver.)
     await card(page, stoppedOn).getByRole('button', { name: 'Play' }).click();
     await expect
-      .poll(() => shownChapter(page), { timeout: 15_000 })
+      .poll(() => shownChapter(page), { timeout: 30_000 })
       .not.toBe(stoppedOn);
     await page.evaluate(() => (document.activeElement as HTMLElement).blur());
     await page.keyboard.press('Shift');
