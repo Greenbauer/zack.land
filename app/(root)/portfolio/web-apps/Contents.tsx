@@ -7,9 +7,9 @@ const posts: Content[] = [
     description: (
       <p>
         This website, the one you&rsquo;re on right now, is where I show what I
-        can make and try out all kinds of new ideas. I built it with the help of
-        AI coding agents. Wait. That&rsquo;s me. I built this head too, and
-        every face it makes.
+        can make and test new ideas on real visitors. Hi. I built it with AI
+        coding agents. Wait. That&rsquo;s me. I built this head too, and every
+        face it makes.
       </p>
     ),
     technology:
@@ -21,18 +21,18 @@ const posts: Content[] = [
     coded: 'hand',
     description: (
       <p>
-        Banner Eyewear was my first coding project, and the one that made me
-        switch to software. I built it so people could design and buy their very
-        own custom 3D-printed sunglasses: type some text and watch it wrap
-        around the arms of a realistic 3D pair, true to the real product, then
-        pick the font, the ear tip icons and the colors.{' '}
+        Banner Eyewear was my first coding project, and it&rsquo;s the reason I
+        switched to software. I built it so people could design and buy their
+        own 3D-printed sunglasses: type any text, like your name, and watch it
+        wrap around the arms of a realistic 3D pair, just like the real thing,
+        then pick the font, the ear tip icons and the colors.{' '}
         <a href="https://www.shapeways.com" target="_blank" rel="noreferrer">
           Shapeways
         </a>
         , one of the world&rsquo;s largest 3D printing companies, featured it on
         its website. The WordPress shop has since closed, but the designer still
-        lives on as a static site on AWS, so you can still go and try it
-        yourself.
+        runs on AWS, so you can still try it. I still have my own pair. They
+        suit me, I think.
       </p>
     ),
     technology: 'AWS, Serverless, jQuery, PHP, three.js, WordPress',
@@ -76,8 +76,9 @@ const posts: Content[] = [
         is a travel planning startup, with an app that helps families and
         friends plan a trip together. I was one of its first engineers, full
         time for a little over a year, building new full-stack features, and I
-        even helped design its logo during a rebranding. They sent me to Spain
-        to show it at its industry debut. I still help part-time.
+        even helped design its logo during a rebranding. Then they sent me to
+        Spain to show it off at its industry debut. Not a bad commute. I still
+        help part-time.
       </p>
     ),
     technology:

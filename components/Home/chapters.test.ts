@@ -51,7 +51,7 @@ describe("the home page's story", () => {
       'I liked the bugs more than the pipes.',
     );
     expect(text(chapter('banner-eyewear'))).toContain(
-      'my first coding project, and the one that made me switch to software',
+      'my first coding project, and it’s the reason I switched to software',
     );
   });
 

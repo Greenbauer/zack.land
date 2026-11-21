@@ -5,17 +5,18 @@ const posts: Content[] = [
     name: 'Smart Bed',
     description: (
       <p>
-        I like building things you can touch, too, not just software. I designed
-        and built this king-size smart bed myself, mostly from plywood with
-        walnut veneer added on. I went with a modern floating design: its base
-        is hidden and it mounts to the wall. I made it modular, too: it breaks
-        down into ten pieces, each light enough for just one person to carry. It
-        uses load cells to tell when someone is in bed, and on which side
-        they&rsquo;re lying. Depending on the time of day, and whether
-        you&rsquo;re asleep, it sets several LED strips to a certain color, and
-        buttons built in next to the nightstands control the LED strips by hand
-        too. It also has its own API, which ties into my home automation system
-        to run other automations throughout the rest of the house.
+        I like building things you can touch, too. This king-size smart bed is
+        plywood with walnut veneer, and its base is hidden, so it seems to float
+        off the wall it mounts to. It breaks down into ten pieces, each light
+        enough for one person to carry, so moving day is not a crisis. Its
+        brains are on their fifth circuit board, which I designed myself. The
+        first four taught me a lot. Load cells tell it when someone is in bed
+        and on which side, and it sets its LED strips by the time of day and
+        whether you&rsquo;re asleep. Buttons by the built-in nightstands work
+        the lights too, for when you want to be in charge. It even has its own
+        API, tied into my home automation, so the bed can talk to the rest of
+        the house. How well does it sleep? No idea. I don&rsquo;t lie down. I
+        don&rsquo;t even have a back.
       </p>
     ),
     technology:
@@ -56,11 +57,11 @@ const posts: Content[] = [
     name: 'Parametric Lounge Chair',
     description: (
       <p>
-        I designed and built this flat-pack parametric lounge chair. I sculpted
-        it from CNC-cut pieces of high-grade veneer-core plywood that interlock
-        into one strong, good-looking shape, then finished the whole thing in a
-        polished varnish. Its curve is worked out mathematically to be very
-        comfortable. I&rsquo;d sit in it, but I&rsquo;m just a head.
+        This flat-pack parametric lounge chair is CNC-cut pieces of high-grade
+        veneer-core plywood that slot together into one strong, good-looking
+        shape, finished in a polished varnish. I designed its curve with math,
+        so it&rsquo;s comfortable on purpose, not by luck, and assembled every
+        piece myself. I&rsquo;d sit in it, but I&rsquo;m just a head.
       </p>
     ),
     technology:
@@ -90,16 +91,16 @@ const posts: Content[] = [
         <a href="https://www.perfsealers.com" target="_blank" rel="noreferrer">
           Perf Sealers
         </a>
-        , I designed, programmed and built a custom robot that sorts plastic
-        balls by buoyancy. It weighs each ball, then works out whether it will
-        float, sink or stay neutral in a given fluid. It weighs one ball about
-        every 3 seconds or so, accurate to a fraction of a gram, and it can
-        handle different ball sizes as well, from 0.625&rdquo; to 1.25&rdquo;
-        across. An Arduino Mega controls a single central motor that turns 45
-        degrees at a time, and I built it mostly from laser-cut acrylic and
-        3D-printed ABS plastic. Six months after I built it, it had already
-        sorted thousands of balls and was still working beautifully, day in and
-        day out.
+        , I designed, programmed and built a robot that sorts plastic balls by
+        buoyancy: whether each will float, sink or hover in a given fluid. It
+        weighs every ball to a fraction of a gram, works out where it belongs,
+        and moves on to the next about every 3 seconds. It takes balls of
+        different sizes, from 0.625&rdquo; to 1.25&rdquo; across. An Arduino
+        Mega runs one central motor that turns 45 degrees at a time. I drew it
+        up in SolidWorks and AutoCAD, and the body is laser-cut acrylic and
+        3D-printed ABS plastic. Six months after I built it, it had sorted
+        thousands of balls and was still going strong. Most patient coworker
+        I&rsquo;ve ever had.
       </p>
     ),
     technology:

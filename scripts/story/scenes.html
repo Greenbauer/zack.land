@@ -92,11 +92,19 @@ const SCENES = {
     flame.rotation.z = Math.PI / 2;
     flame.position.x = -2.8;
     const ring = mesh(new THREE.TorusGeometry(1, 0.06, 8, 64), glow('#ffd27a', 1));
+    // Its puffs: a pulse jet goes putt-putt-putt, a smoke ball each beat,
+    // drifting back off the tail pipe as it grows and fades.
+    const PUFFS = 10;
+    const puffs = Array.from({ length: PUFFS }, () =>
+      mesh(new THREE.SphereGeometry(0.5, 20, 14), new THREE.MeshStandardMaterial({ color: '#f6eef2', roughness: 1, transparent: true, depthWrite: false })),
+    );
     const light = new THREE.PointLight('#ffd27a', 0, 30);
     scene.add(light);
     return (t) => {
       const u = loopT(t);
-      plane.rotation.set(0.05, 0.25, Math.sin((u / LOOP) * TAU) * 0.12);
+      // The bang shakes the whole plane for a moment.
+      const shake = u > 3 && u < 3.6 ? (3.6 - u) * 0.25 : 0;
+      plane.rotation.set(0.05 + Math.sin(u * 90) * shake * 0.3, 0.25, Math.sin((u / LOOP) * TAU) * 0.12 + Math.sin(u * 70) * shake);
       plane.position.y = Math.sin((u / LOOP) * TAU * 2) * 0.15;
       const pulse = 0.5 + 0.5 * Math.sin(u * TAU * 7);
       flame.scale.set(0.6 + pulse * 0.9, 0.7 + pulse * 0.6, 0.7 + pulse * 0.6);
@@ -112,6 +120,18 @@ const SCENES = {
       ring.material.opacity = Math.max(0, 1 - bang);
       light.position.copy(tail);
       light.intensity = bang >= 0 ? 400 * (1 - bang) : 0;
+      // A puff every 0.3 seconds; each lives 3 seconds. Wrapping the loop's
+      // time keeps the puffs seamless from its end back to its start.
+      puffs.forEach((puff, k) => {
+        const age = (u - (k * LOOP) / 2 / PUFFS + LOOP * 2) % (LOOP / 2);
+        const life = age / 3;
+        puff.visible = life < 1;
+        const at = new THREE.Vector3(-3.3 - life * 5, life * 0.6, Math.sin(k * 1.9) * life * 0.8);
+        jet.localToWorld(at);
+        puff.position.copy(at);
+        puff.scale.setScalar(0.35 + life * 1.6);
+        puff.material.opacity = 0.75 * (1 - life) ** 1.5;
+      });
       orbit(t, 13, 2.8, new THREE.Vector3(-0.6, 0.5, 0), -0.75, 0.4);
     };
   },
@@ -273,7 +293,7 @@ const SCENES = {
         p.rotation.set(k + u * (inBottle ? 0 : 3), k * 2, u * (inBottle ? 0 : 2));
       });
       bottle.rotation.y = u * 0.2;
-      orbit(t, 13, 3.5, new THREE.Vector3(0, 0, 0), 0.4, 0.5);
+      orbit(t, 15.5, 2.6, new THREE.Vector3(0, 0.9, 0), 0.4, 0.5);
     };
   },
 

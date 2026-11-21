@@ -22,17 +22,17 @@ export const TEXAS_TECH: Content = {
   name: 'Texas Tech',
   description: (
     <p>
-      I started out as a mechanical engineer. I studied mechanical engineering
-      at Texas Tech, with a minor in math, from 2007 to 2011. For my senior
-      project I designed and tested a pulse jet engine for a model plane. It was
-      very loud.
+      Hi, I&rsquo;m Zack. Well, the head part. I started out in mechanical
+      engineering at Texas Tech, with a minor in math, from 2007 to 2011. For my
+      senior project I designed and tested a pulse jet engine for a model plane.
+      It was very loud.
     </p>
   ),
   technology: 'Mechanical Engineering, Mathematics',
   mediaSources: [
     loop(
       'texas-tech',
-      'A model plane with a pulse jet engine, which goes bang',
+      'A model plane whose pulse jet engine puffs smoke, then goes bang',
     ),
   ],
 };
@@ -41,8 +41,8 @@ export const PIPE_ENGINEER: Content = {
   name: 'Pipe Engineer',
   description: (
     <p>
-      Then I spent four years in Houston making sure big industrial pipes could
-      take the heat and the pressure, to ASME standards. I also tested the
+      Then I spent four years in Houston making sure huge industrial pipes could
+      take the heat and the pressure without bursting. I also tested the
       stress-analysis software we used, and I kept finding bugs in it: 10 to 15
       in every release. I liked the bugs more than the pipes.
     </p>
@@ -60,10 +60,10 @@ export const FREELANCE: Content = {
   name: 'Freelance Web Developer',
   description: (
     <p>
-      So I started building websites on the side, from 2015 to 2018: Shopify,
-      Magento and WooCommerce shops for clients, designed mobile first, plus
-      React apps and APIs on AWS. Together those shops sold more than $250K a
-      year.
+      So I started building websites on the side, from 2015 to 2018: online
+      shops on Shopify, Magento and WooCommerce, built for phones first, plus
+      React apps and APIs on AWS. Together my clients&rsquo; shops sold over
+      $250K a year. Their money, sadly, not mine.
     </p>
   ),
   technology: 'Shopify, Magento, WooCommerce, React, Redux, AWS',
@@ -80,10 +80,11 @@ export const USAA: Content = {
   description: (
     <p>
       Then I joined USAA, from 2018 to 2022, first as a software engineer and
-      then as a senior. I built a release-management tool that saved thousands
-      of hours of repetitive work, then consumer-lending apps in React. I led
-      the front end of tricky integrations like single sign-on, and I mentored
-      five engineers.
+      then as a senior (the job, not the age). The best thing I built there was
+      a release tool that took thousands of hours of repetitive work off
+      people&rsquo;s plates. Still my favorite kind of work. After that I built
+      lending apps in React, led the front end of the work that let people sign
+      in once across apps, and mentored five engineers.
     </p>
   ),
   technology:
@@ -100,8 +101,8 @@ export const GULP: Content = {
   name: 'Gulp',
   description: (
     <p>
-      At the same time, from 2023 to 2024, I was one of the first engineers at
-      Gulp, a personalized-vitamin shop. I built and launched it with Next.js,
+      Meanwhile, from 2023 to 2024, I was one of the first engineers at Gulp, a
+      personalized-vitamin shop. I built and launched it with Next.js,
       TypeScript, Stripe and Auth0, and 2,000 people signed up in its first
       three months. Gulp.
     </p>
@@ -117,8 +118,9 @@ export const TODAY: Content = {
   description: (
     <p>
       Today I lead AI agent work at a distribution company. I direct AI coding
-      agents, programs that write much of our code, and I build the tests,
-      reviews and checks that keep their work honest.
+      agents, programs that write code, and I build the tests, reviews and
+      checks that keep their work honest. It&rsquo;s like managing a team that
+      never sleeps and sometimes makes things up.
     </p>
   ),
   technology: 'Claude Code, Codex, TypeScript, CI/CD',
@@ -132,8 +134,8 @@ export const VIBE_VERIFIER: Content = {
   description: (
     <p>
       Agents are fast, but they&rsquo;re not always right. So on the side I
-      built Vibe Verifier, a tool with evals and CI guardrails that checks the
-      pull requests AI agents write before a person reviews them.
+      built Vibe Verifier, an open-source tool that tests the code AI agents
+      write before a person reviews it. Trust, but verify. Mostly verify.
     </p>
   ),
   technology: 'GitHub Actions, CI/CD, Evals',
@@ -151,8 +153,8 @@ export const IMPROV: Content = {
   description: (
     <p>
       In the evenings I&rsquo;m a cast member of House Party Improv in San
-      Antonio: listening, teamwork and working together under pressure. Which
-      might explain this face.
+      Antonio. Improv taught me to listen, say &ldquo;yes, and&rdquo; and keep
+      going when nothing goes to plan. Which might explain this face.
     </p>
   ),
   mediaSources: [
@@ -167,8 +169,9 @@ export const WHATS_NEXT: Content = {
   name: "What's Next",
   description: (
     <p>
-      What&rsquo;s next? I help software teams get real work out of AI coding
-      agents. Let&rsquo;s work together.
+      What&rsquo;s next? I build AI tools that take one repetitive task off a
+      small team&rsquo;s plate, and I help software teams get real work out of
+      AI coding agents. Let&rsquo;s talk. I&rsquo;ll bring the head.
     </p>
   ),
   action: { href: '/work-with-me', label: 'Work with me' },
