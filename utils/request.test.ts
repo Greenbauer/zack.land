@@ -19,16 +19,19 @@ describe('post', () => {
     });
   });
 
-  it('returns nothing and logs nothing when the server refuses', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => Response.json({ error: 'nope' }, { status: 500 })),
-    );
-    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+  it.each([400, 500])(
+    'returns nothing and logs nothing when the server refuses with %i',
+    async (status) => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => Response.json({ error: 'nope' }, { status })),
+      );
+      const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    expect(await post('/api/email', { a: 1 })).toBeUndefined();
-    expect(logged).not.toHaveBeenCalled();
-  });
+      expect(await post('/api/email', { a: 1 })).toBeUndefined();
+      expect(logged).not.toHaveBeenCalled();
+    },
+  );
 
   it('returns nothing and logs the error when no answer comes', async () => {
     vi.stubGlobal(

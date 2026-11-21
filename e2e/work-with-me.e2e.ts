@@ -34,13 +34,26 @@ test('the header links to the page, which shows the offer and its price', async 
     }),
   ).toBeVisible();
   await expect(
-    page.getByText('You approve everything before it goes out.', {
-      exact: false,
-    }),
+    page.getByText(
+      'Done for you, checked by a person, and kept running. You approve everything before it goes out.',
+    ),
   ).toBeVisible();
-  // Both starters, each with its setup fee and monthly fee.
-  for (const name of ['Same-day quotes', 'Stop retyping the same information'])
-    await expect(page.getByRole('heading', { name })).toBeAttached();
+  // Both starters, quotes first, each with its pitch, setup fee and monthly
+  // fee.
+  await expect(page.locator('article h3')).toContainText([
+    'Same-day quotes',
+    'Stop retyping the same information',
+  ]);
+  await expect(
+    page.getByText(
+      'Send a recording or notes from the site walk. A drafted quote comes back for you to check and send.',
+    ),
+  ).toBeAttached();
+  await expect(
+    page.getByText(
+      'Details from forms, PDFs and emails get entered into your software once, instead of typed into the calendar, the estimate and the invoice.',
+    ),
+  ).toBeAttached();
   await expect(page.getByText('$3,500 setup')).toHaveCount(2);
   await expect(
     page.getByText('Then $500 a month to keep it running. Ready in two weeks.'),

@@ -56,7 +56,7 @@ Roles: none; the page is public. Mail: the QAE container points the five SMTP va
 - `app/api/email/route.test.ts::refuses a submission on the live site while reCAPTCHA has no secret`
 - `utils/recaptcha.test.ts::rejects a low score`
 - `utils/recaptcha.test.ts::rejects an action mismatch`
-- `utils/request.test.ts::returns nothing and logs nothing when the server refuses`
+- `utils/request.test.ts::returns nothing and logs nothing when the server refuses with %i`
 - `utils/request.test.ts::returns nothing and logs the error when no answer comes`
 - `utils/recaptcha-client.test.ts::adds no script until the form is used`
 - `utils/recaptcha-client.test.ts::gives a submit a token once the script has loaded`
