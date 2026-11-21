@@ -3,8 +3,8 @@
 import { Field } from '@/components/FormFields';
 import MailForm from '@/components/MailForm';
 
-// Two fields: the reply address and the one question that says whether the
-// team is a fit. Posted as a build request (`kind`), which the route mails
+// Two fields: the reply address and the task they want handled, which says
+// whether it is a fit. Posted as a build request (`kind`), which the route mails
 // without a name and under its own subject (app/api/email/route.ts).
 const ROWS: Field[][] = [
   [
@@ -18,7 +18,7 @@ const ROWS: Field[][] = [
   ],
   [
     {
-      label: 'What do you want your agents to do?',
+      label: 'What task do you want off your plate?',
       name: 'message',
       type: 'textarea',
       isRequired: true,

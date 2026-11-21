@@ -140,7 +140,7 @@ export async function POST(request: Request): Promise<Response> {
         <body>
           <small> From: <b>${escapeHtml(name)}</b> &lt;${escapeHtml(email)}&gt; </small>
           <br />
-          <h2> ${isBuild ? 'What they want their agents to do:' : 'Message:'} </h2>
+          <h2> ${isBuild ? 'The task they want off their plate:' : 'Message:'} </h2>
           <p> ${escapeHtml(message)} </p>
         </body>
       </html>

@@ -1,6 +1,6 @@
 # Work with me
 
-The consulting page: who it is for (software teams already using AI coding agents), one fixed-price starter, the first two builds free in exchange for a public write-up, a line on current work, and a two-field form that mails a build request.
+The consulting page, for small non-technical teams: two starters (same-day quotes, and no more retyping), each a fixed setup fee plus a monthly fee to keep it running, the first two setups free in exchange for a public write-up, a line on current work with a pointer for software teams, and a two-field form that mails a build request.
 
 ## Surfaces
 
@@ -10,7 +10,7 @@ The consulting page: who it is for (software teams already using AI coding agent
 
 ## Reach
 
-Work with me in the header (between Portfolio and Contact, and in the phone menu) opens `/work-with-me`; the header's title reads WORK WITH ME. The offer sits on the contact page's frosted-glass card (`components/EdgeCard.tsx`), sliding in the same way, so the head moves aside for it as it does for the contact form. Under the headline are the starter (Agent-ready repo, $7,500 fixed, two weeks, four lines of what is done), "The first two are free", "Where I'm at" with a link to Vibe Verifier on GitHub, then the form: Your email and "What do you want your agents to do?". "Ask about a build" stays disabled until both are valid, then posts to `/api/email` with `kind: 'build'` and no name; the route mails it under the subject "Build Request - zack.land", names the sender by their email, and heads the answer "What they want their agents to do:". The reply replaces the button with "Sent. I'll reply by email." or shows "An error has occurred". The form is the contact form's (`components/MailForm.tsx`), so focus, errors, the blur behind it and reCAPTCHA work as there (contact.md).
+Work with me in the header (between Portfolio and Contact, and in the phone menu) opens `/work-with-me`; the header's title reads WORK WITH ME. The offer sits on the contact page's frosted-glass card (`components/EdgeCard.tsx`), sliding in the same way, so the head moves aside for it as it does for the contact form. Under the headline ("I build AI tools that take one repetitive task off a small team's plate") and the promise that the owner approves everything, are the two starters, Same-day quotes and Stop retyping the same information, each with "$3,500 setup", "Then $500 a month to keep it running. Ready in two weeks." and a few lines of what is done (the `STARTERS` list in `page.tsx`); then "The first two are free", "Where I'm at" with a small line for software teams linking to Vibe Verifier on GitHub, then the form: Your email and "What task do you want off your plate?". "Ask about a build" stays disabled until both are valid, then posts to `/api/email` with `kind: 'build'` and no name; the route mails it under the subject "Build Request - zack.land", names the sender by their email, and heads the answer "The task they want off their plate:". The reply replaces the button with "Sent. I'll reply by email." or shows "An error has occurred". The form is the contact form's (`components/MailForm.tsx`), so focus, errors, the blur behind it and reCAPTCHA work as there (contact.md).
 
 Keep any new copy to the stated offer, and leave the "Where I'm at" line general: it names no company.
 
@@ -19,7 +19,7 @@ Keep any new copy to the stated offer, and leave the "Where I'm at" line general
 Roles: none; the page is public.
 
 1. From the home page, click Work with me in the header: `/work-with-me` opens, its link underlined, the title WORK WITH ME at the header's right, and the label on one line at 768px and up.
-2. The card shows the headline, "$7,500 fixed", the four lines, "The first two are free" and "Where I'm at"; the Vibe Verifier link opens github.com/Greenbauer/vibe-verifier in a new tab.
+2. The card shows the headline, both starters each with "$3,500 setup" and the monthly line, "The first two are free" and "Where I'm at"; the Vibe Verifier link opens github.com/Greenbauer/vibe-verifier in a new tab.
 3. "Ask about a build" is disabled; type an email and leave the question empty: still disabled; answer the question: enabled.
 4. With the SMTP variables pointing at a sink, press it: "Sent. I'll reply by email." replaces the button, and the sink's mail has the subject "Build Request - zack.land".
 5. At 375px wide the card runs edge to edge with the page's 2rem text margin, nothing scrolls sideways, and the form's button is reachable above the footer.

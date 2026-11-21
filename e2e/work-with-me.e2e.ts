@@ -30,20 +30,27 @@ test('the header links to the page, which shows the offer and its price', async 
   });
   await expect(
     page.getByRole('heading', {
-      name: 'I help software teams get real work out of AI coding agents',
+      name: "I build AI tools that take one repetitive task off a small team's plate",
     }),
   ).toBeVisible();
-  await expect(page.getByText('$7,500 fixed')).toBeVisible();
-  await expect(page.getByText('Done in two weeks.')).toBeVisible();
   await expect(
-    page.getByText('Bigger work is quoted after the first two weeks.'),
-  ).toBeAttached();
+    page.getByText('You approve everything before it goes out.', {
+      exact: false,
+    }),
+  ).toBeVisible();
+  // Both starters, each with its setup fee and monthly fee.
+  for (const name of ['Same-day quotes', 'Stop retyping the same information'])
+    await expect(page.getByRole('heading', { name })).toBeAttached();
+  await expect(page.getByText('$3,500 setup')).toHaveCount(2);
+  await expect(
+    page.getByText('Then $500 a month to keep it running. Ready in two weeks.'),
+  ).toHaveCount(2);
   await expect(
     page.getByRole('heading', { name: 'The first two are free' }),
   ).toBeAttached();
   await expect(
     page.getByText(
-      'The first two teams get the build free. In return, I publish a write-up of what changed, with your team named.',
+      'The first two businesses get the setup free. In return, I publish a short write-up of what changed, with your business named.',
     ),
   ).toBeAttached();
   await expect(
@@ -72,8 +79,8 @@ test('sends a build request with the email and the answer, then says so', async 
   await page.getByLabel('Your email').fill('lead@example.com');
   await expect(submit).toBeDisabled();
   await page
-    .getByLabel('What do you want your agents to do?')
-    .fill('Review our pull requests');
+    .getByLabel('What task do you want off your plate?')
+    .fill('Turn site walks into quotes');
   await expect(submit).toBeEnabled();
 
   await submit.click();
@@ -83,7 +90,7 @@ test('sends a build request with the email and the answer, then says so', async 
   expect(body).toMatchObject({
     kind: 'build',
     email: 'lead@example.com',
-    message: 'Review our pull requests',
+    message: 'Turn site walks into quotes',
   });
   expect(body).not.toHaveProperty('name');
 });
@@ -96,8 +103,8 @@ test('says so when the request fails, keeping the button', async ({ page }) => {
 
   await page.getByLabel('Your email').fill('lead@example.com');
   await page
-    .getByLabel('What do you want your agents to do?')
-    .fill('Review our pull requests');
+    .getByLabel('What task do you want off your plate?')
+    .fill('Turn site walks into quotes');
   const submit = page.getByRole('button', { name: 'Ask about a build' });
   await submit.click();
 
