@@ -21,7 +21,7 @@ import { GLOSS } from './headSkin';
 import { turnHead } from './headTurn';
 import { fadeNeck } from './neckFade';
 import { isStill } from './stillScene';
-import { StoryProp } from './storyCue';
+import { StoryCue, StoryProp } from './storyCue';
 import { propTarget } from './storyProp';
 
 // What a chapter of the home page's story brings into the scene around the
@@ -30,7 +30,9 @@ import { propTarget } from './storyProp';
 // that pop up around it, and a paper plane that flies past. Each eases in
 // as its chapter arrives (propTarget, storyProp.ts) and out as it goes;
 // with reduced motion none shows. The sunglasses and the wireframe turn
-// with the head (turnHead), as its eyes do.
+// with the head (turnHead), as its eyes do. What it has drawn is named on
+// the page as data-story-prop on <html> (space-separated, empty for none):
+// a prop well in, and the bang once it has gone off in this chapter.
 
 const skinShader: Material['onBeforeCompile'] = (shader) => {
   turnHead(shader);
@@ -186,6 +188,7 @@ export default function StoryProps({
   const wireRef = useRef<Mesh>(null);
   const agentsRef = useRef<Group>(null);
   const planeRef = useRef<Group>(null);
+  const banged = useRef<StoryCue | null>(null);
 
   useFrame(({ clock }, delta) => {
     const now = performance.now() / 1000;
@@ -198,6 +201,14 @@ export default function StoryProps({
       amount.current[prop] = was + (target - was) * Math.min(1, rate * delta);
     }
     const { sunglasses: glasses, wireframe, agents, plane } = amount.current;
+    if (amount.current.bang > 0.05) banged.current = cue;
+    const drawn: StoryProp[] = (
+      ['sunglasses', 'plane', 'agents', 'wireframe'] as const
+    ).filter((prop) => amount.current[prop] > 0.5);
+    if (cue && banged.current === cue) drawn.push('bang');
+    const named = drawn.join(' ');
+    const root = document.documentElement;
+    if (root.dataset.storyProp !== named) root.dataset.storyProp = named;
 
     // The sunglasses drop from above onto the face, slowing as they land.
     if (glassesRef.current) {

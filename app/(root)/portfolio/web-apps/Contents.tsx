@@ -6,10 +6,9 @@ const posts: Content[] = [
     coded: 'vibe',
     description: (
       <p>
-        And then there&rsquo;s this website, the one you&rsquo;re on. I built it
-        to show what I can make and to try new ideas, writing it with AI coding
-        agents. Wait. That&rsquo;s me. I built this head too, and every face it
-        makes.
+        This website, the one you&rsquo;re on, is where I show what I can make
+        and try new ideas. I built it with AI coding agents. Wait. That&rsquo;s
+        me. I built this head too, and every face it makes.
       </p>
     ),
     technology:
@@ -31,7 +30,7 @@ const posts: Content[] = [
         </a>
         , one of the world&rsquo;s largest 3D printing companies, featured it on
         its website. The WordPress shop has closed, but the designer still lives
-        on as a static site on AWS, so you can still make a pair.
+        on as a static site on AWS, so you can still try the designer.
       </p>
     ),
     technology: 'AWS, Serverless, jQuery, PHP, three.js, WordPress',
@@ -65,6 +64,7 @@ const posts: Content[] = [
     name: 'Passero',
     description: (
       <p>
+        Then startups.{' '}
         <a
           href="https://www.travelpassero.com"
           target="_blank"
@@ -72,11 +72,11 @@ const posts: Content[] = [
         >
           Passero
         </a>{' '}
-        is a travel planning technology startup, with an app to help people plan
-        for a trip with family and friends. I was a full-time founding engineer
-        for a little over a year, responsible for building new full-stack
-        features. I even helped design the logo during a rebranding. I still
-        help part-time.
+        is a travel planning startup, with an app that helps families and
+        friends plan a trip together. I was one of its first engineers, full
+        time for a little over a year, building new full-stack features, and I
+        even helped design its logo during a rebranding. They sent me to Spain
+        to show it at its industry debut. I still help part-time.
       </p>
     ),
     technology:

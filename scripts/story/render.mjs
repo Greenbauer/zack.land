@@ -12,9 +12,9 @@ import { chromium } from '@playwright/test';
 const here = dirname(fileURLToPath(import.meta.url));
 const out = join(here, '../../public/story');
 const FPS = 24;
-// The poster: a frame most of the way into the loop, where each scene shows
-// what it is about.
-const POSTER_AT = 4.8;
+// The poster: the loop's first frame, so nothing jumps as the loop starts
+// over the poster (as for the portfolio's loops: portfolio.md).
+const POSTER_AT = 0;
 
 mkdirSync(out, { recursive: true });
 const browser = await chromium.launch();

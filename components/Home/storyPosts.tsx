@@ -4,7 +4,7 @@ import { Content, MediaSource } from '@/types';
 // them in order with the portfolio's own): Zack's way from mechanical
 // engineering to AI agents, told in his voice. Each shows an animated
 // illustration (public/story/, made by scripts/story/render.mjs), a silent
-// loop as the portfolio's videos are, with its first frame as its poster.
+// loop as the portfolio's videos are, its first frame its poster (components/videoPoster.ts).
 //
 // The facts are from Zack's resume. His current employer is not named, and
 // nothing here gives numbers from that job.

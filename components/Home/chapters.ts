@@ -127,7 +127,7 @@ export const CHAPTERS: Chapter[] = [
     ],
   },
   {
-    // The trip-planning startup: the portfolio's post, as it stands.
+    // The trip-planning startup: the portfolio's post.
     id: 'travel-startup',
     content: tripPlanner!,
     prop: 'plane',

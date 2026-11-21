@@ -58,10 +58,18 @@ test.describe('on a wide screen', () => {
         await expect(
           post(page, k).locator('.collage-tile').first(),
         ).toBeAttached();
+      // What the scene has drawn for it (StoryProps.tsx): its prop, once in.
       await expect(page.locator('html')).toHaveAttribute(
         'data-story-prop',
         chapter.prop ?? '',
+        { timeout: 20_000 },
       );
+      // The story is told on the card: no bubble, no story controls.
+      await expect(page.locator('[data-bubble]')).toHaveCount(0);
+      for (const name of ['Chapters', 'Play', 'Next'])
+        await expect(
+          page.getByRole('button', { name, exact: true }),
+        ).toHaveCount(0);
       // The pager holds the next turn while this card arrives.
       await page.waitForTimeout(1500);
     }
@@ -77,19 +85,17 @@ test.describe('on a wide screen', () => {
   }) => {
     const k = CHAPTERS.findIndex((c) => c.id === 'banner-eyewear');
     await open(page);
-    await page.evaluate(
-      (to) => dispatchEvent(new CustomEvent('page-jump', { detail: to })),
-      k + 1,
-    );
-    await expect(title(page, k)).toBeVisible();
+    for (let turn = 0; turn <= k; turn++) {
+      await page.keyboard.press('PageDown');
+      await expect(title(page, turn)).toBeVisible();
+      await page.waitForTimeout(1500);
+    }
     const card = await post(page, k).locator('section').innerText();
     const tiles = await post(page, k).locator('.collage-tile').count();
 
     // On Web Apps it is the second post: turned to, so its card shows.
     await open(page, '/portfolio/web-apps');
-    await page.evaluate(() =>
-      dispatchEvent(new CustomEvent('page-jump', { detail: 1 })),
-    );
+    await page.keyboard.press('PageDown');
     const there = page.locator('[data-post]').nth(1);
     await expect(there.locator('section h2')).toHaveText('Banner Eyewear');
     await expect(there.locator('section h2')).toBeVisible();
@@ -115,13 +121,9 @@ test.describe('on a wide screen', () => {
     await page.waitForTimeout(16_000);
     expect(await shownChapter(page)).toBe(stoppedOn);
 
-    // Back at the opening, Watch again, then a key press from the page
-    // stops it too.
-    await page.evaluate(() =>
-      dispatchEvent(new CustomEvent('page-jump', { detail: 0 })),
-    );
-    await expect(watch).toBeVisible();
-    await page.waitForTimeout(1500);
+    // Opened again, Watch again, then a key press from the page stops it
+    // too.
+    await open(page);
     await watch.click();
     await expect(title(page, 0)).toBeVisible();
     await page.evaluate(() => (document.activeElement as HTMLElement).blur());
@@ -179,5 +181,7 @@ test.describe('with reduced motion', () => {
     await expect(title(page, 0)).toBeVisible();
     await page.waitForTimeout(15_000);
     await expect(title(page, 0)).toBeVisible();
+    // Nor does the scene bring the chapter's prop (Texas Tech's bang).
+    await expect(page.locator('html')).toHaveAttribute('data-story-prop', '');
   });
 });

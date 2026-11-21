@@ -5,7 +5,7 @@ const posts: Content[] = [
     name: 'Smart Bed',
     description: (
       <p>
-        I kept building things you can touch, too. I designed and built this
+        I like building things you can touch, too. I designed and built this
         king-size smart bed from plywood with walnut veneer. It floats: its base
         is hidden and it mounts to the wall, and it breaks down into ten pieces,
         each light enough for one person to carry. Load cells tell it when
@@ -53,7 +53,7 @@ const posts: Content[] = [
     name: 'Parametric Lounge Chair',
     description: (
       <p>
-        Then a flat-pack lounge chair. I sculpted it from CNC-cut pieces of
+        I sculpted this flat-pack lounge chair from CNC-cut pieces of
         veneer-core plywood that interlock into one strong shape, finished it in
         a polished varnish, and worked out its curve mathematically to be
         comfortable. I&rsquo;d sit in it, but I&rsquo;m just a head.
@@ -124,7 +124,7 @@ const posts: Content[] = [
     name: 'Shofar Mount',
     description: (
       <p>
-        And a simple one: a wall mount that holds a shofar, a ram&rsquo;s-horn
+        A simple one: a wall mount that holds a shofar, a ram&rsquo;s-horn
         trumpet, upright. It&rsquo;s matte black laser-cut acrylic, and fitting
         it around the shofar&rsquo;s twisting shape was a fun challenge. I tried
         to blow it. No lungs.

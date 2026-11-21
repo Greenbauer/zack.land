@@ -53,10 +53,7 @@ export default function Story() {
   const onShown = useCallback(
     (chapter: Chapter, k: number, shown: boolean, card: HTMLElement | null) => {
       if (!shown) {
-        if (headMood.cue?.beats === chapter.beats) {
-          headMood.cue = null;
-          delete document.documentElement.dataset.storyProp;
-        }
+        if (headMood.cue?.beats === chapter.beats) headMood.cue = null;
         if (k === 0) setIndex((was) => (was === 0 ? -1 : was));
         return;
       }
@@ -68,8 +65,6 @@ export default function Story() {
         prop: chapter.prop,
       };
       headMood.cue = cue;
-      // What the scene brings for it, named on the page for tests.
-      document.documentElement.dataset.storyProp = chapter.prop ?? '';
       setIndex(k);
       setSince(starts);
     },
@@ -111,7 +106,6 @@ export default function Story() {
   useEffect(
     () => () => {
       headMood.cue = null;
-      delete document.documentElement.dataset.storyProp;
     },
     [],
   );

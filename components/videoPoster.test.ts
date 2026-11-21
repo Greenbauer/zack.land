@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { posterOf } from './videoPoster';
 
 const PUBLIC = path.join(__dirname, '../public');
-const videos = ['miscellaneous', 'web-apps'].flatMap((dir) =>
+const videos = ['miscellaneous', 'web-apps', 'story'].flatMap((dir) =>
   fs
     .readdirSync(path.join(PUBLIC, dir))
     .filter((file) => file.endsWith('.mp4'))

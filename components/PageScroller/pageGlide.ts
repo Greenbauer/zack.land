@@ -32,9 +32,3 @@ export const announceTurn = (turn: Turn) =>
 export const GLIDE_EVENT = 'page-glide';
 export const requestGlide = (direction: 1 | -1) =>
   dispatchEvent(new CustomEvent(GLIDE_EVENT, { detail: direction }));
-
-// Asks the pager to go straight to post `index` (the home page's chapter
-// list, components/Home/StoryControls.tsx).
-export const JUMP_EVENT = 'page-jump';
-export const requestJump = (index: number) =>
-  dispatchEvent(new CustomEvent(JUMP_EVENT, { detail: index }));
