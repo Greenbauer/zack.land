@@ -18,6 +18,18 @@ const shownChapter = async (page: Page) => {
     if (await card(page, id).locator('h2').isVisible()) return id;
   return '';
 };
+// The chapter the page settles on: the same one twice, three seconds apart
+// (a turn under way, slow on CI's software renderer, finishes first).
+const settledChapter = async (page: Page) => {
+  let last = await shownChapter(page);
+  for (let k = 0; k < 8; k++) {
+    await page.waitForTimeout(3000);
+    const now = await shownChapter(page);
+    if (now === last) return now;
+    last = now;
+  }
+  return last;
+};
 // Where across the head is (px), as the bubble follows it (Bubble.tsx).
 const headAcross = (page: Page) =>
   bubble(page).evaluate((el) =>
@@ -79,8 +91,7 @@ test.describe('on a wide screen', () => {
     // on (watch.ts watchWait: under 12 seconds a chapter).
     await page.mouse.move(640, 300);
     await page.mouse.wheel(0, 120);
-    await page.waitForTimeout(2000);
-    const stoppedOn = await shownChapter(page);
+    const stoppedOn = await settledChapter(page);
     await expect(
       card(page, stoppedOn).getByRole('button', { name: 'Play' }),
     ).toBeVisible();
@@ -93,9 +104,9 @@ test.describe('on a wide screen', () => {
     await expect
       .poll(() => shownChapter(page), { timeout: 15_000 })
       .not.toBe(stoppedOn);
-    const keyedOn = await shownChapter(page);
     await page.evaluate(() => (document.activeElement as HTMLElement).blur());
     await page.keyboard.press('Shift');
+    const keyedOn = await settledChapter(page);
     await expect(
       card(page, keyedOn).getByRole('button', { name: 'Play' }),
     ).toBeVisible();
