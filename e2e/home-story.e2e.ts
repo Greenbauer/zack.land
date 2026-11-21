@@ -3,29 +3,24 @@ import { expect, Page, test } from '@playwright/test';
 import { CHAPTERS } from '../components/Home/chapters';
 
 // The home page's story (components/Home/Story.tsx): the name, then a
-// chapter per page turn, the head's lines over it (data-bubble) and the
-// chapter's card under it. Against a built site: `npx playwright test
-// e2e/home-story.e2e.ts`.
+// chapter per page turn, each a post exactly as the portfolio shows its
+// posts, while the head reacts and the scene brings each chapter's prop
+// (named on the page as data-story-prop). Against a built site: `npx
+// playwright test e2e/home-story.e2e.ts`.
 
 // Every chapter in turn: on CI's runner, which draws the scene in software,
-// about 18 seconds a chapter (the walk reached 13 of 16 in four minutes).
+// about 18 seconds a chapter.
 test.describe.configure({ timeout: 480_000 });
 
-const bubble = (page: Page) => page.locator('[data-bubble]');
-// Any one of a chapter's lines, as the bubble shows them one at a time
-// (which first is chapters.test.ts's): on CI's slow software renderer the
-// first can have gone by the time its card has arrived.
-const saying = (id: string) =>
-  new RegExp(
-    `^(${CHAPTERS.find((chapter) => chapter.id === id)!
-      .lines.map((line) => line.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-      .join('|')})$`,
-  );
-// The chapter whose card shows now.
+// The post of chapter k (the opening is post 0), and its card's title.
+const post = (page: Page, k: number) => page.locator('[data-post]').nth(k + 1);
+const title = (page: Page, k: number) => post(page, k).locator('section h2');
+
+// The chapter whose card shows now (-1 for none).
 const shownChapter = async (page: Page) => {
-  for (const { id } of CHAPTERS)
-    if (await card(page, id).locator('h2').isVisible()) return id;
-  return '';
+  for (let k = 0; k < CHAPTERS.length; k++)
+    if (await title(page, k).isVisible()) return k;
+  return -1;
 };
 // The chapter the page settles on: the same one twice, three seconds apart
 // (a turn under way, slow on CI's software renderer, finishes first).
@@ -39,18 +34,11 @@ const settledChapter = async (page: Page) => {
   }
   return last;
 };
-// Where across the head is (px), as the bubble follows it (Bubble.tsx).
-const headAcross = (page: Page) =>
-  bubble(page).evaluate((el) =>
-    parseFloat((el as HTMLElement).style.getPropertyValue('--bubble-x')),
-  );
-const card = (page: Page, id: string) =>
-  page.locator(`[data-chapter="${id}"] section`);
 
 // The page as it opens: the name, and the pager ready for a first turn
 // (the first card's arrival holds turns for a moment, SnapPager.tsx).
-async function open(page: Page) {
-  await page.goto('/');
+async function open(page: Page, path = '/') {
+  await page.goto(path);
   await expect(page.locator('h1')).toBeVisible();
   await page.waitForTimeout(1500);
 }
@@ -58,74 +46,88 @@ async function open(page: Page) {
 test.describe('on a wide screen', () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
-  test('tells every chapter in turn, a line at a time over the head', async ({
+  test('tells every chapter in turn, each a post with its pictures and its prop', async ({
     page,
   }) => {
     await open(page);
-    await expect(bubble(page)).toHaveText('');
-    for (const chapter of CHAPTERS) {
+    for (const [k, chapter] of CHAPTERS.entries()) {
       await page.keyboard.press('PageDown');
-      await expect(card(page, chapter.id).locator('h2')).toBeVisible();
-      await expect(card(page, chapter.id).locator('h2')).toHaveText(
-        chapter.title,
+      await expect(title(page, k)).toBeVisible();
+      await expect(title(page, k)).toHaveText(chapter.content.name);
+      if (chapter.content.mediaSources?.length)
+        await expect(
+          post(page, k).locator('.collage-tile').first(),
+        ).toBeAttached();
+      await expect(page.locator('html')).toHaveAttribute(
+        'data-story-prop',
+        chapter.prop ?? '',
       );
-      await expect(bubble(page)).toHaveText(saying(chapter.id), {
-        timeout: 8000,
-      });
-      // The head, and its line, end up left of where the card rests (a
-      // fixed box's offset leaves out the slide it may still be part way
-      // through; the head glides there, and in WebKit on CI the scene may
-      // not have placed it yet).
-      const rests = await card(page, chapter.id).evaluate(
-        (el) => (el as HTMLElement).offsetLeft,
-      );
-      await expect
-        .poll(() => headAcross(page), { timeout: 20_000 })
-        .toBeLessThan(rests);
       // The pager holds the next turn while this card arrives.
       await page.waitForTimeout(1500);
     }
     await expect(
-      card(page, 'next').getByRole('link', { name: 'Work with me' }),
+      post(page, CHAPTERS.length - 1).getByRole('link', {
+        name: 'Work with me',
+      }),
     ).toHaveAttribute('href', '/work-with-me');
+  });
+
+  test('a chapter is the same post its portfolio page shows', async ({
+    page,
+  }) => {
+    const k = CHAPTERS.findIndex((c) => c.id === 'banner-eyewear');
+    await open(page);
+    await page.evaluate(
+      (to) => dispatchEvent(new CustomEvent('page-jump', { detail: to })),
+      k + 1,
+    );
+    await expect(title(page, k)).toBeVisible();
+    const card = await post(page, k).locator('section').innerText();
+    const tiles = await post(page, k).locator('.collage-tile').count();
+
+    // On Web Apps it is the second post: turned to, so its card shows.
+    await open(page, '/portfolio/web-apps');
+    await page.evaluate(() =>
+      dispatchEvent(new CustomEvent('page-jump', { detail: 1 })),
+    );
+    const there = page.locator('[data-post]').nth(1);
+    await expect(there.locator('section h2')).toHaveText('Banner Eyewear');
+    await expect(there.locator('section h2')).toBeVisible();
+    expect(await there.locator('section').innerText()).toBe(card);
+    expect(await there.locator('.collage-tile').count()).toBe(tiles);
   });
 
   test('Watch plays the story and a wheel or a key stops it', async ({
     page,
   }) => {
     await open(page);
-    await page.getByRole('button', { name: 'Watch my story' }).click();
-    const [first, second] = CHAPTERS;
-    await expect(card(page, first!.id).locator('h2')).toBeVisible();
-    // It moves on by itself after the first chapter's lines.
-    await expect(card(page, second!.id).locator('h2')).toBeVisible({
-      timeout: 15_000,
-    });
+    const watch = page.getByRole('button', { name: 'Watch my story' });
+    await watch.click();
+    await expect(title(page, 0)).toBeVisible();
+    // It moves on by itself after the first chapter.
+    await expect(title(page, 1)).toBeVisible({ timeout: 30_000 });
     // A turn of the wheel (which may turn the page itself) stops it: it
-    // stays on the chapter it lands on, past when Watch would have moved
-    // on (watch.ts watchWait: under 12 seconds a chapter).
+    // stays on the chapter it lands on, past when Watch would have moved on
+    // (chapters.ts seconds: under 13 a chapter).
     await page.mouse.move(640, 300);
     await page.mouse.wheel(0, 120);
     const stoppedOn = await settledChapter(page);
-    await expect(
-      card(page, stoppedOn).getByRole('button', { name: 'Play' }),
-    ).toBeVisible();
-    await page.waitForTimeout(15_000);
+    await page.waitForTimeout(16_000);
     expect(await shownChapter(page)).toBe(stoppedOn);
-    // Played again from the card, it moves on; a key press from the page
-    // stops it too. (A key on Play or Pause, data-watch, is the story's own
-    // control and does not stop it: watch.ts takesOver.)
-    await card(page, stoppedOn).getByRole('button', { name: 'Play' }).click();
-    await expect
-      .poll(() => shownChapter(page), { timeout: 30_000 })
-      .not.toBe(stoppedOn);
+
+    // Back at the opening, Watch again, then a key press from the page
+    // stops it too.
+    await page.evaluate(() =>
+      dispatchEvent(new CustomEvent('page-jump', { detail: 0 })),
+    );
+    await expect(watch).toBeVisible();
+    await page.waitForTimeout(1500);
+    await watch.click();
+    await expect(title(page, 0)).toBeVisible();
     await page.evaluate(() => (document.activeElement as HTMLElement).blur());
     await page.keyboard.press('Shift');
     const keyedOn = await settledChapter(page);
-    await expect(
-      card(page, keyedOn).getByRole('button', { name: 'Play' }),
-    ).toBeVisible();
-    await page.waitForTimeout(15_000);
+    await page.waitForTimeout(16_000);
     expect(await shownChapter(page)).toBe(keyedOn);
   });
 
@@ -138,49 +140,27 @@ test.describe('on a wide screen', () => {
     await page.evaluate(() =>
       dispatchEvent(new KeyboardEvent('keydown', { key: 'PageDown' })),
     );
-    await expect(card(page, CHAPTERS[0]!.id).locator('h2')).toBeVisible();
+    await expect(title(page, 0)).toBeVisible();
     expect(errors).toEqual([]);
-  });
-
-  test('Chapters jumps straight to one', async ({ page }) => {
-    await open(page);
-    await page.keyboard.press('PageDown');
-    const first = card(page, CHAPTERS[0]!.id);
-    await expect(first.locator('h2')).toBeVisible();
-    await first.getByRole('button', { name: 'Chapters' }).click();
-    await page.getByRole('button', { name: 'USAA', exact: true }).click();
-    await expect(card(page, 'usaa').locator('h2')).toBeVisible();
-    await expect(bubble(page)).toHaveText(saying('usaa'), { timeout: 8000 });
   });
 });
 
 test.describe('on a phone', () => {
   test.use({ viewport: { width: 375, height: 812 }, hasTouch: true });
 
-  test('keeps the head in view, its line over it and the card over its chest', async ({
+  test('shows a chapter as the portfolio shows a post, pictures over its card', async ({
     page,
   }) => {
     await open(page);
     await page.keyboard.press('PageDown');
-    const first = card(page, CHAPTERS[0]!.id);
-    await expect(first.locator('h2')).toBeVisible();
-    // The head stays put under the card (data-head-avoid="above"), rather
-    // than moving off the window as it does for a portfolio post's card.
-    await expect(first).toHaveAttribute('data-head-avoid', 'above');
-    await expect(bubble(page)).toHaveText(saying(CHAPTERS[0]!.id), {
-      timeout: 8000,
-    });
-    const line = await bubble(page).boundingBox();
-    const box = await first.boundingBox();
-    expect(line!.y + line!.height).toBeLessThan(box!.y);
-    // The head's middle, as the page places it (HeadFraming, followed by the
-    // bubble as --bubble-x): on screen, near the middle, not glided off.
-    const headX = await headAcross(page);
-    expect(headX).toBeGreaterThan(375 * 0.3);
-    expect(headX).toBeLessThan(375 * 0.7);
-    // The card sits below the face: the head's chin is about 0.72 of the
-    // window's height down (PageScroller/ScrollArrows.tsx HEAD_CHIN).
-    expect(box!.y).toBeGreaterThan(812 * 0.7);
+    await expect(title(page, 0)).toBeVisible();
+    const tile = await post(page, 0)
+      .locator('.collage-tile')
+      .first()
+      .boundingBox();
+    const card = await post(page, 0).locator('section').boundingBox();
+    // The tiles tuck 8px under the card's top, as a post's do (Post.tsx).
+    expect(tile!.y + tile!.height).toBeLessThanOrEqual(card!.y + 10);
   });
 });
 
@@ -190,29 +170,14 @@ test.describe('with reduced motion', () => {
     reducedMotion: 'reduce',
   });
 
-  test('shows every line at once and never plays on its own', async ({
-    page,
-  }) => {
+  test('never plays on its own', async ({ page }) => {
     await open(page);
     await expect(
       page.getByRole('button', { name: 'Watch my story' }),
     ).toHaveCount(0);
     await page.keyboard.press('PageDown');
-    const [first] = CHAPTERS;
-    await expect(card(page, first!.id).locator('h2')).toBeVisible();
-    for (const line of first!.lines)
-      await expect(bubble(page)).toContainText(line);
-    await expect(
-      card(page, first!.id).getByRole('button', { name: 'Play' }),
-    ).toHaveCount(0);
-    // A chapter of three lines shows all three.
-    const banner = CHAPTERS.find((chapter) => chapter.id === 'banner-eyewear')!;
-    for (let k = 0; k < 2; k++) {
-      await page.waitForTimeout(1500);
-      await page.keyboard.press('PageDown');
-    }
-    await expect(card(page, banner.id).locator('h2')).toBeVisible();
-    for (const line of banner.lines)
-      await expect(bubble(page)).toContainText(line);
+    await expect(title(page, 0)).toBeVisible();
+    await page.waitForTimeout(15_000);
+    await expect(title(page, 0)).toBeVisible();
   });
 });

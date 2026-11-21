@@ -1,6 +1,6 @@
 'use client';
 
-import { CSSProperties, useRef } from 'react';
+import { CSSProperties, useEffect, useRef } from 'react';
 import { HiHandRaised, HiSparkles } from 'react-icons/hi2';
 
 import Button from '@/components/Button';
@@ -19,8 +19,14 @@ import useMoreMotion from './useMoreMotion';
 import usePhoneWhole from './usePhoneWhole';
 
 // `isFirst`: the page's first post, in view as the page opens, whose
-// pictures load first.
-type PostProps = { content: Content; isFirst?: boolean };
+// pictures load first. `onShown`: told when the post becomes the one in view
+// and when it stops being so, with its card (the home page's story has the
+// head react to it: components/Home/Story.tsx).
+type PostProps = {
+  content: Content;
+  isFirst?: boolean;
+  onShown?: (_shown: boolean, _card: HTMLElement | null) => void;
+};
 
 // Where a post's card waits, by where its post is (PostPlace): in place for
 // the post in view, wholly off the window's right side for posts above it
@@ -38,18 +44,18 @@ type PostProps = { content: Content; isFirst?: boolean };
 // theme/motion.json's.)
 const LEAVING =
   'pointer-events-none invisible motion-safe:[transition:translate_var(--card-leave)_var(--ease-gather),visibility_0s_var(--card-leave)] motion-reduce:[transition:visibility_0s_0.4s]';
-export const CARD: Record<PostPlace, string> = {
+const CARD: Record<PostPlace, string> = {
   current:
     'motion-safe:[transition:translate_var(--card-arrive)_var(--ease-arrive)_var(--turn-delay,var(--card-wait)),visibility_0s] motion-reduce:[transition:visibility_0s_0.7s]',
   before: `motion-safe:[translate:var(--off-window)_0] ${LEAVING}`,
   after: `motion-safe:[translate:calc(-1*var(--off-window))_0] ${LEAVING}`,
 };
-export const CONTENT_IN =
+const CONTENT_IN =
   'motion-safe:[transition:opacity_var(--card-arrive)_linear_var(--turn-delay,var(--card-wait))] motion-reduce:[transition:opacity_1.2s_ease-out_0.7s]';
-export const CONTENT_OUT =
+const CONTENT_OUT =
   'opacity-0 [transition:opacity_var(--card-leave)_linear] motion-reduce:[transition:opacity_0.4s_ease-in]';
 
-export default function Post({ content, isFirst = false }: PostProps) {
+export default function Post({ content, isFirst = false, onShown }: PostProps) {
   const {
     name,
     mediaSources,
@@ -58,12 +64,16 @@ export default function Post({ content, isFirst = false }: PostProps) {
     coded,
     siteUrl,
     repositoryUrl,
+    action,
   } = content;
 
   const postRef = useRef<HTMLDivElement | null>(null);
   const cardRef = useRef<HTMLElement | null>(null);
   const place = useHeldCard(postRef, cardRef);
   const isCurrent = place === 'current';
+  useEffect(() => {
+    onShown?.(isCurrent, cardRef.current);
+  }, [isCurrent, onShown]);
   // More and Less move rather than jump, and a post left open closes again
   // once the page has moved on from it (useMoreMotion).
   const { isExpanded, isOpen, isClosed, toggle } = useMoreMotion(
@@ -260,6 +270,11 @@ export default function Post({ content, isFirst = false }: PostProps) {
                 className={phone.linkClass}
               >
                 View Code
+              </Button>
+            )}
+            {!!action && (
+              <Button href={action.href} className={phone.linkClass}>
+                {action.label}
               </Button>
             )}
           </div>

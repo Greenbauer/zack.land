@@ -5,17 +5,14 @@ const posts: Content[] = [
     name: 'Smart Bed',
     description: (
       <p>
-        I designed and fabricated this king-size smart bed. It is mostly made
-        from plywood with walnut veneer added on. I went with a modern floating
-        design, where the bed has a hidden base and is mounted to the wall. This
-        bed was designed with modularity in mind: it breaks down into ten
-        pieces, each light enough for one person to carry. It uses load cells to
-        detect when a person is in the bed and on which side. Depending on the
-        time of day, and if a person is sleeping, it will set several LED strips
-        to a certain color. The LED strips can also be controlled with embedded
-        buttons next to the built-in nightstands. This smart bed also has an API
-        that is integrated with my home automation system to control other
-        automations throughout the house.
+        I kept building things you can touch, too. I designed and built this
+        king-size smart bed from plywood with walnut veneer. It floats: its base
+        is hidden and it mounts to the wall, and it breaks down into ten pieces,
+        each light enough for one person to carry. Load cells tell it when
+        someone is in bed and on which side, and it sets its LED strips by the
+        time of day and whether you&rsquo;re asleep. Buttons by the built-in
+        nightstands work the lights too, and its API ties into the rest of my
+        home automation.
       </p>
     ),
     technology:
@@ -56,11 +53,10 @@ const posts: Content[] = [
     name: 'Parametric Lounge Chair',
     description: (
       <p>
-        I designed and fabricated this flat-pack parametric lounge chair. It is
-        sculpted from CNC-cut pieces of plywood, which interlock to form a
-        strong and aesthetically pleasing shape. The high grade veneer core
-        plywood is then finished with a polished varnish. In addition, it’s
-        mathematically designed to be very comfortable.
+        Then a flat-pack lounge chair. I sculpted it from CNC-cut pieces of
+        veneer-core plywood that interlock into one strong shape, finished it in
+        a polished varnish, and worked out its curve mathematically to be
+        comfortable. I&rsquo;d sit in it, but I&rsquo;m just a head.
       </p>
     ),
     technology:
@@ -86,19 +82,18 @@ const posts: Content[] = [
     name: 'Buoyancy Sorting Robot',
     description: (
       <p>
-        This is a robot which I designed, programmed, and fabricated for&nbsp;
+        For&nbsp;
         <a href="https://www.perfsealers.com" target="_blank" rel="noreferrer">
           Perf Sealers
         </a>
-        . This machine sorts plastic balls by buoyancy. It weighs each ball,
-        then works out whether it will float, sink, or stay neutral in a
-        specified fluid. It weighs one ball about every 3 seconds and is
-        accurate to a fraction of a gram. It can handle different ball sizes as
-        well, from 0.625” to 1.25” in diameter. An Arduino Mega controls a
-        central motor which rotates every 45 degrees. Fabrication materials
-        mostly include laser-cut acrylic and 3D-printed ABS plastic. Six months
-        after it was built, it has sorted thousands of balls and is working
-        beautifully.
+        , I designed, programmed and built a robot that sorts plastic balls by
+        buoyancy. It weighs each ball and works out whether it will float, sink
+        or stay neutral in a given fluid: one ball about every 3 seconds,
+        accurate to a fraction of a gram, from 0.625&rdquo; to 1.25&rdquo;
+        across. An Arduino Mega turns a central motor 45 degrees at a time, and
+        it&rsquo;s built mostly from laser-cut acrylic and 3D-printed ABS. Six
+        months after I built it, it had sorted thousands of balls and was still
+        working beautifully.
       </p>
     ),
     technology:
@@ -129,9 +124,10 @@ const posts: Content[] = [
     name: 'Shofar Mount',
     description: (
       <p>
-        This is a very simple custom mount to hold a shofar upright on the wall.
-        It’s made from matte black laser-cut acrylic. It was a fun challenge
-        figuring out how to design around the complex geometry of the shofar.
+        And a simple one: a wall mount that holds a shofar, a ram&rsquo;s-horn
+        trumpet, upright. It&rsquo;s matte black laser-cut acrylic, and fitting
+        it around the shofar&rsquo;s twisting shape was a fun challenge. I tried
+        to blow it. No lungs.
       </p>
     ),
     technology: 'Cinema 4D, Illustrator, Laser Cutting, Photogrammetry',

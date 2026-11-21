@@ -515,12 +515,3 @@ body:has(.mobile-menu.fixed) .collage-tile {
   visibility: hidden;
   transition: none;
 }
-
-/* On a phone, while the home page's story shows a chapter, the footer leaves
-   out its line of text (keeping its links), so the chapter's card sits low
-   enough to leave the head's face in view (components/Home/Story.tsx). */
-@media (max-width: 767.98px) {
-  html[data-story-chapter] [data-footer-text] {
-    display: none;
-  }
-}

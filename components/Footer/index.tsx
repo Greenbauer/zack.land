@@ -144,9 +144,7 @@ export default function Footer() {
           data-footer-arrow
           className={`flex-none empty:hidden ${ARROW[phase]}`}
         />
-        {/* data-footer-text: left out on a phone while the home page's
-            story shows a chapter (styles/globals.css). */}
-        <div data-footer-text className={`max-md:flex-1 ${EXTRA[phase]}`}>
+        <div className={`max-md:flex-1 ${EXTRA[phase]}`}>
           {pathname === '/contact' ? <ContactPageText /> : <DefaultText />}
         </div>
       </div>

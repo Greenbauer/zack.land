@@ -6,10 +6,10 @@ const posts: Content[] = [
     coded: 'vibe',
     description: (
       <p>
-        The website you are currently viewing is for me to showcase my skills,
-        experiment, and master modern web design. I plan on adding many more
-        features to it and will build more useful applications to showcase.
-        Enjoy!
+        And then there&rsquo;s this website, the one you&rsquo;re on. I built it
+        to show what I can make and to try new ideas, writing it with AI coding
+        agents. Wait. That&rsquo;s me. I built this head too, and every face it
+        makes.
       </p>
     ),
     technology:
@@ -21,18 +21,17 @@ const posts: Content[] = [
     coded: 'hand',
     description: (
       <p>
-        I developed Banner Eyewear so people could create and purchase
-        3D-printed sunglasses. The create page has a user interface rendering a
-        realistic 3D representation of the real product. Just type some text and
-        see that text fit the sides of the sunglasses in 3D. You can also change
-        the font, ear tip icons, and colors.{' '}
+        Banner Eyewear was my first coding project, and the one that made me
+        switch to software. I built it so people could design and buy their own
+        3D-printed sunglasses: type some text and watch it wrap around the arms
+        of a realistic 3D pair, then pick the font, the ear tip icons and the
+        colors.{' '}
         <a href="https://www.shapeways.com" target="_blank" rel="noreferrer">
           Shapeways
         </a>
-        , one of the world’s largest 3D printing companies, featured Banner
-        Eyewear on its website. Today, the WordPress e-commerce site is no
-        longer active. You can still try the create page, which now lives as a
-        static site on AWS.
+        , one of the world&rsquo;s largest 3D printing companies, featured it on
+        its website. The WordPress shop has closed, but the designer still lives
+        on as a static site on AWS, so you can still make a pair.
       </p>
     ),
     technology: 'AWS, Serverless, jQuery, PHP, three.js, WordPress',

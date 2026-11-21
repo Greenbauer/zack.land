@@ -63,6 +63,7 @@ import { SHOWN_EXPRESSIONS, SHOWN_SIDED } from './shownExpressions';
 import { withSides } from './sideMorphs';
 import { isStill } from './stillScene';
 import { cueLook } from './storyCue';
+import StoryProps from './StoryProps';
 import { startWander, TIP, TURN, WANDER_TURN } from './wander';
 
 type MyHeadGeometry = { [key: string]: BufferGeometry };
@@ -451,6 +452,13 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
           onBeforeCompile={turnHead}
         />
       </mesh>
+      {/* What the home page's story brings into the scene (StoryProps.tsx). */}
+      <StoryProps
+        leftEye={myHeadGeometry.leftEye!}
+        rightEye={myHeadGeometry.rightEye!}
+        skin={myHeadGeometry.skin!}
+        skinRef={skinRef}
+      />
     </group>
   );
 }

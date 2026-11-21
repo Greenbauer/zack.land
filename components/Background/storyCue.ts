@@ -17,9 +17,21 @@ export type Beat = {
   look?: Gaze;
 };
 
-// `since`: when the chapter arrived (seconds, performance.now() / 1000).
-// `card`: the look target (headLook.ts units) that points at its card.
-export type StoryCue = { beats: Beat[]; since: number; card: Point };
+// Something a chapter brings into the scene while it shows, around the head
+// (StoryProps.tsx): sunglasses on its face, a plane across the sky, the bang
+// of a pulse jet, small agent heads around it, or its own wireframe.
+export type StoryProp =
+  'sunglasses' | 'plane' | 'bang' | 'agents' | 'wireframe';
+
+// `since`: when the chapter's beats start (seconds, performance.now() /
+// 1000). `card`: the look target (headLook.ts units) that points at its
+// card. `prop`: what it brings into the scene, if anything.
+export type StoryCue = {
+  beats: Beat[];
+  since: number;
+  card: Point;
+  prop?: StoryProp;
+};
 
 // Look targets for the other gazes: straight at the camera, and up and a
 // little to the side.
