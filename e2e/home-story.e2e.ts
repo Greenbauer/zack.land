@@ -72,13 +72,16 @@ test.describe('on a wide screen', () => {
       await expect(bubble(page)).toHaveText(saying(chapter.id), {
         timeout: 8000,
       });
-      // The head, and its line, sit left of where the card rests (a fixed
-      // box's offset leaves out the slide it may still be part way through).
-      expect(await headAcross(page)).toBeLessThan(
-        await card(page, chapter.id).evaluate(
-          (el) => (el as HTMLElement).offsetLeft,
-        ),
+      // The head, and its line, end up left of where the card rests (a
+      // fixed box's offset leaves out the slide it may still be part way
+      // through; the head glides there, and in WebKit on CI the scene may
+      // not have placed it yet).
+      const rests = await card(page, chapter.id).evaluate(
+        (el) => (el as HTMLElement).offsetLeft,
       );
+      await expect
+        .poll(() => headAcross(page), { timeout: 20_000 })
+        .toBeLessThan(rests);
       // The pager holds the next turn while this card arrives.
       await page.waitForTimeout(1500);
     }
