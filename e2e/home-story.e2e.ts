@@ -182,14 +182,24 @@ test.describe('on a tall laptop window', () => {
     await expect(chair.locator('section h2')).toHaveText(
       'Parametric Lounge Chair',
     );
-    await expect(chair.locator('section h2')).toBeVisible();
-    const tiles = await chair
-      .locator('.collage-tile')
-      .evaluateAll((all) =>
-        all.map((t) => Math.round(t.getBoundingClientRect().top)),
-      );
-    expect(tiles).toHaveLength(2);
-    expect(Math.abs(tiles[0]! - tiles[1]!)).toBeLessThan(4);
+    // A window this big is slow to draw in software (CI's WebKit), so the
+    // card and its tiles get time to arrive and settle.
+    await expect(chair.locator('section h2')).toBeVisible({ timeout: 30_000 });
+    const tops = () =>
+      chair
+        .locator('.collage-tile')
+        .evaluateAll((all) =>
+          all.map((t) => Math.round(t.getBoundingClientRect().top)),
+        );
+    await expect
+      .poll(
+        async () => {
+          const [a, b, ...more] = await tops();
+          return more.length === 0 && b !== undefined && Math.abs(a! - b) < 4;
+        },
+        { timeout: 30_000 },
+      )
+      .toBe(true);
   });
 });
 
