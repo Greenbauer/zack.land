@@ -12,6 +12,15 @@ import { CHAPTERS } from '../components/Home/chapters';
 test.describe.configure({ timeout: 480_000 });
 
 const bubble = (page: Page) => page.locator('[data-bubble]');
+// Any one of a chapter's lines, as the bubble shows them one at a time
+// (which first is chapters.test.ts's): on CI's slow software renderer the
+// first can have gone by the time its card has arrived.
+const saying = (id: string) =>
+  new RegExp(
+    `^(${CHAPTERS.find((chapter) => chapter.id === id)!
+      .lines.map((line) => line.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+      .join('|')})$`,
+  );
 // The chapter whose card shows now.
 const shownChapter = async (page: Page) => {
   for (const { id } of CHAPTERS)
@@ -60,7 +69,7 @@ test.describe('on a wide screen', () => {
       await expect(card(page, chapter.id).locator('h2')).toHaveText(
         chapter.title,
       );
-      await expect(bubble(page)).toHaveText(chapter.lines[0]!, {
+      await expect(bubble(page)).toHaveText(saying(chapter.id), {
         timeout: 8000,
       });
       // The head, and its line, sit left of the card, beside it.
@@ -135,7 +144,7 @@ test.describe('on a wide screen', () => {
     await first.getByRole('button', { name: 'Chapters' }).click();
     await page.getByRole('button', { name: 'USAA', exact: true }).click();
     await expect(card(page, 'usaa').locator('h2')).toBeVisible();
-    await expect(bubble(page)).toContainText('USAA', { timeout: 8000 });
+    await expect(bubble(page)).toHaveText(saying('usaa'), { timeout: 8000 });
   });
 });
 
@@ -152,7 +161,7 @@ test.describe('on a phone', () => {
     // The head stays put under the card (data-head-avoid="above"), rather
     // than moving off the window as it does for a portfolio post's card.
     await expect(first).toHaveAttribute('data-head-avoid', 'above');
-    await expect(bubble(page)).toHaveText(CHAPTERS[0]!.lines[0]!, {
+    await expect(bubble(page)).toHaveText(saying(CHAPTERS[0]!.id), {
       timeout: 8000,
     });
     const line = await bubble(page).boundingBox();
