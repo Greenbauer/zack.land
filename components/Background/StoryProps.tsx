@@ -126,6 +126,25 @@ const IN_RATE = 3;
 const OUT_RATE = 2.5;
 const AGENTS = 6;
 
+// Names what the scene shows on the page, as data-story-prop on <html>: each
+// 3D prop once it is well in (the sunglasses once their model has loaded),
+// and the bang once its moment has come.
+function nameDrawn(
+  amounts: Record<StoryProp, number>,
+  hasGlasses: boolean,
+  hasBanged: boolean,
+) {
+  const drawn: StoryProp[] = (
+    ['sunglasses', 'plane', 'agents', 'wireframe'] as const
+  ).filter(
+    (prop) => amounts[prop] > 0.5 && (prop !== 'sunglasses' || hasGlasses),
+  );
+  if (hasBanged) drawn.push('bang');
+  const named = drawn.join(' ');
+  const root = document.documentElement;
+  if (root.dataset.storyProp !== named) root.dataset.storyProp = named;
+}
+
 export default function StoryProps({
   leftEye,
   rightEye,
@@ -186,16 +205,7 @@ export default function StoryProps({
     // can miss it.
     if (!still && cue?.prop === 'bang' && now >= cue.since + PROP_DELAY.bang)
       banged.current = cue;
-    const drawn: StoryProp[] = (
-      ['sunglasses', 'plane', 'agents', 'wireframe'] as const
-    ).filter(
-      (prop) =>
-        amount.current[prop] > 0.5 && (prop !== 'sunglasses' || !!glasses),
-    );
-    if (cue && banged.current === cue) drawn.push('bang');
-    const named = drawn.join(' ');
-    const root = document.documentElement;
-    if (root.dataset.storyProp !== named) root.dataset.storyProp = named;
+    nameDrawn(amount.current, !!glasses, !!cue && banged.current === cue);
 
     // The sunglasses drop from above onto the face, slowing as they land.
     if (glassesRef.current && glasses) {
