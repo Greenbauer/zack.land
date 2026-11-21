@@ -2,9 +2,10 @@ import { Content, MediaSource } from '@/types';
 
 // The home page's chapters that are not portfolio posts (chapters.tsx puts
 // them in order with the portfolio's own): Zack's way from mechanical
-// engineering to AI agents, told in his voice. Each shows an animated
-// illustration (public/story/, made by scripts/story/render.mjs), a silent
-// loop as the portfolio's videos are, its first frame its poster (components/videoPoster.ts).
+// engineering to AI agents, told in his voice. Each shows an animated 3D
+// illustration (public/story/, recorded by scripts/story/render.mjs from
+// scripts/story/scenes.html), a silent loop as the portfolio's videos are,
+// its first frame its poster (components/videoPoster.ts).
 //
 // The facts are from Zack's resume. His current employer is not named, and
 // nothing here gives numbers from that job.
@@ -50,7 +51,7 @@ export const PIPE_ENGINEER: Content = {
   mediaSources: [
     loop(
       'pipe-engineer',
-      'A pipe under stress, then bugs crawling over the software',
+      'A bending pipe glowing with stress, bugs crawling along it',
     ),
   ],
 };
@@ -67,7 +68,10 @@ export const FREELANCE: Content = {
   ),
   technology: 'Shopify, Magento, WooCommerce, React, Redux, AWS',
   mediaSources: [
-    loop('freelance', 'An online shop whose yearly sales count up past $250K'),
+    loop(
+      'freelance',
+      'Shop boxes on a turntable as sales bars grow behind them',
+    ),
   ],
 };
 
@@ -85,7 +89,10 @@ export const USAA: Content = {
   technology:
     'React, Redux, Jest, React Testing Library, AngularJS, ServiceNow',
   mediaSources: [
-    loop('usaa', 'Build, test and release, with five engineers beside them'),
+    loop(
+      'usaa',
+      'Blocks of code hopping along a release line past five engineers',
+    ),
   ],
 };
 
@@ -100,7 +107,9 @@ export const GULP: Content = {
     </p>
   ),
   technology: 'Next.js, TypeScript, Stripe, Auth0',
-  mediaSources: [loop('gulp', 'A vitamin bottle as signups count up to 2,000')],
+  mediaSources: [
+    loop('gulp', 'Vitamins pouring into a glass jar as its lid pops off'),
+  ],
 };
 
 export const TODAY: Content = {
@@ -113,7 +122,9 @@ export const TODAY: Content = {
     </p>
   ),
   technology: 'Claude Code, Codex, TypeScript, CI/CD',
-  mediaSources: [loop('today', 'Small agent heads typing lines of code')],
+  mediaSources: [
+    loop('today', 'Small agent heads at their desks, lines of code rising'),
+  ],
 };
 
 export const VIBE_VERIFIER: Content = {
@@ -128,7 +139,10 @@ export const VIBE_VERIFIER: Content = {
   technology: 'GitHub Actions, CI/CD, Evals',
   repositoryUrl: 'https://github.com/Greenbauer/vibe-verifier',
   mediaSources: [
-    loop('vibe-verifier', 'A list of pull requests, each checked or flagged'),
+    loop(
+      'vibe-verifier',
+      'Pull requests passing through a ring, each checked or flagged',
+    ),
   ],
 };
 
@@ -142,7 +156,10 @@ export const IMPROV: Content = {
     </p>
   ),
   mediaSources: [
-    loop('improv', 'An improv stage under a spotlight: "Yes, and…"'),
+    loop(
+      'improv',
+      'A head at a microphone on an improv stage, under a spotlight',
+    ),
   ],
 };
 
@@ -158,7 +175,7 @@ export const WHATS_NEXT: Content = {
   mediaSources: [
     loop(
       'whats-next',
-      "A team's pull request, written by an agent, checked and merged",
+      "An agent carries a pull request along a team's line to be merged",
     ),
   ],
 };

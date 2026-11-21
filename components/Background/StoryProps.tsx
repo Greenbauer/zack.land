@@ -1,21 +1,19 @@
 import { useFrame } from '@react-three/fiber';
-import { RefObject, useMemo, useRef } from 'react';
+import { RefObject, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  BoxGeometry,
   BufferGeometry,
   DoubleSide,
-  ExtrudeGeometry,
   Float32BufferAttribute,
   Group,
   Material,
   Mesh,
   MeshBasicMaterial,
-  Shape,
   SphereGeometry,
   Vector3,
 } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
+import { Glasses, loadGlasses } from './glassesGeometry';
 import { headMood } from './headMood';
 import { GLOSS } from './headSkin';
 import { turnHead } from './headTurn';
@@ -61,70 +59,39 @@ const centre = (geometry: BufferGeometry) => {
   return geometry.boundingBox!.getCenter(new Vector3());
 };
 
-// A rounded rectangle, w by h, corner radius r, centred on the origin.
-function rounded(w: number, h: number, r: number): Shape {
-  const s = new Shape();
-  const x = -w / 2;
-  const y = -h / 2;
-  s.moveTo(x + r, y);
-  s.lineTo(x + w - r, y);
-  s.quadraticCurveTo(x + w, y, x + w, y + r);
-  s.lineTo(x + w, y + h - r);
-  s.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  s.lineTo(x + r, y + h);
-  s.quadraticCurveTo(x, y + h, x, y + h - r);
-  s.lineTo(x, y + r);
-  s.quadraticCurveTo(x, y, x + r, y);
-  return s;
-}
-
-// Sunglasses sized to the eyes (Banner Eyewear's shape: square lenses on a
-// flat brow bar, arms back to the ears): lenses and frame as two meshes.
-function sunglasses(left: Vector3, right: Vector3) {
+// The Banner Eyewear sunglasses (glassesGeometry.ts) fitted to the head:
+// scaled so their lenses' centres sit about as far apart as its eyes, the
+// bridge resting on its nose, every part carried by the skull.
+// Returns the parts, and how far above their place they drop from.
+function fitGlasses(glasses: Glasses, left: Vector3, right: Vector3) {
   const spread = Math.abs(right.x - left.x);
-  const mid = (left.x + right.x) / 2;
-  const w = spread * 0.84;
-  const h = spread * 0.56;
-  // Just in front of the eyeballs (their centres are a third of the spread
-  // behind their fronts), a little above their middles.
-  const z = Math.max(left.z, right.z) + spread * 0.36;
-  const y = (left.y + right.y) / 2 + spread * 0.02;
-  const lens = (at: Vector3) => {
-    const g = new ExtrudeGeometry(rounded(w, h, h * 0.3), {
-      depth: spread * 0.03,
-      bevelEnabled: false,
-      curveSegments: 6,
-    });
-    g.translate(at.x, y, z);
-    return g;
+  const lenses = glasses.lenses.clone();
+  lenses.computeBoundingBox();
+  const box = lenses.boundingBox!;
+  // A lens's middle, from the right half of both lenses.
+  const lensX = (box.max.x + Math.max(0, box.min.x)) / 2 || box.max.x / 2;
+  const scale = (spread * 0.94) / (2 * lensX);
+  const lift = (box.min.y + box.max.y) / 2;
+  const back = box.min.z;
+  const at = new Vector3(
+    (left.x + right.x) / 2,
+    (left.y + right.y) / 2 + spread * 0.04,
+    Math.max(left.z, right.z) + spread * 0.6,
+  );
+  const placed = (geometry: BufferGeometry) => {
+    const g = geometry.clone();
+    g.translate(0, -lift, -back);
+    g.scale(scale, scale, scale);
+    g.translate(at.x, at.y, at.z);
+    return onSkull(g);
   };
-  const rim = (at: Vector3) => {
-    const g = new ExtrudeGeometry(rounded(w * 1.1, h * 1.14, h * 0.36), {
-      depth: spread * 0.05,
-      bevelEnabled: false,
-      curveSegments: 6,
-    });
-    g.translate(at.x, y, z - spread * 0.025);
-    return g;
+  return {
+    frame: placed(glasses.frame),
+    lenses: placed(glasses.lenses),
+    left: placed(glasses.left),
+    right: placed(glasses.right),
+    drop: spread * 5,
   };
-  // The flat brow bar across both lenses, and an arm from each outer
-  // corner back past the ear, angled a little out round the head.
-  const outer = spread / 2 + (w * 1.1) / 2;
-  const bar = new BoxGeometry(outer * 2, h * 0.24, spread * 0.07);
-  bar.translate(mid, y + h * 0.48, z + spread * 0.01);
-  const length = spread * 2.1;
-  const arm = (side: number) => {
-    const g = new BoxGeometry(spread * 0.07, h * 0.16, length);
-    g.translate(0, 0, -length / 2);
-    g.rotateY(side * 0.12);
-    g.translate(mid + side * outer, y + h * 0.4, z);
-    return g;
-  };
-  const frame = mergeGeometries(
-    [rim(left), rim(right), bar, arm(-1), arm(1)].map((g) => g.toNonIndexed()),
-  )!;
-  const lenses = mergeGeometries([lens(left), lens(right)])!;
-  return { lenses: onSkull(lenses), frame: onSkull(frame), drop: spread * 5 };
 }
 
 // A small head: a navy egg with two light eyes, for the agents.
@@ -170,15 +137,26 @@ export default function StoryProps({
   skin: BufferGeometry;
   skinRef: RefObject<Mesh | null>;
 }) {
-  const shapes = useMemo(() => {
-    const glasses = sunglasses(centre(leftEye), centre(rightEye));
-    return {
-      glasses,
-      agent: agentHead(),
-      plane: paperPlane(),
-      eyes: centre(leftEye).add(centre(rightEye)).multiplyScalar(0.5),
-    };
-  }, [leftEye, rightEye]);
+  const shapes = useMemo(
+    () => ({ agent: agentHead(), plane: paperPlane() }),
+    [],
+  );
+  // The sunglasses, fetched once the story has started (a chapter's cue),
+  // well before Banner Eyewear's chapter comes round.
+  const [model, setModel] = useState<Glasses | null>(null);
+  useEffect(() => {
+    if (model) return;
+    const timer = setInterval(() => {
+      if (!headMood.cue) return;
+      clearInterval(timer);
+      loadGlasses().then(setModel, () => {});
+    }, 500);
+    return () => clearInterval(timer);
+  }, [model]);
+  const glasses = useMemo(
+    () => model && fitGlasses(model, centre(leftEye), centre(rightEye)),
+    [model, leftEye, rightEye],
+  );
   const amount = useRef<Record<StoryProp, number>>({
     sunglasses: 0,
     plane: 0,
@@ -202,7 +180,7 @@ export default function StoryProps({
       const rate = target > was ? IN_RATE : OUT_RATE;
       amount.current[prop] = was + (target - was) * Math.min(1, rate * delta);
     }
-    const { sunglasses: glasses, wireframe, agents, plane } = amount.current;
+    const { sunglasses: wearing, wireframe, agents, plane } = amount.current;
     // The bang's moment is told by the clock, not by a frame that caught its
     // flash: at a frame a second (a browser drawing in software) a frame
     // can miss it.
@@ -210,16 +188,19 @@ export default function StoryProps({
       banged.current = cue;
     const drawn: StoryProp[] = (
       ['sunglasses', 'plane', 'agents', 'wireframe'] as const
-    ).filter((prop) => amount.current[prop] > 0.5);
+    ).filter(
+      (prop) =>
+        amount.current[prop] > 0.5 && (prop !== 'sunglasses' || !!glasses),
+    );
     if (cue && banged.current === cue) drawn.push('bang');
     const named = drawn.join(' ');
     const root = document.documentElement;
     if (root.dataset.storyProp !== named) root.dataset.storyProp = named;
 
     // The sunglasses drop from above onto the face, slowing as they land.
-    if (glassesRef.current) {
-      glassesRef.current.visible = glasses > 0.01;
-      glassesRef.current.position.y = (1 - glasses) ** 2 * shapes.glasses.drop;
+    if (glassesRef.current && glasses) {
+      glassesRef.current.visible = wearing > 0.01;
+      glassesRef.current.position.y = (1 - wearing) ** 2 * glasses.drop;
     }
 
     // The head's own wireframe over its skin, its expressions and all.
@@ -268,22 +249,40 @@ export default function StoryProps({
 
   return (
     <>
-      <group ref={glassesRef} visible={false}>
-        <mesh geometry={shapes.glasses.lenses}>
-          <meshPhysicalMaterial
-            color="#05031c"
-            {...GLOSS}
-            onBeforeCompile={turnHead}
-          />
-        </mesh>
-        <mesh geometry={shapes.glasses.frame}>
-          <meshPhysicalMaterial
-            color="#e2607a"
-            roughness={0.35}
-            onBeforeCompile={turnHead}
-          />
-        </mesh>
-      </group>
+      {/* Banner Eyewear's colours: a gray front, dark lenses, orange and
+          pink arms (the pair in its photos). */}
+      {glasses && (
+        <group ref={glassesRef} visible={false}>
+          <mesh geometry={glasses.frame}>
+            <meshPhysicalMaterial
+              color="#9c9b96"
+              roughness={0.4}
+              onBeforeCompile={turnHead}
+            />
+          </mesh>
+          <mesh geometry={glasses.lenses}>
+            <meshPhysicalMaterial
+              color="#05031c"
+              {...GLOSS}
+              onBeforeCompile={turnHead}
+            />
+          </mesh>
+          <mesh geometry={glasses.left}>
+            <meshPhysicalMaterial
+              color="#f57a3d"
+              roughness={0.5}
+              onBeforeCompile={turnHead}
+            />
+          </mesh>
+          <mesh geometry={glasses.right}>
+            <meshPhysicalMaterial
+              color="#d742a0"
+              roughness={0.5}
+              onBeforeCompile={turnHead}
+            />
+          </mesh>
+        </group>
+      )}
       <mesh ref={wireRef} geometry={skin} visible={false}>
         <meshBasicMaterial
           color="#d3aba0"

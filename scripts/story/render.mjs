@@ -1,7 +1,9 @@
-// Records the home page's story illustrations (illustrations.html) into
+// Records the home page's story illustrations (scenes.html, three.js) into
 // public/story/<scene>.mp4, a silent six-second loop, and <scene>.jpg, its
 // poster (components/Media.tsx shows the poster until the loop plays).
-// Run: node scripts/story/render.mjs [scene ...]   (needs ffmpeg on PATH)
+// Run, with the repository's root served on port 3170 (for example
+// `python3 -m http.server 3170`) and ffmpeg on PATH, on a machine with a GPU:
+//   node scripts/story/render.mjs [scene ...]
 import { spawn } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -17,20 +19,22 @@ const FPS = 24;
 const POSTER_AT = 0;
 
 mkdirSync(out, { recursive: true });
-const browser = await chromium.launch();
+// Drawn by the GPU (Metal on a Mac): in software the scenes take seconds a
+// frame and lose their reflections.
+const browser = await chromium.launch({
+  args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist'],
+});
+const SCENES_URL =
+  process.env.STORY_SCENES ?? 'http://localhost:3170/scripts/story/scenes.html';
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
-await page.goto(
-  `file://${join(here, 'illustrations.html')}?scene=texas-tech&t=0`,
-);
-await page.evaluate(() => document.fonts.ready);
+await page.goto(`${SCENES_URL}?scene=texas-tech`);
+await page.waitForFunction(() => window.ready, null, { timeout: 60_000 });
 const all = await page.evaluate(() => window.SCENES);
 const scenes = process.argv.slice(2).length ? process.argv.slice(2) : all;
 
 for (const scene of scenes) {
-  await page.goto(
-    `file://${join(here, 'illustrations.html')}?scene=${scene}&t=0`,
-  );
-  await page.evaluate(() => document.fonts.ready);
+  await page.goto(`${SCENES_URL}?scene=${scene}`);
+  await page.waitForFunction(() => window.ready, null, { timeout: 60_000 });
   const loop = await page.evaluate(() => window.LOOP);
   const ffmpeg = spawn(
     'ffmpeg',
