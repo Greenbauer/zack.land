@@ -30,8 +30,11 @@ test('back while the page moves out stays where back went', async ({
   // TILES_MS after the click (leaveTo.ts), and a slow CI runner can take
   // longer than that to get from the click to Back, which then rightly
   // returns to the home page.
+  // A second on from the page's own clock, read after installing it: from
+  // the test's clock, a slow install (the home page's story is heavy) left
+  // the time to pause at in the past.
   await page.clock.install();
-  await page.clock.pauseAt(Date.now() + 1000);
+  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 1000));
   await page
     .getByRole('navigation', { name: 'Main' })
     .getByRole('link', { name: 'Contact' })

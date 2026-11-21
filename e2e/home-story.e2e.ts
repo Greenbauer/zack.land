@@ -72,9 +72,12 @@ test.describe('on a wide screen', () => {
       await expect(bubble(page)).toHaveText(saying(chapter.id), {
         timeout: 8000,
       });
-      // The head, and its line, sit left of the card, beside it.
+      // The head, and its line, sit left of where the card rests (a fixed
+      // box's offset leaves out the slide it may still be part way through).
       expect(await headAcross(page)).toBeLessThan(
-        (await card(page, chapter.id).boundingBox())!.x,
+        await card(page, chapter.id).evaluate(
+          (el) => (el as HTMLElement).offsetLeft,
+        ),
       );
       // The pager holds the next turn while this card arrives.
       await page.waitForTimeout(1500);
