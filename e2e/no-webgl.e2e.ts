@@ -23,7 +23,10 @@ for (const [path, title] of [
     await expect(page.locator('html[data-page-in]')).toBeAttached({
       timeout: 15_000,
     });
-    await expect(page.locator('canvas')).toHaveCount(0);
+    // No scene. (The images' melt keeps its canvas, hidden, with nothing to
+    // draw it with: MediaMelt.tsx, on the home page's story as on the
+    // portfolio's pages.)
+    await expect(page.locator('canvas:not([hidden])')).toHaveCount(0);
     const h1 = page.locator('h1');
     await expect(h1).toHaveText(title, { ignoreCase: true });
     await expect(h1).not.toHaveCSS('color', 'rgba(0, 0, 0, 0)');
