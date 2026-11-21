@@ -53,9 +53,10 @@ const posts: Content[] = [
     name: 'Parametric Lounge Chair',
     description: (
       <p>
-        I sculpted this flat-pack lounge chair from CNC-cut pieces of
-        veneer-core plywood that interlock into one strong shape, finished it in
-        a polished varnish, and worked out its curve mathematically to be
+        I designed and built this flat-pack parametric lounge chair. I sculpted
+        it from CNC-cut pieces of high-grade veneer-core plywood that interlock
+        into one strong, good-looking shape, then finished the whole thing in a
+        polished varnish. Its curve is worked out mathematically to be very
         comfortable. I&rsquo;d sit in it, but I&rsquo;m just a head.
       </p>
     ),

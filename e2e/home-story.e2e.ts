@@ -154,6 +154,31 @@ test.describe('on a wide screen', () => {
   });
 });
 
+// The story's rewritten portfolio texts keep each card about as tall as it
+// was, so the pictures above it keep their arrangement: shorter, the chair's
+// left a taller space there and its two photos stacked instead of sitting
+// side by side, as they do on the live site.
+test.describe('on a tall laptop window', () => {
+  test.use({ viewport: { width: 1400, height: 1259 } });
+
+  test("the lounge chair's photos still sit side by side", async ({ page }) => {
+    await open(page, '/portfolio/miscellaneous');
+    await page.keyboard.press('PageDown');
+    const chair = page.locator('[data-post]').nth(1);
+    await expect(chair.locator('section h2')).toHaveText(
+      'Parametric Lounge Chair',
+    );
+    await expect(chair.locator('section h2')).toBeVisible();
+    const tiles = await chair
+      .locator('.collage-tile')
+      .evaluateAll((all) =>
+        all.map((t) => Math.round(t.getBoundingClientRect().top)),
+      );
+    expect(tiles).toHaveLength(2);
+    expect(Math.abs(tiles[0]! - tiles[1]!)).toBeLessThan(4);
+  });
+});
+
 test.describe('on a phone', () => {
   test.use({ viewport: { width: 375, height: 812 }, hasTouch: true });
 
