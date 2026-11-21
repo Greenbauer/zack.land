@@ -62,6 +62,8 @@ import { faceInView, idleWait, PAGE_TARGETS } from './pageWatch';
 import { SHOWN_EXPRESSIONS, SHOWN_SIDED } from './shownExpressions';
 import { withSides } from './sideMorphs';
 import { isStill } from './stillScene';
+import { cueLook } from './storyCue';
+import StoryProps from './StoryProps';
 import { startWander, TIP, TURN, WANDER_TURN } from './wander';
 
 type MyHeadGeometry = { [key: string]: BufferGeometry };
@@ -234,6 +236,13 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
       alone.current = step.state;
       if (step.own)
         ({ lookPosition, rotationSpeed, skySpeed } = ownHeading(step.own));
+      // The home page's story can have it look at the chapter's card, the
+      // camera or up for a moment (storyCue.ts), unless it is greeting.
+      const cued =
+        headMood.cue && step.own?.kind !== 'greeting'
+          ? cueLook(headMood.cue, performance.now() / 1000)
+          : null;
+      if (cued) lookPosition = cued;
     }
 
     // With reduced motion it holds still, facing the camera (stillScene.ts).
@@ -374,7 +383,11 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
           },
           size,
         );
-    stepFace(isGreeting || headMood.worried, clock.elapsedTime, delta);
+    stepFace(
+      isGreeting || headMood.worried || headMood.cue !== null,
+      clock.elapsedTime,
+      delta,
+    );
     // The neck's shapes follow the head's turn this frame, not eased: they
     // are part of the turn (neckPose.ts).
     const neck: Record<string, number> = neckExpressions(headTurn.value);
@@ -439,6 +452,13 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
           onBeforeCompile={turnHead}
         />
       </mesh>
+      {/* What the home page's story brings into the scene (StoryProps.tsx). */}
+      <StoryProps
+        leftEye={myHeadGeometry.leftEye!}
+        rightEye={myHeadGeometry.rightEye!}
+        skin={myHeadGeometry.skin!}
+        skinRef={skinRef}
+      />
     </group>
   );
 }

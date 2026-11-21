@@ -275,7 +275,10 @@ export default function SnapPager() {
     };
 
     const onKey = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement;
+      // A key sent to the window or the document by a script has no
+      // element: it counts as the page.
+      const target =
+        event.target instanceof Element ? event.target : document.body;
       if (target.closest('input, textarea, select, [contenteditable]')) return;
       // A post's title, focused by a turn (arrival.ts), counts as the page.
       const onPage =

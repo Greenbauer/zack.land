@@ -3,6 +3,7 @@ import { headMood, WORRIED } from './headMood';
 import { SEARCH_FACE } from './headSearch';
 import { HeadTaps, tapExpressions, tapsOn } from './headTaps';
 import { Greeting, greetingExpressions, greetingOn } from './idleGreeting';
+import { cueFace } from './storyCue';
 
 type Point = { x: number; y: number };
 
@@ -13,7 +14,9 @@ type Point = { x: number; y: number };
 // turns to the camera, then the gasp, then the smile: idleGreeting.ts); the
 // frown of looking for the pointer it lost (`searching`: headSearch.ts);
 // otherwise its reactions to where it looks (`look`; `spot`, on screen,
-// against where the `eyes` are, in a window of `size`).
+// against where the `eyes` are, in a window of `size`), with the face the
+// home page's story asks for over them (storyCue.ts) at `now` (seconds,
+// performance.now() / 1000).
 export function faceTargets(
   {
     taps,
@@ -24,10 +27,15 @@ export function faceTargets(
   spot: Point,
   eyes: Point,
   size: { width: number; height: number },
+  now: number = performance.now() / 1000,
 ): Record<string, number> {
   if (tapsOn(taps)) return tapExpressions(taps);
   if (headMood.worried) return WORRIED;
   if (greetingOn(greeting)) return greetingExpressions(greeting);
   if (searching) return SEARCH_FACE;
-  return { smile: facingSmile(look), ...pointerExpressions(spot, eyes, size) };
+  return {
+    smile: facingSmile(look),
+    ...pointerExpressions(spot, eyes, size),
+    ...(headMood.cue ? cueFace(headMood.cue, now) : {}),
+  };
 }

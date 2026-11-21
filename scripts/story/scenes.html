@@ -1,0 +1,434 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Story Scenes</title>
+<style>html, body { margin: 0; background: #594d69; overflow: hidden; } canvas { display: block; }</style>
+<script type="importmap">
+{ "imports": {
+  "three": "/node_modules/three/build/three.module.js",
+  "three/addons/": "/node_modules/three/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<script type="module">
+// The home page's story illustrations (components/Home/storyPosts.tsx): one
+// six-second 3D loop per chapter, in the site's own look (the dawn sky the
+// head reflects, its glossy black skin, the theme's colours), drawn frame by
+// frame here and recorded by render.mjs into public/story/<scene>.mp4 and
+// its first frame, <scene>.jpg. Open ?scene=<name>&t=<seconds> for one frame.
+import * as THREE from 'three';
+import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+const LOOP = 6;
+const TAU = Math.PI * 2;
+const C = { light: '#ede4e3', peach: '#d3aba0', rose: '#a57374', purple: '#594d69', blue: '#1c265b', navy: '#040227', pass: '#8fd6a0', fail: '#e0604f', flame: '#ffb36b' };
+const ease = (x) => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x); };
+const loopT = (t) => ((t % LOOP) + LOOP) % LOOP;
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1);
+renderer.setSize(1280, 720);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(35, 1280 / 720, 0.1, 500);
+const sky = await new RGBELoader().loadAsync('/scripts/environment/kiara_1_dawn_1k.hdr');
+sky.mapping = THREE.EquirectangularReflectionMapping;
+scene.environment = sky;
+scene.background = sky;
+scene.backgroundBlurriness = 0.45;
+scene.backgroundIntensity = 0.85;
+scene.environmentIntensity = 1;
+
+// The head's skin: glossy black that shows the sky (components/Background/headSkin.ts).
+const GLOSS = { clearcoat: 0.6, clearcoatRoughness: 0.1, roughness: 0.22, metalness: 0.25 };
+const gloss = (color, extra = {}) => new THREE.MeshPhysicalMaterial({ color, ...GLOSS, ...extra });
+const matte = (color, extra = {}) => new THREE.MeshPhysicalMaterial({ color, roughness: 0.55, clearcoat: 0.3, ...extra });
+const glow = (color, opacity = 1) => new THREE.MeshBasicMaterial({ color, transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false });
+const box = (w, h, d, r = 0.1) => new RoundedBoxGeometry(w, h, d, 4, r);
+const mesh = (g, m, parent = scene) => { const o = new THREE.Mesh(g, m); parent.add(o); return o; };
+const group = (parent = scene) => { const g = new THREE.Group(); parent.add(g); return g; };
+const orbit = (t, radius, height, target, from = 0.35, sweep = 0.35) => {
+  const a = from + Math.sin((loopT(t) / LOOP) * TAU) * sweep * 0.5;
+  camera.position.set(target.x + Math.sin(a) * radius, target.y + height, target.z + Math.cos(a) * radius);
+  camera.lookAt(target);
+};
+// A small glossy head, the site's head in miniature: an egg with two eyes.
+function littleHead(parent, scale = 1) {
+  const g = group(parent);
+  const skull = mesh(new THREE.SphereGeometry(1, 40, 30), gloss(C.navy), g);
+  skull.scale.set(0.82, 1, 0.9);
+  for (const x of [-0.32, 0.32]) {
+    const eye = mesh(new THREE.SphereGeometry(0.16, 16, 12), gloss(C.light), g);
+    eye.position.set(x, 0.12, 0.86);
+    eye.scale.set(1.3, 0.75, 0.6);
+  }
+  g.scale.setScalar(scale);
+  return g;
+}
+
+const SCENES = {
+  'texas-tech'() {
+    const plane = group();
+    const body = mesh(new THREE.CapsuleGeometry(0.9, 6, 12, 32), gloss(C.light, { metalness: 0.1 }), plane);
+    body.rotation.z = Math.PI / 2;
+    mesh(box(1.6, 0.18, 7.5, 0.08), gloss(C.peach), plane).position.set(0.3, -0.1, 0);
+    mesh(box(0.9, 0.14, 3, 0.06), gloss(C.peach), plane).position.set(-3.4, 0.2, 0);
+    const fin = mesh(box(1, 1.4, 0.14, 0.06), gloss(C.rose), plane);
+    fin.position.set(-3.5, 0.9, 0);
+    // The pulse jet on its pylon: a valve head, a long tail pipe.
+    const jet = group(plane);
+    jet.position.set(-0.6, 1.5, 0);
+    mesh(new THREE.SphereGeometry(0.42, 24, 16), gloss(C.navy), jet).position.x = 1.6;
+    const pipe = mesh(new THREE.CylinderGeometry(0.22, 0.3, 4, 24), gloss(C.navy), jet);
+    pipe.rotation.z = Math.PI / 2;
+    mesh(box(0.3, 0.6, 0.2, 0.05), gloss(C.navy), plane).position.set(-0.2, 1.05, 0);
+    const flame = mesh(new THREE.ConeGeometry(0.32, 1.6, 20, 1, true), glow(C.flame, 0.9), jet);
+    flame.rotation.z = Math.PI / 2;
+    flame.position.x = -2.8;
+    const ring = mesh(new THREE.TorusGeometry(1, 0.06, 8, 64), glow('#ffd27a', 1));
+    const light = new THREE.PointLight('#ffd27a', 0, 30);
+    scene.add(light);
+    return (t) => {
+      const u = loopT(t);
+      plane.rotation.set(0.05, 0.25, Math.sin((u / LOOP) * TAU) * 0.12);
+      plane.position.y = Math.sin((u / LOOP) * TAU * 2) * 0.15;
+      const pulse = 0.5 + 0.5 * Math.sin(u * TAU * 7);
+      flame.scale.set(0.6 + pulse * 0.9, 0.7 + pulse * 0.6, 0.7 + pulse * 0.6);
+      flame.material.opacity = 0.5 + pulse * 0.5;
+      // The bang: a shock ring off the tail pipe, and a flash.
+      const bang = u > 3 && u < 4 ? (u - 3) : -1;
+      ring.visible = bang >= 0;
+      const tail = new THREE.Vector3(-3.4, 0, 0);
+      jet.localToWorld(tail);
+      ring.position.copy(tail);
+      ring.lookAt(camera.position);
+      ring.scale.setScalar(0.4 + bang * 4);
+      ring.material.opacity = Math.max(0, 1 - bang);
+      light.position.copy(tail);
+      light.intensity = bang >= 0 ? 400 * (1 - bang) : 0;
+      orbit(t, 13, 2.8, new THREE.Vector3(-0.6, 0.5, 0), -0.75, 0.4);
+    };
+  },
+
+  'pipe-engineer'() {
+    const pts = [[-9, -2.2, 1], [-3, -2.2, 1], [-1.5, -2.2, 1], [-1.5, -0.7, 1], [-1.5, 1.6, 1], [0, 1.6, 1], [5, 1.6, 1], [6.5, 1.6, 1], [6.5, 1.6, -0.5], [6.5, 1.6, -5]].map((p) => new THREE.Vector3(...p));
+    const path = new THREE.CurvePath();
+    for (let i = 0; i < pts.length - 1; i++) path.add(new THREE.LineCurve3(pts[i], pts[i + 1]));
+    const curve = new THREE.CatmullRomCurve3(path.getSpacedPoints(80), false, 'centripetal', 0.1);
+    const tube = new THREE.TubeGeometry(curve, 600, 0.75, 32, false);
+    const colors = new Float32Array(tube.attributes.position.count * 3);
+    tube.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    const pipe = mesh(tube, gloss('#ffffff', { vertexColors: true, metalness: 0.1 }));
+    for (let i = 0.08; i < 1; i += 0.14) {
+      const flange = mesh(new THREE.TorusGeometry(0.82, 0.12, 12, 40), gloss(C.navy));
+      flange.position.copy(curve.getPointAt(i));
+      flange.lookAt(curve.getPointAt(i).add(curve.getTangentAt(i)));
+    }
+    const cool = new THREE.Color(C.blue), warm = new THREE.Color(C.peach), hot = new THREE.Color(C.fail);
+    // Bugs: dark beetles crawling along the top of the pipe.
+    const bugs = [0, 0.2, 0.45, 0.62, 0.82].map(() => {
+      const b = group();
+      const body = mesh(new THREE.SphereGeometry(0.3, 20, 14), gloss(C.navy), b);
+      body.scale.set(1, 0.55, 1.4);
+      mesh(new THREE.SphereGeometry(0.16, 14, 10), gloss(C.navy), b).position.z = 0.42;
+      const legs = [];
+      for (const s of [-1, 1]) for (const z of [-0.2, 0, 0.2]) {
+        const leg = mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.4, 6), gloss(C.navy), b);
+        leg.position.set(s * 0.3, -0.05, z);
+        leg.rotation.z = s * 1.1;
+        legs.push(leg);
+      }
+      return { b, legs };
+    });
+    const uv = tube.attributes.uv;
+    return (t) => {
+      const u = loopT(t);
+      for (let i = 0; i < uv.count; i++) {
+        const along = uv.getX(i);
+        const s = 0.5 + 0.5 * Math.sin(along * TAU * 3 - (u / LOOP) * TAU * 2);
+        const c = s < 0.5 ? cool.clone().lerp(warm, s * 2) : warm.clone().lerp(hot, (s - 0.5) * 2);
+        colors.set([c.r, c.g, c.b], i * 3);
+      }
+      tube.attributes.color.needsUpdate = true;
+      bugs.forEach(({ b, legs }, k) => {
+        const at = ((k / bugs.length + u / LOOP) % 1) * 0.92 + 0.04;
+        const p = curve.getPointAt(at), tan = curve.getTangentAt(at);
+        const up = new THREE.Vector3(0, 1, 0);
+        if (Math.abs(tan.y) > 0.9) up.set(0, 0, 1);
+        const side = new THREE.Vector3().crossVectors(tan, up).normalize();
+        const top = new THREE.Vector3().crossVectors(side, tan).normalize();
+        b.position.copy(p).addScaledVector(top, 0.95);
+        b.scale.setScalar(1.9);
+        b.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(side, top, tan));
+        legs.forEach((leg, j) => (leg.rotation.x = Math.sin(u * TAU * 4 + j * 1.7) * 0.5));
+      });
+      orbit(t, 19, 4, new THREE.Vector3(-0.5, 0, 0), 0.55, 0.4);
+    };
+  },
+
+  freelance() {
+    const stand = mesh(new THREE.CylinderGeometry(5.2, 5.4, 0.5, 64), gloss(C.navy));
+    stand.position.y = -2.2;
+    const bars = [0.35, 0.5, 0.62, 0.8, 1].map((h, k) => {
+      const bar = mesh(box(0.9, 1, 0.9, 0.14), gloss(new THREE.Color(C.peach).lerp(new THREE.Color(C.rose), k / 4)));
+      bar.position.set(-2.4 + k * 1.2, -1.95, -1.2);
+      return { bar, h };
+    });
+    const parcels = [[C.light, -2.6, 1.6, 1.2], [C.peach, -0.9, 1.9, 1], [C.rose, 1.3, 1.5, 1.3], [C.purple, 2.9, 1.7, 0.9]].map(([color, x, z, s]) => {
+      const p = mesh(box(s, s, s, 0.12), gloss(color));
+      p.position.set(x, -1.95 + s / 2, z);
+      const band = mesh(box(s * 1.02, s * 0.14, s * 1.02, 0.03), gloss(C.navy), p);
+      band.rotation.y = 0.0;
+      return p;
+    });
+    // A shopping bag, its handles a torus.
+    const bag = group();
+    mesh(box(1.4, 1.6, 0.8, 0.08), gloss(C.light), bag);
+    const handle = mesh(new THREE.TorusGeometry(0.38, 0.05, 10, 40, Math.PI), gloss(C.navy), bag);
+    handle.position.y = 0.8;
+    bag.position.set(0.3, -0.6, 2.6);
+    return (t) => {
+      const u = loopT(t);
+      bars.forEach(({ bar, h }, k) => {
+        const grow = ease((u - k * 0.25) / 2.2) * (1 - ease((u - 5.4) / 0.6)) * h * 5.5 + 0.2;
+        bar.scale.y = grow;
+        bar.position.y = -1.95 + grow / 2;
+      });
+      parcels.forEach((p, k) => (p.rotation.y = Math.sin((u / LOOP) * TAU + k) * 0.25));
+      bag.position.y = -0.6 + Math.abs(Math.sin((u / LOOP) * TAU * 2)) * 0.6;
+      orbit(t, 15, 4.5, new THREE.Vector3(0, -0.3, 0), 0.3, 0.6);
+    };
+  },
+
+  usaa() {
+    const belt = mesh(box(18, 0.4, 2.2, 0.15), gloss(C.navy));
+    belt.position.y = -1.2;
+    const gates = [[C.peach, -4.5], [C.rose, 0], [C.light, 4.5]].map(([color, x]) => {
+      const g = mesh(new THREE.TorusGeometry(1.8, 0.16, 16, 64, Math.PI), gloss(color, { emissive: color, emissiveIntensity: 0 }));
+      g.position.set(x, -1, 0);
+      return g;
+    });
+    const steps = [C.navy, C.peach, C.rose, C.light];
+    const tokens = [0, 1, 2, 3, 4, 5].map(() => mesh(box(0.9, 0.9, 0.9, 0.16), gloss(C.navy)));
+    // Five people beside the line: the engineers he mentored.
+    const people = [0, 1, 2, 3, 4].map((k) => {
+      const p = group();
+      mesh(new THREE.CapsuleGeometry(0.35, 0.7, 8, 20), gloss(C.purple), p).position.y = 0.6;
+      littleHead(p, 0.42).position.y = 1.6;
+      p.position.set(-4 + k * 2, -1.4, -3.4);
+      return p;
+    });
+    return (t) => {
+      const u = loopT(t);
+      tokens.forEach((tok, k) => {
+        const x = -9 + (((u / LOOP) * 18 * 1 + k * 3) % 18);
+        tok.position.set(x, -0.55, 0);
+        tok.rotation.y = x * 0.2;
+        const passed = gates.filter((g) => g.position.x < x).length;
+        tok.material.color.set(steps[passed]);
+      });
+      gates.forEach((g) => {
+        const near = Math.min(...tokens.map((tok) => Math.abs(tok.position.x - g.position.x)));
+        g.material.emissiveIntensity = Math.max(0, 1 - near) * 0.8;
+      });
+      people.forEach((p, k) => (p.position.y = -1.4 + Math.abs(Math.sin(u * 2 + k)) * 0.15));
+      orbit(t, 17, 5, new THREE.Vector3(0, -0.6, -0.8), 0.15, 0.35);
+    };
+  },
+
+  gulp() {
+    const profile = [[0, 0], [1.6, 0], [1.75, 0.2], [1.75, 3.4], [1.5, 3.9], [0.95, 4.2], [0.95, 4.7], [0, 4.7]].map(([x, y]) => new THREE.Vector2(x, y));
+    const bottle = mesh(new THREE.LatheGeometry(profile, 64), new THREE.MeshPhysicalMaterial({ color: '#ffffff', roughness: 0.05, transmission: 0.95, thickness: 0.5, ior: 1.45, clearcoat: 1 }));
+    bottle.position.y = -2.6;
+    // Its cap, lifted off and tipped back as the capsules pour in.
+    const cap = mesh(new THREE.CylinderGeometry(1.05, 1.05, 0.7, 48), gloss(C.rose));
+    cap.position.set(-1.4, 2.95, -0.4);
+    cap.rotation.z = 0.7;
+    const capsule = (k) => {
+      const c = group();
+      const half = (color, y) => {
+        const m = mesh(new THREE.CapsuleGeometry(0.22, 0.32, 8, 16), gloss(color), c);
+        m.scale.y = 0.5;
+        m.position.y = y;
+      };
+      half([C.peach, C.light, C.rose][k % 3], 0.13);
+      half(C.light, -0.13);
+      return c;
+    };
+    const pills = Array.from({ length: 14 }, (_, k) => capsule(k));
+    return (t) => {
+      const u = loopT(t);
+      pills.forEach((p, k) => {
+        const life = ((u / LOOP) * 2 + k / pills.length) % 1;
+        const inBottle = life > 0.55;
+        const x = Math.sin(k * 2.3) * 0.9, z = Math.cos(k * 1.7) * 0.9;
+        const settle = -2.2 + (k % 5) * 0.32 + Math.floor(k / 5) * 0.3;
+        p.position.set(inBottle ? x : x * (1 - life) + 0, inBottle ? settle : 4.5 - ease(life / 0.55) * (4.5 - settle), inBottle ? z : z);
+        p.rotation.set(k + u * (inBottle ? 0 : 3), k * 2, u * (inBottle ? 0 : 2));
+      });
+      bottle.rotation.y = u * 0.2;
+      orbit(t, 13, 3.5, new THREE.Vector3(0, 0, 0), 0.4, 0.5);
+    };
+  },
+
+  today() {
+    const desks = [-4.5, -1.5, 1.5, 4.5].map((x, k) => {
+      const d = group();
+      mesh(box(2.2, 0.25, 1.4, 0.08), gloss(C.purple), d).position.y = -1.3;
+      const head = littleHead(d, 0.7);
+      head.position.set(0, -0.4, -0.2);
+      const code = [0, 1, 2, 3, 4, 5].map((j) => {
+        const bar = mesh(box(1, 0.12, 0.05, 0.05), gloss([C.peach, C.light, C.rose][j % 3], { emissive: [C.peach, C.light, C.rose][j % 3], emissiveIntensity: 0.25 }), d);
+        return bar;
+      });
+      d.position.x = x;
+      return { d, head, code, k };
+    });
+    return (t) => {
+      const u = loopT(t);
+      desks.forEach(({ head, code, k }) => {
+        head.rotation.y = Math.sin(u * 2 + k) * 0.25;
+        head.position.y = -0.4 + Math.abs(Math.sin(u * 5 + k)) * 0.06;
+        code.forEach((bar, j) => {
+          const life = ((u / LOOP) * 3 + j / code.length + k * 0.17) % 1;
+          bar.position.set(Math.sin(j * 3 + k) * 0.3, 0.6 + life * 3.2, -0.2);
+          bar.scale.x = 0.5 + ((j * 7 + k * 3) % 5) * 0.2;
+          bar.material.opacity = 1;
+          bar.visible = life < 0.95;
+        });
+      });
+      orbit(t, 15, 2.5, new THREE.Vector3(0, 0.6, 0), 0.2, 0.4);
+    };
+  },
+
+  'vibe-verifier'() {
+    const belt = mesh(box(18, 0.3, 2.6, 0.12), gloss(C.navy));
+    belt.position.y = -1.3;
+    const scanner = mesh(new THREE.TorusGeometry(2, 0.22, 20, 80), gloss(C.light, { emissive: C.peach, emissiveIntensity: 0.4 }));
+    scanner.position.set(0, -0.2, 0);
+    scanner.rotation.y = Math.PI / 2;
+    const beam = mesh(new THREE.CircleGeometry(1.85, 64), glow(C.peach, 0.18));
+    beam.position.copy(scanner.position);
+    beam.rotation.y = Math.PI / 2;
+    const cards = [0, 1, 2, 3, 4, 5].map((k) => {
+      const c = group();
+      mesh(box(1.6, 0.12, 2, 0.06), gloss(C.light), c);
+      for (const [w, z] of [[1.1, -0.5], [0.8, -0.1], [1, 0.3]]) mesh(box(w, 0.04, 0.12, 0.02), gloss(C.purple), c).position.set(0, 0.08, z);
+      const ok = k % 4 !== 2;
+      const badge = group(c);
+      badge.position.set(0, 0.6, 0.7);
+      if (ok) {
+        mesh(box(0.14, 0.14, 0.5, 0.05), gloss(C.pass), badge).position.set(-0.12, 0, 0.05).constructor;
+        badge.children[0].rotation.y = 0.8;
+        const long = mesh(box(0.14, 0.14, 0.8, 0.05), gloss(C.pass), badge);
+        long.position.set(0.12, 0, -0.08);
+        long.rotation.y = -0.7;
+      } else {
+        for (const r of [0.8, -0.8]) mesh(box(0.14, 0.14, 0.8, 0.05), gloss(C.fail), badge).rotation.y = r;
+      }
+      return { c, badge };
+    });
+    return (t) => {
+      const u = loopT(t);
+      cards.forEach(({ c, badge }, k) => {
+        const x = -9 + (((u / LOOP) * 18 + k * 3) % 18);
+        c.position.set(x, -1.05, 0);
+        badge.visible = x > 0.4;
+        badge.scale.setScalar(Math.min(1, Math.max(0, (x - 0.4) * 1.5)));
+        badge.rotation.x = Math.PI / 2;
+      });
+      beam.material.opacity = 0.12 + 0.1 * Math.sin(u * TAU * 2);
+      orbit(t, 15, 5, new THREE.Vector3(0, -0.6, 0), 0.6, 0.35);
+    };
+  },
+
+  improv() {
+    const floor = mesh(box(16, 0.5, 7, 0.1), gloss(C.navy));
+    floor.position.set(0, -2.4, 0);
+    const curtain = (side) => {
+      const g = new THREE.PlaneGeometry(5, 9, 60, 1);
+      const pos = g.attributes.position;
+      for (let i = 0; i < pos.count; i++) pos.setZ(i, Math.sin(pos.getX(i) * 3.2) * 0.35);
+      g.computeVertexNormals();
+      const m = mesh(g, matte(C.rose, { side: THREE.DoubleSide, sheen: 1, sheenColor: C.peach }));
+      m.position.set(side * 5.2, 2, -2.5);
+      return m;
+    };
+    curtain(-1); curtain(1);
+    const valance = mesh(box(16, 1.2, 0.6, 0.1), matte(C.rose, { sheen: 1, sheenColor: C.peach }));
+    valance.position.set(0, 6.2, -2.4);
+    const performer = group();
+    littleHead(performer, 1).position.y = 0.6;
+    mesh(new THREE.CapsuleGeometry(0.75, 1.2, 10, 24), gloss(C.navy), performer).position.y = -1.1;
+    performer.position.z = -0.4;
+    const mic = group();
+    mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.6, 10), gloss(C.light), mic).position.y = -0.95;
+    mesh(new THREE.SphereGeometry(0.16, 16, 12), gloss(C.navy), mic).position.y = 0.4;
+    mic.position.set(1.1, 0, 0.6);
+    const beam = mesh(new THREE.ConeGeometry(2.4, 9, 48, 1, true), glow('#fff0c8', 0.14));
+    const spot = new THREE.SpotLight('#fff0c8', 300, 30, 0.35, 0.6);
+    scene.add(spot, spot.target);
+    return (t) => {
+      const u = loopT(t);
+      const sway = Math.sin((u / LOOP) * TAU) * 1.2;
+      performer.position.x = sway * 0.6;
+      performer.children[0].rotation.y = Math.sin(u * 3) * 0.5;
+      performer.children[0].rotation.z = Math.sin(u * 2.2) * 0.12;
+      spot.position.set(sway, 8, 3);
+      spot.target.position.set(performer.position.x, -1.5, -0.4);
+      beam.position.set((spot.position.x + spot.target.position.x) / 2, 3.2, 1.3);
+      beam.lookAt(spot.target.position);
+      beam.rotateX(-Math.PI / 2);
+      orbit(t, 16, 2, new THREE.Vector3(0, 0.6, 0), 0, 0.3);
+    };
+  },
+
+  'whats-next'() {
+    const main = mesh(new THREE.CylinderGeometry(0.16, 0.16, 18, 16), gloss(C.light));
+    main.rotation.z = Math.PI / 2;
+    const branchCurve = new THREE.CubicBezierCurve3(new THREE.Vector3(-4, 0, 0), new THREE.Vector3(-2.5, 2.8, 0), new THREE.Vector3(2.5, 2.8, 0), new THREE.Vector3(4, 0, 0));
+    mesh(new THREE.TubeGeometry(branchCurve, 120, 0.14, 12), gloss(C.peach));
+    for (const x of [-7, -4, 4, 7]) mesh(new THREE.SphereGeometry(0.36, 24, 18), gloss(C.navy), scene).position.x = x;
+    const merge = mesh(new THREE.SphereGeometry(0.42, 24, 18), gloss(C.light, { emissive: C.pass, emissiveIntensity: 0 }));
+    merge.position.x = 4;
+    const agent = littleHead(scene, 0.7);
+    agent.position.set(-4.6, 1.6, 0.6);
+    const card = group();
+    mesh(box(1.4, 0.9, 0.12, 0.06), gloss(C.light), card);
+    for (const [w, y] of [[0.9, 0.2], [0.6, -0.05], [0.8, -0.28]]) mesh(box(w, 0.08, 0.04, 0.02), gloss(C.purple), card).position.set(-0.1, y, 0.08);
+    const checks = [0, 1, 2].map((k) => {
+      const c = mesh(new THREE.SphereGeometry(0.16, 16, 12), gloss(C.pass, { emissive: C.pass, emissiveIntensity: 0.4 }));
+      c.position.set(-0.8 + k * 0.8, 3.8, 0);
+      return c;
+    });
+    return (t) => {
+      const u = loopT(t);
+      const p = ease((u - 0.3) / 3.8);
+      card.position.copy(branchCurve.getPointAt(p)).add(new THREE.Vector3(0, 0.75, 0));
+      card.rotation.y = Math.sin(u * 2) * 0.3;
+      checks.forEach((c, k) => (c.scale.setScalar(ease((p - 0.35 - k * 0.12) * 6))));
+      merge.material.emissiveIntensity = ease((u - 4.1) / 0.4) * (1 - ease((u - 5.4) / 0.5)) * 1.2;
+      merge.scale.setScalar(1 + merge.material.emissiveIntensity * 0.3);
+      agent.rotation.y = 0.4 + Math.sin(u * 2) * 0.2;
+      orbit(t, 15, 3, new THREE.Vector3(0, 1, 0), -0.2, 0.4);
+    };
+  },
+};
+
+const params = new URLSearchParams(location.search);
+const name = params.get('scene');
+const update = SCENES[name]();
+window.LOOP = LOOP;
+window.SCENES = Object.keys(SCENES);
+window.render = (t) => { update(t); renderer.render(scene, camera); };
+window.ready = true;
+if (params.get('t') !== null) window.render(+params.get('t'));
+</script>
+</body>
+</html>

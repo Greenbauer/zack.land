@@ -23,4 +23,7 @@ export type Content = {
   technology?: string;
   // How a site was built: written by hand, or with an AI writing the code.
   coded?: 'hand' | 'vibe';
+  // A link on this site the post leads to, as its main button (the home
+  // page's story ends on Work with me).
+  action?: { href: string; label: string };
 };

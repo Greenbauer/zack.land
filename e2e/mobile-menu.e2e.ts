@@ -43,6 +43,11 @@ const record = (page: Page) =>
     Object.assign(window, { steps });
     const step = () => {
       const pane = document.querySelector('.mobile-menu')!;
+      // The card showing: the home page's chapter cards wait hidden in the
+      // page while its opening shows (components/Home/ChapterPost.tsx).
+      const shown = [...document.querySelectorAll('section')].find((card) =>
+        card.checkVisibility({ visibilityProperty: true }),
+      );
       steps.push({
         path: location.pathname,
         menu: pane.classList.contains('fixed')
@@ -57,10 +62,8 @@ const record = (page: Page) =>
         ink: document
           .querySelector<HTMLElement>('[data-site-chrome] .sky-colours')!
           .style.getPropertyValue('--sky-text'),
-        card: document.querySelector('section')
-          ? getComputedStyle(
-              document.querySelector('section')!,
-            ).getPropertyValue('--card-ink')
+        card: shown
+          ? getComputedStyle(shown).getPropertyValue('--card-ink')
           : 'none',
       });
       requestAnimationFrame(step);
