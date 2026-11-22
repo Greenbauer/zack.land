@@ -14,7 +14,7 @@ Work with me in the header (between Portfolio and Contact, and in the phone menu
 
 Keep any new copy to the stated offer, and leave the line on current work general: it names no company. No invented examples, names or prices: a real before and after goes here once a free build allows it.
 
-The card is taller and wider than a phone's window, so once scrolled into, none of the sky around it is on screen to read. It then takes the side of the settled sky (`aimUnseen` in `components/Background/glassTint.ts`, called from `Grading.tsx`), so its text turns dark over a light sky as other cards' does.
+The card is taller and wider than a phone's window, so once scrolled into, none of the sky around it is on screen to read. It then takes the side of the settled sky (`aimUnseen` in `components/Background/glassTint.ts`, called from `Grading.tsx`), so its text turns dark over a light sky as other cards' does. The rule holds for any glass card with no sky around it on screen, a portfolio post's card scrolled out of view too, which then waits on the settled side as a new card does (`place`).
 
 ## Verify
 

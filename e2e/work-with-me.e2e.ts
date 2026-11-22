@@ -67,9 +67,23 @@ test('the header links to the page, which shows the offer and its price', async 
       'Details from forms, PDFs and emails get entered once. Anything unclear waits for you.',
     ),
   ).toBeAttached();
+  await expect(
+    page.getByText(
+      'Site-walk notes sit until someone has time to type up the quote.',
+    ),
+  ).toBeAttached();
+  await expect(
+    page.getByText(
+      'The same customer details get typed into the calendar, the estimate and the invoice.',
+    ),
+  ).toBeAttached();
   // How it works, in four steps.
-  await expect(page.locator('article ol > li')).toHaveCount(4);
-  await expect(page.getByText('within 3 working days.')).toBeAttached();
+  await expect(page.locator('article ol > li')).toHaveText([
+    'Send one real example. A quote you wrote, or a form your team retypes. Free.',
+    'See a draft built from it within 3 working days.',
+    "If it's useful, I set it up in two weeks. You approve every draft before it goes out.",
+    'I keep it running. Fixes, updates when your prices or forms change, and a short call each month.',
+  ]);
   // The price, all in.
   await expect(page.getByText('$3,500 setup')).toHaveCount(1);
   await expect(
@@ -103,8 +117,24 @@ test('the header links to the page, which shows the offer and its price', async 
   ).toBeVisible();
   await expect(page.locator('article details')).toHaveCount(5);
   await expect(
+    page.getByText(
+      "I've spent 10+ years building the apps customers use and the internal tools teams run on.",
+      { exact: false },
+    ),
+  ).toBeAttached();
+  await expect(page.getByRole('link', { name: 'See my work' })).toHaveAttribute(
+    'href',
+    '/portfolio',
+  );
+  await expect(
     page.getByRole('link', { name: 'Vibe Verifier on GitHub' }),
   ).toHaveAttribute('href', 'https://github.com/Greenbauer/vibe-verifier');
+
+  // The first step's button brings the form into view.
+  const email = page.getByLabel('Your email');
+  await expect(email).not.toBeInViewport();
+  await page.getByRole('link', { name: 'Send me one real example' }).click();
+  await expect(email).toBeInViewport();
 });
 
 test('sends a build request with the email and the answer, then says so', async ({
