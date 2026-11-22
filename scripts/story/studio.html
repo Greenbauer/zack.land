@@ -1,0 +1,538 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Story Studio</title>
+<style>html, body { margin: 0; background: #594d69; overflow: hidden; } canvas { display: block; }</style>
+<script type="importmap">
+{ "imports": {
+  "three": "/node_modules/three/build/three.module.js",
+  "three/addons/": "/node_modules/three/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<script type="module">
+// The home page's story illustrations that are built as real objects (the
+// rest are scenes.html): a six-second 3D loop each, lit by the dawn sky the
+// head reflects, with real shadows, drawn frame by frame here and recorded
+// by render.mjs into public/story/<scene>.mp4 and its first frame,
+// <scene>.jpg. Open ?scene=<name>&t=<seconds> for one frame.
+import * as THREE from 'three';
+import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+const TAU = Math.PI * 2;
+const C = { peach: '#d3aba0', navy: '#040227', fail: '#ef5b4c' };
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1);
+renderer.setSize(1280, 720);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(30, 1280 / 720, 0.1, 500);
+const sky = await new RGBELoader().loadAsync('/scripts/environment/kiara_1_dawn_1k.hdr');
+sky.mapping = THREE.EquirectangularReflectionMapping;
+scene.environment = sky;
+scene.background = sky;
+scene.backgroundBlurriness = 0.6;
+scene.backgroundIntensity = 0.9;
+scene.environmentIntensity = 0.9;
+const key = new THREE.DirectionalLight('#fff1e0', 2.6);
+key.position.set(-6, 11, 8);
+key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+Object.assign(key.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9, near: 1, far: 40 });
+key.shadow.bias = -0.0004;
+key.shadow.radius = 7;
+scene.add(key);
+const rim = new THREE.DirectionalLight('#9fb4ff', 1.1);
+rim.position.set(7, 5, -8);
+scene.add(rim);
+
+const GLOSS = { clearcoat: 0.6, clearcoatRoughness: 0.1, roughness: 0.22, metalness: 0.25 };
+const gloss = (color, extra = {}) => new THREE.MeshPhysicalMaterial({ color, ...GLOSS, ...extra });
+const matte = (color, extra = {}) => new THREE.MeshPhysicalMaterial({ color, roughness: 0.6, clearcoat: 0.15, ...extra });
+const steel = (color = '#c9ccd6', extra = {}) => new THREE.MeshPhysicalMaterial({ color, metalness: 1, roughness: 0.3, clearcoat: 0.3, clearcoatRoughness: 0.25, ...extra });
+const glow = (color, opacity = 1) => new THREE.MeshBasicMaterial({ color, transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false });
+const box = (w, h, d, r = 0.06) => new RoundedBoxGeometry(w, h, d, 4, r);
+const cyl = (r, h, seg = 40, r2 = r) => new THREE.CylinderGeometry(r2, r, h, seg);
+const mesh = (g, m, parent = scene) => { const o = new THREE.Mesh(g, m); parent.add(o); return o; };
+const group = (parent = scene) => { const g = new THREE.Group(); parent.add(g); return g; };
+const at = (o, x, y, z) => { o.position.set(x, y, z); return o; };
+const look = (radius, height, angle, target) => {
+  camera.position.set(target.x + Math.sin(angle) * radius, target.y + height, target.z + Math.cos(angle) * radius);
+  camera.lookAt(target);
+};
+// The plinth every object stands on: a low glossy disc, top at y = 0.
+function plinth(radius = 5.4) {
+  const p = mesh(cyl(radius, 0.5, 96), gloss(C.navy, { roughness: 0.18 }));
+  p.position.y = -0.25;
+  const edge = mesh(new THREE.TorusGeometry(radius, 0.03, 8, 128), gloss(C.peach));
+  edge.rotation.x = Math.PI / 2;
+  edge.position.y = 0.0;
+}
+// A tube along points, rounded at its corners.
+function pipePath(points, bend = 0.7) {
+  const path = new THREE.CurvePath();
+  let from = points[0].clone();
+  for (let k = 1; k < points.length; k++) {
+    const corner = points[k];
+    if (k === points.length - 1) { path.add(new THREE.LineCurve3(from, corner.clone())); break; }
+    const before = corner.clone().add(from.clone().sub(corner).setLength(bend));
+    const after = corner.clone().add(points[k + 1].clone().sub(corner).setLength(bend));
+    path.add(new THREE.LineCurve3(from, before));
+    path.add(new THREE.QuadraticBezierCurve3(before, corner.clone(), after));
+    from = after;
+  }
+  return path;
+}
+// A drawn label as a texture (for screens and signs).
+function drawn(w, h, draw) {
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  draw(canvas.getContext('2d'), w, h);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 8;
+  return texture;
+}
+
+const SCENES = {
+  // Leading AI coding work: a real assembly line. A printer feeds sheets of
+  // code onto a belt conveyor, which steps them past three collaborative
+  // robot arms, one for each check; each inks a stamp onto the sheet in
+  // front of it. Review rejects every third sheet and pushes it off into
+  // the bin. Three steps of the belt make the loop.
+  'robot-line'() {
+    plinth(9.5);
+    const paint = (color = '#dfe2e8') => new THREE.MeshPhysicalMaterial({ color, metalness: 0.25, roughness: 0.38, clearcoat: 0.5, clearcoatRoughness: 0.3 });
+    const rubber = matte('#18181e', { roughness: 0.92, clearcoat: 0 });
+    const cap = paint('#4d74b3');
+    const BELT = 1.75;
+    const PITCH = 3.4;
+    const X = [-PITCH, 0, PITCH];
+    const V = (x, y, z) => new THREE.Vector3(x, y, z);
+    const UP = V(0, 1, 0);
+    // A cylinder from one point to another; `aim` moves one that was made
+    // a unit long.
+    const rod = (a, b, r, material, parent = scene) => {
+      const m = mesh(cyl(r, 1, 28), material, parent);
+      aim(m, a, b);
+      return m;
+    };
+    const aim = (m, a, b) => {
+      m.position.copy(a).add(b).multiplyScalar(0.5);
+      m.quaternion.setFromUnitVectors(UP, b.clone().sub(a).normalize());
+      m.scale.y = a.distanceTo(b);
+    };
+
+    // The conveyor: a rubber belt over two end rollers, in an aluminium
+    // frame on legs, with a drive motor at one end.
+    at(mesh(box(13.2, 0.07, 1.9, 0.03), rubber), 0, BELT - 0.035, 0);
+    at(mesh(box(13.2, 0.07, 1.9, 0.03), rubber), 0, BELT - 0.5, 0);
+    // Its seams, which show it moving.
+    const seams = Array.from({ length: 9 }, () => at(mesh(box(0.05, 0.012, 1.86, 0.004), matte('#2c2c36')), 0, BELT + 0.004, 0));
+    for (const x of [-6.6, 6.6]) {
+      const roller = mesh(cyl(0.27, 1.96, 40), steel('#b9bdc9'));
+      roller.rotation.x = Math.PI / 2;
+      roller.position.set(x, BELT - 0.27, 0);
+    }
+    for (const z of [-1.05, 1.05]) {
+      at(mesh(box(13.6, 0.34, 0.12, 0.03), steel('#c3c7d1')), 0, BELT - 0.2, z);
+      at(mesh(box(13.6, 0.05, 0.2, 0.02), steel('#aeb3bf')), 0, BELT - 0.02, z);
+      for (const x of [-5.6, -1.9, 1.9, 5.6]) {
+        at(mesh(box(0.16, BELT - 0.4, 0.16, 0.02), steel('#9aa0ae')), x, (BELT - 0.4) / 2, z);
+        at(mesh(box(0.42, 0.06, 0.42, 0.02), steel('#8a90a0')), x, 0.03, z);
+        for (const dy of [-0.09, 0.09]) at(mesh(cyl(0.035, 0.03, 6), steel('#6f7484')), x, BELT - 0.2 + dy, z + Math.sign(z) * 0.065).rotation.x = Math.PI / 2;
+      }
+    }
+    // A guide rail along the back edge only: the front is open to the bin.
+    rod(V(-6.3, BELT + 0.22, -0.9), V(6.3, BELT + 0.22, -0.9), 0.028, steel());
+    for (const x of [-6, -3, 0, 3, 6]) rod(V(x, BELT - 0.02, -1.0), V(x, BELT + 0.22, -0.9), 0.022, steel());
+    for (const x of [-5.6, -1.9, 1.9, 5.6]) rod(V(x, 0.5, -1.05), V(x, 0.5, 1.05), 0.05, steel('#9aa0ae'));
+    const motor = group();
+    motor.position.set(-6.75, BELT - 0.27, 1.5);
+    mesh(box(0.62, 0.56, 0.5, 0.06), paint('#3b4257'), motor);
+    const can = mesh(cyl(0.2, 0.72, 32), paint('#2c3142'), motor);
+    can.rotation.x = Math.PI / 2;
+    can.position.set(0, 0, 0.56);
+    for (let k = 0; k < 7; k++) { const fin = mesh(cyl(0.225, 0.03, 32), paint('#2c3142'), motor); fin.rotation.x = Math.PI / 2; fin.position.set(0, 0, 0.32 + k * 0.08); }
+    mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([V(-6.75, BELT - 0.55, 1.5), V(-6.9, 0.9, 1.7), V(-6.6, 0.08, 2.3), V(-5.2, 0.05, 2.6)]), 40, 0.04, 10), rubber);
+
+    // The printer the sheets come out of, and the tray the passed ones
+    // land in.
+    const printer = group();
+    printer.position.set(-7.0, 0, 0);
+    at(mesh(box(2.3, 1.5, 2.5, 0.12), paint('#e6e8ee'), printer), 0, BELT + 0.72, 0);
+    at(mesh(box(0.1, 0.12, 1.95, 0.02), matte('#14141a'), printer), 1.13, BELT + 0.1, 0);
+    at(mesh(box(2.34, 0.16, 2.54, 0.06), paint('#3b4257'), printer), 0, BELT + 1.5, 0);
+    at(mesh(new THREE.SphereGeometry(0.06, 16, 12), new THREE.MeshBasicMaterial({ color: '#6ff0a0' }), printer), 1.16, BELT + 1.1, 0.9);
+    const lcd = mesh(new THREE.PlaneGeometry(0.9, 0.42), new THREE.MeshBasicMaterial({ map: drawn(256, 120, (g, w, h) => { g.fillStyle = '#0a1024'; g.fillRect(0, 0, w, h); g.fillStyle = '#7fd8ff'; g.font = '700 44px ui-monospace, monospace'; g.textAlign = 'center'; g.fillText('CODE', w / 2, 76); }) }), printer);
+    lcd.rotation.y = Math.PI / 2;
+    lcd.position.set(1.16, BELT + 0.95, -0.2);
+    for (const z of [-1.0, 1.0]) at(mesh(box(2.0, BELT, 0.14, 0.03), steel('#9aa0ae'), printer), 0, BELT / 2, z);
+    const tray = group();
+    tray.position.set(7.75, 0, 0);
+    at(mesh(box(2.1, 0.08, 2.0, 0.03), paint('#2f7d4a'), tray), 0, BELT - 0.42, 0);
+    for (const [bx, bz, w, d] of [[1.03, 0, 0.06, 2.0], [0, -1.0, 2.1, 0.06], [0, 1.0, 2.1, 0.06]]) at(mesh(box(w, 0.5, d, 0.02), paint('#2f7d4a'), tray), bx, BELT - 0.2, bz);
+    for (const z of [-0.8, 0.8]) at(mesh(box(0.14, BELT - 0.45, 0.14, 0.02), steel('#9aa0ae'), tray), 0.6, (BELT - 0.45) / 2, z);
+
+    // What the sheets carry: printed code, and the ink of each stamp.
+    const stampInk = (g, x, y, text, color, turn) => {
+      g.save();
+      g.translate(x, y); g.rotate(turn);
+      g.strokeStyle = color; g.fillStyle = color; g.lineWidth = 7; g.globalAlpha = 0.88;
+      g.beginPath(); g.roundRect(-118, -40, 236, 80, 12); g.stroke();
+      g.lineWidth = 3; g.beginPath(); g.roundRect(-108, -31, 216, 62, 8); g.stroke();
+      g.font = '800 44px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText(text, 0, 3);
+      g.restore();
+    };
+    const sheet = (stamps, rejected, seed0) => drawn(640, 440, (g, w, h) => {
+      g.fillStyle = '#fbf9f4'; g.fillRect(0, 0, w, h);
+      g.fillStyle = '#e9e5db'; g.fillRect(0, 0, 54, h);
+      let seed = seed0;
+      const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+      const tones = ['#1f2a5c', '#7a4a8a', '#27724a', '#9a5a2a', '#3a3f52'];
+      for (let row = 0; row < 13; row++) {
+        g.fillStyle = '#b4b0a6'; g.fillRect(18, 34 + row * 29, 18, 9);
+        let x = 74 + Math.floor(rand() * 3) * 28;
+        for (let n = 0; n < 2 + Math.floor(rand() * 4); n++) { const len = 34 + rand() * 96; g.fillStyle = tones[Math.floor(rand() * tones.length)]; g.fillRect(x, 32 + row * 29, len, 11); x += len + 12; }
+      }
+      const marks = [['TESTS', 420, 110, -0.14], ['REVIEW', 440, 220, 0.1], ['PROOF', 420, 335, -0.07]];
+      marks.slice(0, stamps).forEach(([text, x, y, turn]) => stampInk(g, x, y, text + ' ✓', '#1f8a4c', turn));
+      if (rejected) stampInk(g, 330, 220, 'REJECTED', '#cf2f2a', -0.2);
+    });
+    // Three kinds of sheet come round in turn; the second is the one
+    // Review rejects. Each kind's faces: by stamps so far, then rejected.
+    const SEEDS = [3, 23, 31];
+    const faces = SEEDS.map((seed, kind) => ({ stamps: [0, 1, 2, 3].map((n) => sheet(n, false, seed)), rejected: sheet(1, true, seed) }));
+    const paper = () => {
+      const p = group();
+      mesh(box(1.75, 0.025, 1.2, 0.01), matte('#f4f1ea'), p);
+      const face = mesh(new THREE.PlaneGeometry(1.72, 1.17), new THREE.MeshStandardMaterial({ map: faces[0].stamps[0], roughness: 0.85 }), p);
+      face.rotation.x = -Math.PI / 2;
+      face.position.y = 0.014;
+      p.face = face.material;
+      return p;
+    };
+    const papers = Array.from({ length: 6 }, paper);
+
+    // A robot arm: a pedestal bolted to the floor, joints with blue caps,
+    // tubes between them, and a stamp on its wrist. Its face is a screen
+    // on a mast, with its job under it.
+    const eyes = (mood) => drawn(512, 330, (g, w, h) => {
+      g.fillStyle = '#05060f'; g.fillRect(0, 0, w, h);
+      const color = { pass: '#6ff0a0', fail: '#ff5b4c', idle: '#7fd8ff' }[mood];
+      g.strokeStyle = color; g.fillStyle = color; g.lineCap = 'round'; g.lineWidth = 26;
+      g.shadowColor = color; g.shadowBlur = 30;
+      for (const x of [170, 342]) {
+        g.beginPath();
+        if (mood === 'pass') g.arc(x, 190, 48, Math.PI * 1.12, Math.PI * 1.88);
+        else if (mood === 'fail') { const s = x < 256 ? 1 : -1; g.moveTo(x - 46 * s, 120); g.lineTo(x + 46 * s, 160); g.stroke(); g.beginPath(); g.arc(x, 196, 30, 0, TAU); g.fill(); g.beginPath(); }
+        else { g.ellipse(x, 165, 34, 46, 0, 0, TAU); g.fill(); g.beginPath(); }
+        g.stroke();
+      }
+    });
+    const MOODS = { pass: eyes('pass'), fail: eyes('fail'), idle: eyes('idle') };
+    const label = (text) => drawn(512, 128, (g, w, h) => {
+      g.fillStyle = '#e9ebf0'; g.fillRect(0, 0, w, h);
+      g.strokeStyle = '#3b4257'; g.lineWidth = 8; g.strokeRect(10, 10, w - 20, h - 20);
+      g.fillStyle = '#1f2433'; g.font = '800 70px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(text, w / 2, h / 2 + 4);
+    });
+    const [L1, L2, TOOL] = [2.05, 1.85, 0.92];
+    const robot = (x, name) => {
+      const Z = -2.1;
+      at(mesh(cyl(0.62, 0.09, 48), steel('#8a90a0')), x, 0.045, Z);
+      for (let k = 0; k < 8; k++) { const a = (k / 8) * TAU; at(mesh(cyl(0.05, 0.07, 6), steel('#5f6474')), x + Math.cos(a) * 0.5, 0.11, Z + Math.sin(a) * 0.5); }
+      at(mesh(cyl(0.34, 1.5, 40, 0.3), paint('#3b4257')), x, 0.84, Z);
+      at(mesh(cyl(0.4, 0.08, 40), steel('#8a90a0')), x, 1.62, Z);
+      at(mesh(cyl(0.3, 0.42, 40), paint()), x, 1.87, Z);
+      const S = V(x, 2.25, Z);
+      const joint = (r, long) => {
+        const j = group();
+        const body = mesh(cyl(r, long, 40), paint(), j);
+        body.rotation.z = Math.PI / 2;
+        for (const s of [-1, 1]) { const c = mesh(cyl(r * 0.93, 0.05, 40), cap, j); c.rotation.z = Math.PI / 2; c.position.x = s * (long / 2 + 0.02); }
+        return j;
+      };
+      joint(0.3, 0.62).position.copy(S);
+      const upper = rod(S, S.clone().add(UP), 0.2, paint());
+      const elbow = joint(0.25, 0.6);
+      const fore = rod(S, S.clone().add(UP), 0.16, paint());
+      const wrist = joint(0.19, 0.44);
+      // The stamp, hanging straight down from the wrist: a steel shank, a
+      // wooden grip, a rubber die.
+      const tool = group();
+      at(mesh(cyl(0.19, 0.34, 32), paint(), tool), 0, -0.2, 0);
+      at(mesh(cyl(0.2, 0.05, 32), cap, tool), 0, -0.39, 0);
+      at(mesh(cyl(0.05, 0.22, 16), steel(), tool), 0, -0.52, 0);
+      at(mesh(box(0.92, 0.2, 0.5, 0.05), matte('#8b5a3c', { roughness: 0.6 }), tool), 0, -0.7, 0);
+      const die = at(mesh(box(0.86, 0.1, 0.44, 0.02), matte('#1f6f42', { roughness: 0.9 }), tool), 0, -0.86, 0);
+      // Its face and its job.
+      rod(V(x - 0.75, 1.66, Z - 0.1), V(x - 0.95, 4.3, Z - 0.3), 0.075, paint('#3b4257'));
+      const head = group();
+      head.position.set(x - 0.95, 4.75, Z - 0.2);
+      head.rotation.set(-0.1, 0.38, 0);
+      head.scale.setScalar(1.45);
+      mesh(box(1.25, 0.9, 0.16, 0.1), paint(), head);
+      const screen = mesh(new THREE.PlaneGeometry(1.08, 0.72), new THREE.MeshBasicMaterial({ map: MOODS.idle }), head);
+      screen.position.z = 0.083;
+      mesh(box(0.96, 0.28, 0.05, 0.02), paint('#3b4257'), head).position.set(0, 0.62, 0.02);
+      mesh(new THREE.PlaneGeometry(0.9, 0.225), new THREE.MeshStandardMaterial({ map: label(name), roughness: 0.5, metalness: 0.3 }), head).position.set(0, 0.62, 0.05);
+      const glowLight = new THREE.PointLight('#7fe8b0', 3, 3);
+      glowLight.position.set(x - 0.6, 4.7, Z + 0.7);
+      scene.add(glowLight);
+      // The arm, posed to hold its stamp `lift` above the belt and `out`
+      // toward the front: two links worked out from where the wrist is.
+      return (lift, out, mood) => {
+        const W = V(x, BELT + lift + TOOL, out);
+        const [wy, wz] = [W.y - S.y, W.z - S.z];
+        const d = Math.hypot(wy, wz);
+        const t1 = Math.atan2(wz, wy) - Math.acos((L1 * L1 + d * d - L2 * L2) / (2 * L1 * d));
+        const E = V(x, S.y + Math.cos(t1) * L1, S.z + Math.sin(t1) * L1);
+        aim(upper, S.clone().add(V(0.36, 0, 0)), E.clone().add(V(0.36, 0, 0)));
+        elbow.position.copy(E).add(V(0.18, 0, 0));
+        aim(fore, E, W);
+        wrist.position.copy(W);
+        tool.position.copy(W);
+        screen.material.map = MOODS[mood];
+        die.material.color.set(mood === 'fail' ? '#a3261f' : '#1f6f42');
+        glowLight.color.set(mood === 'fail' ? '#ff6b5c' : mood === 'pass' ? '#7fe8b0' : '#8fd0ff');
+      };
+    };
+    const arms = ['TESTS', 'REVIEW', 'PROOF'].map((name, n) => robot(X[n], name));
+
+    // The reject bin in front of the reviewer, with what it has thrown out.
+    const BIN = V(X[1] + 0.2, 0, 2.5);
+    const bin = group();
+    bin.position.copy(BIN);
+    for (const [bx, bz, w, d] of [[0, -0.75, 2.1, 0.06], [0, 0.75, 2.1, 0.06], [-1.05, 0, 0.06, 1.5], [1.05, 0, 0.06, 1.5]]) at(mesh(box(w, 0.75, d, 0.02), paint('#a3261f'), bin), bx, 0.38, bz);
+    at(mesh(box(2.1, 0.05, 1.5, 0.02), paint('#7d1c17'), bin), 0, 0.03, 0);
+    // Where a thrown sheet comes to rest: on top of the one before it.
+    const REST = { at: V(BIN.x + 0.05, 0.2, BIN.z), turn: -0.3, tilt: -0.06 };
+    for (const [dx, dy, turn] of [[-0.1, -0.08, 0.5], [0.05, 0, REST.turn]]) {
+      const p = paper();
+      p.face.map = faces[1].rejected;
+      p.scale.setScalar(0.92);
+      p.position.set(REST.at.x + dx, REST.at.y + dy, REST.at.z + (dy ? 0.06 : 0));
+      p.rotation.set(0, turn, dy ? 0.05 : REST.tilt);
+    }
+
+    const STEP = 2, MOVE = 0.8;
+    const smooth = (x) => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x); };
+    return (t) => {
+      const u = ((t % 6) + 6) % 6;
+      const step = Math.floor(u / STEP);
+      const within = u - step * STEP;
+      const move = smooth(within / MOVE);
+      // Down from 0.95, on the sheet from 1.25 to 1.4, up by 1.8.
+      const press = within < 0.95 ? 0 : within < 1.25 ? smooth((within - 0.95) / 0.3) : within < 1.4 ? 1 : 1 - smooth((within - 1.4) / 0.4);
+      const inked = within >= 1.25;
+      seams.forEach((seam, k) => { seam.position.x = ((((k + step + move) * PITCH) / 2 + 6.5) % 13) - 6.5; });
+      // Sheet n is the one that rests at place (1 + n) this step: place 1
+      // to 3 is a robot's, 0 the printer, 4 the tray. Its kind comes round
+      // every three steps.
+      papers.forEach((p, n) => {
+        const rest = n - 1;
+        const kind = (((step - rest) % 3) + 3) % 3;
+        const rejected = kind === 1;
+        const place = rest - 1 + move;
+        const done = inked ? rest : rest - 1;
+        p.visible = rest <= 4;
+        p.scale.setScalar(1);
+        p.rotation.set(0, [0.04, -0.03, 0.05][kind], 0);
+        p.position.set(X[0] + (place - 1) * PITCH, BELT + 0.03, 0.04);
+        p.face.map = rejected && done >= 2 ? faces[kind].rejected : faces[kind].stamps[Math.max(0, Math.min(3, rejected ? Math.min(done, 1) : done))];
+        // The rejected sheet, once past Review's stamp, is pushed off the
+        // front of the belt as the belt next moves, and drops in the bin.
+        if (rejected && rest === 3) {
+          const a = smooth(within / 0.9);
+          const fall = smooth((within - 0.35) / 0.75);
+          p.position.set(X[1] + (REST.at.x - X[1]) * a, BELT + 0.03 + (REST.at.y - BELT - 0.03) * fall * fall + Math.sin(a * Math.PI) * 0.25 * (1 - fall), 0.04 + (REST.at.z - 0.04) * a);
+          p.rotation.set(Math.sin(a * Math.PI) * 0.5, 0.05 + (REST.turn - 0.05) * a, REST.tilt * a);
+          p.scale.setScalar(1 - 0.08 * a);
+        }
+        if (rejected && rest > 3) p.visible = false;
+        // Into the tray: it tips off the end of the belt.
+        if (!rejected && rest === 4) {
+          const a = smooth((move - 0.45) / 0.55);
+          p.position.y -= a * 0.36;
+          p.rotation.z = -a * 0.12;
+        }
+      });
+      // Each arm stamps the sheet in front of it; Proof has none when the
+      // one before was rejected, and Review pushes a rejected one off.
+      const kindAt = (station) => (((step - station) % 3) + 3) % 3;
+      const rejecting = kindAt(2) === 1;
+      const swept = kindAt(3) === 1;
+      const push = swept ? Math.sin(smooth(within / 0.9) * Math.PI) : 0;
+      arms[0](0.62 - press * 0.56, 0, press > 0.5 || (inked && within < 1.9) ? 'pass' : 'idle');
+      arms[1](0.62 - press * 0.56 - push * 0.42, push * 1.5, (rejecting && move >= 0.9) || (swept && within < 1.0) ? 'fail' : inked ? 'pass' : 'idle');
+      arms[2](swept ? 0.75 : 0.62 - press * 0.56, 0, swept ? 'idle' : inked ? 'pass' : 'idle');
+      const sway = Math.sin((u / 6) * TAU) * 0.035;
+      look(16.6, 4.6, 0.36 + sway, new THREE.Vector3(0.35, 2.7, -0.4));
+    };
+  },
+
+  // Pipe engineer: the pipe as the analysis software shows it, and the
+  // software's own bugs as what they were: wrong answers on the screen.
+  'pipe-engineer'() {
+    scene.background = new THREE.Color('#12143a');
+    scene.environmentIntensity = 0.75;
+    const grid = new THREE.GridHelper(40, 40, '#3a3f86', '#22265c');
+    grid.position.y = 0;
+    scene.add(grid);
+    const floor = mesh(new THREE.PlaneGeometry(60, 60), new THREE.ShadowMaterial({ opacity: 0.35 }));
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = 0.01;
+    floor.receiveShadow = true;
+    const R = 0.42;
+    const points = [[-4.6, 1.3, 0.9], [-0.6, 1.3, 0.9], [-0.6, 3.7, 0.9], [2.6, 3.7, 0.9], [2.6, 3.7, -2.8]].map((p) => new THREE.Vector3(...p));
+    const path = pipePath(points, 0.85);
+    const tube = new THREE.TubeGeometry(path, 400, R, 40);
+    const map = [[0, '#2747b8'], [0.25, '#2fb7c9'], [0.5, '#56c46b'], [0.75, '#f1d04a'], [1, '#e8483b']];
+    const bends = [0.345, 0.56, 0.80];
+    // How stressed each point is at rest (most at the bends), and its
+    // colour at a given load.
+    const uv = tube.getAttribute('uv');
+    const rest = Array.from({ length: uv.count }, (_, k) => {
+      let s = 0.08;
+      for (const b of bends) s = Math.max(s, Math.exp(-(((uv.getX(k) - b) / 0.075) ** 2)));
+      return s;
+    });
+    const shades = map.map(([at, c]) => [at, new THREE.Color(c)]);
+    const colors = new THREE.Float32BufferAttribute(new Float32Array(uv.count * 3), 3);
+    tube.setAttribute('color', colors);
+    const color = new THREE.Color();
+    const load = (amount) => {
+      rest.forEach((s0, k) => {
+        const s = Math.min(1, s0 * amount);
+        let i = 0;
+        while (i < shades.length - 2 && s > shades[i + 1][0]) i++;
+        color.copy(shades[i][1]).lerp(shades[i + 1][1], (s - shades[i][0]) / (shades[i + 1][0] - shades[i][0]));
+        colors.setXYZ(k, color.r, color.g, color.b);
+      });
+      colors.needsUpdate = true;
+    };
+    mesh(tube, new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: 0.32, metalness: 0.15, clearcoat: 0.7, clearcoatRoughness: 0.15 }));
+    const flange = (p, axis) => {
+      const f = group();
+      f.position.copy(p);
+      f.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), axis);
+      for (const y of [-0.09, 0.09]) at(mesh(cyl(0.72, 0.14, 48), steel('#b8bcc8'), f), 0, y, 0);
+      for (let k = 0; k < 8; k++) { const a = (k / 8) * TAU; at(mesh(cyl(0.065, 0.46, 6), steel('#6f7484'), f), Math.cos(a) * 0.58, 0, Math.sin(a) * 0.58); }
+    };
+    const X = new THREE.Vector3(1, 0, 0), Yv = new THREE.Vector3(0, 1, 0), Z = new THREE.Vector3(0, 0, 1);
+    flange(new THREE.Vector3(-4.6, 1.3, 0.9), X);
+    flange(new THREE.Vector3(-0.6, 2.55, 0.9), Yv);
+    flange(new THREE.Vector3(1.2, 3.7, 0.9), X);
+    flange(new THREE.Vector3(2.6, 3.7, -2.8), Z);
+    const valve = group();
+    valve.position.set(-2.7, 1.3, 0.9);
+    mesh(box(0.9, 1.0, 1.0, 0.2), steel('#8f95a6'), valve);
+    at(mesh(cyl(0.2, 0.9, 24, 0.16), steel('#8f95a6'), valve), 0, 0.85, 0);
+    const wheel = mesh(new THREE.TorusGeometry(0.5, 0.06, 12, 48), gloss(C.fail), valve);
+    wheel.rotation.x = Math.PI / 2;
+    wheel.position.set(0, 1.4, 0);
+    // What the software adds: its supports as symbols and its node numbers.
+    const symbol = new THREE.MeshBasicMaterial({ color: '#7fd69a' });
+    for (const [x, y, z] of [[-3.7, 1.3, 0.9], [2.6, 3.7, -1.3]]) {
+      const cone = mesh(new THREE.ConeGeometry(0.34, 0.6, 4), symbol);
+      cone.position.set(x, y - R - 0.3, z);
+      const line = mesh(cyl(0.02, y - R - 0.6, 6), symbol);
+      line.position.set(x, (y - R - 0.6) / 2, z);
+    }
+    const nodes = [[-4.6, 1.3, 0.9, '10'], [-2.7, 1.3, 0.9, '20'], [-0.6, 1.3, 0.9, '30'], [-0.6, 3.7, 0.9, '40'], [2.6, 3.7, 0.9, '50'], [2.6, 3.7, -2.8, '60']];
+    for (const [x, y, z, label] of nodes) {
+      const tag = new THREE.Sprite(new THREE.SpriteMaterial({ map: drawn(128, 64, (g) => { g.fillStyle = 'rgba(12,14,46,.85)'; g.beginPath(); g.roundRect(8, 8, 112, 48, 12); g.fill(); g.strokeStyle = '#9fb4ff'; g.lineWidth = 3; g.stroke(); g.fillStyle = '#e8ecff'; g.font = '600 32px ui-monospace, monospace'; g.textAlign = 'center'; g.fillText(label, 64, 44); }), depthTest: false }));
+      tag.scale.set(0.9, 0.45, 1);
+      tag.position.set(x, y + R + 0.55, z + 0.2);
+      scene.add(tag);
+    }
+    // The axis triad, at the bottom.
+    for (const [dir, c] of [[X, '#ef5b4c'], [Yv, '#7fd69a'], [Z, '#6ea8ff']]) scene.add(new THREE.ArrowHelper(dir, new THREE.Vector3(1.5, 0.05, 2.9), 0.9, c, 0.26, 0.14));
+    // The window round it, and the bugs: the software getting it wrong.
+    const ui = document.createElement('div');
+    ui.innerHTML = `
+      <style>
+        .ui { position: fixed; inset: 0; font: 600 21px/1.2 ui-sans-serif, system-ui; color: #dfe3ff; pointer-events: none; }
+        .ui .top { position: absolute; left: 0; right: 0; top: 0; height: 50px; background: #1d1f52; display: flex; align-items: center; gap: 10px; padding: 0 18px; border-bottom: 1px solid #343890; }
+        .ui .top i { width: 14px; height: 14px; border-radius: 50%; background: #ef5b4c; } .ui .top i:nth-child(2) { background: #e2b659; } .ui .top i:nth-child(3) { background: #7fd69a; margin-right: 12px; }
+        .ui .top span { opacity: .75; font-weight: 500; margin-left: 22px; }
+        .ui .tools { position: absolute; left: 0; top: 50px; bottom: 46px; width: 56px; background: #181a47; border-right: 1px solid #343890; display: flex; flex-direction: column; align-items: center; gap: 11px; padding-top: 14px; }
+        .ui .tools b { width: 32px; height: 32px; border-radius: 7px; border: 2px solid #5a60c0; display: block; } .ui .tools b:first-child { background: #5a60c0; }
+        .ui .status { position: absolute; left: 0; right: 0; bottom: 0; height: 46px; background: #1d1f52; border-top: 1px solid #343890; display: flex; align-items: center; gap: 32px; padding: 0 18px 0 74px; font-weight: 500; }
+        .ui .status em { font-style: normal; color: #ffb4a8; font-weight: 700; }
+        .ui .legend { position: absolute; right: 22px; top: 76px; width: 118px; background: rgba(18,20,58,.85); border: 1px solid #343890; border-radius: 10px; padding: 10px 12px 12px; font-size: 17px; font-weight: 500; }
+        .ui .legend div { display: flex; gap: 10px; margin-top: 8px; } .ui .legend u { width: 18px; height: 180px; border-radius: 4px; background: linear-gradient(#e8483b, #f1d04a, #56c46b, #2fb7c9, #2747b8); display: block; }
+        .ui .legend p { margin: 0; display: flex; flex-direction: column; justify-content: space-between; }
+        /* Big enough to read at the size of a tile on the page. */
+        .ui .bug { position: absolute; width: 452px; opacity: 0; background: #f4f1f7; color: #1b1838; border-radius: 14px; box-shadow: 0 16px 38px rgba(0,0,0,.5); overflow: hidden; }
+        .ui .bug h4 { margin: 0; background: #d9483b; color: #fff; font-size: 23px; padding: 9px 16px; display: flex; justify-content: space-between; }
+        .ui .bug p { margin: 0; padding: 14px 18px 18px; font-weight: 600; font-size: 33px; line-height: 1.2; }
+      </style>
+      <div class="ui">
+        <div class="top"><i></i><i></i><i></i>Pipe stress analysis<span>File</span><span>Model</span><span>Loads</span><span>Results</span></div>
+        <div class="tools"><b></b><b></b><b></b><b></b><b></b></div>
+        <div class="legend">Stress<div><u></u><p><span>High</span><span>Low</span></p></div></div>
+        <div class="bug" style="left: 70px; top: 452px; --turn: -2deg"><h4><span>Bug 11</span><span>✕</span></h4><p>That can't be right.</p></div>
+        <div class="bug" style="left: 150px; top: 548px; --turn: 1.5deg"><h4><span>Bug 12</span><span>✕</span></h4><p>Neither can that.</p></div>
+        <div class="bug" style="left: 772px; top: 478px; --turn: 2deg"><h4><span>Bug 13</span><span>✕</span></h4><p>Found another one.</p></div>
+        <div class="status"><span class="release">Release test</span><span>6 nodes</span><span>Bugs found: <em>13</em></span></div>
+      </div>`;
+    document.body.appendChild(ui);
+    // The loop: a release under test. Two bugs are up as it starts and the
+    // third pops up; all three are reported and close, the next release
+    // loads, and its first two bugs pop up. Each: when it opens and closes.
+    const bugs = [...ui.querySelectorAll('.bug')];
+    const TIMES = [[4.2, 3.0], [5.2, 3.15], [1.2, 3.3]];
+    const count = ui.querySelector('.status em');
+    const release = ui.querySelector('.release');
+    const smooth = (x) => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x); };
+    // In with a little overshoot, as a window pops up.
+    const pop = (x) => { x = Math.min(1, Math.max(0, x)); return 1 + 2.2 * (x - 1) ** 3 + 1.2 * (x - 1) ** 2; };
+    return (t) => {
+      const u = ((t % 6) + 6) % 6;
+      let open = 0;
+      bugs.forEach((bug, k) => {
+        const [opens, closes] = TIMES[k];
+        const since = (u - opens + 6) % 6;
+        const stay = (closes - opens + 6) % 6;
+        const isOpen = since < stay;
+        if (isOpen) open++;
+        const size = isOpen ? pop(since / 0.28) : 1 - 0.2 * smooth((since - stay) / 0.22);
+        bug.style.opacity = isOpen ? Math.min(1, since / 0.1) : 1 - smooth((since - stay) / 0.22);
+        bug.style.transform = `rotate(var(--turn)) scale(${size})`;
+      });
+      count.textContent = 10 + open;
+      release.textContent = open ? 'Release test' : 'Next release';
+      // The load on the pipe rises and falls, and the view drifts.
+      load(0.86 + 0.14 * Math.sin((u / 3) * TAU));
+      look(15.2, 3.0, 0.42 + Math.sin((u / 6) * TAU) * 0.045, new THREE.Vector3(-0.2, 1.75, 0));
+    };
+  },
+};
+
+const params = new URLSearchParams(location.search);
+// With no scene named, only the list of scenes (for render.mjs).
+const update = SCENES[params.get('scene')]?.();
+scene.traverse((o) => {
+  if (o.isMesh && !(o.material.blending === THREE.AdditiveBlending) && !o.material.transmission) { o.castShadow = true; o.receiveShadow = true; }
+});
+const shade = () => scene.traverse((o) => {
+  if (o.isMesh && !(o.material.blending === THREE.AdditiveBlending) && !o.material.transmission) { o.castShadow = true; o.receiveShadow = true; }
+});
+window.LOOP = 6;
+window.render = (t) => { update?.(t); shade(); renderer.render(scene, camera); };
+window.render(+(params.get('t') ?? 0));
+window.SCENES = Object.keys(SCENES);
+window.ready = true;
+</script>
+</body>
+</html>

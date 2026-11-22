@@ -48,7 +48,7 @@ describe("the home page's story", () => {
       'whats-next',
     ]);
     expect(text(chapter('pipe-engineer'))).toContain(
-      'I liked the bugs more than the pipes.',
+      '10 to 15 in every release.',
     );
     expect(text(chapter('banner-eyewear'))).toContain(
       'my first coding project, and it’s the reason I switched to software',
@@ -69,13 +69,15 @@ describe("the home page's story", () => {
       expect(portfolio.has(chapter(id).content)).toBe(true);
   });
 
-  it('gives every chapter pictures or a loop the site has', () => {
+  it('gives every chapter pictures the site has, or a prop on the head', () => {
     for (const c of CHAPTERS) {
-      // This website's post has none on the portfolio either: its card sits
-      // over the head instead (components/useCardOnTop.ts).
-      if (c.id === 'this-website') continue;
-      expect(c.content.mediaSources?.length, c.id).toBeGreaterThan(0);
-      for (const { key, type } of c.content.mediaSources!) {
+      // A chapter with no picture of its own is told by the head: its prop
+      // (This website's post has none on the portfolio either).
+      if (!c.content.mediaSources?.length) {
+        expect(c.prop, c.id).toBeTruthy();
+        continue;
+      }
+      for (const { key, type } of c.content.mediaSources) {
         if (type === 'YouTube') continue;
         expect(existsSync(join(process.cwd(), 'public', key)), key).toBe(true);
         if (type === 'video')
@@ -104,11 +106,9 @@ describe("the home page's story", () => {
         CHAPTERS.filter((c) => c.prop).map((c) => [c.id, c.prop]),
       ),
     ).toEqual({
-      'texas-tech': 'bang',
+      'texas-tech': 'tortillas',
       'banner-eyewear': 'sunglasses',
       'travel-startup': 'plane',
-      today: 'agents',
-      'vibe-verifier': 'agents',
       'this-website': 'wireframe',
     });
   });

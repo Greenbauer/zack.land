@@ -6,24 +6,17 @@ import type { StoryCue, StoryProp } from './storyCue';
 export const PROP_DELAY: Record<StoryProp, number> = {
   sunglasses: 1.6,
   wireframe: 2.3,
-  agents: 0.4,
   plane: 0.6,
-  bang: 3,
+  tortillas: 0.5,
 };
 
-// How long the bang's flash lasts (seconds).
-export const BANG_SECONDS = 0.6;
-
 // How much of `prop` the story asks for at `now`: 1 from its delay on while
-// its chapter shows, else 0; the bang only for its moment.
+// its chapter shows, else 0.
 export function propTarget(
   cue: StoryCue | null,
   prop: StoryProp,
   now: number,
 ): number {
   if (!cue || cue.prop !== prop) return 0;
-  const into = now - cue.since - PROP_DELAY[prop];
-  if (into < 0) return 0;
-  if (prop === 'bang') return into < BANG_SECONDS ? 1 - into / BANG_SECONDS : 0;
-  return 1;
+  return now - cue.since >= PROP_DELAY[prop] ? 1 : 0;
 }

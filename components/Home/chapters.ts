@@ -40,13 +40,14 @@ export const CHAPTERS: Chapter[] = [
   {
     id: 'texas-tech',
     content: TEXAS_TECH,
-    prop: 'bang',
-    seconds: 9,
+    prop: 'tortillas',
+    seconds: 11,
     beats: [
       { at: 0, face: { smile: 0.4, browsUp: 0.2 }, look: 'card' },
-      { at: 3.1, face: { squint: 1, browDown: 0.7, frown: 0.4 } },
-      { at: 3.6, face: { gasp: 0.6, browsUp: 1 }, look: 'camera' },
-      { at: 4.8, face: { smile: 0.8 } },
+      // The cap lands.
+      { at: 0.9, face: { browsUp: 0.9, smile: 0.3 }, look: 'up' },
+      { at: 2.2, face: { smile: 0.9, browsUp: 0.3 }, look: 'camera' },
+      { at: 6, face: { smile: 0.7, squint: 0.3 }, look: 'card' },
     ],
   },
   {
@@ -151,17 +152,23 @@ export const CHAPTERS: Chapter[] = [
   {
     id: 'today',
     content: TODAY,
-    prop: 'agents',
-    seconds: 9,
+    seconds: 11,
     beats: [
       { at: 0, face: { smile: 0.4 }, look: 'card' },
-      { at: 3, face: { smile: 0.6, browsUp: 0.3 }, look: 'camera' },
+      // Watching the line in its picture: the reviewer rejects a sheet
+      // about three seconds in.
+      { at: 1.2, face: { smile: 0.3, browsUp: 0.2 }, look: 'card' },
+      {
+        at: 3.2,
+        face: { browDown: 0.7, squint: 0.4, press: 0.4 },
+        look: 'card',
+      },
+      { at: 5.4, face: { smile: 0.9, browsUp: 0.4 }, look: 'camera' },
     ],
   },
   {
     id: 'vibe-verifier',
     content: VIBE_VERIFIER,
-    prop: 'agents',
     seconds: 9,
     beats: [
       {

@@ -13,8 +13,8 @@
 </head>
 <body>
 <script type="module">
-// The home page's story illustrations (components/Home/storyPosts.tsx): one
-// six-second 3D loop per chapter, in the site's own look (the dawn sky the
+// The home page's simpler story illustrations (components/Home/storyPosts.tsx;
+// studio.html has the rest): a six-second 3D loop each, in the site's own look (the dawn sky the
 // head reflects, its glossy black skin, the theme's colours), drawn frame by
 // frame here and recorded by render.mjs into public/story/<scene>.mp4 and
 // its first frame, <scene>.jpg. Open ?scene=<name>&t=<seconds> for one frame.
@@ -24,7 +24,7 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 
 const LOOP = 6;
 const TAU = Math.PI * 2;
-const C = { light: '#ede4e3', peach: '#d3aba0', rose: '#a57374', purple: '#594d69', blue: '#1c265b', navy: '#040227', pass: '#8fd6a0', fail: '#e0604f', flame: '#ffb36b' };
+const C = { light: '#ede4e3', peach: '#d3aba0', rose: '#a57374', purple: '#594d69', blue: '#1c265b', navy: '#040227', pass: '#8fd6a0', fail: '#e0604f' };
 const ease = (x) => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x); };
 const loopT = (t) => ((t % LOOP) + LOOP) % LOOP;
 
@@ -73,125 +73,6 @@ function littleHead(parent, scale = 1) {
 }
 
 const SCENES = {
-  'texas-tech'() {
-    const plane = group();
-    const body = mesh(new THREE.CapsuleGeometry(0.9, 6, 12, 32), gloss(C.light, { metalness: 0.1 }), plane);
-    body.rotation.z = Math.PI / 2;
-    mesh(box(1.6, 0.18, 7.5, 0.08), gloss(C.peach), plane).position.set(0.3, -0.1, 0);
-    mesh(box(0.9, 0.14, 3, 0.06), gloss(C.peach), plane).position.set(-3.4, 0.2, 0);
-    const fin = mesh(box(1, 1.4, 0.14, 0.06), gloss(C.rose), plane);
-    fin.position.set(-3.5, 0.9, 0);
-    // The pulse jet on its pylon: a valve head, a long tail pipe.
-    const jet = group(plane);
-    jet.position.set(-0.6, 1.5, 0);
-    mesh(new THREE.SphereGeometry(0.42, 24, 16), gloss(C.navy), jet).position.x = 1.6;
-    const pipe = mesh(new THREE.CylinderGeometry(0.22, 0.3, 4, 24), gloss(C.navy), jet);
-    pipe.rotation.z = Math.PI / 2;
-    mesh(box(0.3, 0.6, 0.2, 0.05), gloss(C.navy), plane).position.set(-0.2, 1.05, 0);
-    const flame = mesh(new THREE.ConeGeometry(0.32, 1.6, 20, 1, true), glow(C.flame, 0.9), jet);
-    flame.rotation.z = Math.PI / 2;
-    flame.position.x = -2.8;
-    const ring = mesh(new THREE.TorusGeometry(1, 0.06, 8, 64), glow('#ffd27a', 1));
-    // Its puffs: a pulse jet goes putt-putt-putt, a smoke ball each beat,
-    // drifting back off the tail pipe as it grows and fades.
-    const PUFFS = 10;
-    const puffs = Array.from({ length: PUFFS }, () =>
-      mesh(new THREE.SphereGeometry(0.5, 20, 14), new THREE.MeshStandardMaterial({ color: '#f6eef2', roughness: 1, transparent: true, depthWrite: false })),
-    );
-    const light = new THREE.PointLight('#ffd27a', 0, 30);
-    scene.add(light);
-    return (t) => {
-      const u = loopT(t);
-      // The bang shakes the whole plane for a moment.
-      const shake = u > 3 && u < 3.6 ? (3.6 - u) * 0.25 : 0;
-      plane.rotation.set(0.05 + Math.sin(u * 90) * shake * 0.3, 0.25, Math.sin((u / LOOP) * TAU) * 0.12 + Math.sin(u * 70) * shake);
-      plane.position.y = Math.sin((u / LOOP) * TAU * 2) * 0.15;
-      const pulse = 0.5 + 0.5 * Math.sin(u * TAU * 7);
-      flame.scale.set(0.6 + pulse * 0.9, 0.7 + pulse * 0.6, 0.7 + pulse * 0.6);
-      flame.material.opacity = 0.5 + pulse * 0.5;
-      // The bang: a shock ring off the tail pipe, and a flash.
-      const bang = u > 3 && u < 4 ? (u - 3) : -1;
-      ring.visible = bang >= 0;
-      const tail = new THREE.Vector3(-3.4, 0, 0);
-      jet.localToWorld(tail);
-      ring.position.copy(tail);
-      ring.lookAt(camera.position);
-      ring.scale.setScalar(0.4 + bang * 4);
-      ring.material.opacity = Math.max(0, 1 - bang);
-      light.position.copy(tail);
-      light.intensity = bang >= 0 ? 400 * (1 - bang) : 0;
-      // A puff every 0.3 seconds; each lives 3 seconds. Wrapping the loop's
-      // time keeps the puffs seamless from its end back to its start.
-      puffs.forEach((puff, k) => {
-        const age = (u - (k * LOOP) / 2 / PUFFS + LOOP * 2) % (LOOP / 2);
-        const life = age / 3;
-        puff.visible = life < 1;
-        const at = new THREE.Vector3(-3.3 - life * 5, life * 0.6, Math.sin(k * 1.9) * life * 0.8);
-        jet.localToWorld(at);
-        puff.position.copy(at);
-        puff.scale.setScalar(0.35 + life * 1.6);
-        puff.material.opacity = 0.75 * (1 - life) ** 1.5;
-      });
-      orbit(t, 13, 2.8, new THREE.Vector3(-0.6, 0.5, 0), -0.75, 0.4);
-    };
-  },
-
-  'pipe-engineer'() {
-    const pts = [[-9, -2.2, 1], [-3, -2.2, 1], [-1.5, -2.2, 1], [-1.5, -0.7, 1], [-1.5, 1.6, 1], [0, 1.6, 1], [5, 1.6, 1], [6.5, 1.6, 1], [6.5, 1.6, -0.5], [6.5, 1.6, -5]].map((p) => new THREE.Vector3(...p));
-    const path = new THREE.CurvePath();
-    for (let i = 0; i < pts.length - 1; i++) path.add(new THREE.LineCurve3(pts[i], pts[i + 1]));
-    const curve = new THREE.CatmullRomCurve3(path.getSpacedPoints(80), false, 'centripetal', 0.1);
-    const tube = new THREE.TubeGeometry(curve, 600, 0.75, 32, false);
-    const colors = new Float32Array(tube.attributes.position.count * 3);
-    tube.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    const pipe = mesh(tube, gloss('#ffffff', { vertexColors: true, metalness: 0.1 }));
-    for (let i = 0.08; i < 1; i += 0.14) {
-      const flange = mesh(new THREE.TorusGeometry(0.82, 0.12, 12, 40), gloss(C.navy));
-      flange.position.copy(curve.getPointAt(i));
-      flange.lookAt(curve.getPointAt(i).add(curve.getTangentAt(i)));
-    }
-    const cool = new THREE.Color(C.blue), warm = new THREE.Color(C.peach), hot = new THREE.Color(C.fail);
-    // Bugs: dark beetles crawling along the top of the pipe.
-    const bugs = [0, 0.2, 0.45, 0.62, 0.82].map(() => {
-      const b = group();
-      const body = mesh(new THREE.SphereGeometry(0.3, 20, 14), gloss(C.navy), b);
-      body.scale.set(1, 0.55, 1.4);
-      mesh(new THREE.SphereGeometry(0.16, 14, 10), gloss(C.navy), b).position.z = 0.42;
-      const legs = [];
-      for (const s of [-1, 1]) for (const z of [-0.2, 0, 0.2]) {
-        const leg = mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.4, 6), gloss(C.navy), b);
-        leg.position.set(s * 0.3, -0.05, z);
-        leg.rotation.z = s * 1.1;
-        legs.push(leg);
-      }
-      return { b, legs };
-    });
-    const uv = tube.attributes.uv;
-    return (t) => {
-      const u = loopT(t);
-      for (let i = 0; i < uv.count; i++) {
-        const along = uv.getX(i);
-        const s = 0.5 + 0.5 * Math.sin(along * TAU * 3 - (u / LOOP) * TAU * 2);
-        const c = s < 0.5 ? cool.clone().lerp(warm, s * 2) : warm.clone().lerp(hot, (s - 0.5) * 2);
-        colors.set([c.r, c.g, c.b], i * 3);
-      }
-      tube.attributes.color.needsUpdate = true;
-      bugs.forEach(({ b, legs }, k) => {
-        const at = ((k / bugs.length + u / LOOP) % 1) * 0.92 + 0.04;
-        const p = curve.getPointAt(at), tan = curve.getTangentAt(at);
-        const up = new THREE.Vector3(0, 1, 0);
-        if (Math.abs(tan.y) > 0.9) up.set(0, 0, 1);
-        const side = new THREE.Vector3().crossVectors(tan, up).normalize();
-        const top = new THREE.Vector3().crossVectors(side, tan).normalize();
-        b.position.copy(p).addScaledVector(top, 0.95);
-        b.scale.setScalar(1.9);
-        b.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(side, top, tan));
-        legs.forEach((leg, j) => (leg.rotation.x = Math.sin(u * TAU * 4 + j * 1.7) * 0.5));
-      });
-      orbit(t, 19, 4, new THREE.Vector3(-0.5, 0, 0), 0.55, 0.4);
-    };
-  },
-
   freelance() {
     const stand = mesh(new THREE.CylinderGeometry(5.2, 5.4, 0.5, 64), gloss(C.navy));
     stand.position.y = -2.2;
@@ -294,36 +175,6 @@ const SCENES = {
       });
       bottle.rotation.y = u * 0.2;
       orbit(t, 15.5, 2.6, new THREE.Vector3(0, 0.9, 0), 0.4, 0.5);
-    };
-  },
-
-  today() {
-    const desks = [-4.5, -1.5, 1.5, 4.5].map((x, k) => {
-      const d = group();
-      mesh(box(2.2, 0.25, 1.4, 0.08), gloss(C.purple), d).position.y = -1.3;
-      const head = littleHead(d, 0.7);
-      head.position.set(0, -0.4, -0.2);
-      const code = [0, 1, 2, 3, 4, 5].map((j) => {
-        const bar = mesh(box(1, 0.12, 0.05, 0.05), gloss([C.peach, C.light, C.rose][j % 3], { emissive: [C.peach, C.light, C.rose][j % 3], emissiveIntensity: 0.25 }), d);
-        return bar;
-      });
-      d.position.x = x;
-      return { d, head, code, k };
-    });
-    return (t) => {
-      const u = loopT(t);
-      desks.forEach(({ head, code, k }) => {
-        head.rotation.y = Math.sin(u * 2 + k) * 0.25;
-        head.position.y = -0.4 + Math.abs(Math.sin(u * 5 + k)) * 0.06;
-        code.forEach((bar, j) => {
-          const life = ((u / LOOP) * 3 + j / code.length + k * 0.17) % 1;
-          bar.position.set(Math.sin(j * 3 + k) * 0.3, 0.6 + life * 3.2, -0.2);
-          bar.scale.x = 0.5 + ((j * 7 + k * 3) % 5) * 0.2;
-          bar.material.opacity = 1;
-          bar.visible = life < 0.95;
-        });
-      });
-      orbit(t, 15, 2.5, new THREE.Vector3(0, 0.6, 0), 0.2, 0.4);
     };
   },
 
@@ -442,11 +293,11 @@ const SCENES = {
 };
 
 const params = new URLSearchParams(location.search);
-const name = params.get('scene');
-const update = SCENES[name]();
+// With no scene named, only the list of scenes (for render.mjs).
+const update = SCENES[params.get('scene')]?.();
 window.LOOP = LOOP;
 window.SCENES = Object.keys(SCENES);
-window.render = (t) => { update(t); renderer.render(scene, camera); };
+window.render = (t) => { update?.(t); renderer.render(scene, camera); };
 window.ready = true;
 if (params.get('t') !== null) window.render(+params.get('t'));
 </script>

@@ -16,7 +16,6 @@ import useReducedMotion from '@/hooks/useReducedMotion';
 
 import { Chapter, CHAPTERS } from './chapters';
 import NavHint from './NavHint';
-import StoryFlash from './StoryFlash';
 import Title from './Title';
 import TitleBox from './TitleBox';
 import { LEAD_SECONDS, takesOver, watchDelay, watchWait } from './watch';
@@ -144,7 +143,6 @@ export default function Story() {
           {/* Left alone for a while, the opening points up at Portfolio. */}
           {index < 0 && <NavHint />}
         </div>
-        <StoryFlash />
         {CHAPTERS.map((chapter, k) => (
           <Post
             key={chapter.id}

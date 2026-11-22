@@ -4,8 +4,10 @@ import { Content, MediaSource } from '@/types';
 // them in order with the portfolio's own): Zack's way from mechanical
 // engineering to AI agents, told in his voice. Each shows an animated 3D
 // illustration (public/story/, recorded by scripts/story/render.mjs from
-// scripts/story/scenes.html), a silent loop as the portfolio's videos are,
-// its first frame its poster (components/videoPoster.ts).
+// scripts/story/scenes.html and studio.html), a silent loop as the
+// portfolio's videos are, its first frame its poster
+// (components/videoPoster.ts); Texas Tech has none, and is told on the head
+// itself (its prop, chapters.ts).
 //
 // The facts are from Zack's resume. His current employer is not named, and
 // nothing here gives numbers from that job.
@@ -22,19 +24,14 @@ export const TEXAS_TECH: Content = {
   name: 'Texas Tech',
   description: (
     <p>
-      Hi, I&rsquo;m Zack. Well, the head part. I started out in mechanical
-      engineering at Texas Tech, with a minor in math, from 2007 to 2011. For my
-      senior project I designed and tested a pulse jet engine for a model plane.
-      It was very loud.
+      Hi, I&rsquo;m Zack. Well, the head part. I went to Texas Tech from 2007 to
+      2011 for mechanical engineering, with a minor in math. I&rsquo;m still a
+      Red Raiders fan, and yes, I threw my share of tortillas at kickoff. They
+      banned that in 2025. Not my fault. Probably. My senior project was a pulse
+      jet engine. It was very loud.
     </p>
   ),
   technology: 'Mechanical Engineering, Mathematics',
-  mediaSources: [
-    loop(
-      'texas-tech',
-      'A model plane whose pulse jet engine puffs smoke, then goes bang',
-    ),
-  ],
 };
 
 export const PIPE_ENGINEER: Content = {
@@ -44,14 +41,14 @@ export const PIPE_ENGINEER: Content = {
       Then I spent four years in Houston making sure huge industrial pipes could
       take the heat and the pressure without bursting. I also tested the
       stress-analysis software we used, and I kept finding bugs in it: 10 to 15
-      in every release. I liked the bugs more than the pipes.
+      in every release.
     </p>
   ),
   technology: 'Pipe Stress Analysis, ASME Standards, TRIFLEX',
   mediaSources: [
     loop(
       'pipe-engineer',
-      'A bending pipe glowing with stress, bugs crawling along it',
+      'A pipe in stress-analysis software, coloured by its stress, as bug reports pop up over it',
     ),
   ],
 };
@@ -125,7 +122,10 @@ export const TODAY: Content = {
   ),
   technology: 'Claude Code, Codex, TypeScript, CI/CD',
   mediaSources: [
-    loop('today', 'Small agent heads at their desks, lines of code rising'),
+    loop(
+      'robot-line',
+      'Robot arms on an assembly line stamp printed sheets of code; one sheet is stamped rejected and pushed into a bin',
+    ),
   ],
 };
 

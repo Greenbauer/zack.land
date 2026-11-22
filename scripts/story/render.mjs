@@ -1,4 +1,5 @@
-// Records the home page's story illustrations (scenes.html, three.js) into
+// Records the home page's story illustrations (scenes.html and studio.html,
+// three.js) into
 // public/story/<scene>.mp4, a silent six-second loop, and <scene>.jpg, its
 // poster (components/Media.tsx shows the poster until the loop plays).
 // Run, with the repository's root served on port 3170 (for example
@@ -24,16 +25,21 @@ mkdirSync(out, { recursive: true });
 const browser = await chromium.launch({
   args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist'],
 });
-const SCENES_URL =
-  process.env.STORY_SCENES ?? 'http://localhost:3170/scripts/story/scenes.html';
+const BASE = process.env.STORY_SCENES ?? 'http://localhost:3170/scripts/story';
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
-await page.goto(`${SCENES_URL}?scene=texas-tech`);
-await page.waitForFunction(() => window.ready, null, { timeout: 60_000 });
-const all = await page.evaluate(() => window.SCENES);
-const scenes = process.argv.slice(2).length ? process.argv.slice(2) : all;
+// Which page draws each scene.
+const pages = {};
+for (const file of ['scenes.html', 'studio.html']) {
+  await page.goto(`${BASE}/${file}`);
+  await page.waitForFunction(() => window.ready, null, { timeout: 60_000 });
+  for (const scene of await page.evaluate(() => window.SCENES))
+    pages[scene] = file;
+}
+const asked = process.argv.slice(2);
+const scenes = asked.length ? asked : Object.keys(pages);
 
 for (const scene of scenes) {
-  await page.goto(`${SCENES_URL}?scene=${scene}`);
+  await page.goto(`${BASE}/${pages[scene]}?scene=${scene}`);
   await page.waitForFunction(() => window.ready, null, { timeout: 60_000 });
   const loop = await page.evaluate(() => window.LOOP);
   const ffmpeg = spawn(

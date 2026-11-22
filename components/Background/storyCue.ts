@@ -18,10 +18,9 @@ export type Beat = {
 };
 
 // Something a chapter brings into the scene while it shows, around the head
-// (StoryProps.tsx): sunglasses on its face, a plane across the sky, the bang
-// of a pulse jet, small agent heads around it, or its own wireframe.
-export type StoryProp =
-  'sunglasses' | 'plane' | 'bang' | 'agents' | 'wireframe';
+// (StoryProps.tsx): sunglasses on its face, a plane across the sky, its own
+// wireframe, or a graduation cap with tortillas flying past (`tortillas`).
+export type StoryProp = 'sunglasses' | 'plane' | 'wireframe' | 'tortillas';
 
 // `since`: when the chapter's beats start (seconds, performance.now() /
 // 1000). `card`: the look target (headLook.ts units) that points at its

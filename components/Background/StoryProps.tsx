@@ -8,10 +8,8 @@ import {
   Material,
   Mesh,
   MeshBasicMaterial,
-  SphereGeometry,
   Vector3,
 } from 'three';
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 import { armFit, wrapArm } from './glassesFit';
 import { Glasses, loadGlasses } from './glassesGeometry';
@@ -20,20 +18,19 @@ import { GLOSS } from './headSkin';
 import { turnHead } from './headTurn';
 import { fadeNeck } from './neckFade';
 import { isStill } from './stillScene';
-import { StoryCue, StoryProp } from './storyCue';
-import { PROP_DELAY, propTarget } from './storyProp';
+import { StoryProp } from './storyCue';
+import { propTarget } from './storyProp';
+import TexasTechProps from './TexasTechProps';
 
 // What a chapter of the home page's story brings into the scene around the
 // head (components/Home/chapters.ts, through headMood.cue): sunglasses that
-// drop onto its face, its own wireframe over its skin, small agent heads
-// that pop up around it, and a paper plane that flies past. Each eases in
-// as its chapter arrives (propTarget, storyProp.ts) and out as it goes;
-// with reduced motion none shows. The sunglasses and the wireframe turn
-// with the head (turnHead), as its eyes do. What it shows is named on the
-// page as data-story-prop on <html> (space-separated, empty for none): a 3D
-// prop once it is well in, and the bang once its moment has come in this
-// chapter (the flash itself is the page's, components/Home/StoryFlash.tsx,
-// timed by the same propTarget).
+// drop onto its face, its own wireframe over its skin, a graduation cap and
+// flying tortillas (TexasTechProps.tsx), and a paper plane that flies past.
+// Each eases in as its chapter arrives (propTarget, storyProp.ts) and out
+// as it goes; with reduced motion none shows. The sunglasses, the cap and
+// the wireframe turn with the head (turnHead), as its eyes do. What it
+// shows is named on the page as data-story-prop on <html> (empty for none),
+// each prop once it is well in.
 
 const skinShader: Material['onBeforeCompile'] = (shader) => {
   turnHead(shader);
@@ -128,18 +125,6 @@ function fitGlasses(
   };
 }
 
-// A small head: a navy egg with two light eyes, for the agents.
-function agentHead() {
-  const skull = new SphereGeometry(1, 20, 16);
-  skull.scale(0.85, 1, 0.9);
-  const eye = (x: number) => {
-    const g = new SphereGeometry(0.16, 10, 8);
-    g.translate(x, 0.12, 0.8);
-    return g;
-  };
-  return { skull, eyes: mergeGeometries([eye(-0.32), eye(0.32)])! };
-}
-
 // A folded paper plane, nose along -x: two wings meeting at a keel.
 function paperPlane() {
   const g = new BufferGeometry();
@@ -158,23 +143,15 @@ function paperPlane() {
 // How quickly a prop eases in and out (per second).
 const IN_RATE = 3;
 const OUT_RATE = 2.5;
-const AGENTS = 6;
 
 // Names what the scene shows on the page, as data-story-prop on <html>: each
-// 3D prop once it is well in (the sunglasses once their model has loaded),
-// and the bang once its moment has come.
-function nameDrawn(
-  amounts: Record<StoryProp, number>,
-  hasGlasses: boolean,
-  hasBanged: boolean,
-) {
-  const drawn: StoryProp[] = (
-    ['sunglasses', 'plane', 'agents', 'wireframe'] as const
-  ).filter(
-    (prop) => amounts[prop] > 0.5 && (prop !== 'sunglasses' || hasGlasses),
-  );
-  if (hasBanged) drawn.push('bang');
-  const named = drawn.join(' ');
+// prop once it is well in (the sunglasses once their model has loaded).
+function nameDrawn(amounts: Record<StoryProp, number>, hasGlasses: boolean) {
+  const named = (Object.keys(amounts) as StoryProp[])
+    .filter(
+      (prop) => amounts[prop] > 0.5 && (prop !== 'sunglasses' || hasGlasses),
+    )
+    .join(' ');
   const root = document.documentElement;
   if (root.dataset.storyProp !== named) root.dataset.storyProp = named;
 }
@@ -190,9 +167,11 @@ export default function StoryProps({
   skin: BufferGeometry;
   skinRef: RefObject<Mesh | null>;
 }) {
-  const shapes = useMemo(
-    () => ({ agent: agentHead(), plane: paperPlane() }),
-    [],
+  const plane = useMemo(() => paperPlane(), []);
+  // The head's own measure: the distance between its eyes.
+  const spread = useMemo(
+    () => Math.abs(centre(rightEye).x - centre(leftEye).x),
+    [leftEye, rightEye],
   );
   // The sunglasses, fetched once the story has started (a chapter's cue),
   // well before Banner Eyewear's chapter comes round.
@@ -213,17 +192,14 @@ export default function StoryProps({
   const amount = useRef<Record<StoryProp, number>>({
     sunglasses: 0,
     plane: 0,
-    bang: 0,
-    agents: 0,
     wireframe: 0,
+    tortillas: 0,
   });
   const glassesRef = useRef<Group>(null);
   const wireRef = useRef<Mesh>(null);
-  const agentsRef = useRef<Group>(null);
   const planeRef = useRef<Group>(null);
-  const banged = useRef<StoryCue | null>(null);
 
-  useFrame(({ clock }, delta) => {
+  useFrame((_state, delta) => {
     const now = performance.now() / 1000;
     const cue = headMood.cue;
     const still = isStill();
@@ -233,13 +209,8 @@ export default function StoryProps({
       const rate = target > was ? IN_RATE : OUT_RATE;
       amount.current[prop] = was + (target - was) * Math.min(1, rate * delta);
     }
-    const { sunglasses: wearing, wireframe, agents, plane } = amount.current;
-    // The bang's moment is told by the clock, not by a frame that caught its
-    // flash: at a frame a second (a browser drawing in software) a frame
-    // can miss it.
-    if (!still && cue?.prop === 'bang' && now >= cue.since + PROP_DELAY.bang)
-      banged.current = cue;
-    nameDrawn(amount.current, !!glasses, !!cue && banged.current === cue);
+    const { sunglasses: wearing, wireframe, plane: flying } = amount.current;
+    nameDrawn(amount.current, !!glasses);
 
     // The sunglasses drop from above onto the face, slowing as they land.
     if (glassesRef.current && glasses) {
@@ -256,30 +227,10 @@ export default function StoryProps({
         skinRef.current?.morphTargetInfluences ?? [];
     }
 
-    // The agents pop up around the head and bob, each at its own pace.
-    if (agentsRef.current) {
-      agentsRef.current.visible = agents > 0.01;
-      agentsRef.current.children.forEach((child, k) => {
-        const angle = (k / AGENTS) * Math.PI * 2 + clock.elapsedTime * 0.25;
-        // Round the head and well clear of it (it is about 75 across), at
-        // brow and cheek height in turn.
-        const ring = 72;
-        child.position.set(
-          Math.cos(angle) * ring,
-          (k % 2 ? 24 : -10) + Math.sin(clock.elapsedTime * 2 + k) * 3,
-          Math.sin(angle) * ring * 0.45 + 12,
-        );
-        child.scale.setScalar(
-          9 * Math.max(0, Math.min(1, agents * 1.3 - k * 0.05)),
-        );
-        child.lookAt(0, 0, 200);
-      });
-    }
-
     // The plane flies past in front of the head, right to left, every few
     // seconds while its chapter shows.
     if (planeRef.current) {
-      planeRef.current.visible = plane > 0.01;
+      planeRef.current.visible = flying > 0.01;
       const t = cue?.prop === 'plane' ? ((now - cue.since) % 5) / 5 : 0;
       planeRef.current.position.set(
         150 - t * 300,
@@ -287,7 +238,7 @@ export default function StoryProps({
         60,
       );
       planeRef.current.rotation.set(0.35, 0.2, Math.sin(t * Math.PI * 4) * 0.3);
-      planeRef.current.scale.setScalar(9 * plane);
+      planeRef.current.scale.setScalar(9 * flying);
     }
   });
 
@@ -342,20 +293,9 @@ export default function StoryProps({
           onBeforeCompile={skinShader}
         />
       </mesh>
-      <group ref={agentsRef} visible={false}>
-        {Array.from({ length: AGENTS }, (_, k) => (
-          <group key={k}>
-            <mesh geometry={shapes.agent.skull}>
-              <meshPhysicalMaterial color="#0b1953" {...GLOSS} />
-            </mesh>
-            <mesh geometry={shapes.agent.eyes}>
-              <meshBasicMaterial color="#ede4e3" />
-            </mesh>
-          </group>
-        ))}
-      </group>
+      <TexasTechProps spread={spread} amounts={amount} />
       <group ref={planeRef} visible={false}>
-        <mesh geometry={shapes.plane}>
+        <mesh geometry={plane}>
           <meshPhysicalMaterial
             color="#ede4e3"
             roughness={0.6}

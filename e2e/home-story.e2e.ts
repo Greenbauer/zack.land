@@ -209,14 +209,18 @@ test.describe('on a phone', () => {
   test('shows a chapter as the portfolio shows a post, pictures over its card', async ({
     page,
   }) => {
+    // The second chapter: the first (Texas Tech) is told by the head alone.
     await open(page);
     await turn(page);
     await expect(title(page, 0)).toBeVisible();
-    const tile = await post(page, 0)
+    await page.waitForTimeout(1500);
+    await turn(page);
+    await expect(title(page, 1)).toBeVisible();
+    const tile = await post(page, 1)
       .locator('.collage-tile')
       .first()
       .boundingBox();
-    const card = await post(page, 0).locator('section').boundingBox();
+    const card = await post(page, 1).locator('section').boundingBox();
     // The tiles tuck 8px under the card's top, as a post's do (Post.tsx).
     expect(tile!.y + tile!.height).toBeLessThanOrEqual(card!.y + 10);
   });
@@ -237,7 +241,8 @@ test.describe('with reduced motion', () => {
     await expect(title(page, 0)).toBeVisible();
     await page.waitForTimeout(15_000);
     await expect(title(page, 0)).toBeVisible();
-    // Nor does the scene bring the chapter's prop (Texas Tech's bang).
+    // Nor does the scene bring the chapter's prop (Texas Tech's cap and
+    // tortillas).
     await expect(page.locator('html')).toHaveAttribute('data-story-prop', '');
   });
 });
