@@ -160,10 +160,18 @@ test.describe('on a wide screen', () => {
         errors.push(error.message);
     });
     await open(page);
-    await page.evaluate(() =>
-      dispatchEvent(new KeyboardEvent('keydown', { key: 'PageDown' })),
-    );
-    await expect(title(page, 0)).toBeVisible();
+    // Sent again if the pager did not hear it yet (on CI's slow runner, one
+    // sent before it listens moves nothing), as turn() does with a key press.
+    const top = () =>
+      page.evaluate(() => document.getElementById('page')!.scrollTop);
+    await expect(async () => {
+      if ((await top()) === 0)
+        await page.evaluate(() =>
+          dispatchEvent(new KeyboardEvent('keydown', { key: 'PageDown' })),
+        );
+      await expect.poll(top, { timeout: 3000 }).not.toBe(0);
+    }).toPass({ timeout: 30_000 });
+    await expect(title(page, 0)).toBeVisible({ timeout: 15_000 });
     expect(errors).toEqual([]);
   });
 });
