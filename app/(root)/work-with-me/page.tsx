@@ -81,7 +81,7 @@ export default function WorkWithMe() {
       {/* The contact page's card: its glass runs out past the window's
           right side (and a phone's left), and it slides in from the left as
           what is on it fades in. */}
-      <EdgeCard className="motion-safe:animate-card-in md:max-w-2xl">
+      <EdgeCard className="motion-safe:animate-card-in">
         <article className="flex flex-col gap-4 pb-6 motion-safe:animate-content-in [&_h3]:mt-6">
           <h2>
             I build AI tools that handle the repetitive work for small teams
