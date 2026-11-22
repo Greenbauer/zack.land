@@ -130,20 +130,26 @@ test('the footer speaks to each audience, and here jumps to the form', async ({
 }) => {
   const footer = page.getByRole('contentinfo');
 
-  await opened(page, '/');
-  await expect(footer).toContainText(
-    'Hiring a developer, or have a task that repeats?',
-  );
-  await expect(
-    footer.getByRole('link', { name: 'Get in touch', exact: true }),
-  ).toHaveAttribute('href', '/contact');
+  // Every page but Work with me and Contact: a home and a portfolio page.
+  for (const path of ['/', '/portfolio/web-apps']) {
+    await opened(page, path);
+    await expect(footer).toContainText(
+      'Hiring a developer, or have a task that repeats?',
+    );
+    await expect(
+      footer.getByRole('link', { name: 'Get in touch', exact: true }),
+    ).toHaveAttribute('href', '/contact');
+  }
 
   await opened(page, '/work-with-me');
   await expect(footer).toContainText(
     'Have a task your team does over and over?',
   );
+  // The form starts below the window, and the link brings it into view.
+  const email = page.getByLabel('Your email');
+  await expect(email).not.toBeInViewport();
   await footer
     .getByRole('link', { name: 'Tell me about it', exact: true })
     .click();
-  await expect(page.getByLabel('Your email')).toBeInViewport();
+  await expect(email).toBeInViewport();
 });
