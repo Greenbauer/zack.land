@@ -6,8 +6,8 @@ import { Content, MediaSource } from '@/types';
 // the portfolio's videos are, each one's first frame its poster
 // (components/videoPoster.ts): animated illustrations (public/story/,
 // recorded by scripts/story/render.mjs from scripts/story/), or for Gulp the
-// real site he built, scrolling. Texas Tech has none, and is told on the
-// head itself (its prop, chapters.ts).
+// real site he built, scrolling. Improv shows photos instead. Texas Tech has
+// none, and is told on the head itself (its prop, chapters.ts).
 //
 // The facts are from Zack's resume. His current employer is not named, and
 // nothing here gives numbers from that job.
@@ -163,11 +163,22 @@ export const IMPROV: Content = {
       going when nothing goes to plan. Which might explain this face.
     </p>
   ),
+  // The theater's own logo and Zack's cast photo, from its site.
   mediaSources: [
-    loop(
-      'improv',
-      'A head at a microphone on an improv stage, under a spotlight',
-    ),
+    {
+      key: '/story/improv-cast.jpg',
+      alt: 'Zack in a mariachi hat and suit, his House Party Improv cast photo',
+      type: 'img',
+      width: 1280,
+      height: 1600,
+    },
+    {
+      key: '/story/improv-logo.jpg',
+      alt: 'The House Party Improv logo: a house over San Antonio',
+      type: 'img',
+      width: 800,
+      height: 800,
+    },
   ],
 };
 
