@@ -2,22 +2,27 @@ import { Content, MediaSource } from '@/types';
 
 // The home page's chapters that are not portfolio posts (chapters.tsx puts
 // them in order with the portfolio's own): Zack's way from mechanical
-// engineering to AI agents, told in his voice. Each shows an animated 3D
-// illustration (public/story/, recorded by scripts/story/render.mjs from
-// scripts/story/scenes.html and studio.html), a silent loop as the
-// portfolio's videos are, its first frame its poster
-// (components/videoPoster.ts); Texas Tech has none, and is told on the head
-// itself (its prop, chapters.ts).
+// engineering to AI agents, told in his voice. Each shows silent loops, as
+// the portfolio's videos are, each one's first frame its poster
+// (components/videoPoster.ts): animated illustrations (public/story/,
+// recorded by scripts/story/render.mjs from scripts/story/), or for Gulp the
+// real site he built, scrolling. Texas Tech has none, and is told on the
+// head itself (its prop, chapters.ts).
 //
 // The facts are from Zack's resume. His current employer is not named, and
 // nothing here gives numbers from that job.
 
-const loop = (name: string, alt: string): MediaSource => ({
+const loop = (
+  name: string,
+  alt: string,
+  width = 1280,
+  height = 720,
+): MediaSource => ({
   key: `/story/${name}.mp4`,
   alt,
   type: 'video',
-  width: 1280,
-  height: 720,
+  width,
+  height,
 });
 
 export const TEXAS_TECH: Content = {
@@ -67,7 +72,7 @@ export const FREELANCE: Content = {
   mediaSources: [
     loop(
       'freelance',
-      'Shop boxes on a turntable as sales bars grow behind them',
+      'A shop page drawn as wireframes, on a desktop and a phone, as a cursor reworks it',
     ),
   ],
 };
@@ -106,7 +111,8 @@ export const GULP: Content = {
   ),
   technology: 'Next.js, TypeScript, Stripe, Auth0',
   mediaSources: [
-    loop('gulp', 'Vitamins pouring into a glass jar as its lid pops off'),
+    loop('gulp-site', "Gulp's home page, scrolling, on a desktop"),
+    loop('gulp-phone', "Gulp's home page, scrolling, on a phone", 432, 842),
   ],
 };
 
@@ -143,7 +149,7 @@ export const VIBE_VERIFIER: Content = {
   mediaSources: [
     loop(
       'vibe-verifier',
-      'Pull requests passing through a ring, each checked or flagged',
+      "Vibe Verifier's checks on this website's own pull request, each passing",
     ),
   ],
 };

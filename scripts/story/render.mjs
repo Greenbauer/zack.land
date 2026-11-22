@@ -1,7 +1,7 @@
 // Records the home page's story illustrations (scenes.html and studio.html,
-// three.js) into
-// public/story/<scene>.mp4, a silent six-second loop, and <scene>.jpg, its
-// poster (components/Media.tsx shows the poster until the loop plays).
+// three.js; wireframe.html and terminal.html, HTML and CSS) into
+// public/story/<scene>.mp4, a silent loop as long as the page's LOOP, and
+// <scene>.jpg, its poster (components/Media.tsx shows the poster until the loop plays).
 // Run, with the repository's root served on port 3170 (for example
 // `python3 -m http.server 3170`) and ffmpeg on PATH, on a machine with a GPU:
 //   node scripts/story/render.mjs [scene ...]
@@ -29,7 +29,12 @@ const BASE = process.env.STORY_SCENES ?? 'http://localhost:3170/scripts/story';
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 // Which page draws each scene.
 const pages = {};
-for (const file of ['scenes.html', 'studio.html']) {
+for (const file of [
+  'scenes.html',
+  'studio.html',
+  'wireframe.html',
+  'terminal.html',
+]) {
   await page.goto(`${BASE}/${file}`);
   await page.waitForFunction(() => window.ready, null, { timeout: 60_000 });
   for (const scene of await page.evaluate(() => window.SCENES))
