@@ -18,7 +18,7 @@ const ROWS: Field[][] = [
   ],
   [
     {
-      label: 'What task do you want off your plate?',
+      label: 'What does your team do over and over?',
       name: 'message',
       type: 'textarea',
       isRequired: true,

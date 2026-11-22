@@ -30,7 +30,7 @@ test('the header links to the page, which shows the offer and its price', async 
   });
   await expect(
     page.getByRole('heading', {
-      name: "I build AI tools that take one repetitive task off a small team's plate",
+      name: 'I build AI tools that handle the repetitive work for small teams',
     }),
   ).toBeVisible();
   await expect(
@@ -122,7 +122,7 @@ test('sends a build request with the email and the answer, then says so', async 
   await page.getByLabel('Your email').fill('lead@example.com');
   await expect(submit).toBeDisabled();
   await page
-    .getByLabel('What task do you want off your plate?')
+    .getByLabel('What does your team do over and over?')
     .fill('Turn site walks into quotes');
   await expect(submit).toBeEnabled();
 
@@ -146,7 +146,7 @@ test('says so when the request fails, keeping the button', async ({ page }) => {
 
   await page.getByLabel('Your email').fill('lead@example.com');
   await page
-    .getByLabel('What task do you want off your plate?')
+    .getByLabel('What does your team do over and over?')
     .fill('Turn site walks into quotes');
   const submit = page.getByRole('button', { name: 'Send', exact: true });
   await submit.click();

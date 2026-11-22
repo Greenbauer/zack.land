@@ -8,7 +8,7 @@ import BuildForm from './BuildForm';
 export const metadata: Metadata = {
   title: 'Work With Me',
   description:
-    "I build AI tools that take one repetitive task off a small team's plate: same-day quotes, or no more retyping. Done for you, checked by you, and kept running.",
+    'I build AI tools that handle the repetitive work for small teams: same-day quotes, or no more retyping. Done for you, checked by you, and kept running.',
 };
 
 // The two starters, each as the owner's day today and after.
@@ -84,8 +84,7 @@ export default function WorkWithMe() {
       <EdgeCard className="motion-safe:animate-card-in md:max-w-2xl">
         <article className="flex flex-col gap-4 pb-6 motion-safe:animate-content-in [&_h3]:mt-6">
           <h2>
-            I build AI tools that take one repetitive task off a small
-            team&apos;s plate
+            I build AI tools that handle the repetitive work for small teams
           </h2>
           <p>
             Done for you, checked by you before anything goes out, and kept

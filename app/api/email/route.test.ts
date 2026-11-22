@@ -101,7 +101,7 @@ describe('POST /api/email', () => {
     expect(res.status).toBe(200);
     const { subject, html, from, replyTo } = sendMail.mock.calls[0]![0];
     expect(subject).toBe('Build Request - zack.land');
-    expect(html).toContain('The task they want off their plate:');
+    expect(html).toContain('What their team does over and over:');
     expect(html).toContain('Review our &lt;b&gt;PRs&lt;/b&gt;');
     expect(from).toEqual({
       name: `zack.land --> ${valid.email}`,
