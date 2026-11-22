@@ -260,12 +260,20 @@ test('the menu fades evenly, leaving no tint for a sudden end', async ({
     () =>
       new Promise<number>((resolve) => {
         const pane = document.querySelector<HTMLElement>('.mobile-menu')!;
-        pane.addEventListener('animationstart', () => {
-          const [fade] = pane.getAnimations();
-          fade!.pause();
-          fade!.currentTime = 250;
+        // The pane's own fade only: animationstart bubbles up from what is
+        // on the pane too, and WebKit can report one of those first.
+        const onStart = (event: AnimationEvent) => {
+          if (event.target !== pane || event.animationName !== 'menu-out')
+            return;
+          pane.removeEventListener('animationstart', onStart);
+          const fade = pane
+            .getAnimations()
+            .find((a) => (a as CSSAnimation).animationName === 'menu-out')!;
+          fade.pause();
+          fade.currentTime = 250;
           resolve(parseFloat(getComputedStyle(pane).opacity));
-        });
+        };
+        pane.addEventListener('animationstart', onStart);
       }),
   );
   await page.getByRole('button', { name: 'Menu', exact: true }).tap();
