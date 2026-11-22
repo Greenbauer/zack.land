@@ -55,7 +55,7 @@ const QUESTIONS: [string, string][] = [
   ],
   [
     "Who sees my customers' details?",
-    "Only you and me. The AI I use is Anthropic's Claude on its business terms, which don't let it train on your data.",
+    "Only you and me. The AI service I use works under business terms that don't let it train on your data.",
   ],
   [
     "What if you're unavailable?",

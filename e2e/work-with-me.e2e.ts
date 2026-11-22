@@ -98,7 +98,7 @@ test('the header links to the page, which shows the offer and its price', async 
   await data.click();
   await expect(
     page.getByText(
-      "Only you and me. The AI I use is Anthropic's Claude on its business terms, which don't let it train on your data.",
+      "Only you and me. The AI service I use works under business terms that don't let it train on your data.",
     ),
   ).toBeVisible();
   await expect(page.locator('article details')).toHaveCount(5);
