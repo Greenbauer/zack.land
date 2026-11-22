@@ -35,41 +35,79 @@ test('the header links to the page, which shows the offer and its price', async 
   ).toBeVisible();
   await expect(
     page.getByText(
-      'Done for you, checked by a person, and kept running. You approve everything before it goes out.',
+      'Done for you, checked by you before anything goes out, and kept running.',
     ),
   ).toBeVisible();
-  // Both starters, quotes first, each with its pitch, setup fee and monthly
-  // fee.
-  await expect(page.locator('article h3')).toContainText([
+  // The free first step, and who does the work.
+  await expect(
+    page.getByRole('link', { name: 'Send me one real example' }),
+  ).toHaveAttribute('href', '#ask');
+  await expect(
+    page.getByText(
+      "Free. I'll show you a draft built from it before you pay anything.",
+    ),
+  ).toBeAttached();
+  await expect(
+    page.getByText(
+      "I'm Zack Greenbauer, a software engineer for 10+ years. Right now I lead AI agent work at a distribution company. You deal with me, start to finish.",
+    ),
+  ).toBeAttached();
+  // Both tasks, quotes first, each as today and after.
+  await expect(page.locator('article h4')).toHaveText([
     'Same-day quotes',
-    'Stop retyping the same information',
+    'Stop retyping',
   ]);
   await expect(
     page.getByText(
-      'Send a recording or notes from the site walk. A drafted quote comes back for you to check and send.',
+      'Send the notes or a voice memo. A drafted quote, priced from your own price list, comes back for you to check and send.',
     ),
   ).toBeAttached();
   await expect(
     page.getByText(
-      'Details from forms, PDFs and emails get entered into your software once, instead of typed into the calendar, the estimate and the invoice.',
+      'Details from forms, PDFs and emails get entered once. Anything unclear waits for you.',
     ),
   ).toBeAttached();
-  await expect(page.getByText('$3,500 setup')).toHaveCount(2);
+  // How it works, in four steps.
+  await expect(page.locator('article ol > li')).toHaveCount(4);
+  await expect(page.getByText('within 3 working days.')).toBeAttached();
+  // The price, all in.
+  await expect(page.getByText('$3,500 setup')).toHaveCount(1);
   await expect(
-    page.getByText('Then $500 a month to keep it running. Ready in two weeks.'),
-  ).toHaveCount(2);
+    page.getByText(
+      "Half to start, half once you've approved its first real drafts.",
+    ),
+  ).toBeAttached();
+  await expect(page.getByText('$500 a month', { exact: true })).toBeAttached();
   await expect(
-    page.getByRole('heading', { name: 'The first two are free' }),
+    page.getByText(
+      'Covers fixes, updates and the AI and hosting costs. No other bills.',
+    ),
   ).toBeAttached();
   await expect(
     page.getByText(
-      'The first two businesses get the setup free. In return, I publish a short write-up of what changed, with your business named.',
+      "Cancel anytime with 30 days' notice. You keep your price list, templates and every quote.",
     ),
   ).toBeAttached();
   await expect(
     page.getByText(
-      'Right now I lead AI agent work at a distribution company.',
-      { exact: false },
+      'The first two businesses get the setup free. In return I publish a short write-up of what changed, with your business named, and you read it before it goes up.',
+    ),
+  ).toBeAttached();
+  // The owners' questions open to their answers, and the limits are said.
+  const data = page.getByText("Who sees my customers' details?");
+  await data.click();
+  await expect(
+    page.getByText(
+      "Only you and me. The AI I use is Anthropic's Claude on its business terms, which don't let it train on your data.",
+    ),
+  ).toBeVisible();
+  await expect(page.locator('article details')).toHaveCount(5);
+  await expect(
+    page.getByRole('heading', { name: "When I'm not the right fit" }),
+  ).toBeAttached();
+  await expect(
+    page.getByText(
+      "You want it fully automatic, with nobody checking. I won't build that.",
     ),
   ).toBeAttached();
   await expect(
@@ -87,7 +125,7 @@ test('sends a build request with the email and the answer, then says so', async 
   });
   await opened(page, '/work-with-me');
 
-  const submit = page.getByRole('button', { name: 'Ask about a build' });
+  const submit = page.getByRole('button', { name: 'Send', exact: true });
   await expect(submit).toBeDisabled();
   await page.getByLabel('Your email').fill('lead@example.com');
   await expect(submit).toBeDisabled();
@@ -98,7 +136,7 @@ test('sends a build request with the email and the answer, then says so', async 
 
   await submit.click();
   await expect(page.getByRole('status')).toHaveText(
-    "Sent. I'll reply by email.",
+    "Thanks. I'll reply by email with where to send your example.",
   );
   expect(body).toMatchObject({
     kind: 'build',
@@ -118,7 +156,7 @@ test('says so when the request fails, keeping the button', async ({ page }) => {
   await page
     .getByLabel('What task do you want off your plate?')
     .fill('Turn site walks into quotes');
-  const submit = page.getByRole('button', { name: 'Ask about a build' });
+  const submit = page.getByRole('button', { name: 'Send', exact: true });
   await submit.click();
 
   await expect(page.getByRole('status')).toHaveText('An error has occurred');

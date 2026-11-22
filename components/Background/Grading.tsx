@@ -147,7 +147,10 @@ export default function Grading() {
         element,
         points: skyPoints(gl.domElement, element),
       }))
-      .filter(({ points }) => points.length);
+      .filter(({ element, points }) => {
+        if (!points.length) tints.aimUnseen(element);
+        return points.length;
+      });
     for (const { points } of reads)
       for (const { x, y } of points) reader.read({ x, y, width: 1, height: 1 });
     reader.send((pixels) => {

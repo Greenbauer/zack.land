@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import Link from 'next/link';
 
 import EdgeCard from '@/components/EdgeCard';
 
@@ -7,36 +8,80 @@ import BuildForm from './BuildForm';
 export const metadata: Metadata = {
   title: 'Work With Me',
   description:
-    "I build AI tools that take one repetitive task off a small team's plate: same-day quotes, or no more retyping. Done for you and checked by a person.",
+    "I build AI tools that take one repetitive task off a small team's plate: same-day quotes, or no more retyping. Done for you, checked by you, and kept running.",
 };
 
-// The two starters, in the order the page shows them. Each is a fixed setup
-// fee and a monthly fee to keep it running (docs/features/work-with-me.md).
-const STARTERS = [
+// The two starters, each as the owner's day today and after.
+const TASKS = [
   {
     name: 'Same-day quotes',
-    pitch:
-      'Send a recording or notes from the site walk. A drafted quote comes back for you to check and send.',
-    points: [
-      'Built around your prices and the way you write quotes now.',
-      'Every draft waits for your OK before a customer sees it.',
-      'When your prices change, I update it.',
-    ],
+    today: 'Site-walk notes sit until someone has time to type up the quote.',
+    after:
+      'Send the notes or a voice memo. A drafted quote, priced from your own price list, comes back for you to check and send.',
   },
   {
-    name: 'Stop retyping the same information',
-    pitch:
-      'Details from forms, PDFs and emails get entered into your software once, instead of typed into the calendar, the estimate and the invoice.',
-    points: [
-      "Anything it isn't sure about waits for you to check.",
-      'Connects to the software you already use, where that software allows it.',
-    ],
+    name: 'Stop retyping',
+    today:
+      'The same customer details get typed into the calendar, the estimate and the invoice.',
+    after:
+      'Details from forms, PDFs and emails get entered once. Anything unclear waits for you.',
   },
 ];
 
-// The consulting offer, for small non-technical teams: two starters, the
-// first two setups free for a write-up, current work, and a two-field ask
-// that mails through /api/email.
+const STEPS: [string, string][] = [
+  [
+    'Send one real example.',
+    'A quote you wrote, or a form your team retypes. Free.',
+  ],
+  ['See a draft built from it', 'within 3 working days.'],
+  [
+    "If it's useful, I set it up in two weeks.",
+    'You approve every draft before it goes out.',
+  ],
+  [
+    'I keep it running.',
+    'Fixes, updates when your prices or forms change, and a short call each month.',
+  ],
+];
+
+const QUESTIONS: [string, string][] = [
+  [
+    'Do I have to change my software?',
+    "No. It works with what you already use, where that software allows it. If it can't connect, I'll tell you before you pay.",
+  ],
+  [
+    'What if it gets something wrong?',
+    "Nothing goes to a customer without your OK. Anything it isn't sure about is flagged for you to check.",
+  ],
+  [
+    "Who sees my customers' details?",
+    "Only you and me. The AI I use is Anthropic's Claude on its business terms, which don't let it train on your data.",
+  ],
+  [
+    "What if you're unavailable?",
+    'You own the setup and its written notes, so another developer can pick it up.',
+  ],
+  [
+    'Will my team actually use it?',
+    'It slots into the steps they already do, and I walk them through it in one short session.',
+  ],
+];
+
+const NOT_A_FIT = [
+  "Your software already does this and just needs switching on. I'll tell you how, free.",
+  'You want a chatbot or a new website. Others do that better.',
+  "You want it fully automatic, with nobody checking. I won't build that.",
+];
+
+// Text in a list, or in a question's answer, takes the card's ink and font,
+// as the card's paragraphs do (styles/globals.css colours only p, label and
+// small on a glass card).
+const INK = 'font-sans text-lg leading-7 text-[color:var(--card-ink)]';
+
+// The consulting offer, for small non-technical teams, ordered as a doubtful
+// owner reads it: what it does, a free first step, who I am, the two tasks,
+// how it works, the price all in, their questions, when it isn't a fit, and
+// the form (docs/features/work-with-me.md).
 export default function WorkWithMe() {
   return (
     <div className="relative flex size-full justify-end">
@@ -44,41 +89,121 @@ export default function WorkWithMe() {
           right side (and a phone's left), and it slides in from the left as
           what is on it fades in. */}
       <EdgeCard className="motion-safe:animate-card-in md:max-w-2xl">
-        <article className="flex flex-col gap-4 pb-6 motion-safe:animate-content-in [&_h3]:mt-4">
+        <article className="flex flex-col gap-4 pb-6 motion-safe:animate-content-in [&_h3]:mt-6">
           <h2>
             I build AI tools that take one repetitive task off a small
             team&apos;s plate
           </h2>
           <p>
-            Done for you, checked by a person, and kept running. You approve
-            everything before it goes out.
+            Done for you, checked by you before anything goes out, and kept
+            running.
           </p>
-
-          {STARTERS.map(({ name, pitch, points }) => (
-            <div key={name} className="contents">
-              <h3>{name}</h3>
-              <p>{pitch}</p>
-              <p>
-                <span className="text-h3">$3,500 setup</span>
-                <br />
-                Then $500 a month to keep it running. Ready in two weeks.
-              </p>
-              <ul className="list-disc space-y-1 pl-6 font-sans text-lg leading-7 text-[color:var(--card-ink)]">
-                {points.map((point) => (
-                  <li key={point}>{point}</li>
-                ))}
-              </ul>
-            </div>
-          ))}
-
-          <h3>The first two are free</h3>
           <p>
-            The first two businesses get the setup free. In return, I publish a
-            short write-up of what changed, with your business named.
+            <a
+              href="#ask"
+              className="inline-block rounded-md bg-[color:var(--card-ink)] px-5 py-3 font-sans uppercase tracking-wider !text-[color:var(--card-field)] !no-underline"
+            >
+              Send me one real example
+            </a>
+            <br />
+            <small>
+              Free. I&apos;ll show you a draft built from it before you pay
+              anything.
+            </small>
+          </p>
+          <p>
+            I&apos;m Zack Greenbauer, a software engineer for 10+ years. Right
+            now I lead AI agent work at a distribution company. You deal with
+            me, start to finish.
           </p>
 
-          <h3>Where I&apos;m at</h3>
-          <p>Right now I lead AI agent work at a distribution company.</p>
+          <h3>Pick one task</h3>
+          <div className="grid gap-4 md:grid-cols-2">
+            {TASKS.map(({ name, today, after }) => (
+              <div
+                key={name}
+                className="rounded-lg border border-[color:color-mix(in_srgb,var(--card-ink)_25%,transparent)] p-4"
+              >
+                <h4 className="!text-[color:var(--card-ink)]">{name}</h4>
+                <p className="mt-2">
+                  <small className="block uppercase tracking-wider">
+                    Today
+                  </small>
+                  {today}
+                </p>
+                <p>
+                  <small className="block uppercase tracking-wider">
+                    After
+                  </small>
+                  {after}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <h3>How it works</h3>
+          <ol className={`list-decimal space-y-2 pl-6 ${INK}`}>
+            {STEPS.map(([lead, rest]) => (
+              <li key={lead}>
+                <b className="font-normal">{lead}</b> {rest}
+              </li>
+            ))}
+          </ol>
+
+          <h3>Price, all in</h3>
+          <p>
+            <span className="text-h3">$3,500 setup</span>
+            <br />
+            Half to start, half once you&apos;ve approved its first real drafts.
+          </p>
+          <p>
+            <span className="text-h3">$500 a month</span>
+          </p>
+          <ul className={`list-disc space-y-1 pl-6 ${INK}`}>
+            <li>
+              Covers fixes, updates and the AI and hosting costs. No other
+              bills.
+            </li>
+            <li>
+              Cancel anytime with 30 days&apos; notice. You keep your price
+              list, templates and every quote.
+            </li>
+          </ul>
+          <p>
+            <b className="font-normal">The first two are free.</b> The first two
+            businesses get the setup free. In return I publish a short write-up
+            of what changed, with your business named, and you read it before it
+            goes up.
+          </p>
+
+          <h3>Questions owners ask</h3>
+          <div>
+            {QUESTIONS.map(([question, answer]) => (
+              <details
+                key={question}
+                className={`border-t border-[color:color-mix(in_srgb,var(--card-ink)_20%,transparent)] py-3 last:border-b ${INK}`}
+              >
+                <summary className="cursor-pointer">{question}</summary>
+                <p className="mt-2">{answer}</p>
+              </details>
+            ))}
+          </div>
+
+          <h3>When I&apos;m not the right fit</h3>
+          <ul className={`list-disc space-y-1 pl-6 ${INK}`}>
+            {NOT_A_FIT.map((reason) => (
+              <li key={reason}>{reason}</li>
+            ))}
+          </ul>
+
+          <h3>About me</h3>
+          <p>
+            I started as a mechanical engineer analysing pipe stress, and
+            switched to software because I liked finding the bugs more than the
+            pipes. Now I build tools that do the boring parts of work, and the
+            checks that keep them honest.{' '}
+            <Link href="/portfolio">See my work</Link>.
+          </p>
           <p>
             <small>
               Run a software team? I help there too, and the checks I use are
@@ -94,9 +219,10 @@ export default function WorkWithMe() {
             </small>
           </p>
 
-          <div id="ask" className="mt-4 scroll-mt-32">
-            <BuildForm />
-          </div>
+          <h3 id="ask" className="scroll-mt-32">
+            Send me one real example
+          </h3>
+          <BuildForm />
         </article>
       </EdgeCard>
     </div>

@@ -32,8 +32,8 @@ export default function BuildForm() {
   return (
     <MailForm
       rows={ROWS}
-      submitLabel="Ask about a build"
-      sentText="Sent. I'll reply by email."
+      submitLabel="Send"
+      sentText="Thanks. I'll reply by email with where to send your example."
       extra={BUILD}
     />
   );
