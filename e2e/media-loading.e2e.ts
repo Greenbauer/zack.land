@@ -118,6 +118,13 @@ test.describe("a post's pictures and loops", () => {
   test('a silent loop loads only its poster until its post is shown', async ({
     page,
   }) => {
+    // Every request for the loop, counted as it is sent: the browser adds a
+    // streamed video to its resource timing only once the download ends, so
+    // a slow runner could see it playing with no entry yet.
+    const sent: string[] = [];
+    page.on('request', (request) => {
+      if (request.url().endsWith('/gears.mp4')) sent.push(request.url());
+    });
     const requests = await openWatched(page, '/portfolio/miscellaneous');
     const loop = page.locator('video[src$="gears.mp4"]');
     await expect(loop).toHaveAttribute('preload', 'none');
@@ -129,6 +136,7 @@ test.describe("a post's pictures and loops", () => {
     const loads = async () =>
       (await requests()).filter(({ url }) => url.endsWith('/gears.mp4'));
     expect(await loads()).toHaveLength(0);
+    expect(sent).toHaveLength(0);
     expect(await loop.evaluate((video: HTMLVideoElement) => video.paused)).toBe(
       true,
     );
@@ -138,7 +146,7 @@ test.describe("a post's pictures and loops", () => {
     await expect
       .poll(() => loop.evaluate((video: HTMLVideoElement) => !video.paused))
       .toBe(true);
-    expect((await loads()).length).toBeGreaterThan(0);
+    expect(sent.length).toBeGreaterThan(0);
 
     // It holds still once its post has gone.
     await turnTo(page, 3);
