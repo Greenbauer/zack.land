@@ -120,7 +120,9 @@ test.describe("a post's pictures and loops", () => {
   }) => {
     // Every request for the loop, counted as it is sent: the browser adds a
     // streamed video to its resource timing only once the download ends, so
-    // a slow runner could see it playing with no entry yet.
+    // a slow runner could see it playing with no entry yet. (Only the check
+    // after the post shows uses it: WebKit asks for a little of the video
+    // early, whatever preload says, though no download completes.)
     const sent: string[] = [];
     page.on('request', (request) => {
       if (request.url().endsWith('/gears.mp4')) sent.push(request.url());
@@ -136,7 +138,6 @@ test.describe("a post's pictures and loops", () => {
     const loads = async () =>
       (await requests()).filter(({ url }) => url.endsWith('/gears.mp4'));
     expect(await loads()).toHaveLength(0);
-    expect(sent).toHaveLength(0);
     expect(await loop.evaluate((video: HTMLVideoElement) => video.paused)).toBe(
       true,
     );
