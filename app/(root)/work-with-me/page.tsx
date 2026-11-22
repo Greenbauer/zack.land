@@ -67,12 +67,6 @@ const QUESTIONS: [string, string][] = [
   ],
 ];
 
-const NOT_A_FIT = [
-  "Your software already does this and just needs switching on. I'll tell you how, free.",
-  'You want a chatbot or a new website. Others do that better.',
-  "You want it fully automatic, with nobody checking. I won't build that.",
-];
-
 // Text in a list, or in a question's answer, takes the card's ink and font,
 // as the card's paragraphs do (styles/globals.css colours only p, label and
 // small on a glass card).
@@ -80,8 +74,7 @@ const INK = 'font-sans text-lg leading-7 text-[color:var(--card-ink)]';
 
 // The consulting offer, for small non-technical teams, ordered as a doubtful
 // owner reads it: what it does, a free first step, who I am, the two tasks,
-// how it works, the price all in, their questions, when it isn't a fit, and
-// the form (docs/features/work-with-me.md).
+// how it works, the price all in, their questions, about me, and the form (docs/features/work-with-me.md).
 export default function WorkWithMe() {
   return (
     <div className="relative flex size-full justify-end">
@@ -188,13 +181,6 @@ export default function WorkWithMe() {
               </details>
             ))}
           </div>
-
-          <h3>When I&apos;m not the right fit</h3>
-          <ul className={`list-disc space-y-1 pl-6 ${INK}`}>
-            {NOT_A_FIT.map((reason) => (
-              <li key={reason}>{reason}</li>
-            ))}
-          </ul>
 
           <h3>About me</h3>
           <p>

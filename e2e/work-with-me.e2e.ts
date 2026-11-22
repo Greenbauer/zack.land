@@ -93,7 +93,7 @@ test('the header links to the page, which shows the offer and its price', async 
       'The first two businesses get the setup free. In return I publish a short write-up of what changed, with your business named, and you read it before it goes up.',
     ),
   ).toBeAttached();
-  // The owners' questions open to their answers, and the limits are said.
+  // The owners' questions open to their answers.
   const data = page.getByText("Who sees my customers' details?");
   await data.click();
   await expect(
@@ -102,14 +102,6 @@ test('the header links to the page, which shows the offer and its price', async 
     ),
   ).toBeVisible();
   await expect(page.locator('article details')).toHaveCount(5);
-  await expect(
-    page.getByRole('heading', { name: "When I'm not the right fit" }),
-  ).toBeAttached();
-  await expect(
-    page.getByText(
-      "You want it fully automatic, with nobody checking. I won't build that.",
-    ),
-  ).toBeAttached();
   await expect(
     page.getByRole('link', { name: 'Vibe Verifier on GitHub' }),
   ).toHaveAttribute('href', 'https://github.com/Greenbauer/vibe-verifier');
