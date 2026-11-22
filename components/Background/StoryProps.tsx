@@ -13,6 +13,7 @@ import {
 } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
+import { armFit, wrapArm } from './glassesFit';
 import { Glasses, loadGlasses } from './glassesGeometry';
 import { headMood } from './headMood';
 import { GLOSS } from './headSkin';
@@ -61,9 +62,16 @@ const centre = (geometry: BufferGeometry) => {
 
 // The Banner Eyewear sunglasses (glassesGeometry.ts) fitted to the head:
 // scaled so their lenses' centres sit about as far apart as its eyes, the
-// bridge resting on its nose, every part carried by the skull.
+// bridge resting on its nose, each arm following the side of the head
+// (`skin`) so the word on it shows (glassesFit.ts), every part carried by
+// the skull.
 // Returns the parts, and how far above their place they drop from.
-function fitGlasses(glasses: Glasses, left: Vector3, right: Vector3) {
+function fitGlasses(
+  glasses: Glasses,
+  left: Vector3,
+  right: Vector3,
+  skin: BufferGeometry,
+) {
   const spread = Math.abs(right.x - left.x);
   const lenses = glasses.lenses.clone();
   lenses.computeBoundingBox();
@@ -83,13 +91,39 @@ function fitGlasses(glasses: Glasses, left: Vector3, right: Vector3) {
     g.translate(0, -lift, -back);
     g.scale(scale, scale, scale);
     g.translate(at.x, at.y, at.z);
-    return onSkull(g);
+    g.computeBoundingBox();
+    return g;
   };
+  // An arm and its word, pushed out from the arm's hinge (its front end's
+  // inner face) back to the word's end by what the head beside the word
+  // needs, with a small gap.
+  const head = skin.getAttribute('position').array;
+  const arm = (side: 1 | -1, track: BufferGeometry, word: BufferGeometry) => {
+    const trackBox = placed(track).boundingBox!;
+    const wordBox = placed(word).boundingBox!;
+    const hinge = {
+      x: side > 0 ? trackBox.min.x : trackBox.max.x,
+      z: trackBox.max.z,
+    };
+    const span = {
+      low: wordBox.min.y,
+      high: wordBox.max.y,
+      back: wordBox.min.z,
+    };
+    const fit = armFit(head, hinge, side, span, spread * 0.03);
+    return [track, word].map((g) =>
+      onSkull(wrapArm(placed(g), hinge, side, span.back, fit)),
+    ) as [BufferGeometry, BufferGeometry];
+  };
+  const [leftArm, leftText] = arm(1, glasses.left, glasses.leftText);
+  const [rightArm, rightText] = arm(-1, glasses.right, glasses.rightText);
   return {
-    frame: placed(glasses.frame),
-    lenses: placed(glasses.lenses),
-    left: placed(glasses.left),
-    right: placed(glasses.right),
+    frame: onSkull(placed(glasses.frame)),
+    lenses: onSkull(placed(glasses.lenses)),
+    left: leftArm,
+    right: rightArm,
+    leftText,
+    rightText,
     drop: spread * 5,
   };
 }
@@ -173,8 +207,8 @@ export default function StoryProps({
     return () => clearInterval(timer);
   }, [model]);
   const glasses = useMemo(
-    () => model && fitGlasses(model, centre(leftEye), centre(rightEye)),
-    [model, leftEye, rightEye],
+    () => model && fitGlasses(model, centre(leftEye), centre(rightEye), skin),
+    [model, leftEye, rightEye, skin],
   );
   const amount = useRef<Record<StoryProp, number>>({
     sunglasses: 0,
@@ -277,20 +311,26 @@ export default function StoryProps({
               onBeforeCompile={turnHead}
             />
           </mesh>
-          <mesh geometry={glasses.left}>
-            <meshPhysicalMaterial
-              color="#f57a3d"
-              roughness={0.5}
-              onBeforeCompile={turnHead}
-            />
-          </mesh>
-          <mesh geometry={glasses.right}>
-            <meshPhysicalMaterial
-              color="#d742a0"
-              roughness={0.5}
-              onBeforeCompile={turnHead}
-            />
-          </mesh>
+          {/* Each arm and the word it carries (EYEWEAR on the left, BANNER
+              on the right) are one colour, as the site prints them. */}
+          {(['left', 'leftText'] as const).map((part) => (
+            <mesh key={part} geometry={glasses[part]}>
+              <meshPhysicalMaterial
+                color="#f57a3d"
+                roughness={0.5}
+                onBeforeCompile={turnHead}
+              />
+            </mesh>
+          ))}
+          {(['right', 'rightText'] as const).map((part) => (
+            <mesh key={part} geometry={glasses[part]}>
+              <meshPhysicalMaterial
+                color="#d742a0"
+                roughness={0.5}
+                onBeforeCompile={turnHead}
+              />
+            </mesh>
+          ))}
         </group>
       )}
       <mesh ref={wireRef} geometry={skin} visible={false}>

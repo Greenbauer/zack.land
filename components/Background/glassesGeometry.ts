@@ -2,11 +2,21 @@ import { BufferAttribute, BufferGeometry, FileLoader } from 'three';
 
 // The Banner Eyewear sunglasses (files/glasses.bin, written by
 // scripts/story/build-glasses.mjs from Zack's own models): their front
-// frame, lenses, and left and right arms, in the models' own millimetres,
-// lenses facing +z. The home page's story drops them onto the head
-// (StoryProps.tsx), which fetches them only once a chapter is showing.
+// frame, lenses, left and right arms, and the word each arm carries (BANNER
+// on the right, EYEWEAR on the left, built by the Banner Eyewear site's own
+// code), in the models' own millimetres, lenses facing +z. The home page's
+// story drops them onto the head (StoryProps.tsx), which fetches them only
+// once a chapter is showing.
 
-export type GlassesPart = 'frame' | 'lenses' | 'left' | 'right';
+export const GLASSES_PARTS = [
+  'frame',
+  'lenses',
+  'left',
+  'right',
+  'leftText',
+  'rightText',
+] as const;
+export type GlassesPart = (typeof GLASSES_PARTS)[number];
 export type Glasses = Record<GlassesPart, BufferGeometry>;
 
 // Imported, so the build serves it under a hashed name with a year's cache.
@@ -16,7 +26,6 @@ type Part = {
   vertices: number;
   triangles: number;
   position: number;
-  normal: number;
   index: number;
 };
 
@@ -26,39 +35,29 @@ export function decodeGlasses(buffer: ArrayBuffer): Glasses {
   const length = view.getUint32(0, true);
   const header = JSON.parse(
     new TextDecoder().decode(new Uint8Array(buffer, 4, length)),
-  ) as { parts: Record<GlassesPart, Part> };
+  ) as { unit: number; parts: Record<GlassesPart, Part> };
   const base = 4 + length + ((4 - ((4 + length) % 4)) % 4);
-  const part = ({ vertices, triangles, position, normal, index }: Part) => {
+  const part = ({ vertices, triangles, position, index }: Part) => {
     const geometry = new BufferGeometry();
-    geometry.setAttribute(
-      'position',
-      new BufferAttribute(
-        new Float32Array(buffer, base + position, vertices * 3),
-        3,
-      ),
-    );
-    geometry.setAttribute(
-      'normal',
-      new BufferAttribute(
-        new Int8Array(buffer, base + normal, vertices * 3),
-        3,
-        true,
-      ),
-    );
+    // Positions are whole steps of 1/unit millimetres.
+    const steps = new Int16Array(buffer, base + position, vertices * 3);
+    const millimetres = new Float32Array(steps.length);
+    for (let k = 0; k < steps.length; k++)
+      millimetres[k] = steps[k]! / header.unit;
+    geometry.setAttribute('position', new BufferAttribute(millimetres, 3));
+    // A part of over 65535 vertices needs wide indices.
+    const Indices = vertices > 65535 ? Uint32Array : Uint16Array;
     geometry.setIndex(
-      new BufferAttribute(
-        new Uint32Array(buffer, base + index, triangles * 3),
-        1,
-      ),
+      new BufferAttribute(new Indices(buffer, base + index, triangles * 3), 1),
     );
+    // The file holds no normals: a part's hard edges are faces that share
+    // no vertices, so these come out sharp there and smooth elsewhere.
+    geometry.computeVertexNormals();
     return geometry;
   };
-  return {
-    frame: part(header.parts.frame),
-    lenses: part(header.parts.lenses),
-    left: part(header.parts.left),
-    right: part(header.parts.right),
-  };
+  return Object.fromEntries(
+    GLASSES_PARTS.map((name) => [name, part(header.parts[name])]),
+  ) as Glasses;
 }
 
 // The file, fetched and unzipped, once. A failed load is not kept, so the
