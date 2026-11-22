@@ -124,3 +124,26 @@ test('says so when the request fails, keeping the button', async ({ page }) => {
   await expect(page.getByRole('status')).toHaveText('An error has occurred');
   await expect(submit).toBeVisible();
 });
+
+test('the footer speaks to each audience, and here jumps to the form', async ({
+  page,
+}) => {
+  const footer = page.getByRole('contentinfo');
+
+  await opened(page, '/');
+  await expect(footer).toContainText(
+    'Hiring a developer, or have a task that repeats?',
+  );
+  await expect(
+    footer.getByRole('link', { name: 'Get in touch', exact: true }),
+  ).toHaveAttribute('href', '/contact');
+
+  await opened(page, '/work-with-me');
+  await expect(footer).toContainText(
+    'Have a task your team does over and over?',
+  );
+  await footer
+    .getByRole('link', { name: 'Tell me about it', exact: true })
+    .click();
+  await expect(page.getByLabel('Your email')).toBeInViewport();
+});
