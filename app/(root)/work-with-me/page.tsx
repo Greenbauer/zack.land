@@ -198,10 +198,8 @@ export default function WorkWithMe() {
 
           <h3>About me</h3>
           <p>
-            I started as a mechanical engineer analysing pipe stress, and
-            switched to software because I liked finding the bugs more than the
-            pipes. Now I build tools that do the boring parts of work, and the
-            checks that keep them honest.{' '}
+            I&apos;ve spent 10+ years building the apps customers use and the
+            internal tools teams run on.{' '}
             <Link href="/portfolio">See my work</Link>.
           </p>
           <p>
