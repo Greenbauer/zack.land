@@ -104,6 +104,8 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
   // shows it (intro.ts): the skin's inner faces, which are otherwise not
   // drawn, so the sky would show through the mouth.
   const liningRef = useRef<Mesh>(null);
+  const leftEyeRef = useRef<Mesh>(null);
+  const rightEyeRef = useRef<Mesh>(null);
 
   const { geometry: myHeadGeometry, expressions } = useMemo(() => {
     // The expressions the page shows (shownExpressions.ts), with one-sided
@@ -365,11 +367,13 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
     myHeadRef.current!.scale.setScalar(Math.max(shrink, 0.001));
     // This website's chapter shows the head as its wireframe alone: the skin
     // fades away (still drawn, so it hides the lines behind it), and the
-    // mouth with it (StoryProps.tsx).
+    // mouth and the eyeballs with it, which showed bare inside the wireframe
+    // (StoryProps.tsx).
     const skin = 1 - wireShown.value;
     for (const mesh of [skinRef.current, liningRef.current])
       (mesh!.material as Material).opacity = skin;
-    mouthRef.current!.visible = skin > 0.5;
+    for (const mesh of [mouthRef, leftEyeRef, rightEyeRef])
+      mesh.current!.visible = skin > 0.5;
     // Where the head is looking, back in screen pixels, against where the
     // eyes are on screen.
     const spot = lookOnScreen(heading.target, {
@@ -453,14 +457,14 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
         <mesh geometry={myHeadGeometry.mouth} ref={mouthRef}>
           <meshBasicMaterial color={MOUTH_COLOR} onBeforeCompile={turnHead} />
         </mesh>
-        <mesh geometry={myHeadGeometry.rightEye}>
+        <mesh geometry={myHeadGeometry.rightEye} ref={rightEyeRef}>
           <meshPhysicalMaterial
             color={EYE_COLOR}
             {...GLOSS}
             onBeforeCompile={turnHead}
           />
         </mesh>
-        <mesh geometry={myHeadGeometry.leftEye}>
+        <mesh geometry={myHeadGeometry.leftEye} ref={leftEyeRef}>
           <meshPhysicalMaterial
             color={EYE_COLOR}
             {...GLOSS}

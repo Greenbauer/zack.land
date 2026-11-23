@@ -11,6 +11,8 @@ import {
   Vector3,
 } from 'three';
 
+import head from '@/theme/head.json';
+
 import { armFit, fitScale } from './glassesFit';
 import { Glasses, loadGlasses } from './glassesGeometry';
 import { headMood } from './headMood';
@@ -309,8 +311,10 @@ export default function StoryProps({
         </group>
       )}
       <mesh ref={wireRef} geometry={skin} visible={false}>
+        {/* In the head's own indigo (theme/head.json): the peach it was
+            hardly showed on the light sky. */}
         <meshBasicMaterial
-          color="#d3aba0"
+          color={head.indigo}
           wireframe
           transparent
           depthWrite={false}
