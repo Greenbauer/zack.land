@@ -68,7 +68,9 @@ test.describe('on a wide screen', () => {
     await open(page);
     for (const [k, chapter] of CHAPTERS.entries()) {
       await turn(page);
-      await expect(title(page, k)).toBeVisible();
+      // A turn under way on CI's software renderer, in WebKit, can take
+      // longer than the default wait to bring the card in.
+      await expect(title(page, k)).toBeVisible({ timeout: 20_000 });
       await expect(title(page, k)).toHaveText(chapter.content.name);
       if (chapter.content.mediaSources?.length)
         await expect(
