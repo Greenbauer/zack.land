@@ -1,7 +1,6 @@
-import { BufferGeometry, Float32BufferAttribute } from 'three';
 import { describe, expect, it } from 'vitest';
 
-import { armFit, wrapArm } from './glassesFit';
+import { armFit, fitScale } from './glassesFit';
 
 const hinge = { x: 10, z: 0 };
 const band = { low: -1, high: 1, back: -24 };
@@ -40,26 +39,15 @@ describe("fitting a pair of glasses' arms round a head", () => {
     expect(fit[24]).toBe(3);
   });
 
-  it('moves an arm outward along its length, the hinge staying put', () => {
-    const arm = (side: 1 | -1) => {
-      const g = new BufferGeometry();
-      g.setAttribute(
-        'position',
-        new Float32BufferAttribute(
-          [10 * side, 0, 0, 10 * side, 0, -12, 10 * side, 1, -40],
-          3,
-        ),
-      );
-      const fit = Array.from({ length: 25 }, (_, k) => k / 4);
-      return wrapArm(g, { x: 10 * side, z: 0 }, side, -24, fit);
-    };
-    const left = arm(1).getAttribute('position');
-    expect(left.getX(0)).toBeCloseTo(10);
-    // Half way along: half the full push. Behind the fit: the full push.
-    expect(left.getX(1)).toBeCloseTo(13);
-    expect(left.getX(2)).toBeCloseTo(16);
-    expect(left.getZ(1)).toBeCloseTo(-12);
-    const right = arm(-1).getAttribute('position');
-    expect(right.getX(1)).toBeCloseTo(-13);
+  it('scales a pair up just until its arms clear the head, never bending them', () => {
+    // A head 20 wide beside an arm at 8 times the scale, clear once 8s > 10.
+    const clears = (scale: number) =>
+      Math.max(...armFit([10, 0, -10], { x: 8 * scale, z: 0 }, 1, band, 0)) ===
+      0;
+    expect(fitScale(clears, 1, 2)).toBeCloseTo(1.25, 2);
+    // Already clear at the smallest: kept there.
+    expect(fitScale(clears, 1.5, 2)).toBe(1.5);
+    // Never clear: the largest.
+    expect(fitScale(() => false, 1, 2)).toBe(2);
   });
 });

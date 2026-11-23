@@ -11,7 +11,7 @@ import {
   Vector3,
 } from 'three';
 
-import { armFit, wrapArm } from './glassesFit';
+import { armFit, fitScale } from './glassesFit';
 import { Glasses, loadGlasses } from './glassesGeometry';
 import { headMood } from './headMood';
 import { GLOSS } from './headSkin';
@@ -60,12 +60,20 @@ const centre = (geometry: BufferGeometry) => {
   return geometry.boundingBox!.getCenter(new Vector3());
 };
 
-// The Banner Eyewear sunglasses (glassesGeometry.ts) fitted to the head:
-// scaled so their lenses' centres sit about as far apart as its eyes, the
-// bridge resting on its nose, each arm following the side of the head
-// (`skin`) so the word on it shows (glassesFit.ts), every part carried by
-// the skull.
+// The Banner Eyewear sunglasses (glassesGeometry.ts) fitted to the head as
+// the real pair fits Zack: the model whole, every part scaled alike, just
+// large enough that the front of both arms (TEMPLE_SHARE of each, by the
+// temples) clears the side of the head (glassesFit.ts); from there the
+// straight arms run back past the ears as the real ones do, pressing on the
+// head. The lenses are centred between the eyes and the bridge rests on
+// the nose, every part carried by the skull. Fitted to the eyes' spacing
+// instead, the frame came out narrower than the head and its arms had to be
+// bent round it.
 // Returns the parts, and how far above their place they drop from.
+// How much of each arm, from its hinge, clears the head: its front, at the
+// temple. Behind it the arms angle in to grip, as a real pair's do.
+const TEMPLE_SHARE = 0.25;
+
 function fitGlasses(
   glasses: Glasses,
   left: Vector3,
@@ -78,7 +86,9 @@ function fitGlasses(
   const box = lenses.boundingBox!;
   // A lens's middle, from the right half of both lenses.
   const lensX = (box.max.x + Math.max(0, box.min.x)) / 2 || box.max.x / 2;
-  const scale = (spread * 0.94) / (2 * lensX);
+  // The scale that would put the lenses' middles on the eyes: the least the
+  // pair is ever scaled to.
+  const byEyes = (spread * 0.94) / (2 * lensX);
   const lift = (box.min.y + box.max.y) / 2;
   const back = box.min.z;
   const at = new Vector3(
@@ -86,7 +96,7 @@ function fitGlasses(
     (left.y + right.y) / 2 + spread * 0.04,
     Math.max(left.z, right.z) + spread * 0.6,
   );
-  const placed = (geometry: BufferGeometry) => {
+  const placed = (geometry: BufferGeometry, scale: number) => {
     const g = geometry.clone();
     g.translate(0, -lift, -back);
     g.scale(scale, scale, scale);
@@ -94,36 +104,38 @@ function fitGlasses(
     g.computeBoundingBox();
     return g;
   };
-  // An arm and its word, pushed out from the arm's hinge (its front end's
-  // inner face) back to the word's end by what the head beside the word
-  // needs, with a small gap.
+  // Whether both arms' fronts, at `scale`, clear the head beside their
+  // words, with a small gap (armFit asks no push anywhere along them).
   const head = skin.getAttribute('position').array;
-  const arm = (side: 1 | -1, track: BufferGeometry, word: BufferGeometry) => {
-    const trackBox = placed(track).boundingBox!;
-    const wordBox = placed(word).boundingBox!;
-    const hinge = {
-      x: side > 0 ? trackBox.min.x : trackBox.max.x,
-      z: trackBox.max.z,
-    };
-    const span = {
-      low: wordBox.min.y,
-      high: wordBox.max.y,
-      back: wordBox.min.z,
-    };
-    const fit = armFit(head, hinge, side, span, spread * 0.03);
-    return [track, word].map((g) =>
-      onSkull(wrapArm(placed(g), hinge, side, span.back, fit)),
-    ) as [BufferGeometry, BufferGeometry];
-  };
-  const [leftArm, leftText] = arm(1, glasses.left, glasses.leftText);
-  const [rightArm, rightText] = arm(-1, glasses.right, glasses.rightText);
+  const clears = (scale: number) =>
+    (
+      [
+        [1, glasses.left, glasses.leftText],
+        [-1, glasses.right, glasses.rightText],
+      ] as const
+    ).every(([side, track, word]) => {
+      const trackBox = placed(track, scale).boundingBox!;
+      const wordBox = placed(word, scale).boundingBox!;
+      const hinge = {
+        x: side > 0 ? trackBox.min.x : trackBox.max.x,
+        z: trackBox.max.z,
+      };
+      const span = {
+        low: wordBox.min.y,
+        high: wordBox.max.y,
+        back: hinge.z - (hinge.z - wordBox.min.z) * TEMPLE_SHARE,
+      };
+      return Math.max(...armFit(head, hinge, side, span, spread * 0.03)) === 0;
+    });
+  const scale = fitScale(clears, byEyes, byEyes * 2);
+  const part = (geometry: BufferGeometry) => onSkull(placed(geometry, scale));
   return {
-    frame: onSkull(placed(glasses.frame)),
-    lenses: onSkull(placed(glasses.lenses)),
-    left: leftArm,
-    right: rightArm,
-    leftText,
-    rightText,
+    frame: part(glasses.frame),
+    lenses: part(glasses.lenses),
+    left: part(glasses.left),
+    right: part(glasses.right),
+    leftText: part(glasses.leftText),
+    rightText: part(glasses.rightText),
     drop: spread * 5,
   };
 }
