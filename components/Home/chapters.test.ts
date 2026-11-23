@@ -42,7 +42,6 @@ describe("the home page's story", () => {
       'travel-startup',
       'gulp',
       'today',
-      'vibe-verifier',
       'improv',
       'this-website',
       'whats-next',
@@ -69,12 +68,13 @@ describe("the home page's story", () => {
       expect(portfolio.has(chapter(id).content)).toBe(true);
   });
 
-  it('gives every chapter pictures the site has, or a prop on the head', () => {
+  it('gives every chapter pictures the site has, or the head to tell it', () => {
     for (const c of CHAPTERS) {
-      // A chapter with no picture of its own is told by the head: its prop
-      // (This website's post has none on the portfolio either).
+      // A chapter with no picture of its own is told by the head: a prop
+      // (This website's post has none on the portfolio either), or for USAA
+      // the head alone, its faces.
       if (!c.content.mediaSources?.length) {
-        expect(c.prop, c.id).toBeTruthy();
+        if (c.id !== 'usaa') expect(c.prop, c.id).toBeTruthy();
         continue;
       }
       for (const { key, type } of c.content.mediaSources) {

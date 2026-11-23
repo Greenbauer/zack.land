@@ -1,5 +1,5 @@
-// Records the home page's story illustrations (scenes.html and studio.html,
-// three.js; wireframe.html and terminal.html, HTML and CSS) into
+// Records the home page's story illustrations (studio.html, three.js;
+// wireframe.html and terminal.html, HTML and CSS) into
 // public/story/<scene>.mp4, a silent loop as long as the page's LOOP, and
 // <scene>.jpg, its poster (components/Media.tsx shows the poster until the loop plays).
 // Run, with the repository's root served on port 3170 (for example
@@ -30,7 +30,6 @@ const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 // Which page draws each scene.
 const pages = {};
 for (const file of [
-  'scenes.html',
   'studio.html',
   'wireframe.html',
   'terminal.html',

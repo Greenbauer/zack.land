@@ -92,12 +92,6 @@ export const USAA: Content = {
   ),
   technology:
     'React, Redux, Jest, React Testing Library, AngularJS, ServiceNow',
-  mediaSources: [
-    loop(
-      'usaa',
-      'Blocks of code hopping along a release line past five engineers',
-    ),
-  ],
 };
 
 export const GULP: Content = {
@@ -123,29 +117,13 @@ export const TODAY: Content = {
     <p>
       Today I lead AI agent work at a distribution company. I direct AI coding
       agents, programs that write code, and I build the tests, reviews and
-      checks that keep their work honest. It&rsquo;s like managing a team that
-      never sleeps and sometimes makes things up.
+      checks that keep their work honest. Agents are fast, but they&rsquo;re not
+      always right, so on the side I built Vibe Verifier, an open-source tool
+      that tests the code they write before a person reviews it. Trust, but
+      verify. Mostly verify.
     </p>
   ),
-  technology: 'Claude Code, Codex, TypeScript, CI/CD',
-  mediaSources: [
-    loop(
-      'robot-line',
-      'Robot arms on an assembly line stamp printed sheets of code; one sheet is stamped rejected and pushed into a bin',
-    ),
-  ],
-};
-
-export const VIBE_VERIFIER: Content = {
-  name: 'Vibe Verifier',
-  description: (
-    <p>
-      Agents are fast, but they&rsquo;re not always right. So on the side I
-      built Vibe Verifier, an open-source tool that tests the code AI agents
-      write before a person reviews it. Trust, but verify. Mostly verify.
-    </p>
-  ),
-  technology: 'GitHub Actions, CI/CD, Evals',
+  technology: 'Claude Code, Codex, TypeScript, GitHub Actions, CI/CD, Evals',
   repositoryUrl: 'https://github.com/Greenbauer/vibe-verifier',
   mediaSources: [
     loop(

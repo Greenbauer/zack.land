@@ -11,7 +11,6 @@ import {
   TEXAS_TECH,
   TODAY,
   USAA,
-  VIBE_VERIFIER,
   WHATS_NEXT,
 } from './storyPosts';
 
@@ -150,33 +149,19 @@ export const CHAPTERS: Chapter[] = [
     ],
   },
   {
+    // Today's AI agent work, and the tool he built for it (its picture,
+    // Vibe Verifier's run on this site).
     id: 'today',
     content: TODAY,
-    seconds: 11,
+    seconds: 12,
     beats: [
       { at: 0, face: { smile: 0.4 }, look: 'card' },
-      // Watching the line in its picture: the reviewer rejects a sheet
-      // about three seconds in.
-      { at: 1.2, face: { smile: 0.3, browsUp: 0.2 }, look: 'card' },
       {
-        at: 3.2,
-        face: { browDown: 0.7, squint: 0.4, press: 0.4 },
-        look: 'card',
-      },
-      { at: 5.4, face: { smile: 0.9, browsUp: 0.4 }, look: 'camera' },
-    ],
-  },
-  {
-    id: 'vibe-verifier',
-    content: VIBE_VERIFIER,
-    seconds: 9,
-    beats: [
-      {
-        at: 0,
+        at: 4,
         face: { squint: 0.5, browsUpLeft: 0.6, browDown: 0.2 },
         look: 'card',
       },
-      { at: 4, face: { smile: 0.6 }, look: 'camera' },
+      { at: 7, face: { smile: 0.9, browsUp: 0.4 }, look: 'camera' },
     ],
   },
   {
