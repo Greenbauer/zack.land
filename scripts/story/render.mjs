@@ -29,11 +29,7 @@ const BASE = process.env.STORY_SCENES ?? 'http://localhost:3170/scripts/story';
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 // Which page draws each scene.
 const pages = {};
-for (const file of [
-  'studio.html',
-  'wireframe.html',
-  'terminal.html',
-]) {
+for (const file of ['studio.html', 'wireframe.html', 'terminal.html']) {
   await page.goto(`${BASE}/${file}`);
   await page.waitForFunction(() => window.ready, null, { timeout: 60_000 });
   for (const scene of await page.evaluate(() => window.SCENES))
