@@ -35,6 +35,8 @@ export const phoneShown = { value: 0 };
 const W = 2.9;
 const H = 6.1;
 const D = 0.2;
+// How far in front of the body's front face the screen lies.
+const SCREEN_Z = 0.065;
 const SW = 720;
 const SH = 1514;
 // How tall the phone stands, in the head's eye spreads (the distance between
@@ -300,8 +302,17 @@ export default function PhoneCall({
           <meshPhysicalMaterial color="#8d8a86" metalness={1} roughness={0.3} />
         </mesh>
       ))}
-      <mesh ref={screenRef} geometry={parts.screen} position={[0, 0, 0.047]}>
-        <meshBasicMaterial map={parts.texture} toneMapped={false} />
+      {/* SCREEN_Z clear of the body's front (its bevel's, 0.045), and drawn
+          over it whatever the depth buffer's precision: at 0.047 the two
+          fought at the phone's distance, the body flickering through. */}
+      <mesh ref={screenRef} geometry={parts.screen} position={[0, 0, SCREEN_Z]}>
+        <meshBasicMaterial
+          map={parts.texture}
+          toneMapped={false}
+          polygonOffset
+          polygonOffsetFactor={-2}
+          polygonOffsetUnits={-4}
+        />
       </mesh>
     </group>
   );
