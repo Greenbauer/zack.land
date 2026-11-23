@@ -16,14 +16,14 @@ import { Cap, CAP_PARTS, loadCap } from './capGeometry';
 import { headMood } from './headMood';
 import { turnHead } from './headTurn';
 import type { StoryProp } from './storyCue';
+import { FLIGHTS, tortillaAt } from './tortillaFlight';
 
 // The home page's Texas Tech chapter, on the head itself: a graduation cap
 // (capGeometry.ts) that drops onto it and turns with it, as the sunglasses
 // do, and
-// tortillas flying past, as they did at every kickoff. `amounts` is how far
+// tortillas thrown clear across the screen, a couple hitting its face, as
+// they flew at every kickoff (tortillaFlight.ts). `amounts` is how far
 // in each prop is (StoryProps.tsx).
-
-const TORTILLAS = 10;
 
 // A flour tortilla's face: pale and floury, with scattered toasted blisters
 // (each a small cluster, dark in the middle), no two alike.
@@ -131,26 +131,6 @@ function tortillaShape(radius: number) {
   return shape;
 }
 
-// Each tortilla's flight: which way it crosses, how deep in the scene, how
-// high, how long a crossing takes and where in it it starts.
-const FLIGHTS = Array.from({ length: TORTILLAS }, (_, k) => {
-  const pick = (n: number) => ((k * 7919 + n * 104729) % 1000) / 1000;
-  return {
-    way: k % 2 ? 1 : -1,
-    // In front of the head or behind it, never through it.
-    depth: k % 3 ? 55 + pick(1) * 35 : -120 + pick(1) * 40,
-    base: -30 + pick(2) * 70,
-    arc: 30 + pick(3) * 45,
-    seconds: 2.6 + pick(4) * 1.8,
-    phase: pick(5),
-    // Thrown like a disc: how fast it spins, how it leans toward you, and
-    // how much it wobbles.
-    spin: (k % 2 ? 1 : -1) * (5 + pick(6) * 4),
-    lean: 0.45 + pick(7) * 0.5,
-    wobble: 0.1 + pick(8) * 0.15,
-  };
-});
-
 function carried(geometry: BufferGeometry) {
   const count = geometry.getAttribute('position').count;
   for (const name of ['headWeight', 'turnWeight'])
@@ -209,22 +189,15 @@ export default function TexasTechProps({
     tossRef.current.children.forEach((child, k) => {
       const flight = FLIGHTS[k]!;
       const u = (((t / flight.seconds + flight.phase) % 1) + 1) % 1;
-      // One behind the head crosses the whole scene; one in front keeps to
-      // the side of it, clear of its face.
-      const across = flight.depth < 0 ? -210 + 420 * u : 60 + 190 * u;
-      child.position.set(
-        flight.depth < 0
-          ? flight.way * across
-          : across * flight.way + (flight.way < 0 ? 310 : 0),
-        flight.base + flight.arc * 4 * u * (1 - u),
-        flight.depth,
-      );
-      // Lying flat and leaning toward the viewer, spinning about its own
-      // middle (the last turn of the three is the one made first).
+      const at = tortillaAt(flight, u);
+      child.position.set(at.x, at.y, at.z);
       child.rotation.set(
-        -Math.PI / 2 + flight.lean + Math.sin(t * 3 + k) * flight.wobble,
-        Math.sin(t * 2.2 + k * 2) * flight.wobble,
-        t * flight.spin,
+        at.stuck
+          ? 0
+          : -Math.PI / 2 + flight.lean + Math.sin(t * 3 + k) * flight.wobble,
+        at.stuck ? 0 : Math.sin(t * 2.2 + k * 2) * flight.wobble,
+        // Spinning about its own middle while it flies; still once it hits.
+        at.stuck ? flight.spin : t * flight.spin,
       );
       child.scale.setScalar(amount);
     });
