@@ -21,8 +21,8 @@ import { smoothstep } from './maths';
 // glass would pop on at the end of the fade. The layer takes the card's
 // opacity instead, every frame, and so fades in and out with it. It changes
 // no colours, as the card's own glass does not (Grading.tsx's tint pass is
-// off but for the open phone menu). It is on only while a photo is within
-// PHOTO_REACH of the card.
+// off but for the open phone menu). It is on only while a photo lies under
+// the card (photoUnder).
 // Toward its edges the glass weakens rather than turning see-through: its
 // lenses bend less, its frost and bounds fade, so over a photo it eases in
 // from nothing (a see-through lens would still show its hard squares). The
@@ -155,19 +155,30 @@ function filterMarkup(
 </filter>`;
 }
 
-// Whether any photo lies within the reach of `card`'s glass (PHOTO_REACH).
+// How far a photo must reach in under a card, both ways (CSS pixels), for the
+// card's glass to be laid over it: a lens's width. A photo that only meets
+// the card's edge (a post's grid tucked a few pixels under its card,
+// Post.tsx) keeps clear: the glass's fade over its edge showed hard squares
+// of the lenses, and cut into the picture.
+export const UNDER_PX = CELL_PX;
+
+type Rect = { left: number; top: number; right: number; bottom: number };
+
+// Whether `photo` lies under `card` far enough to take its glass (UNDER_PX).
+export function photoUnder(photo: Rect, card: Rect) {
+  const across =
+    Math.min(photo.right, card.right) - Math.max(photo.left, card.left);
+  const down =
+    Math.min(photo.bottom, card.bottom) - Math.max(photo.top, card.top);
+  return across >= UNDER_PX && down >= UNDER_PX;
+}
+
+// Whether any photo lies under `card` (photoUnder).
 function overPhoto(card: HTMLElement) {
   const box = card.getBoundingClientRect();
   for (const photo of document.querySelectorAll('[data-post] .collage-tile')) {
     const r = photo.getBoundingClientRect();
-    if (
-      r.width > 0 &&
-      r.right > box.left - PHOTO_REACH &&
-      r.left < box.right + PHOTO_REACH &&
-      r.bottom > box.top - PHOTO_REACH &&
-      r.top < box.bottom + PHOTO_REACH
-    )
-      return true;
+    if (r.width > 0 && photoUnder(r, box)) return true;
   }
   return false;
 }

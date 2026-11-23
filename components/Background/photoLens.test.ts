@@ -7,7 +7,9 @@ import {
   displacement,
   layerStyle,
   PHOTO_REACH,
+  photoUnder,
   strengthAt,
+  UNDER_PX,
 } from './photoLens';
 
 describe('the glass over photos', () => {
@@ -44,6 +46,21 @@ describe('the glass over photos', () => {
   it('leaves the layer to DOM order under a card with no z-index', () => {
     const box = { left: 0, top: 0, width: 10, height: 10 };
     expect(layerStyle(box, '1', 'auto').zIndex).toBe('');
+  });
+
+  it('lies only over photos under the card, not ones meeting its edge', () => {
+    const card = { left: 100, top: 500, right: 900, bottom: 800 };
+    // A post's grid above its card, tucked 8px under it: kept clear.
+    const above = { left: 100, top: 160, right: 900, bottom: 508 };
+    expect(photoUnder(above, card)).toBe(false);
+    // Nor one beside it, within its reach.
+    const beside = { left: 0, top: 500, right: 100, bottom: 800 };
+    expect(photoUnder(beside, card)).toBe(false);
+    // A photo the card lies over (a phone's card over its grid).
+    const under = { left: 100, top: 300, right: 900, bottom: 700 };
+    expect(photoUnder(under, card)).toBe(true);
+    // One lens in, it counts.
+    expect(photoUnder({ ...above, bottom: 500 + UNDER_PX }, card)).toBe(true);
   });
 
   it('bends its lenses far less than it frosts in its fade, and fully where whole', () => {

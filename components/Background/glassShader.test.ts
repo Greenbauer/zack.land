@@ -34,4 +34,11 @@ describe('the glass shader’s two looks', () => {
     expect(frost).not.toContain('uDeep[i] < 0.5');
     expect(frost).toContain('mix(1.0, 0.40, field)');
   });
+
+  it('bends only inside a card: past it, where the scene shows, only frost', () => {
+    expect(frost).toContain('float lensed = lensIn * mix(1.0, 0.40, field)');
+    expect(frost).toContain(
+      'smoothstep(uFeather.x, 0.0, outside(p, uCards[i], uRadius[i]))',
+    );
+  });
 });
