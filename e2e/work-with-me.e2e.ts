@@ -218,11 +218,30 @@ test('the footer speaks to each audience, and here jumps to the form', async ({
   await expect(email).toBeInViewport();
 });
 
-test('the video plays once, muted, when it comes into view, and its button pauses and replays it', async ({
+test('the video plays once, muted, as the page opens, and its button pauses and replays it', async ({
   page,
 }) => {
+  // Where the video was as the dark screen over a first visit went
+  // (data-page-in): it waits for that rather than playing under it.
+  await page.addInitScript(() =>
+    document.addEventListener('DOMContentLoaded', () => {
+      const html = document.documentElement;
+      const seen = new MutationObserver(() => {
+        if (!html.hasAttribute('data-page-in')) return;
+        seen.disconnect();
+        html.dataset.videoAtPageIn = String(
+          document.querySelector<HTMLVideoElement>('article video')
+            ?.currentTime,
+        );
+      });
+      seen.observe(html, { attributes: true });
+    }),
+  );
   await opened(page, '/work-with-me');
   const video = page.locator('article video');
+  expect(
+    Number(await page.locator('html').getAttribute('data-video-at-page-in')),
+  ).toBeLessThan(0.5);
   await expect(video).toHaveAttribute('src', '/work-with-me/offer.mp4');
   await expect(video).toHaveAttribute('poster', '/work-with-me/offer.jpg');
   expect(await video.evaluate((v: HTMLVideoElement) => v.muted)).toBe(true);
@@ -278,12 +297,16 @@ test('with reduced motion the video waits for its button', async ({
 test.describe('on a 1440x900 laptop', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  test('the button under the video shows without scrolling', async ({
+  test("the video is as big as the 404 page's, and shows whole without scrolling", async ({
     page,
   }) => {
     await opened(page, '/work-with-me');
-    await expect(
-      page.getByRole('link', { name: 'Get a free draft' }),
-    ).toBeInViewport();
+    const video = page.locator('article figure');
+    await expect(video).toBeInViewport({ ratio: 1 });
+    const width = (await video.boundingBox())!.width;
+    await opened(page, '/no-such-page');
+    const notFound = (await page.locator('.collage').boundingBox())!.width;
+    expect(Math.round(width)).toBe(Math.round(notFound));
+    expect(width).toBeGreaterThan(700);
   });
 });

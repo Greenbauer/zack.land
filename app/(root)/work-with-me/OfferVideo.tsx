@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { FaPause, FaPlay, FaRedo } from 'react-icons/fa';
 
+import { whenPageIn } from '@/components/Background/sceneReady';
 import { posterOf } from '@/components/videoPoster';
 
 const SRC = '/work-with-me/offer.mp4';
@@ -15,10 +16,14 @@ const STORY =
 type State = 'waiting' | 'playing' | 'paused' | 'ended';
 
 // The offer told in 40 silent seconds (docs/features/work-with-me.md): it
-// plays once, muted, as soon as half of it is in view, and its button pauses,
-// plays or replays it. With reduced motion it waits for the button, showing
-// its last frame (its poster), which says the offer in two lines. At most 36rem
-// wide, so on a laptop the button under it still shows without scrolling.
+// plays once, muted, as the page opens (once the dark screen over a first
+// visit has gone: whenPageIn), and its button pauses, plays or replays it.
+// With reduced motion it waits for the button, showing its last frame (its
+// poster), which says the offer in two lines. Sized as the 404 page's video
+// is (components/NotFound/NotFoundVideo.tsx): as wide as the card, or
+// narrower where the window's height is the limit. The headline above it is
+// taller than the 404's title, so on a laptop its bottom edge reaches a little
+// way into the top of the footer's fade.
 export default function OfferVideo() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [state, setState] = useState<State>('waiting');
@@ -27,16 +32,7 @@ export default function OfferVideo() {
     const video = videoRef.current;
     if (!video || matchMedia('(prefers-reduced-motion: reduce)').matches)
       return;
-    const seen = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry?.isIntersecting) return;
-        seen.disconnect();
-        void video.play().catch(() => {});
-      },
-      { threshold: 0.5 },
-    );
-    seen.observe(video);
-    return () => seen.disconnect();
+    return whenPageIn(() => void video.play().catch(() => {}));
   }, []);
 
   const press = () => {
@@ -57,7 +53,7 @@ export default function OfferVideo() {
     state === 'playing' ? FaPause : state === 'ended' ? FaRedo : FaPlay;
 
   return (
-    <figure className="relative m-0 aspect-video w-full max-w-xl overflow-hidden rounded-2xl bg-head-dark">
+    <figure className="relative m-0 aspect-video w-[min(100%,calc((100dvh_-_var(--page-top)_-_var(--page-bottom)_-_10rem)*16/9))] overflow-hidden rounded-2xl bg-head-dark">
       <video
         ref={videoRef}
         className="size-full"
@@ -65,7 +61,7 @@ export default function OfferVideo() {
         poster={posterOf(SRC)}
         muted
         playsInline
-        preload="metadata"
+        preload="auto"
         aria-describedby="offer-video-story"
         onPlay={() => setState('playing')}
         onPause={(e) => !e.currentTarget.ended && setState('paused')}
