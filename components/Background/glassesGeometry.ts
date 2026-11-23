@@ -27,6 +27,8 @@ type Part = {
   triangles: number;
   position: number;
   index: number;
+  // The lenses' texture coordinates, where their logo lies.
+  uv?: number;
 };
 
 // The unzipped file as geometries (its layout: build-glasses.mjs).
@@ -37,7 +39,7 @@ export function decodeGlasses(buffer: ArrayBuffer): Glasses {
     new TextDecoder().decode(new Uint8Array(buffer, 4, length)),
   ) as { unit: number; parts: Record<GlassesPart, Part> };
   const base = 4 + length + ((4 - ((4 + length) % 4)) % 4);
-  const part = ({ vertices, triangles, position, index }: Part) => {
+  const part = ({ vertices, triangles, position, index, uv }: Part) => {
     const geometry = new BufferGeometry();
     // Positions are whole steps of 1/unit millimetres.
     const steps = new Int16Array(buffer, base + position, vertices * 3);
@@ -45,6 +47,15 @@ export function decodeGlasses(buffer: ArrayBuffer): Glasses {
     for (let k = 0; k < steps.length; k++)
       millimetres[k] = steps[k]! / header.unit;
     geometry.setAttribute('position', new BufferAttribute(millimetres, 3));
+    if (uv !== undefined)
+      geometry.setAttribute(
+        'uv',
+        new BufferAttribute(
+          new Uint16Array(buffer, base + uv, vertices * 2),
+          2,
+          true,
+        ),
+      );
     // A part of over 65535 vertices needs wide indices.
     const Indices = vertices > 65535 ? Uint32Array : Uint16Array;
     geometry.setIndex(

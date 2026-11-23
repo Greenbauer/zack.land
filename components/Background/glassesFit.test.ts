@@ -1,53 +1,62 @@
+import { BufferGeometry, Float32BufferAttribute } from 'three';
 import { describe, expect, it } from 'vitest';
 
-import { armFit, fitScale } from './glassesFit';
+import { noseBridge, openAngle, swingArm, templeWidth } from './glassesFit';
 
-const hinge = { x: 10, z: 0 };
-const band = { low: -1, high: 1, back: -24 };
-
-describe("fitting a pair of glasses' arms round a head", () => {
-  it('leaves an arm where it is when the head is inside it', () => {
-    const fit = armFit([8, 0, -10, 9.5, 0, -15], hinge, 1, band, 0.2);
-    expect(fit).toHaveLength(25);
-    expect(Math.max(...fit)).toBe(0);
+describe('fitting a pair of glasses to a head, as a real pair fits', () => {
+  it('measures the head across its temples, in its band only', () => {
+    // x, y, z: two temple points, one an ear below the band, one behind it.
+    const head = [-40, 5, 0, 38, 6, 0, 52, -10, 0, 60, 5, -50];
+    expect(templeWidth(head, { low: 0, high: 10, back: -10, front: 10 })).toBe(
+      80,
+    );
   });
 
-  it('pushes it out by what the head needs, with the gap, from there back', () => {
-    // A point 2 outside the hinge, 10 behind it, and a gap of 1.
-    const fit = armFit([12, 0, -10], hinge, 1, band, 1);
-    expect(fit[0]).toBe(0);
-    expect(fit[8]).toBe(0);
-    expect(fit[10]).toBeGreaterThanOrEqual(3);
-    // It never dips in again behind the widest point.
-    for (let k = 11; k < fit.length; k++)
-      expect(fit[k]).toBeGreaterThanOrEqual(fit[k - 1]!);
-    expect(fit[24]).toBe(3);
+  it('finds the nose bridge: the frontmost point near the middle', () => {
+    const head = [0, 2, 40, 1, 3, 41, 0, -20, 55, 20, 2, 50];
+    expect(noseBridge(head, { low: 0, high: 10, reach: 3 })).toBe(41);
   });
 
-  it('counts only the head beside the arm: its heights, its length, its side', () => {
-    const outside = [
-      [30, 5, -10], // above the arm
-      [30, 0, 5], // in front of the hinge
-      [30, 0, -30], // behind the arm
-      [-30, 0, -10], // the other side of the head
-    ].flat();
-    expect(Math.max(...armFit(outside, hinge, 1, band, 0.2))).toBe(0);
+  it('leaves an arm shut when the head is clear of it', () => {
+    // An arm along x = 40, from the hinge back 60; the head inside, at 30.
+    const arm = [40, 0, 0, 40, 0, -60, 40, 2, -30];
+    const head = [30, 1, -20, 35, 1, -50];
+    expect(openAngle(head, arm, { x: 40, z: 0 }, 1, 1)).toBe(0);
   });
 
-  it('fits the other arm the other way', () => {
-    const fit = armFit([-12, 0, -10], { x: -10, z: 0 }, -1, band, 1);
-    expect(fit[24]).toBe(3);
+  it('opens an arm just enough to clear the head beside it', () => {
+    const arm = [40, 0, 0, 40, 0, -60, 40, 2, -30];
+    // The head 5 out past the arm, 40 back: about atan(6 / 40) with the gap.
+    const head = [45, 1, -40];
+    const angle = openAngle(head, arm, { x: 40, z: 0 }, 1, 1);
+    expect(angle).toBeGreaterThan(Math.atan(6 / 40) - 0.01);
+    expect(angle).toBeLessThan(Math.atan(6 / 40) + 0.02);
+    // Not the ear the hook behind the straight part rests on.
+    expect(openAngle([45, 1, -55], arm, { x: 40, z: 0 }, 1, 1)).toBe(0);
+    // Only the head beside the arm, between its heights, counts.
+    expect(openAngle([45, 9, -40], arm, { x: 40, z: 0 }, 1, 1)).toBe(0);
+    // The other side, the other way.
+    const mirror = [-40, 0, 0, -40, 0, -60, -40, 2, -30];
+    expect(openAngle([-45, 1, -40], mirror, { x: -40, z: 0 }, -1, 1)).toBe(
+      angle,
+    );
   });
 
-  it('scales a pair up just until its arms clear the head, never bending them', () => {
-    // A head 20 wide beside an arm at 8 times the scale, clear once 8s > 10.
-    const clears = (scale: number) =>
-      Math.max(...armFit([10, 0, -10], { x: 8 * scale, z: 0 }, 1, band, 0)) ===
-      0;
-    expect(fitScale(clears, 1, 2)).toBeCloseTo(1.25, 2);
-    // Already clear at the smallest: kept there.
-    expect(fitScale(clears, 1.5, 2)).toBe(1.5);
-    // Never clear: the largest.
-    expect(fitScale(() => false, 1, 2)).toBe(2);
+  it('swings an arm whole about its hinge, never reshaping it', () => {
+    const g = new BufferGeometry();
+    g.setAttribute(
+      'position',
+      new Float32BufferAttribute([40, 0, 0, 40, 0, -60, 40, 5, -30], 3),
+    );
+    const p = swingArm(g, { x: 40, z: 0 }, 1, Math.PI / 6).getAttribute(
+      'position',
+    );
+    // The hinge stays put; the end swings out, as far from it as before.
+    expect(p.getX(0)).toBeCloseTo(40);
+    expect(p.getZ(0)).toBeCloseTo(0);
+    expect(p.getX(1)).toBeCloseTo(40 + 60 * Math.sin(Math.PI / 6));
+    expect(p.getZ(1)).toBeCloseTo(-60 * Math.cos(Math.PI / 6));
+    expect(Math.hypot(p.getX(1) - 40, p.getZ(1))).toBeCloseTo(60);
+    expect(p.getY(2)).toBe(5);
   });
 });

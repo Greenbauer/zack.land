@@ -8,15 +8,16 @@ import {
   Material,
   Mesh,
   MeshBasicMaterial,
+  SRGBColorSpace,
+  TextureLoader,
   Vector3,
 } from 'three';
 
 import head from '@/theme/head.json';
 
-import { armFit, fitScale } from './glassesFit';
+import { noseBridge, openAngle, swingArm, templeWidth } from './glassesFit';
 import { Glasses, loadGlasses } from './glassesGeometry';
 import { headMood } from './headMood';
-import { GLOSS } from './headSkin';
 import { turnHead } from './headTurn';
 import { fadeNeck } from './neckFade';
 import { phoneShown } from './PhoneCall';
@@ -62,20 +63,14 @@ const centre = (geometry: BufferGeometry) => {
   return geometry.boundingBox!.getCenter(new Vector3());
 };
 
-// The Banner Eyewear sunglasses (glassesGeometry.ts) fitted to the head as
-// the real pair fits Zack: the model whole, every part scaled alike, just
-// large enough that the front of both arms (TEMPLE_SHARE of each, by the
-// temples) clears the side of the head (glassesFit.ts); from there the
-// straight arms run back past the ears as the real ones do, pressing on the
-// head. The lenses are centred between the eyes and the bridge rests on
-// the nose, every part carried by the skull. Fitted to the eyes' spacing
-// instead, the frame came out narrower than the head and its arms had to be
-// bent round it.
+// The Banner Eyewear sunglasses (glassesGeometry.ts) on the head as the real
+// pair sits on a face (the model photo in the Banner Eyewear post): the model
+// whole, scaled so its front is as wide as the head at the temples, its
+// lenses level with the eyes, its bridge resting on the nose, and each arm
+// swung open at its hinge just enough to clear the side of the head
+// (glassesFit.ts), every part carried by the skull. Scaled to clear the head
+// with its arms shut it came out far too big; scaled to the eyes, too narrow.
 // Returns the parts, and how far above their place they drop from.
-// How much of each arm, from its hinge, clears the head: its front, at the
-// temple. Behind it the arms angle in to grip, as a real pair's do.
-const TEMPLE_SHARE = 0.25;
-
 function fitGlasses(
   glasses: Glasses,
   left: Vector3,
@@ -83,61 +78,73 @@ function fitGlasses(
   skin: BufferGeometry,
 ) {
   const spread = Math.abs(right.x - left.x);
+  const eyes = left.clone().add(right).multiplyScalar(0.5);
+  const head = skin.getAttribute('position').array;
+  const front = glasses.frame.clone();
+  front.computeBoundingBox();
+  const frame = front.boundingBox!;
   const lenses = glasses.lenses.clone();
   lenses.computeBoundingBox();
-  const box = lenses.boundingBox!;
-  // A lens's middle, from the right half of both lenses.
-  const lensX = (box.max.x + Math.max(0, box.min.x)) / 2 || box.max.x / 2;
-  // The scale that would put the lenses' middles on the eyes: the least the
-  // pair is ever scaled to.
-  const byEyes = (spread * 0.94) / (2 * lensX);
-  const lift = (box.min.y + box.max.y) / 2;
-  const back = box.min.z;
-  const at = new Vector3(
-    (left.x + right.x) / 2,
-    (left.y + right.y) / 2 + spread * 0.04,
-    Math.max(left.z, right.z) + spread * 0.6,
-  );
-  const placed = (geometry: BufferGeometry, scale: number) => {
+  const lensBox = lenses.boundingBox!;
+  // Across the temples: just above the eyes, in front of the ears.
+  const temples = templeWidth(head, {
+    low: eyes.y,
+    high: eyes.y + spread * 0.6,
+    back: eyes.z - spread,
+    front: eyes.z - spread * 0.5,
+  });
+  const scale = temples / (frame.max.x - frame.min.x);
+  // The bridge's back (the frame's rearmost point near its middle), in the
+  // model's millimetres.
+  const positions = glasses.frame.getAttribute('position');
+  let bridgeBack = Infinity;
+  for (let k = 0; k < positions.count; k++)
+    if (Math.abs(positions.getX(k)) < 8)
+      bridgeBack = Math.min(bridgeBack, positions.getZ(k));
+  const nose = noseBridge(head, {
+    low: eyes.y - spread * 0.1,
+    high: eyes.y + spread * 0.3,
+    reach: spread * 0.1,
+  });
+  const lift = (lensBox.min.y + lensBox.max.y) / 2;
+  const at = new Vector3(eyes.x, eyes.y + spread * 0.04, nose + spread * 0.03);
+  const placed = (geometry: BufferGeometry) => {
     const g = geometry.clone();
-    g.translate(0, -lift, -back);
+    g.translate(0, -lift, -bridgeBack);
     g.scale(scale, scale, scale);
     g.translate(at.x, at.y, at.z);
     g.computeBoundingBox();
     return g;
   };
-  // Whether both arms' fronts, at `scale`, clear the head beside their
-  // words, with a small gap (armFit asks no push anywhere along them).
-  const head = skin.getAttribute('position').array;
-  const clears = (scale: number) =>
-    (
+  // Each arm and its word swing open together about the arm's hinge: its
+  // front end's outer edge.
+  const arm = (side: 1 | -1, track: BufferGeometry, word: BufferGeometry) => {
+    const [armPlaced, wordPlaced] = [placed(track), placed(word)];
+    const box = armPlaced.boundingBox!;
+    const hinge = { x: side > 0 ? box.max.x : box.min.x, z: box.max.z };
+    const angle = openAngle(
+      head,
       [
-        [1, glasses.left, glasses.leftText],
-        [-1, glasses.right, glasses.rightText],
-      ] as const
-    ).every(([side, track, word]) => {
-      const trackBox = placed(track, scale).boundingBox!;
-      const wordBox = placed(word, scale).boundingBox!;
-      const hinge = {
-        x: side > 0 ? trackBox.min.x : trackBox.max.x,
-        z: trackBox.max.z,
-      };
-      const span = {
-        low: wordBox.min.y,
-        high: wordBox.max.y,
-        back: hinge.z - (hinge.z - wordBox.min.z) * TEMPLE_SHARE,
-      };
-      return Math.max(...armFit(head, hinge, side, span, spread * 0.03)) === 0;
-    });
-  const scale = fitScale(clears, byEyes, byEyes * 2);
-  const part = (geometry: BufferGeometry) => onSkull(placed(geometry, scale));
+        ...armPlaced.getAttribute('position').array,
+        ...wordPlaced.getAttribute('position').array,
+      ],
+      hinge,
+      side,
+      spread * 0.03,
+    );
+    return [armPlaced, wordPlaced].map((g) =>
+      onSkull(swingArm(g, hinge, side, angle)),
+    ) as [BufferGeometry, BufferGeometry];
+  };
+  const [leftArm, leftText] = arm(1, glasses.left, glasses.leftText);
+  const [rightArm, rightText] = arm(-1, glasses.right, glasses.rightText);
   return {
-    frame: part(glasses.frame),
-    lenses: part(glasses.lenses),
-    left: part(glasses.left),
-    right: part(glasses.right),
-    leftText: part(glasses.leftText),
-    rightText: part(glasses.rightText),
+    frame: onSkull(placed(glasses.frame)),
+    lenses: onSkull(placed(glasses.lenses)),
+    left: leftArm,
+    right: rightArm,
+    leftText,
+    rightText,
     drop: spread * 5,
   };
 }
@@ -205,6 +212,22 @@ export default function StoryProps({
       loadGlasses().then(setModel, () => {});
     }, 500);
     return () => clearInterval(timer);
+  }, [model]);
+  // The builder's own lens textures (public/story/lens, from banner-builder's
+  // Textures/Lens): its Midnight Blue mirror and its logo, loaded with the
+  // glasses.
+  const lensTextures = useMemo(() => {
+    if (!model) return { matcap: null, logo: null };
+    const loader = new TextureLoader();
+    const load = (url: string) => {
+      const texture = loader.load(url);
+      texture.colorSpace = SRGBColorSpace;
+      return texture;
+    };
+    return {
+      matcap: load('/story/lens/matcap-midnight-blue.jpg'),
+      logo: load('/story/lens/logo.png'),
+    };
   }, [model]);
   const glasses = useMemo(
     () => model && fitGlasses(model, centre(leftEye), centre(rightEye), skin),
@@ -274,36 +297,46 @@ export default function StoryProps({
           pink arms (the pair in its photos). */}
       {glasses && (
         <group ref={glassesRef} visible={false}>
+          {/* As the pair in the Banner Eyewear post's laptop photo: grey
+              frame, Midnight Blue mirrored lenses with the builder's logo in
+              their top corner, BANNER on an orange arm and EYEWEAR on a pink
+              one, all matte, as printed nylon is. */}
           <mesh geometry={glasses.frame}>
-            <meshPhysicalMaterial
+            <meshStandardMaterial
               color="#9c9b96"
-              roughness={0.4}
+              roughness={0.85}
               onBeforeCompile={turnHead}
             />
           </mesh>
           <mesh geometry={glasses.lenses}>
-            <meshPhysicalMaterial
-              color="#05031c"
-              {...GLOSS}
+            <meshMatcapMaterial
+              matcap={lensTextures.matcap}
               onBeforeCompile={turnHead}
             />
           </mesh>
-          {/* Each arm and the word it carries (EYEWEAR on the left, BANNER
-              on the right) are one colour, as the site prints them. */}
-          {(['left', 'leftText'] as const).map((part) => (
+          <mesh geometry={glasses.lenses}>
+            <meshBasicMaterial
+              map={lensTextures.logo}
+              transparent
+              depthWrite={false}
+              polygonOffset
+              polygonOffsetFactor={-1}
+              polygonOffsetUnits={-2}
+              onBeforeCompile={turnHead}
+            />
+          </mesh>
+          {(
+            [
+              ['left', '#d742a0'],
+              ['leftText', '#d742a0'],
+              ['right', '#f57a3d'],
+              ['rightText', '#f57a3d'],
+            ] as const
+          ).map(([part, color]) => (
             <mesh key={part} geometry={glasses[part]}>
-              <meshPhysicalMaterial
-                color="#f57a3d"
-                roughness={0.5}
-                onBeforeCompile={turnHead}
-              />
-            </mesh>
-          ))}
-          {(['right', 'rightText'] as const).map((part) => (
-            <mesh key={part} geometry={glasses[part]}>
-              <meshPhysicalMaterial
-                color="#d742a0"
-                roughness={0.5}
+              <meshStandardMaterial
+                color={color}
+                roughness={0.95}
                 onBeforeCompile={turnHead}
               />
             </mesh>

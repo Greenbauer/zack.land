@@ -8,9 +8,10 @@
 // Run: node scripts/story/build-glasses.mjs [path to banner-builder/public]
 //
 // The file, gzipped: a JSON header (length as a Uint32, then the JSON), then
-// for each part its positions (Int16 x3, in 1/UNIT millimetres) and triangle
-// indices (Uint16, or Uint32 for a part of more than 65535 vertices), each
-// section padded to 4 bytes. No normals: the page works them out from the
+// for each part its positions (Int16 x3, in 1/UNIT millimetres), for the
+// lenses their texture coordinates too (Uint16 x2, 0 to 1 as 0 to 65535: the
+// builder's lens logo sits on them), and triangle indices (Uint16, or Uint32
+// for a part of more than 65535 vertices), each section padded to 4 bytes. No normals: the page works them out from the
 // triangles, and a hard edge (a letter's) is kept by its two faces not
 // sharing vertices. All parts share the builder's coordinates (the front
 // frame's lenses face +z).
@@ -147,6 +148,13 @@ const add = (name, geometry, crease = Math.PI) => {
     position: push(position),
     index: push(index),
   };
+  const uvF = merged.getAttribute('uv')?.array;
+  if (uvF)
+    header.parts[name].uv = push(
+      Uint16Array.from(uvF, (t) =>
+        Math.round(Math.min(1, Math.max(0, t)) * 65535),
+      ),
+    );
 };
 
 for (const [name, file] of Object.entries(MODELS)) {
@@ -157,7 +165,8 @@ for (const [name, file] of Object.entries(MODELS)) {
   group.traverse((o) => {
     if (o.isMesh) {
       const g = o.geometry.clone();
-      g.deleteAttribute('uv');
+      // Only the lenses' texture coordinates are kept: their logo's.
+      if (name !== 'lenses') g.deleteAttribute('uv');
       g.deleteAttribute('normal');
       geometries.push(g);
     }
