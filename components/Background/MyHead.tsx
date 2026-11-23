@@ -65,7 +65,7 @@ import { withSides } from './sideMorphs';
 import { isStill } from './stillScene';
 import { cueLook } from './storyCue';
 import { phoneSwap } from './storyProp';
-import StoryProps from './StoryProps';
+import StoryProps, { wireShown } from './StoryProps';
 import { startWander, TIP, TURN, WANDER_TURN } from './wander';
 
 type MyHeadGeometry = { [key: string]: BufferGeometry };
@@ -363,6 +363,13 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
     const shrink = phoneSwap(phoneShown.value).head;
     myHeadRef.current!.visible = shrink > 0.001;
     myHeadRef.current!.scale.setScalar(Math.max(shrink, 0.001));
+    // This website's chapter shows the head as its wireframe alone: the skin
+    // fades away (still drawn, so it hides the lines behind it), and the
+    // mouth with it (StoryProps.tsx).
+    const skin = 1 - wireShown.value;
+    for (const mesh of [skinRef.current, liningRef.current])
+      (mesh!.material as Material).opacity = skin;
+    mouthRef.current!.visible = skin > 0.5;
     // Where the head is looking, back in screen pixels, against where the
     // eyes are on screen.
     const spot = lookOnScreen(heading.target, {

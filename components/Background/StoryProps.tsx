@@ -25,7 +25,7 @@ import TexasTechProps from './TexasTechProps';
 
 // What a chapter of the home page's story brings into the scene around the
 // head (components/Home/chapters.ts, through headMood.cue): sunglasses that
-// drop onto its face, its own wireframe over its skin, a graduation cap and
+// drop onto its face, its own wireframe in place of its skin, a graduation cap and
 // flying tortillas (TexasTechProps.tsx), a paper plane that flies past, and
 // a phone that takes the head's place (PhoneCall.tsx, drawn beside the head
 // by MyHead.tsx, which this tells how far in it is).
@@ -171,6 +171,10 @@ function nameDrawn(amounts: Record<StoryProp, number>, hasGlasses: boolean) {
   if (root.dataset.storyProp !== named) root.dataset.storyProp = named;
 }
 
+// How far the head is only its wireframe, 0 to 1 (this website's chapter):
+// MyHead.tsx fades the skin away by it, so the wireframe shows alone.
+export const wireShown = { value: 0 };
+
 export default function StoryProps({
   leftEye,
   rightEye,
@@ -235,11 +239,14 @@ export default function StoryProps({
       glassesRef.current.position.y = (1 - wearing) ** 2 * glasses.drop;
     }
 
-    // The head's own wireframe over its skin, its expressions and all.
+    // The head's own wireframe, its expressions and all, in place of its
+    // skin (wireShown): the skin fading out over it, still hiding the lines
+    // behind it, so the wireframe shows clean rather than over the skin's
+    // reflections.
+    wireShown.value = wireframe;
     if (wireRef.current) {
       wireRef.current.visible = wireframe > 0.01;
-      (wireRef.current.material as MeshBasicMaterial).opacity =
-        wireframe * 0.85;
+      (wireRef.current.material as MeshBasicMaterial).opacity = wireframe;
       wireRef.current.morphTargetInfluences =
         skinRef.current?.morphTargetInfluences ?? [];
     }
