@@ -4,6 +4,7 @@ import Link from 'next/link';
 import EdgeCard from '@/components/EdgeCard';
 
 import BuildForm from './BuildForm';
+import OfferVideo from './OfferVideo';
 
 export const metadata: Metadata = {
   title: 'Work With Me',
@@ -73,8 +74,9 @@ const QUESTIONS: [string, string][] = [
 const INK = 'font-sans text-lg leading-7 text-[color:var(--card-ink)]';
 
 // The consulting offer, for small non-technical teams, ordered as a doubtful
-// owner reads it: what it does, a free first step, who I am, the two tasks,
-// how it works, the price all in, their questions, about me, and the form (docs/features/work-with-me.md).
+// owner reads it: what it does, a 40-second silent video of it, a free first
+// step, who I am, the two tasks, how it works, the price all in, their
+// questions, about me, and the form (docs/features/work-with-me.md).
 export default function WorkWithMe() {
   return (
     <div className="relative flex size-full justify-end">
@@ -90,17 +92,20 @@ export default function WorkWithMe() {
             Done for you, checked by you before anything goes out, and kept
             running.
           </p>
+          <OfferVideo />
           <p>
             <a
               href="#ask"
               className="inline-block rounded-md bg-[color:var(--card-ink)] px-5 py-3 font-sans uppercase tracking-wider !text-[color:var(--card-field)] !no-underline"
             >
-              Send me one real example
+              Get a free draft
             </a>
             <br />
             <small>
-              Free. I&apos;ll show you a draft built from it before you pay
-              anything.
+              Tell me what your team does over and over. If I can help,
+              I&apos;ll ask for one real example, like a quote you wrote or a
+              form you retype, and show you a draft built from it within 3
+              working days, before you pay anything.
             </small>
           </p>
           <p>
@@ -203,7 +208,7 @@ export default function WorkWithMe() {
           </p>
 
           <h3 id="ask" className="scroll-mt-32">
-            Send me one real example
+            Get a free draft
           </h3>
           <BuildForm />
         </article>

@@ -40,13 +40,17 @@ test('the header links to the page, which shows the offer and its price', async 
   ).toBeVisible();
   // The free first step, and who does the work.
   await expect(
-    page.getByRole('link', { name: 'Send me one real example' }),
+    page.getByRole('link', { name: 'Get a free draft' }),
   ).toHaveAttribute('href', '#ask');
   await expect(
     page.getByText(
-      "Free. I'll show you a draft built from it before you pay anything.",
+      "Tell me what your team does over and over. If I can help, I'll ask for one real example, like a quote you wrote or a form you retype, and show you a draft built from it within 3 working days, before you pay anything.",
     ),
   ).toBeAttached();
+  // The button lands on the form's heading of the same name.
+  await expect(
+    page.getByRole('heading', { name: 'Get a free draft' }),
+  ).toHaveAttribute('id', 'ask');
   await expect(
     page.getByText(
       "I'm Zack Greenbauer, a software engineer for 10+ years. Right now I lead AI agent work at a distribution company. You deal with me, start to finish.",
@@ -133,7 +137,7 @@ test('the header links to the page, which shows the offer and its price', async 
   // The first step's button brings the form into view.
   const email = page.getByLabel('Your email');
   await expect(email).not.toBeInViewport();
-  await page.getByRole('link', { name: 'Send me one real example' }).click();
+  await page.getByRole('link', { name: 'Get a free draft' }).click();
   await expect(email).toBeInViewport();
 });
 
@@ -212,4 +216,74 @@ test('the footer speaks to each audience, and here jumps to the form', async ({
     .getByRole('link', { name: 'Tell me about it', exact: true })
     .click();
   await expect(email).toBeInViewport();
+});
+
+test('the video plays once, muted, when it comes into view, and its button pauses and replays it', async ({
+  page,
+}) => {
+  await opened(page, '/work-with-me');
+  const video = page.locator('article video');
+  await expect(video).toHaveAttribute('src', '/work-with-me/offer.mp4');
+  await expect(video).toHaveAttribute('poster', '/work-with-me/offer.jpg');
+  expect(await video.evaluate((v: HTMLVideoElement) => v.muted)).toBe(true);
+  // Every word is on screen, and the same story is there in words.
+  await expect(page.locator('#offer-video-story')).toContainText(
+    'A 40-second video with no sound.',
+  );
+  await expect
+    .poll(() => video.evaluate((v: HTMLVideoElement) => v.currentTime))
+    .toBeGreaterThan(0.5);
+  await expect
+    .poll(() => video.evaluate((v: HTMLVideoElement) => v.loop))
+    .toBe(false);
+
+  await page.getByRole('button', { name: 'Pause the video' }).click();
+  await expect
+    .poll(() => video.evaluate((v: HTMLVideoElement) => v.paused))
+    .toBe(true);
+  await expect(
+    page.getByRole('button', { name: 'Play the video' }),
+  ).toBeVisible();
+
+  // At the end it stops, and its button plays it again from the start.
+  await video.evaluate((v: HTMLVideoElement) => {
+    v.currentTime = v.duration - 0.2;
+    return v.play();
+  });
+  const again = page.getByRole('button', { name: 'Play the video again' });
+  await expect(again).toBeVisible();
+  await again.click();
+  await expect
+    .poll(() =>
+      video.evaluate((v: HTMLVideoElement) => !v.paused && v.currentTime < 5),
+    )
+    .toBe(true);
+});
+
+test('with reduced motion the video waits for its button', async ({
+  browser,
+}) => {
+  const page = await browser.newPage({ reducedMotion: 'reduce' });
+  await opened(page, '/work-with-me');
+  const video = page.locator('article video');
+  await page.waitForTimeout(2000);
+  expect(await video.evaluate((v: HTMLVideoElement) => v.paused)).toBe(true);
+  await page.getByRole('button', { name: 'Play the video' }).click();
+  await expect
+    .poll(() => video.evaluate((v: HTMLVideoElement) => v.paused))
+    .toBe(false);
+  await page.close();
+});
+
+test.describe('on a 1440x900 laptop', () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test('the button under the video shows without scrolling', async ({
+    page,
+  }) => {
+    await opened(page, '/work-with-me');
+    await expect(
+      page.getByRole('link', { name: 'Get a free draft' }),
+    ).toBeInViewport();
+  });
 });
