@@ -165,16 +165,24 @@ describe("a post's collage", () => {
 });
 
 describe('a collage in the room the head leaves', () => {
-  it('stacks up the side of the card before it spreads across', () => {
+  it('fills the width of the room the head leaves, then up it', () => {
     // Banner Eyewear's three in the room between the head and the card.
     const tiles = collage([16 / 9, 1, 1], 384, 700);
-    const left = Math.max(...tiles.map((tile) => tile.x));
-    const right = Math.min(...tiles.map((tile) => tile.x + tile.width));
-    // One column: every tile shares a stretch of the width.
-    expect(right).toBeGreaterThan(left);
-    const top = Math.min(...tiles.map((tile) => tile.y));
-    const bottom = Math.max(...tiles.map((tile) => tile.y + tile.height));
-    expect((bottom - top) / 700).toBeGreaterThan(0.85);
+    const { left, right, top, bottom } = outline(tiles);
+    expect(right - left).toBeGreaterThan(382);
+    expect((bottom - top) / 700).toBeGreaterThan(0.5);
+  });
+
+  it('spans the whole width of a wide, short box, as every post does', () => {
+    // Banner Eyewear's three under a wide card, in a short window: one row
+    // the width of the post, not a narrower block stacked in two.
+    for (const [w, h] of [
+      [830, 520],
+      [1100, 420],
+    ] as const) {
+      const { left, right } = outline(collage([16 / 9, 1, 1], w, h));
+      expect(right - left, `${w} by ${h}`).toBeGreaterThan(w - 2);
+    }
   });
 
   it('makes a main tile, such as a video, the largest, in its own shape', () => {
