@@ -18,12 +18,12 @@ export type Beat = {
 };
 
 // Something a chapter brings into the scene while it shows, around the head
-// (StoryProps.tsx): sunglasses on its face, a plane across the sky, its own
-// wireframe, a graduation cap with tortillas flying past (`tortillas`), or a
-// phone that takes its place and calls you, the head on its screen
-// (PhoneCall.tsx).
+// (StoryProps.tsx): sunglasses on its face, a sleep mask over its eyes
+// (`sleepmask`, sleepMask.ts), a plane across the sky, its own wireframe, a
+// graduation cap with tortillas thrown past (`tortillas`), or a phone that
+// takes its place and calls you, the head on its screen (PhoneCall.tsx).
 export type StoryProp =
-  'sunglasses' | 'plane' | 'wireframe' | 'tortillas' | 'phone';
+  'sunglasses' | 'sleepmask' | 'plane' | 'wireframe' | 'tortillas' | 'phone';
 
 // `since`: when the chapter's beats start (seconds, performance.now() /
 // 1000). `card`: the look target (headLook.ts units) that points at its

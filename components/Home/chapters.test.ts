@@ -108,6 +108,7 @@ describe("the home page's story", () => {
     ).toEqual({
       'texas-tech': 'tortillas',
       'banner-eyewear': 'sunglasses',
+      'smart-bed': 'sleepmask',
       'travel-startup': 'plane',
       'this-website': 'wireframe',
       'whats-next': 'phone',

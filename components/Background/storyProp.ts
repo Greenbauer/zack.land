@@ -6,6 +6,8 @@ import type { StoryCue, StoryProp } from './storyCue';
 // the head has winked, the rest at once.
 export const PROP_DELAY: Record<StoryProp, number> = {
   sunglasses: 1.6,
+  // The smart bed's sleep mask, just before the head closes its eyes.
+  sleepmask: 2.2,
   wireframe: 2.3,
   plane: 0.6,
   tortillas: 0.5,

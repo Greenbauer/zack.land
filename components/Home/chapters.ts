@@ -82,11 +82,14 @@ export const CHAPTERS: Chapter[] = [
   {
     id: 'smart-bed',
     content: smartBed!,
+    // A sleep mask slides down over its eyes (PROP_DELAY), and it shuts
+    // them under it and smiles, settling in to sleep.
+    prop: 'sleepmask',
     seconds: 12,
     beats: [
       { at: 0, face: { smile: 0.3 }, look: 'card' },
-      { at: 3, face: { blink: 0.6, smile: 0.3 } },
-      { at: 7, face: { smile: 0.5 } },
+      { at: 3, face: { blink: 1, smile: 0.4 } },
+      { at: 7, face: { blink: 1, smile: 0.6 } },
     ],
   },
   {

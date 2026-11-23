@@ -21,6 +21,7 @@ import { headMood } from './headMood';
 import { turnHead } from './headTurn';
 import { fadeNeck } from './neckFade';
 import { phoneShown } from './PhoneCall';
+import { sleepMask } from './sleepMask';
 import { isStill } from './stillScene';
 import { StoryProp } from './storyCue';
 import { propTarget } from './storyProp';
@@ -235,12 +236,27 @@ export default function StoryProps({
   );
   const amount = useRef<Record<StoryProp, number>>({
     sunglasses: 0,
+    sleepmask: 0,
     plane: 0,
     wireframe: 0,
     tortillas: 0,
     phone: 0,
   });
   const glassesRef = useRef<Group>(null);
+  // The smart bed's sleep mask, cast from the skin (sleepMask.ts), and how
+  // far above the eyes it slides down from (an eye spread).
+  const mask = useMemo(() => {
+    const l = centre(leftEye);
+    const r = centre(rightEye);
+    const spread = l.distanceTo(r);
+    const eyes = l.clone().add(r).multiplyScalar(0.5);
+    const { array } = skin.getAttribute('position');
+    return {
+      geometry: onSkull(sleepMask(array, eyes, spread)),
+      drop: spread,
+    };
+  }, [leftEye, rightEye, skin]);
+  const maskRef = useRef<Mesh>(null);
   const wireRef = useRef<Mesh>(null);
   const planeRef = useRef<Group>(null);
 
@@ -257,6 +273,13 @@ export default function StoryProps({
     const { sunglasses: wearing, wireframe, plane: flying } = amount.current;
     nameDrawn(amount.current, !!glasses);
     phoneShown.value = amount.current.phone;
+
+    // The sleep mask slides down onto the eyes from the forehead.
+    const sleeping = amount.current.sleepmask;
+    if (maskRef.current) {
+      maskRef.current.visible = sleeping > 0.01;
+      maskRef.current.position.y = (1 - sleeping) ** 2 * mask.drop;
+    }
 
     // The sunglasses drop from above onto the face, slowing as they land.
     if (glassesRef.current && glasses) {
@@ -343,6 +366,17 @@ export default function StoryProps({
           ))}
         </group>
       )}
+      {/* A soft satin mask in the theme's rose, its strap the same. */}
+      <mesh ref={maskRef} geometry={mask.geometry} visible={false}>
+        <meshPhysicalMaterial
+          color={head.rose}
+          roughness={0.55}
+          sheen={0.8}
+          sheenRoughness={0.4}
+          sheenColor={head.peach}
+          onBeforeCompile={turnHead}
+        />
+      </mesh>
       <mesh ref={wireRef} geometry={skin} visible={false}>
         {/* In the head's own indigo (theme/head.json): the peach it was
             hardly showed on the light sky. */}
