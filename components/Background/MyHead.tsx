@@ -59,10 +59,12 @@ import { morphGeometry } from './morphGeometry';
 import { fadeNeck, fadeTime } from './neckFade';
 import { neckExpressions } from './neckPose';
 import { faceInView, idleWait, PAGE_TARGETS } from './pageWatch';
+import PhoneCall, { phoneShown } from './PhoneCall';
 import { SHOWN_EXPRESSIONS, SHOWN_SIDED } from './shownExpressions';
 import { withSides } from './sideMorphs';
 import { isStill } from './stillScene';
 import { cueLook } from './storyCue';
+import { phoneSwap } from './storyProp';
 import StoryProps from './StoryProps';
 import { startWander, TIP, TURN, WANDER_TURN } from './wander';
 
@@ -356,6 +358,11 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
       }
     }
     rotateMyHead(clock.elapsedTime, delta);
+    // The last chapter's phone takes the head's place: the head shrinks
+    // away as it comes (PhoneCall.tsx).
+    const shrink = phoneSwap(phoneShown.value).head;
+    myHeadRef.current!.visible = shrink > 0.001;
+    myHeadRef.current!.scale.setScalar(Math.max(shrink, 0.001));
     // Where the head is looking, back in screen pixels, against where the
     // eyes are on screen.
     const spot = lookOnScreen(heading.target, {
@@ -418,47 +425,53 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
   });
 
   return (
-    <group position={[0, HEAD_LIFT, 0]} ref={myHeadRef}>
-      <mesh geometry={myHeadGeometry.skin} ref={skinRef}>
-        <meshPhysicalMaterial
-          color={SKIN_COLOR}
-          {...GLOSS}
-          transparent
-          onBeforeCompile={skinShader}
+    <>
+      <group position={[0, HEAD_LIFT, 0]} ref={myHeadRef}>
+        <mesh geometry={myHeadGeometry.skin} ref={skinRef}>
+          <meshPhysicalMaterial
+            color={SKIN_COLOR}
+            {...GLOSS}
+            transparent
+            onBeforeCompile={skinShader}
+          />
+        </mesh>
+        <mesh geometry={myHeadGeometry.skin} ref={liningRef}>
+          <meshBasicMaterial
+            color={MOUTH_COLOR}
+            side={BackSide}
+            transparent
+            onBeforeCompile={skinShader}
+          />
+        </mesh>
+        <mesh geometry={myHeadGeometry.mouth} ref={mouthRef}>
+          <meshBasicMaterial color={MOUTH_COLOR} onBeforeCompile={turnHead} />
+        </mesh>
+        <mesh geometry={myHeadGeometry.rightEye}>
+          <meshPhysicalMaterial
+            color={EYE_COLOR}
+            {...GLOSS}
+            onBeforeCompile={turnHead}
+          />
+        </mesh>
+        <mesh geometry={myHeadGeometry.leftEye}>
+          <meshPhysicalMaterial
+            color={EYE_COLOR}
+            {...GLOSS}
+            onBeforeCompile={turnHead}
+          />
+        </mesh>
+        {/* What the home page's story brings into the scene (StoryProps.tsx). */}
+        <StoryProps
+          leftEye={myHeadGeometry.leftEye!}
+          rightEye={myHeadGeometry.rightEye!}
+          skin={myHeadGeometry.skin!}
+          skinRef={skinRef}
         />
-      </mesh>
-      <mesh geometry={myHeadGeometry.skin} ref={liningRef}>
-        <meshBasicMaterial
-          color={MOUTH_COLOR}
-          side={BackSide}
-          transparent
-          onBeforeCompile={skinShader}
-        />
-      </mesh>
-      <mesh geometry={myHeadGeometry.mouth} ref={mouthRef}>
-        <meshBasicMaterial color={MOUTH_COLOR} onBeforeCompile={turnHead} />
-      </mesh>
-      <mesh geometry={myHeadGeometry.rightEye}>
-        <meshPhysicalMaterial
-          color={EYE_COLOR}
-          {...GLOSS}
-          onBeforeCompile={turnHead}
-        />
-      </mesh>
-      <mesh geometry={myHeadGeometry.leftEye}>
-        <meshPhysicalMaterial
-          color={EYE_COLOR}
-          {...GLOSS}
-          onBeforeCompile={turnHead}
-        />
-      </mesh>
-      {/* What the home page's story brings into the scene (StoryProps.tsx). */}
-      <StoryProps
+      </group>
+      <PhoneCall
         leftEye={myHeadGeometry.leftEye!}
         rightEye={myHeadGeometry.rightEye!}
-        skin={myHeadGeometry.skin!}
-        skinRef={skinRef}
       />
-    </group>
+    </>
   );
 }

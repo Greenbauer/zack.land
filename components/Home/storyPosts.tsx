@@ -6,8 +6,9 @@ import { Content, MediaSource } from '@/types';
 // the portfolio's videos are, each one's first frame its poster
 // (components/videoPoster.ts): animated illustrations (public/story/,
 // recorded by scripts/story/render.mjs from scripts/story/), or for Gulp the
-// real site he built, scrolling. Improv shows photos instead. Texas Tech has
-// none, and is told on the head itself (its prop, chapters.ts).
+// real site he built, scrolling. Improv shows photos instead. Texas Tech and
+// What's Next have none, and are told on the head itself (their props,
+// chapters.ts).
 //
 // The facts are from Zack's resume. His current employer is not named, and
 // nothing here gives numbers from that job.
@@ -192,10 +193,4 @@ export const WHATS_NEXT: Content = {
     </p>
   ),
   action: { href: '/work-with-me', label: 'Work with me' },
-  mediaSources: [
-    loop(
-      'whats-next',
-      "An agent carries a pull request along a team's line to be merged",
-    ),
-  ],
 };

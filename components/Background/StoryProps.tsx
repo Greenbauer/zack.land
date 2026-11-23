@@ -17,6 +17,7 @@ import { headMood } from './headMood';
 import { GLOSS } from './headSkin';
 import { turnHead } from './headTurn';
 import { fadeNeck } from './neckFade';
+import { phoneShown } from './PhoneCall';
 import { isStill } from './stillScene';
 import { StoryProp } from './storyCue';
 import { propTarget } from './storyProp';
@@ -25,7 +26,9 @@ import TexasTechProps from './TexasTechProps';
 // What a chapter of the home page's story brings into the scene around the
 // head (components/Home/chapters.ts, through headMood.cue): sunglasses that
 // drop onto its face, its own wireframe over its skin, a graduation cap and
-// flying tortillas (TexasTechProps.tsx), and a paper plane that flies past.
+// flying tortillas (TexasTechProps.tsx), a paper plane that flies past, and
+// a phone that takes the head's place (PhoneCall.tsx, drawn beside the head
+// by MyHead.tsx, which this tells how far in it is).
 // Each eases in as its chapter arrives (propTarget, storyProp.ts) and out
 // as it goes; with reduced motion none shows. The sunglasses, the cap and
 // the wireframe turn with the head (turnHead), as its eyes do. What it
@@ -194,6 +197,7 @@ export default function StoryProps({
     plane: 0,
     wireframe: 0,
     tortillas: 0,
+    phone: 0,
   });
   const glassesRef = useRef<Group>(null);
   const wireRef = useRef<Mesh>(null);
@@ -211,6 +215,7 @@ export default function StoryProps({
     }
     const { sunglasses: wearing, wireframe, plane: flying } = amount.current;
     nameDrawn(amount.current, !!glasses);
+    phoneShown.value = amount.current.phone;
 
     // The sunglasses drop from above onto the face, slowing as they land.
     if (glassesRef.current && glasses) {

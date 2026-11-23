@@ -206,13 +206,14 @@ export const CHAPTERS: Chapter[] = [
   {
     id: 'whats-next',
     content: WHATS_NEXT,
+    prop: 'phone',
     seconds: 8,
     beats: [
+      // A glance at the card and a wink at you, then the phone takes the
+      // head's place (PROP_DELAY, storyProp.ts) and calls.
       { at: 0, face: { smile: 0.3 }, look: 'card' },
-      { at: 1.2, face: { browsUp: 0.5 }, look: 'up' },
-      { at: 3, face: { smile: 0.7 }, look: 'camera' },
-      { at: 4.5, face: { smile: 0.9, blinkLeft: 1 } },
-      { at: 5.1, face: { smile: 0.9 } },
+      { at: 0.6, face: { smile: 0.9, blinkLeft: 1 }, look: 'camera' },
+      { at: 1.1, face: { smile: 0.9 } },
     ],
   },
 ];

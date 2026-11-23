@@ -13,8 +13,8 @@
 </head>
 <body>
 <script type="module">
-// The home page's simpler story illustrations (components/Home/storyPosts.tsx;
-// studio.html has the rest): a six-second 3D loop each, in the site's own look (the dawn sky the
+// The home page's simpler story illustration, USAA's (components/Home/
+// storyPosts.tsx; studio.html has the rest): a six-second 3D loop, in the site's own look (the dawn sky the
 // head reflects, its glossy black skin, the theme's colours), drawn frame by
 // frame here and recorded by render.mjs into public/story/<scene>.mp4 and
 // its first frame, <scene>.jpg. Open ?scene=<name>&t=<seconds> for one frame.
@@ -24,7 +24,7 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 
 const LOOP = 6;
 const TAU = Math.PI * 2;
-const C = { light: '#ede4e3', peach: '#d3aba0', purple: '#594d69', blue: '#1c265b', navy: '#040227', pass: '#8fd6a0', fail: '#e0604f' };
+const C = { light: '#ede4e3', peach: '#d3aba0', rose: '#a57374', purple: '#594d69', navy: '#040227' };
 const ease = (x) => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x); };
 const loopT = (t) => ((t % LOOP) + LOOP) % LOOP;
 
@@ -71,36 +71,42 @@ function littleHead(parent, scale = 1) {
 }
 
 const SCENES = {
-  'whats-next'() {
-    const main = mesh(new THREE.CylinderGeometry(0.16, 0.16, 18, 16), gloss(C.light));
-    main.rotation.z = Math.PI / 2;
-    const branchCurve = new THREE.CubicBezierCurve3(new THREE.Vector3(-4, 0, 0), new THREE.Vector3(-2.5, 2.8, 0), new THREE.Vector3(2.5, 2.8, 0), new THREE.Vector3(4, 0, 0));
-    mesh(new THREE.TubeGeometry(branchCurve, 120, 0.14, 12), gloss(C.peach));
-    for (const x of [-7, -4, 4, 7]) mesh(new THREE.SphereGeometry(0.36, 24, 18), gloss(C.navy), scene).position.x = x;
-    const merge = mesh(new THREE.SphereGeometry(0.42, 24, 18), gloss(C.light, { emissive: C.pass, emissiveIntensity: 0 }));
-    merge.position.x = 4;
-    const agent = littleHead(scene, 0.7);
-    agent.position.set(-4.6, 1.6, 0.6);
-    const card = group();
-    mesh(box(1.4, 0.9, 0.12, 0.06), gloss(C.light), card);
-    for (const [w, y] of [[0.9, 0.2], [0.6, -0.05], [0.8, -0.28]]) mesh(box(w, 0.08, 0.04, 0.02), gloss(C.purple), card).position.set(-0.1, y, 0.08);
-    const checks = [0, 1, 2].map((k) => {
-      const c = mesh(new THREE.SphereGeometry(0.16, 16, 12), gloss(C.pass, { emissive: C.pass, emissiveIntensity: 0.4 }));
-      c.position.set(-0.8 + k * 0.8, 3.8, 0);
-      return c;
+  usaa() {
+    const belt = mesh(box(18, 0.4, 2.2, 0.15), gloss(C.navy));
+    belt.position.y = -1.2;
+    const gates = [[C.peach, -4.5], [C.rose, 0], [C.light, 4.5]].map(([color, x]) => {
+      const g = mesh(new THREE.TorusGeometry(1.8, 0.16, 16, 64, Math.PI), gloss(color, { emissive: color, emissiveIntensity: 0 }));
+      g.position.set(x, -1, 0);
+      return g;
+    });
+    const steps = [C.navy, C.peach, C.rose, C.light];
+    const tokens = [0, 1, 2, 3, 4, 5].map(() => mesh(box(0.9, 0.9, 0.9, 0.16), gloss(C.navy)));
+    // Five people beside the line: the engineers he mentored.
+    const people = [0, 1, 2, 3, 4].map((k) => {
+      const p = group();
+      mesh(new THREE.CapsuleGeometry(0.35, 0.7, 8, 20), gloss(C.purple), p).position.y = 0.6;
+      littleHead(p, 0.42).position.y = 1.6;
+      p.position.set(-4 + k * 2, -1.4, -3.4);
+      return p;
     });
     return (t) => {
       const u = loopT(t);
-      const p = ease((u - 0.3) / 3.8);
-      card.position.copy(branchCurve.getPointAt(p)).add(new THREE.Vector3(0, 0.75, 0));
-      card.rotation.y = Math.sin(u * 2) * 0.3;
-      checks.forEach((c, k) => (c.scale.setScalar(ease((p - 0.35 - k * 0.12) * 6))));
-      merge.material.emissiveIntensity = ease((u - 4.1) / 0.4) * (1 - ease((u - 5.4) / 0.5)) * 1.2;
-      merge.scale.setScalar(1 + merge.material.emissiveIntensity * 0.3);
-      agent.rotation.y = 0.4 + Math.sin(u * 2) * 0.2;
-      orbit(t, 15, 3, new THREE.Vector3(0, 1, 0), -0.2, 0.4);
+      tokens.forEach((tok, k) => {
+        const x = -9 + (((u / LOOP) * 18 * 1 + k * 3) % 18);
+        tok.position.set(x, -0.55, 0);
+        tok.rotation.y = x * 0.2;
+        const passed = gates.filter((g) => g.position.x < x).length;
+        tok.material.color.set(steps[passed]);
+      });
+      gates.forEach((g) => {
+        const near = Math.min(...tokens.map((tok) => Math.abs(tok.position.x - g.position.x)));
+        g.material.emissiveIntensity = Math.max(0, 1 - near) * 0.8;
+      });
+      people.forEach((p, k) => (p.position.y = -1.4 + Math.abs(Math.sin(u * 2 + k)) * 0.15));
+      orbit(t, 17, 5, new THREE.Vector3(0, -0.6, -0.8), 0.15, 0.35);
     };
   },
+
 };
 
 const params = new URLSearchParams(location.search);

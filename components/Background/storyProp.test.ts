@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { StoryCue } from './storyCue';
-import { PROP_DELAY, propTarget } from './storyProp';
+import { phoneSwap, PROP_DELAY, propTarget } from './storyProp';
 
 const cue = (prop: StoryCue['prop']): StoryCue => ({
   beats: [],
@@ -26,5 +26,17 @@ describe("a chapter's prop", () => {
     expect(propTarget(cue('plane'), 'sunglasses', 60)).toBe(0);
     expect(propTarget(cue(undefined), 'tortillas', 60)).toBe(0);
     expect(propTarget(null, 'wireframe', 60)).toBe(0);
+  });
+
+  it('swaps the head for the phone, never showing both', () => {
+    expect(phoneSwap(0)).toEqual({ head: 1, phone: 0 });
+    expect(phoneSwap(0.5)).toEqual({ head: 0, phone: 0 });
+    expect(phoneSwap(1)).toEqual({ head: 0, phone: 1 });
+    for (let a = 0; a <= 1; a += 0.05) {
+      const { head, phone } = phoneSwap(a);
+      expect(head === 0 || phone === 0).toBe(true);
+    }
+    expect(phoneSwap(0.25).head).toBeCloseTo(0.5);
+    expect(phoneSwap(0.75).phone).toBeCloseTo(0.5);
   });
 });

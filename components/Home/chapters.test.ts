@@ -110,6 +110,7 @@ describe("the home page's story", () => {
       'banner-eyewear': 'sunglasses',
       'travel-startup': 'plane',
       'this-website': 'wireframe',
+      'whats-next': 'phone',
     });
   });
 
