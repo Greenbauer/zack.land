@@ -187,9 +187,9 @@ export const WHATS_NEXT: Content = {
   name: "What's Next",
   description: (
     <p>
-      What&rsquo;s next? I build AI tools that take one repetitive task off a
-      small team&rsquo;s plate, and I help software teams get real work out of
-      AI coding agents. Let&rsquo;s talk. I&rsquo;ll bring the head.
+      What&rsquo;s next? I build AI tools that handle the repetitive work for
+      small teams, and I help software teams get real work out of AI coding
+      agents. Let&rsquo;s talk. I&rsquo;ll bring the head.
     </p>
   ),
   action: { href: '/work-with-me', label: 'Work with me' },
