@@ -258,9 +258,10 @@ test.describe('on a phone', () => {
     await expect(page.getByRole('button', { name: 'Scroll down' })).toHaveCount(
       0,
     );
-    // A turn on, the arrow is back in its place, and Watch is gone.
-    await turn(page);
-    await expect(title(page, 0)).toBeVisible();
+    // A tap on it plays the story: Texas Tech, then the arrow is back in its
+    // place, and Watch is gone.
+    await watch.tap();
+    await expect(title(page, 0)).toBeVisible({ timeout: 20_000 });
     await expect(
       page.getByRole('button', { name: 'Scroll down' }),
     ).toBeVisible();

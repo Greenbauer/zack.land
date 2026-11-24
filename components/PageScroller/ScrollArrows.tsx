@@ -171,7 +171,7 @@ export default function ScrollArrows({ lead }: { lead?: ReactNode } = {}) {
         <div
           data-scroll-arrows
           data-watch
-          className="flex h-[4.5rem] items-center"
+          className="pointer-events-auto flex h-[4.5rem] items-center"
         >
           {lead}
         </div>,
