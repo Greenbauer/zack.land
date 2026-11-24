@@ -13,7 +13,7 @@ const cue = (prop: StoryCue['prop']): StoryCue => ({
 describe("a chapter's prop", () => {
   it('comes in at once, as its chapter does, and is only the one it brings', () => {
     expect(propTarget(cue('sunglasses'), 'sunglasses')).toBe(1);
-    expect(propTarget(cue('plane'), 'sunglasses')).toBe(0);
+    expect(propTarget(cue('sleepmask'), 'sunglasses')).toBe(0);
     expect(propTarget(cue(undefined), 'tortillas')).toBe(0);
     expect(propTarget(null, 'wireframe')).toBe(0);
   });
@@ -44,6 +44,6 @@ describe("a chapter's prop", () => {
     expect(propTarget(cue('phone'), 'wireframe', { ...now, phone: 0.6 })).toBe(
       0,
     );
-    expect(propTarget(cue('plane'), 'wireframe', now)).toBe(0);
+    expect(propTarget(cue('sleepmask'), 'wireframe', now)).toBe(0);
   });
 });

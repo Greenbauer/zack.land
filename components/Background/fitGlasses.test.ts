@@ -129,11 +129,12 @@ describe('the sunglasses on the head', () => {
       const top = highest.y;
       const back = Math.min(...ear.map((p) => p.z));
       const arm = points(part, 1);
-      // Just over the ear at its top, resting on it, not up off it.
+      // Angled down onto the ear: at its top the arm rests in the fold
+      // just inside it, level with it or a little under, not up off it.
       const over = arm.filter((p) => Math.abs(p.z - highest.z) < 3);
       const under = Math.min(...over.map((p) => p.y));
-      expect(under - top).toBeGreaterThan(-1);
-      expect(under - top).toBeLessThan(3);
+      expect(under - top).toBeGreaterThan(-3);
+      expect(under - top).toBeLessThan(0.5);
       // Its tip is behind the ear, and hooks down below its top.
       const tip = arm.filter((p) => p.z < back);
       expect(tip.length).toBeGreaterThan(0);

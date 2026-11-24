@@ -30,6 +30,9 @@ const FORWARD = -15;
 const TILT = 0.12;
 const OPEN = 0.02;
 const FLEX = 0.36;
+// How far each arm is angled down at its hinge, in radians, so it comes down
+// from the brow to rest on the top of the ear, as worn arms do.
+const DROOP = 0.05;
 
 export type Fitted = Glasses & {
   // How far above its place the pair drops from.
@@ -70,7 +73,7 @@ export function fitGlasses(
         position.setXYZ(
           k,
           hinge.x + side * (OPEN + flex / 2) * along + out * Math.cos(turn),
-          p.y,
+          p.y - DROOP * along,
           hinge.z -
             along * (1 - (turn * turn) / 6) +
             side * out * Math.sin(turn),

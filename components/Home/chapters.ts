@@ -145,7 +145,6 @@ export const CHAPTERS: Chapter[] = [
     // The trip-planning startup: the portfolio's post.
     id: 'travel-startup',
     content: tripPlanner!,
-    prop: 'plane',
     seconds: 10,
     beats: [
       { at: 0, face: { smile: 0.5 }, look: 'card' },

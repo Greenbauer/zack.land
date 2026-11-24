@@ -2,9 +2,7 @@ import { useFrame } from '@react-three/fiber';
 import { RefObject, useMemo, useRef } from 'react';
 import {
   BufferGeometry,
-  DoubleSide,
   Euler,
-  Float32BufferAttribute,
   Group,
   Mesh,
   MeshPhysicalMaterial,
@@ -30,8 +28,7 @@ import WireHead from './WireHead';
 // head (components/Home/chapters.ts, through headMood.cue): sunglasses that
 // drop onto its face, a sleep mask (SleepMaskProp.tsx), its own wireframe in
 // place of its skin (WireHead.tsx), a graduation cap and flying tortillas
-// (TexasTechProps.tsx), a paper plane that flies past, and a phone that takes
-// the head's place (PhoneCall.tsx, drawn beside the head by MyHead.tsx, which
+// (TexasTechProps.tsx), and a phone that takes the head's place (PhoneCall.tsx, drawn beside the head by MyHead.tsx, which
 // this tells how far in it is).
 // Each eases in as its chapter arrives (propTarget, storyProp.ts) and out
 // as it goes; with reduced motion none shows. The sunglasses, the cap and
@@ -57,21 +54,6 @@ const TRACK_PINK = '#99145a';
 // way the scene's own sky is turned: half the time that has its dark side
 // behind the camera, and they showed a flat navy.
 const LENS_SKY = new Euler(0.6, -1.19, 0);
-
-// A folded paper plane, nose along -x: two wings meeting at a keel.
-function paperPlane() {
-  const g = new BufferGeometry();
-  // prettier-ignore
-  const v = [
-    -2, 0, 0, 2, 0, -1.6, 2, 0, -0.15, // left wing
-    -2, 0, 0, 2, 0, 0.15, 2, 0, 1.6, // right wing
-    -2, 0, 0, 2, -0.9, 0, 2, 0, -0.15, // keel, left
-    -2, 0, 0, 2, 0, 0.15, 2, -0.9, 0, // keel, right
-  ];
-  g.setAttribute('position', new Float32BufferAttribute(v, 3));
-  g.computeVertexNormals();
-  return g;
-}
 
 // How quickly a prop eases in and out (per second).
 const IN_RATE = 3;
@@ -100,7 +82,6 @@ export default function StoryProps({
   skin: BufferGeometry;
   skinRef: RefObject<Mesh | null>;
 }) {
-  const plane = useMemo(() => paperPlane(), []);
   // The head's own measure: the distance between its eyes.
   const spread = useMemo(
     () => Math.abs(centre(rightEye).x - centre(leftEye).x),
@@ -124,17 +105,14 @@ export default function StoryProps({
   const amount = useRef<Record<StoryProp, number>>({
     sunglasses: 0,
     sleepmask: 0,
-    plane: 0,
     wireframe: 0,
     tortillas: 0,
     phone: 0,
   });
   const glassesRef = useRef<Group>(null);
   const mirrorRef = useRef<MeshPhysicalMaterial>(null);
-  const planeRef = useRef<Group>(null);
 
   useFrame(({ scene }, delta) => {
-    const now = performance.now() / 1000;
     const cue = headMood.cue;
     const still = isStill();
     for (const prop of Object.keys(amount.current) as StoryProp[]) {
@@ -153,7 +131,7 @@ export default function StoryProps({
             )
           : was + (target - was) * Math.min(1, rate * delta);
     }
-    const { sunglasses: wearing, plane: flying } = amount.current;
+    const { sunglasses: wearing } = amount.current;
     nameDrawn(amount.current, !!glasses);
     phoneShown.value = amount.current.phone;
 
@@ -166,20 +144,6 @@ export default function StoryProps({
     if (mirror && mirror.envMap !== scene.environment) {
       mirror.envMap = scene.environment;
       mirror.needsUpdate = true;
-    }
-
-    // The plane flies past in front of the head, right to left, every few
-    // seconds while its chapter shows.
-    if (planeRef.current) {
-      planeRef.current.visible = flying > 0.01;
-      const t = cue?.prop === 'plane' ? ((now - cue.since) % 5) / 5 : 0;
-      planeRef.current.position.set(
-        150 - t * 300,
-        44 + Math.sin(t * Math.PI * 2) * 8,
-        60,
-      );
-      planeRef.current.rotation.set(0.35, 0.2, Math.sin(t * Math.PI * 4) * 0.3);
-      planeRef.current.scale.setScalar(9 * flying);
     }
   });
 
@@ -254,16 +218,6 @@ export default function StoryProps({
       />
       <WireHead skin={skin} skinRef={skinRef} amounts={amount} />
       <TexasTechProps spread={spread} amounts={amount} skin={skin} />
-      <group ref={planeRef} visible={false}>
-        <mesh geometry={plane}>
-          <meshPhysicalMaterial
-            color="#ede4e3"
-            roughness={0.6}
-            side={DoubleSide}
-            flatShading
-          />
-        </mesh>
-      </group>
     </>
   );
 }
