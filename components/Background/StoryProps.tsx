@@ -28,10 +28,10 @@ import {
 import { Glasses, loadGlasses } from './glassesGeometry';
 import { headMood } from './headMood';
 import { turnHead } from './headTurn';
-import { maskPrint } from './maskPrint';
 import { fadeNeck } from './neckFade';
 import { phoneShown } from './PhoneCall';
-import { sleepMask } from './sleepMask';
+import { centre, onSkull } from './skull';
+import SleepMaskProp from './SleepMaskProp';
 import { isStill } from './stillScene';
 import { StoryProp } from './storyCue';
 import { propTarget } from './storyProp';
@@ -55,33 +55,14 @@ const skinShader: Material['onBeforeCompile'] = (shader) => {
   fadeNeck(shader);
 };
 
-// A geometry carried whole by the skull: every vertex fully the head's, for
-// turnHead.
-function onSkull(geometry: BufferGeometry): BufferGeometry {
-  const count = geometry.getAttribute('position').count;
-  geometry.setAttribute(
-    'headWeight',
-    new Float32BufferAttribute(new Float32Array(count).fill(1), 1),
-  );
-  geometry.setAttribute(
-    'turnWeight',
-    new Float32BufferAttribute(new Float32Array(count).fill(1), 1),
-  );
-  return geometry;
-}
-
-const centre = (geometry: BufferGeometry) => {
-  geometry.computeBoundingBox();
-  return geometry.boundingBox!.getCenter(new Vector3());
-};
-
 // The Banner Eyewear sunglasses (glassesGeometry.ts) on the head as the real
-// pair sits on a face (the model photo in the Banner Eyewear post): the model
-// whole, scaled so its front is as wide as the head at the temples, its
-// lenses level with the eyes, its bridge resting on the nose, and each arm
-// swung open at its hinge just enough to clear the side of the head
-// (glassesFit.ts), every part carried by the skull. Scaled to clear the head
-// with its arms shut it came out far too big; scaled to the eyes, too narrow.
+// pair sits on a face (the model photo in the Banner Eyewear post): scaled so
+// its front is as wide as the head at the temples, its lenses level with the
+// eyes, its bridge resting on the nose, tipped about the bridge until the
+// arms rest on the tops of the ears, and each arm flexed in one smooth curve
+// just enough to clear the skull (glassesFit.ts), every part carried by the
+// skull. Scaled to clear the head with its arms straight it came out far too
+// big; scaled to the eyes, too narrow.
 // Returns the parts, and how far above their place they drop from.
 function fitGlasses(
   glasses: Glasses,
@@ -283,21 +264,6 @@ export default function StoryProps({
     phone: 0,
   });
   const glassesRef = useRef<Group>(null);
-  // The smart bed's sleep mask, cast from the skin (sleepMask.ts), the head's
-  // middle it is laid round, and its print (maskPrint.ts).
-  const mask = useMemo(() => {
-    const l = centre(leftEye);
-    const r = centre(rightEye);
-    const eyes = l.clone().add(r).multiplyScalar(0.5);
-    const { array } = skin.getAttribute('position');
-    const geometry = onSkull(sleepMask(array, eyes, l.distanceTo(r)));
-    return {
-      geometry,
-      middle: geometry.userData.middle as Vector3,
-      print: maskPrint(),
-    };
-  }, [leftEye, rightEye, skin]);
-  const maskRef = useRef<Mesh>(null);
   const wireRef = useRef<Mesh>(null);
   // The wireframe's own triangles over the skin's points and expressions:
   // the skin's, thinned at the seam round the neck (wireSeam.ts).
@@ -329,17 +295,6 @@ export default function StoryProps({
     const { sunglasses: wearing, wireframe, plane: flying } = amount.current;
     nameDrawn(amount.current, !!glasses);
     phoneShown.value = amount.current.phone;
-
-    // The sleep mask slides down onto the eyes from the forehead.
-    const sleeping = amount.current.sleepmask;
-    if (maskRef.current) {
-      maskRef.current.visible = sleeping > 0.01;
-      // It shrinks onto the head from a little larger, about the head's
-      // middle, so no part of it passes through the face on the way.
-      const size = 1 + 0.35 * (1 - sleeping) ** 2;
-      maskRef.current.scale.setScalar(size);
-      maskRef.current.position.copy(mask.middle).multiplyScalar(1 - size);
-    }
 
     // The sunglasses drop from above onto the face, slowing as they land.
     if (glassesRef.current && glasses) {
@@ -435,26 +390,12 @@ export default function StoryProps({
           ))}
         </group>
       )}
-      {/* A puffy satin pad with its print, and a thin plum elastic. */}
-      <mesh ref={maskRef} geometry={mask.geometry} visible={false}>
-        <meshPhysicalMaterial
-          attach="material-0"
-          map={mask.print}
-          roughness={0.5}
-          sheen={0.8}
-          sheenRoughness={0.35}
-          sheenColor={head.peach}
-          envMapIntensity={0.4}
-          onBeforeCompile={turnHead}
-        />
-        <meshStandardMaterial
-          attach="material-1"
-          color="#4a2240"
-          roughness={0.8}
-          envMapIntensity={0.3}
-          onBeforeCompile={turnHead}
-        />
-      </mesh>
+      <SleepMaskProp
+        leftEye={leftEye}
+        rightEye={rightEye}
+        skin={skin}
+        amounts={amount}
+      />
       <mesh ref={wireRef} geometry={wire} visible={false}>
         {/* In the head's own indigo (theme/head.json): the peach it was
             hardly showed on the light sky. */}

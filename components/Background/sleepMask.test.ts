@@ -1,8 +1,14 @@
-import { Vector3 } from 'three';
+import { Vector2, Vector3 } from 'three';
 import { describe, expect, it } from 'vitest';
 
 import { meshes } from './headFixture';
-import { sleepMask } from './sleepMask';
+import {
+  edgeDistance,
+  headProfile,
+  maskOutline,
+  outlineBounds,
+  sleepMask,
+} from './sleepMask';
 
 const middle = (name: string) => {
   const p = meshes.get(name)!.positions;
@@ -17,48 +23,77 @@ describe("the smart bed's sleep mask", () => {
   const right = middle('rightEye');
   const eyes = left.clone().add(right).multiplyScalar(0.5);
   const spread = left.distanceTo(right);
-  const skin = meshes.get('skin')!;
-  const mask = sleepMask(skin.positions, eyes, spread);
-  const position = mask.getAttribute('position');
-  const points = Array.from({ length: position.count }, (_, i) =>
-    new Vector3().fromBufferAttribute(position, i),
-  );
+  const skin = meshes.get('skin')!.positions;
+  const profile = headProfile(skin, eyes, spread);
+  const mask = sleepMask(profile);
+  const outline = maskOutline();
+  const bounds = outlineBounds(outline);
+  // The pad's points that are inside its outline (the rest are cut away by
+  // its print).
+  const pad = (() => {
+    const position = mask.pad.getAttribute('position');
+    const uv = mask.pad.getAttribute('uv');
+    const kept: Vector3[] = [];
+    for (let i = 0; i < position.count; i++) {
+      const at = new Vector2(
+        bounds.left + uv.getX(i) * (bounds.right - bounds.left),
+        bounds.low + uv.getY(i) * (bounds.high - bounds.low),
+      );
+      if (edgeDistance(at, outline) > 0.02)
+        kept.push(new Vector3().fromBufferAttribute(position, i));
+    }
+    return kept;
+  })();
+  // The skin's frontmost depth near (x, y).
+  const front = (x: number, y: number) => {
+    let z = -Infinity;
+    for (let k = 0; k < skin.length; k += 3)
+      if (Math.abs(skin[k]! - x) < 2 && Math.abs(skin[k + 1]! - y) < 2)
+        z = Math.max(z, skin[k + 2]!);
+    return z;
+  };
+
+  it('is shaped like a sleep mask: wider than tall, notched over the nose', () => {
+    expect(bounds.right - bounds.left).toBeGreaterThan(
+      2 * (bounds.high - bounds.low),
+    );
+    expect(edgeDistance(new Vector2(0, -0.2), outline)).toBeLessThan(0);
+    expect(edgeDistance(new Vector2(0.5, -0.2), outline)).toBeGreaterThan(0);
+  });
 
   it('covers both eyes, in front of them', () => {
     for (const eye of [left, right]) {
-      const before = points.filter(
-        (p) =>
-          Math.abs(p.x - eye.x) < spread * 0.2 &&
-          Math.abs(p.y - eye.y) < spread * 0.2,
-      );
-      expect(before.length).toBeGreaterThan(0);
-      expect(Math.max(...before.map((p) => p.z))).toBeGreaterThan(eye.z);
-    }
-  });
-
-  it('bridges the eye sockets: nothing of it dips in behind the eyes', () => {
-    for (const eye of [left, right]) {
-      const over = points.filter(
+      const over = pad.filter(
         (p) =>
           Math.abs(p.x - eye.x) < spread * 0.15 &&
           Math.abs(p.y - eye.y) < spread * 0.15,
       );
+      expect(over.length).toBeGreaterThan(0);
       for (const p of over) expect(p.z).toBeGreaterThan(eye.z);
     }
   });
 
-  it('faces out, away from the head', () => {
-    mask.computeVertexNormals();
-    const normal = mask.getAttribute('normal');
-    const front = points.findIndex(
-      (p) => Math.abs(p.x - eyes.x) < spread * 0.1 && p.y > eyes.y,
-    );
-    expect(normal.getZ(front)).toBeGreaterThan(0);
+  it('never sinks into the face', () => {
+    for (const p of pad.filter((_, k) => k % 37 === 0))
+      if (p.z > eyes.z - spread * 0.6)
+        expect(p.z).toBeGreaterThanOrEqual(front(p.x, p.y) - 0.5);
   });
 
-  it('goes all round the head, its strap above the eyes at the back', () => {
-    const back = points.filter((p) => p.z < eyes.z - spread * 2);
-    expect(back.length).toBeGreaterThan(0);
-    for (const p of back) expect(p.y).toBeGreaterThan(eyes.y + spread * 0.3);
+  it('has its strap round the back of the head, above the eyes', () => {
+    const position = mask.strap.getAttribute('position');
+    let back = 0;
+    for (let i = 0; i < position.count; i++) {
+      const p = new Vector3().fromBufferAttribute(position, i);
+      if (p.z < eyes.z - spread * 2) back++;
+      expect(p.y).toBeGreaterThan(eyes.y + spread * 0.2);
+    }
+    expect(back).toBeGreaterThan(0);
+  });
+
+  it('has long lashes standing out from it', () => {
+    mask.lashes.computeBoundingBox();
+    expect(mask.lashes.boundingBox!.max.z).toBeGreaterThan(
+      Math.max(...pad.map((p) => p.z)),
+    );
   });
 });

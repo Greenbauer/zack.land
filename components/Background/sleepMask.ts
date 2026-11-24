@@ -1,68 +1,95 @@
-import { BufferAttribute, BufferGeometry, Vector3 } from 'three';
+import {
+  BufferAttribute,
+  BufferGeometry,
+  CatmullRomCurve3,
+  Shape,
+  TubeGeometry,
+  Vector2,
+  Vector3,
+} from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
-// The smart bed's sleep mask (StoryProps.tsx), made to fit the head's own
-// skin: a smooth band round the head, wide over the eyes as a puffy pad
-// (printed with closed eyes, long curly lashes and a Zzz: maskPrint.ts, laid
-// on by its texture coordinates) and a thin elastic strap round the back,
-// above the ears. It is laid out
-// round an upright line through the middle of the head: at each angle round
-// it and each height, as far out as the skin there, bridged over the eye
-// sockets (it rests on the brow and the cheeks, as a real one does, not in
-// them), smoothed, and lifted off it a little. The head closes its eyes
-// under it (chapters.ts).
+// The smart bed's sleep mask (StoryProps.tsx): a real padded sleep mask, cut
+// to a sleep mask's outline (two rounded pads over the eyes, a curved top, a
+// notch over the nose), puffed up thickest in the middle and rounding off to
+// a thin edge, and curved round the head's own face so it rests on the brow
+// and the cheeks; long curly lashes stand out from two closed eyes on it
+// (its print: maskPrint.ts), and a thin elastic strap goes round the back of
+// the head above the ears. Everything is laid out in eye spreads (the
+// distance between the eyes) from the eyes: `across` round the face, `up`,
+// and `out` off it.
 
-// The band's heights, in eye spreads (the distance between the eyes) from the
-// eyes: the pad from below the eyes to above the brows, the strap a thin band
-// above the ears. The pad covers the front, PAD_ANGLE either side of it,
-// easing into the strap.
-const PAD = { low: -0.42, high: 0.6 };
-const STRAP = { low: 0.4, high: 0.52 };
-const PAD_ANGLE = (75 * Math.PI) / 180;
-// The pad's shape, by its lower edge: full depth over the eyes out to
-// LOBE_ANGLE, narrowing from there into the strap by PAD_ANGLE, and cut up
-// to NOTCH over the nose, NOSE_ANGLE either side of the middle.
-const LOBE_ANGLE = (38 * Math.PI) / 180;
-const NOSE_ANGLE = (9 * Math.PI) / 180;
-const NOTCH = -0.24;
 // How far behind the eyes the head's middle is, in eye spreads.
 const MIDDLE_BACK = 1.4;
-// The grid it is laid out on: steps round the head and down the band.
+// The grid the head's shape is read on: steps round it and down it, over the
+// heights from PROFILE.low to PROFILE.high.
 const AROUND = 144;
-const DOWN = 18;
-// How far it stands off the skin, in eye spreads: the pad padded, the strap
-// a thin elastic.
-const PAD_LIFT = 0.06;
-const STRAP_LIFT = 0.02;
-// How much more the pad puffs out over each eye, in eye spreads, and how far
-// the puff spreads (round, in radians, and down, in eye spreads).
-const PUFF = 0.07;
-const PUFF_SPREAD = { across: 0.22, down: 0.3 };
+const DOWN = 24;
+const PROFILE = { low: -0.7, high: 0.8 };
 // How many steps either way a hollow is bridged across (the eye sockets).
 const BRIDGE = 3;
+// How far the mask's back lies off the skin, how thick its pad puffs in the
+// middle, and how far in from its edge the puff takes to round off.
+const LIFT = 0.03;
+export const PUFF = 0.11;
+const ROUND = 0.22;
+// The strap: its heights, and how far it lies off the skin.
+const STRAP = { low: 0.26, high: 0.38, lift: 0.015 };
+// The grid the pad is drawn on.
+const PAD_ACROSS = 220;
+const PAD_UP = 90;
 
-type Grid = number[][];
-
-const around = (col: number, by: number) => (col + by + AROUND) % AROUND;
-// A step round's angle from straight ahead, -PI to PI.
-const angleOf = (col: number) => {
-  const a = (col / AROUND) * 2 * Math.PI;
-  return a > Math.PI ? a - 2 * Math.PI : a;
-};
 const smoothstep = (t: number) => {
   const c = Math.min(1, Math.max(0, t));
   return c * c * (3 - 2 * c);
 };
-// How much of the pad's shape and padding a step round has: all of it out
-// to LOBE_ANGLE, none from PAD_ANGLE on.
-const padShare = (col: number) =>
-  1 -
-  smoothstep((Math.abs(angleOf(col)) - LOBE_ANGLE) / (PAD_ANGLE - LOBE_ANGLE));
 
-// How far out the skin is from `middle` at each step round and down (0 where
-// there is none), its rows from `low` to `high`.
+// The pad's outline, in eye spreads: the top gently arched, the ends
+// rounded, a rounded pad under each eye and a notch over the nose.
+export function maskOutline(): Vector2[] {
+  const half = new Shape();
+  half.moveTo(0, 0.6);
+  half.bezierCurveTo(0.55, 0.62, 1.05, 0.58, 1.28, 0.42);
+  half.bezierCurveTo(1.45, 0.3, 1.45, -0.12, 1.25, -0.28);
+  half.bezierCurveTo(1.05, -0.46, 0.62, -0.52, 0.38, -0.4);
+  half.bezierCurveTo(0.22, -0.32, 0.12, -0.12, 0, -0.1);
+  const right = half.getPoints(48);
+  const left = right
+    .slice(1, -1)
+    .reverse()
+    .map((p) => new Vector2(-p.x, p.y));
+  return [...right, ...left];
+}
+
+// How far `p` is inside `outline`'s edge (negative outside).
+export function edgeDistance(p: Vector2, outline: Vector2[]): number {
+  let inside = false;
+  let nearest = Infinity;
+  for (let k = 0, j = outline.length - 1; k < outline.length; j = k++) {
+    const a = outline[k]!;
+    const b = outline[j]!;
+    const crosses =
+      a.y > p.y !== b.y > p.y &&
+      p.x < ((b.x - a.x) * (p.y - a.y)) / (b.y - a.y) + a.x;
+    if (crosses) inside = !inside;
+    const ab = b.clone().sub(a);
+    const t = Math.min(
+      1,
+      Math.max(0, p.clone().sub(a).dot(ab) / ab.lengthSq()),
+    );
+    nearest = Math.min(nearest, a.clone().addScaledVector(ab, t).distanceTo(p));
+  }
+  return inside ? nearest : -nearest;
+}
+
+type Grid = number[][];
+const around = (col: number, by: number) => (col + by + AROUND) % AROUND;
+
+// How far out the skin is from the head's middle at each step round and
+// down (0 where there is none).
 function skinReach(
   positions: ArrayLike<number>,
-  middle: { x: number; z: number },
+  middle: Vector3,
   low: number,
   high: number,
 ): Grid {
@@ -83,9 +110,9 @@ function skinReach(
   return reach;
 }
 
-// The furthest out within BRIDGE steps round and one down of a point, so the
-// mask spans the hollows of the eye sockets.
-function bridge(reach: Grid): Grid {
+// The furthest out within BRIDGE steps round and one down of each point, so
+// what is laid over it spans the hollows of the eye sockets.
+function bridged(reach: Grid): Grid {
   const most = (col: number, row: number) => {
     const near: number[] = [];
     for (let by = -BRIDGE; by <= BRIDGE; by++)
@@ -97,119 +124,247 @@ function bridge(reach: Grid): Grid {
   return reach.map((column, col) => column.map((_, row) => most(col, row)));
 }
 
-// Each point averaged with its neighbours round, so the mask runs smooth.
-const smoothed = (grid: Grid): Grid =>
-  grid.map((column, col) =>
-    column.map(
-      (r, row) =>
-        (grid[around(col, -1)]![row]! + 2 * r + grid[around(col, 1)]![row]!) /
-        4,
-    ),
-  );
-
-// The mask's lower edge at each step round, in eye spreads from the eyes:
-// the notch over the nose, the lobes over the eyes, easing up into the
-// strap at the sides.
-function bottomAt(col: number): number {
-  const a = Math.abs(angleOf(col));
-  const lobe = STRAP.low + (PAD.low - STRAP.low) * padShare(col);
-  const notch = smoothstep((NOSE_ANGLE - a) / (NOSE_ANGLE * 0.6) + 0.5);
-  return lobe + (NOTCH - lobe) * notch;
-}
-
-// The mask's upper edge: the pad's top over the front, the strap's at the
-// sides and back.
-const topAt = (col: number) =>
-  STRAP.high + (PAD.high - STRAP.high) * padShare(col);
-
-// Where the eyes are on the pad's print, as texture coordinates (u across
-// the pad from one side's PAD_ANGLE to the other's, v up from its bottom
-// edge), for maskPrint.ts.
-export const PRINT_EYES = {
-  u: 0.5 + Math.atan(0.5 / MIDDLE_BACK) / (2 * PAD_ANGLE),
-  v: -PAD.low / (PAD.high - PAD.low),
+// The head round its middle, for laying things on it: `radiusAt` is how far
+// out it is at `angle` (0 straight ahead, positive toward +x) at its
+// furthest between the heights `low` and `high` (eye spreads from the eyes).
+export type Profile = {
+  middle: Vector3;
+  spread: number;
+  eyes: Vector3;
+  radiusAt: (_angle: number, _low: number, _high: number) => number;
 };
 
-// The mask for a skin of `positions` (x, y, z in turn), its eyes' middle at
-// `eyes`, `spread` apart. Its first group of triangles is the pad, its
-// second the strap; `userData.middle` is the head's middle it is laid out
-// round.
-export function sleepMask(
+export function headProfile(
   positions: ArrayLike<number>,
   eyes: Vector3,
   spread: number,
-): BufferGeometry {
-  const middle = { x: eyes.x, z: eyes.z - MIDDLE_BACK * spread };
-  const low = eyes.y + PAD.low * spread;
-  const high = eyes.y + PAD.high * spread;
-  const reach = smoothed(bridge(skinReach(positions, middle, low, high)));
-  const eyeAngle = Math.atan(0.5 / MIDDLE_BACK);
-  // How much more the pad puffs out at a step round and height: most over
-  // each eye, easing off around it.
-  const puff = (angle: number, up: number) =>
-    Math.max(
-      ...[-eyeAngle, eyeAngle].map(
-        (eye) =>
-          Math.exp(-(((angle - eye) / PUFF_SPREAD.across) ** 2)) *
-          Math.exp(-((up / PUFF_SPREAD.down) ** 2)),
-      ),
+): Profile {
+  const middle = new Vector3(eyes.x, eyes.y, eyes.z - MIDDLE_BACK * spread);
+  const low = eyes.y + PROFILE.low * spread;
+  const high = eyes.y + PROFILE.high * spread;
+  const reach = bridged(skinReach(positions, middle, low, high));
+  const rowOf = (up: number) =>
+    ((eyes.y + up * spread - low) / (high - low)) * DOWN;
+  const furthest = (col: number, rows: [number, number]) =>
+    Math.max(...reach[around(col, 0)]!.slice(rows[0], rows[1] + 1));
+  const radiusAt = (angle: number, from: number, to: number) => {
+    const at = (angle / (2 * Math.PI)) * AROUND;
+    const rows = [Math.floor(rowOf(from)), Math.ceil(rowOf(to))].map((r) =>
+      Math.min(DOWN, Math.max(0, r)),
+    ) as [number, number];
+    const t = at - Math.floor(at);
+    return (
+      furthest(Math.floor(at), rows) * (1 - t) +
+      furthest(Math.floor(at) + 1, rows) * t
     );
-  const out: number[] = [];
-  const uv: number[] = [];
-  const pad: number[] = [];
-  const strap: number[] = [];
-  const at = new Map<string, number>();
-  // A point of the mask: as far out as the skin there and lifted off it
-  // (puffed over the eyes), held between the mask's lower and upper edges
-  // (the rows past them are folded onto them, to nothing, so the edges run
-  // smooth rather than in steps).
-  const vertex = (col: number, row: number) => {
-    const key = `${col} ${row}`;
-    if (!at.has(key)) {
-      const angle = angleOf(col);
-      const share = padShare(col);
-      const y = Math.min(
-        Math.max(
-          low + (row / DOWN) * (high - low),
-          eyes.y + bottomAt(col) * spread,
-        ),
-        eyes.y + topAt(col) * spread,
+  };
+  return { middle, spread, eyes, radiusAt };
+}
+
+// The pad's outline's lowest and highest points at `across` (Infinity and
+// -Infinity where it has none).
+function spanAt(outline: Vector2[], across: number): [number, number] {
+  let low = Infinity;
+  let high = -Infinity;
+  for (let k = 0, j = outline.length - 1; k < outline.length; j = k++) {
+    const a = outline[j]!;
+    const b = outline[k]!;
+    if ((a.x - across) * (b.x - across) > 0 || a.x === b.x) continue;
+    const y = a.y + ((across - a.x) / (b.x - a.x)) * (b.y - a.y);
+    low = Math.min(low, y);
+    high = Math.max(high, y);
+  }
+  return [low, high];
+}
+
+export type Bounds = { left: number; right: number; low: number; high: number };
+
+export type Mask = {
+  pad: BufferGeometry;
+  lashes: BufferGeometry;
+  strap: BufferGeometry;
+  // The outline's bounds: the pad's print spans them (eye spreads).
+  bounds: Bounds;
+};
+
+// Where the eyes' closed lids are on the pad (eye spreads): their middles
+// across and up, how far across either side each runs, and how far its
+// middle droops below its ends.
+export const LIDS = { across: 0.5, up: 0.06, half: 0.27, droop: 0.1 };
+
+// A closed lid's line at `t` (-1 to 1 across it) for the eye on `side`.
+export const lidAt = (side: 1 | -1, t: number) =>
+  new Vector2(
+    side * LIDS.across + t * LIDS.half,
+    LIDS.up - LIDS.droop * (1 - t * t),
+  );
+
+export const outlineBounds = (outline: Vector2[]): Bounds => ({
+  left: Math.min(...outline.map((p) => p.x)),
+  right: Math.max(...outline.map((p) => p.x)),
+  low: Math.min(...outline.map((p) => p.y)),
+  high: Math.max(...outline.map((p) => p.y)),
+});
+
+type Place = (_across: number, _up: number, _out: number) => Vector3;
+
+// The pad: a sheet over the outline's bounds, puffed out inside the outline
+// (thickest in the middle, rounding off to nothing at the edge); what lies
+// outside the outline is cut away by its print's alpha (maskPrint.ts).
+function padSheet(outline: Vector2[], bounds: Bounds, place: Place) {
+  const positions: number[] = [];
+  const uvs: number[] = [];
+  for (let j = 0; j <= PAD_UP; j++)
+    for (let i = 0; i <= PAD_ACROSS; i++) {
+      const [u, v] = [i / PAD_ACROSS, j / PAD_UP];
+      const across = bounds.left + u * (bounds.right - bounds.left);
+      const up = bounds.low + v * (bounds.high - bounds.low);
+      const edge = edgeDistance(new Vector2(across, up), outline);
+      const puff = PUFF * Math.sqrt(smoothstep(edge / ROUND));
+      positions.push(...place(across, up, puff).toArray());
+      uvs.push(u, v);
+    }
+  const index: number[] = [];
+  for (let j = 0; j < PAD_UP; j++)
+    for (let i = 0; i < PAD_ACROSS; i++) {
+      const a = j * (PAD_ACROSS + 1) + i;
+      const c = a + PAD_ACROSS + 1;
+      index.push(a, a + 1, c + 1, a, c + 1, c);
+    }
+  const sheet = new BufferGeometry();
+  sheet.setAttribute(
+    'position',
+    new BufferAttribute(new Float32Array(positions), 3),
+  );
+  sheet.setAttribute('uv', new BufferAttribute(new Float32Array(uvs), 2));
+  sheet.setIndex(index);
+  sheet.computeVertexNormals();
+  return sheet;
+}
+
+// The long curly lashes: from each closed lid, LASHES of them hang down and
+// curl up and outward at their tips, longer toward the eye's outer corner.
+const LASHES = 7;
+function lashTubes(place: Place, spread: number): BufferGeometry {
+  const tubes: BufferGeometry[] = [];
+  for (const side of [-1, 1] as const)
+    for (let k = 0; k < LASHES; k++) {
+      const t = -0.85 + (1.7 * k) / (LASHES - 1);
+      const root = lidAt(side, t);
+      const outer = (side * t + 1) / 2;
+      const length = 0.2 + 0.16 * outer;
+      const lean = (0.03 + 0.14 * outer) * Math.sign(t * side || 1) * side;
+      const points = [
+        place(root.x, root.y, PUFF * 0.95),
+        place(root.x + lean * 0.4, root.y - length * 0.5, PUFF + 0.08),
+        place(root.x + lean * 0.9, root.y - length * 0.9, PUFF + 0.2),
+        place(root.x + lean * 1.4, root.y - length * 0.7, PUFF + 0.32),
+      ];
+      tubes.push(
+        new TubeGeometry(new CatmullRomCurve3(points), 20, spread * 0.02, 6),
       );
-      const up = (y - eyes.y) / spread;
-      const lift =
-        STRAP_LIFT + (PAD_LIFT - STRAP_LIFT) * share + PUFF * puff(angle, up);
-      const r = reach[col]![row]! + lift * spread;
-      at.set(key, out.length / 3);
-      out.push(
+    }
+  return mergeGeometries(tubes);
+}
+
+// The strap: a thin band round the back of the head between STRAP's
+// heights, from angle `from` round to `to`.
+function strapBand(profile: Profile, from: number, to: number) {
+  const { middle, spread, eyes } = profile;
+  const STEPS = 96;
+  const positions: number[] = [];
+  for (let k = 0; k <= STEPS; k++) {
+    const angle = from + ((to - from) * k) / STEPS;
+    const r =
+      profile.radiusAt(angle, STRAP.low, STRAP.high) + STRAP.lift * spread;
+    for (const up of [STRAP.low, STRAP.high])
+      positions.push(
         middle.x + r * Math.sin(angle),
-        y,
+        eyes.y + up * spread,
         middle.z + r * Math.cos(angle),
       );
-      uv.push(0.5 + angle / (2 * PAD_ANGLE), (y - low) / (high - low));
-    }
-    return at.get(key)!;
+  }
+  const index: number[] = [];
+  for (let k = 0; k < STEPS; k++) {
+    const a = k * 2;
+    index.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
+  }
+  const band = new BufferGeometry();
+  band.setAttribute(
+    'position',
+    new BufferAttribute(new Float32Array(positions), 3),
+  );
+  band.setIndex(index);
+  band.computeVertexNormals();
+  return band;
+}
+
+// `reach` (by `across`) sampled across the pad and its ends, smoothed with
+// its neighbours each side (SMOOTH of them) and read back by angle.
+const SAMPLES = 160;
+const SMOOTH = 6;
+function smoothAcross(
+  reach: (_across: number) => number,
+  bounds: Bounds,
+  acrossOf: (_angle: number) => number,
+) {
+  const from = bounds.left - 0.3;
+  const to = bounds.right + 0.3;
+  const raw = Array.from({ length: SAMPLES + 1 }, (_, k) =>
+    reach(from + ((to - from) * k) / SAMPLES),
+  );
+  const even = raw.map((_, k) => {
+    const near = raw.slice(Math.max(0, k - SMOOTH), k + SMOOTH + 1);
+    return Math.max(raw[k]!, near.reduce((a, b) => a + b, 0) / near.length);
+  });
+  return (angle: number) => {
+    const at = ((acrossOf(angle) - from) / (to - from)) * SAMPLES;
+    const k = Math.min(SAMPLES - 1, Math.max(0, Math.floor(at)));
+    const t = Math.min(1, Math.max(0, at - k));
+    return even[k]! * (1 - t) + even[k + 1]! * t;
   };
-  for (let col = 0; col < AROUND; col++)
-    for (let row = 0; row < DOWN; row++) {
-      const corners = [
-        [col, row],
-        [around(col, 1), row],
-        [around(col, 1), row + 1],
-        [col, row + 1],
-      ] as const;
-      if (corners.some(([c, r]) => !reach[c]![r])) continue;
-      const [a, b, c, d] = corners.map(([c, r]) => vertex(c, r));
-      // Facing out, away from the head: round the quad anticlockwise as
-      // seen from outside.
-      (padShare(col) > 0.5 ? pad : strap).push(a!, b!, c!, a!, c!, d!);
-    }
-  const mask = new BufferGeometry();
-  mask.setAttribute('position', new BufferAttribute(new Float32Array(out), 3));
-  mask.setAttribute('uv', new BufferAttribute(new Float32Array(uv), 2));
-  mask.setIndex([...pad, ...strap]);
-  mask.addGroup(0, pad.length, 0);
-  mask.addGroup(pad.length, strap.length, 1);
-  mask.computeVertexNormals();
-  mask.userData.middle = new Vector3(middle.x, eyes.y, middle.z);
-  return mask;
+}
+
+// The mask for a head whose shape is `profile`.
+export function sleepMask(profile: Profile): Mask {
+  const outline = maskOutline();
+  const bounds = outlineBounds(outline);
+  const { middle, spread, eyes } = profile;
+  const front = profile.radiusAt(0, -0.1, 0.4);
+  // At each angle, the head's furthest out over the pad's height there: the
+  // pad is stiff up and down, so it rests on the brow and the cheeks and
+  // spans the eyes; and smooth round, as padding is (read step by step it
+  // changed in steps, which shaded the pad in stripes).
+  const reachAt = (across: number) => {
+    const clamped = Math.min(bounds.right, Math.max(bounds.left, across));
+    const [low, high] = spanAt(outline, clamped);
+    const angle = (across * spread) / front;
+    return Number.isFinite(low)
+      ? profile.radiusAt(angle, low, high)
+      : profile.radiusAt(angle, bounds.low, bounds.high);
+  };
+  const base = smoothAcross(
+    reachAt,
+    bounds,
+    (angle) => (angle * front) / spread,
+  );
+  // A point of the mask `across` round the face, `up`, and `out` off it.
+  const place: Place = (across, up, out) => {
+    const angle = (across * spread) / front;
+    const r = base(angle) + (LIFT + out) * spread;
+    return new Vector3(
+      middle.x + r * Math.sin(angle),
+      eyes.y + up * spread,
+      middle.z + r * Math.cos(angle),
+    );
+  };
+  const ends = [bounds.left, bounds.right].map(
+    (across) => (across * spread) / front,
+  ) as [number, number];
+  return {
+    pad: padSheet(outline, bounds, place),
+    lashes: lashTubes(place, spread),
+    strap: strapBand(profile, ends[1] - 0.05, ends[0] + 2 * Math.PI + 0.05),
+    bounds,
+  };
 }
