@@ -284,6 +284,8 @@ test.describe('on a phone', () => {
       await turn(page);
       await expect(title(page, k)).toBeVisible({ timeout: 20_000 });
       await page.waitForTimeout(1500);
+      // Nor does the scene name any prop as drawn.
+      await expect(page.locator('html')).toHaveAttribute('data-story-prop', '');
     }
     await page.waitForTimeout(3000);
     expect(fetched).toEqual([]);

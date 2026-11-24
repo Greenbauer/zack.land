@@ -13,6 +13,7 @@ import {
 import { fitGlasses } from './fitGlasses';
 import { loadGlasses } from './glassesGeometry';
 import { headMood } from './headMood';
+import { headBesideCard } from './headPlace';
 import { turnHead } from './headTurn';
 import { phoneShown } from './PhoneCall';
 import { centre } from './skull';
@@ -31,7 +32,8 @@ import WireHead from './WireHead';
 // (TexasTechProps.tsx), and a phone that takes the head's place (PhoneCall.tsx, drawn beside the head by MyHead.tsx, which
 // this tells how far in it is).
 // Each eases in as its chapter arrives (propTarget, storyProp.ts) and out
-// as it goes; with reduced motion none shows. The sunglasses, the cap and
+// as it goes; with reduced motion, or with the head off the screen for a
+// card (a phone), none shows. The sunglasses, the cap and
 // the wireframe turn with the head (turnHead), as its eyes do. What it
 // shows is named on the page as data-story-prop on <html> (empty for none),
 // each prop once it is well in.
@@ -124,9 +126,12 @@ export default function StoryProps({
 
   useFrame(({ scene }, delta) => {
     const cue = headMood.cue;
-    const still = isStill();
+    // None shows with reduced motion, nor while the head is off the screen
+    // for a card (as on a phone), where only the props drawn in code, not
+    // fetched, could show: the tortillas flew past with no head to hit.
+    const off = isStill() || !(headBesideCard.x >= 0);
     for (const prop of Object.keys(amount.current) as StoryProp[]) {
-      const target = still ? 0 : propTarget(cue, prop, amount.current);
+      const target = off ? 0 : propTarget(cue, prop, amount.current);
       const was = amount.current[prop];
       const rate = target > was ? IN_RATE : OUT_RATE;
       amount.current[prop] =
