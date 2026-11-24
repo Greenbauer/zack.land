@@ -95,6 +95,15 @@ export class CardTints {
     if (card.dataset.sky !== side) card.dataset.sky = side;
   }
 
+  // Puts a card with none of the sky around it on screen on the settled
+  // side: one taller and wider than the window, as Work with me's is on a
+  // phone once scrolled into, has no point around it to read (skyPoints),
+  // and would keep whichever side it last had, or none. Before the side is
+  // settled it is left as it is.
+  aimUnseen(card: HTMLElement) {
+    if (skyState.settled) this.aim(card, [0, 0, 0]);
+  }
+
   // Puts a card new to the page straight on the settled side, so it arrives
   // on it rather than turning over once it is in. (The sky around it does not
   // count once the side is settled.) Its colours' fade is skipped: the site's

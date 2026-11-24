@@ -64,6 +64,19 @@ describe('glass tints', () => {
     expect(tints.shown(element, 0).light).toBe(1);
   });
 
+  it('put a card with no sky around it on screen on the settled side, and leave it before then', () => {
+    const tints = new CardTints();
+    const element = card();
+    tints.aimUnseen(element);
+    expect(element.dataset.sky).toBeUndefined();
+    Object.assign(skyState, { settled: true, light: true });
+    tints.aimUnseen(element);
+    expect(element.dataset.sky).toBe('light');
+    Object.assign(skyState, { settled: true, light: false });
+    tints.aimUnseen(element);
+    expect(element.dataset.sky).toBe('dark');
+  });
+
   it('skip the fade of a new card’s colours, and leave its other motion', () => {
     Object.assign(skyState, { settled: true, light: true });
     const finished: string[] = [];

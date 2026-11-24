@@ -15,22 +15,41 @@ import SocialLinks from './SocialLinks';
 // badge is hidden (see styles/globals.css .grecaptcha-badge).
 const recaptchaEnabled = !!process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 
-function DefaultText() {
+// The line and its link, in the sky's accent: one for every page but two.
+// It speaks to both kinds of visitor, someone hiring a developer and an owner
+// with a task that repeats; the Work with me page has its own (below), and
+// the contact page its own too.
+function FooterLine({ text, href, label }: FooterLineProps) {
   return (
     <div className="text-h6">
-      <SkyWords text="I can make almost anything and would love to help develop your idea." />{' '}
+      <SkyWords text={text} />{' '}
       <SkyWord>
         <Link
           className="whitespace-nowrap text-[color:var(--sky-accent)] underline decoration-[color:var(--sky-underline)] underline-offset-4 hover:decoration-[color:var(--sky-accent)]"
-          href="/contact"
+          href={href}
         >
-          Contact me
+          {label}
         </Link>
         .
       </SkyWord>
     </div>
   );
 }
+
+type FooterLineProps = { text: string; href: string; label: string };
+
+const DEFAULT_LINE: FooterLineProps = {
+  text: 'Hiring a developer, or have a task that repeats?',
+  href: '/contact',
+  label: 'Get in touch',
+};
+
+// On Work with me the link jumps to the page's own form (#ask).
+const WORK_WITH_ME_LINE: FooterLineProps = {
+  text: 'Have a task your team does over and over?',
+  href: '#ask',
+  label: 'Tell me about it',
+};
 
 function ContactPageText() {
   // Wrapped in a single block so the disclosure stacks UNDER the heading and
@@ -145,7 +164,15 @@ export default function Footer() {
           className={`flex-none empty:hidden ${ARROW[phase]}`}
         />
         <div className={`max-md:flex-1 ${EXTRA[phase]}`}>
-          {pathname === '/contact' ? <ContactPageText /> : <DefaultText />}
+          {pathname === '/contact' ? (
+            <ContactPageText />
+          ) : (
+            <FooterLine
+              {...(pathname === '/work-with-me'
+                ? WORK_WITH_ME_LINE
+                : DEFAULT_LINE)}
+            />
+          )}
         </div>
       </div>
     </footer>

@@ -67,7 +67,7 @@ The header's Portfolio dropdown and the two portfolio pages whose content lives 
 - every tile of a turn narrows onto one line through the middle of the tiles, so what goes and what comes share a streak, interleaved in fine lanes along it, and read as one liquid;
 - with nothing to mix with, a group streams by itself;
 - each tile shows again the moment it comes to rest;
-- a video with no frame loaded yet melts as its poster, its first frame (the 404 page's video; on a slow connection, or where a browser loads no video until it plays, it otherwise waited unseen and then just showed), and any picture not loaded within 3 seconds just shows;
+- a video with no frame loaded yet melts as its poster (the 404 page's video, whose poster is its first frame, and the Work with me page's, whose poster is its last; on a slow connection, or where a browser loads no video until it plays, it otherwise waited unseen and then just showed), and any picture not loaded within 3 seconds just shows;
 - a tile melting is drawn at the place it rests, on a canvas that hides as soon as nothing is melting, so it only ever moves sideways, never up or down with the page, and a turn back reverses it from wherever it has got to (`components/MediaMelt.tsx`, `components/mediaMelter.ts`, the turn announced by `announceTurn` in `components/PageScroller/pageGlide.ts`);
 - with no real GPU it slides in from wholly off the window's right side instead (0.9 seconds) and slides back off (0.6 seconds), which also moves with the page, and with reduced motion it only fades;
 - at rest a video's tile lies with the others, under the glass of the card below them;
