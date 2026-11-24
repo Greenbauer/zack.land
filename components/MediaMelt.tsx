@@ -23,7 +23,8 @@ import {
 import { Turn, TURN_EVENT } from './PageScroller/pageGlide';
 import { isStill } from './viewport';
 
-// Every picture on the site, a post's tiles and the 404 page's video, melts in
+// Every picture on the site, a post's tiles and the 404 and Work with me
+// pages' videos, melts in
 // and out of the window's right side (mediaMelter.ts) on one canvas over the
 // page, behind the cards. While a
 // tile melts it is drawn here, at the place it rests, so it never moves with

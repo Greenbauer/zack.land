@@ -8,6 +8,7 @@ Each file has four sections. **Surfaces** lists the pages and route handlers the
 |---|---|
 | [Home and the site frame](home.md) | `/` (and the header, footer, background and 404 on every page) |
 | [Portfolio](portfolio.md) | `/portfolio`, `/portfolio/web-apps`, `/portfolio/miscellaneous` |
+| [Work with me](work-with-me.md) | `/work-with-me` |
 | [Contact form](contact.md) | `/contact`, `/api/email` |
 
 The site has no sign-in and no roles: every page is public, so Verify names no role. It has no seed data either: the portfolio content is in the repository, and the contact form needs the SMTP variables in `.env.example`.

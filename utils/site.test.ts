@@ -27,11 +27,12 @@ describe('the structured data', () => {
 describe('the sitemap', () => {
   const entries = sitemap();
 
-  it('lists the four pages and nothing Google ignores', () => {
+  it('lists the five pages and nothing Google ignores', () => {
     expect(entries.map(({ url }) => url)).toEqual([
       SITE_URL,
       `${SITE_URL}/portfolio/web-apps`,
       `${SITE_URL}/portfolio/miscellaneous`,
+      `${SITE_URL}/work-with-me`,
       `${SITE_URL}/contact`,
     ]);
     for (const entry of entries) {

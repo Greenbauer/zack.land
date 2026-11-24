@@ -91,8 +91,44 @@ describe('POST /api/email', () => {
     expect(replyTo).toEqual({ name: '<b>Ada</b>', address: 'ada@example.com' });
   });
 
+  it('mails a build request with no name, labelled as one', async () => {
+    const res = await post({
+      kind: 'build',
+      email: valid.email,
+      message: 'Review our <b>PRs</b>',
+    });
+
+    expect(res.status).toBe(200);
+    const { subject, html, from, replyTo } = sendMail.mock.calls[0]![0];
+    expect(subject).toBe('Build Request - zack.land');
+    expect(html).toContain('What their team does over and over:');
+    expect(html).toContain('Review our &lt;b&gt;PRs&lt;/b&gt;');
+    expect(from).toEqual({
+      name: `zack.land --> ${valid.email}`,
+      address: 'from@example.com',
+    });
+    expect(replyTo).toEqual({ name: valid.email, address: valid.email });
+  });
+
+  it('keeps a contact message labelled as a message', async () => {
+    await post(valid);
+
+    const { subject, html } = sendMail.mock.calls[0]![0];
+    expect(subject).toBe('New Message - zack.land');
+    expect(html).toContain('Message:');
+  });
+
   it.each([
+    [
+      'a build request with a malformed email',
+      { kind: 'build', email: 'x', message: 'hi' },
+    ],
+    ['a build request with no message', { kind: 'build', email: valid.email }],
     ['a missing name', { email: valid.email, message: valid.message }],
+    [
+      'a missing name with a kind other than build',
+      { kind: 'other', email: valid.email, message: valid.message },
+    ],
     ['a blank name', { ...valid, name: '   ' }],
     ['a missing email', { name: valid.name, message: valid.message }],
     ['a malformed email', { ...valid, email: 'not-an-email' }],
