@@ -39,6 +39,7 @@ Roles: none; the page is public. Mail: the QAE container points the five SMTP va
 
 - `e2e/contact-form.e2e.ts::enables Submit once valid, without blurring the last field`
 - `e2e/contact-form.e2e.ts::shows a field error only after blur, not while typing`
+- `e2e/contact-form.e2e.ts::keeps the button readable on hover while it is focused`
 - `e2e/a11y-small.e2e.ts::names each field by its label, with its type and autofill`
 - `e2e/a11y-small.e2e.ts::ties an error to its field, and counts only spaces as empty`
 - `e2e/a11y-small.e2e.ts::says it is sending, then sent, keeping focus`
@@ -63,7 +64,7 @@ Roles: none; the page is public. Mail: the QAE container points the five SMTP va
 
 ## Gotchas
 
-- `.github/workflows/tests.yml` runs `npm test` (the `route.test.ts` and `recaptcha.test.ts` cases above) on every pull request and every push to `master`, and the two `e2e/contact-form.e2e.ts` cases against the built site in Chromium and WebKit (the checks `Moving views (1/4)` to `(4/4)`).
+- `.github/workflows/tests.yml` runs `npm test` (the `route.test.ts` and `recaptcha.test.ts` cases above) on every pull request and every push to `master`, and the three `e2e/contact-form.e2e.ts` cases against the built site in Chromium and WebKit (the checks `Moving views (1/4)` to `(4/4)`).
 - Off the live site reCAPTCHA is optional: with no `RECAPTCHA_SECRET_KEY` every submission is accepted, and with no `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` the form sends no token. On the live site (`VERCEL_ENV` is `production`) a missing secret refuses every submission with a 400, so the spam gate cannot turn off unnoticed; the log line names `not-configured`. The public key is inlined at build, so setting it needs a redeploy (README).
 - reCAPTCHA's script (about 350 KB) is not on the page as it opens: the form's first focus adds it (`loadRecaptcha` in `utils/recaptcha-client.ts`), and a submit waits for it, up to 10 seconds, then sends without a token (which the live site refuses). So the network tab shows no `recaptcha/api.js` until a field is clicked.
 - The browser counts a field of only spaces as empty, as the route does (it trims before it checks), so such a name shows "required" and never reaches the route. The route re-checks every field the browser checks (required, the email pattern, 100 characters for Name and Email, 1000 for Message) from the one set of rules in `utils/contact-fields.ts`; change a limit there, not in either caller. A value the browser lets through but the route refuses shows as "An error has occurred".
