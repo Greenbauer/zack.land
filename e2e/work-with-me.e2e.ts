@@ -297,16 +297,94 @@ test('with reduced motion the video waits for its button', async ({
 test.describe('on a 1440x900 laptop', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  test("the video is as big as the 404 page's, and shows whole without scrolling", async ({
+  test("the video is as big as the 404 page's, and shows whole above the footer's fade", async ({
     page,
   }) => {
     await opened(page, '/work-with-me');
     const video = page.locator('article figure');
     await expect(video).toBeInViewport({ ratio: 1 });
+    // The footer's fade starts --page-bottom above the window's bottom.
+    expect(
+      await video.evaluate((figure) => {
+        const probe = document.createElement('div');
+        probe.style.height = 'var(--page-bottom)';
+        figure.parentElement!.append(probe);
+        const fade = innerHeight - probe.offsetHeight;
+        probe.remove();
+        return fade - figure.getBoundingClientRect().bottom;
+      }),
+    ).toBeGreaterThanOrEqual(0);
     const width = (await video.boundingBox())!.width;
     await opened(page, '/no-such-page');
     const notFound = (await page.locator('.collage').boundingBox())!.width;
     expect(Math.round(width)).toBe(Math.round(notFound));
     expect(width).toBeGreaterThan(700);
   });
+});
+
+test('the price stands out from its heading, a line starts each part, and no link splits over two lines', async ({
+  page,
+}) => {
+  await opened(page, '/work-with-me');
+  const size = (text: string) =>
+    page
+      .getByText(text, { exact: true })
+      .evaluate((e) => parseFloat(getComputedStyle(e).fontSize));
+  const heading = await size('Price, all in');
+  expect(await size('$3,500')).toBeGreaterThan(heading * 2);
+  expect(await size('$500')).toBeGreaterThan(heading * 2);
+  // Task names are smaller than the headings and not in capitals.
+  const task = page.getByRole('heading', { name: 'Same-day quotes' });
+  expect(await size('Same-day quotes')).toBeLessThan(heading);
+  await expect(task).toHaveCSS('text-transform', 'none');
+  const parts = page.locator('article > div:has(> h3)');
+  await expect(parts).toHaveCount(6);
+  for (const part of await parts.all())
+    await expect(part).toHaveCSS('border-top-width', '1px');
+  for (const width of [1440, 1280, 768, 375, 320]) {
+    await page.setViewportSize({ width, height: 800 });
+    for (const name of ['See my work', 'Vibe Verifier on GitHub'])
+      expect(
+        await page
+          .getByRole('link', { name })
+          .evaluate((a) => a.getClientRects().length),
+        `${name} at ${width}px`,
+      ).toBe(1);
+  }
+});
+
+test("the draft button looks and sweeps on hover as the site's buttons do, and the question is a text box", async ({
+  page,
+}) => {
+  await opened(page, '/work-with-me');
+  const look = (button: ReturnType<typeof page.locator>) =>
+    button.evaluate((e) => {
+      const { backgroundImage, backgroundSize, padding, borderRadius } =
+        getComputedStyle(e);
+      return { backgroundImage, backgroundSize, padding, borderRadius };
+    });
+  const draft = page.getByRole('link', { name: 'Get a free draft' });
+  expect(await look(draft)).toEqual(
+    await look(page.getByRole('button', { name: 'Send' })),
+  );
+  const state = () =>
+    draft.evaluate((e) => {
+      const { backgroundPositionX, color } = getComputedStyle(e);
+      return { backgroundPositionX, color };
+    });
+  const rest = await state();
+  await draft.hover();
+  await expect
+    .poll(async () => {
+      const now = await state();
+      return (
+        now.color !== rest.color &&
+        /^(0px|0%|100%)$/.test(now.backgroundPositionX) &&
+        now.backgroundPositionX !== rest.backgroundPositionX
+      );
+    })
+    .toBe(true);
+  await expect(
+    page.getByLabel('What does your team do over and over?'),
+  ).toHaveJSProperty('tagName', 'TEXTAREA');
 });

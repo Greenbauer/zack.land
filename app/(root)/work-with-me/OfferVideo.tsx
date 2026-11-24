@@ -21,9 +21,8 @@ type State = 'waiting' | 'playing' | 'paused' | 'ended';
 // With reduced motion it waits for the button, showing its last frame (its
 // poster), which says the offer in two lines. Sized as the 404 page's video
 // is (components/NotFound/NotFoundVideo.tsx): as wide as the card, or
-// narrower where the window's height is the limit. The headline above it is
-// taller than the 404's title, so on a laptop its bottom edge reaches a little
-// way into the top of the footer's fade.
+// narrower where the window's height is the limit. Only the headline is above
+// it, so the whole of it shows clear of the footer's fade on a laptop.
 export default function OfferVideo() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [state, setState] = useState<State>('waiting');
