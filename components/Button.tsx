@@ -8,8 +8,10 @@ import Spinner from './Spinner';
 // the glass.
 const BUTTON =
   'bg-gradient-button max-w-fit rounded-md bg-[length:500%_100%] bg-left px-6 py-2 font-sans text-lg font-normal uppercase tracking-wider text-head-dark [[data-sky=light]_&]:bg-right [[data-sky=light]_&]:text-head-light';
+// Only hover changes its colours, so its text reads on the end of the gradient
+// showing while it has focus too (hovered again after a click that keeps it).
 const ENABLED =
-  'focus-within:text-head-light hover:bg-right hover:text-head-light focus:text-head-dark active:text-head-light [[data-sky=light]_&]:hover:bg-left [[data-sky=light]_&]:hover:text-head-dark [[data-sky=light]_&]:focus:text-head-light [[data-sky=light]_&]:active:text-head-dark';
+  'hover:bg-right hover:text-head-light [[data-sky=light]_&]:hover:bg-left [[data-sky=light]_&]:hover:text-head-dark';
 // The button as it rests, only see-through: no grey.
 const DISABLED = 'cursor-not-allowed opacity-40';
 const SWEEP = {
