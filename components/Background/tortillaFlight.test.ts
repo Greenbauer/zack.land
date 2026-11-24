@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  FACE,
   FLIGHTS,
-  HITS,
+  HIT_SIDE,
   LANDS,
   LETS_GO,
   OFF_SCREEN,
@@ -25,26 +24,27 @@ describe('the tortillas thrown for Texas Tech', () => {
     }
   });
 
-  it('throws some at the face: in from off screen, splatted on it, then dropped', () => {
+  it('throws one now and then at the side of the face: in from off screen, splatted on the cheek, then dropped', () => {
     const hits = FLIGHTS.filter((f) => f.hits);
-    expect(hits).toHaveLength(HITS);
-    for (const flight of hits) {
-      const start = tortillaAt(flight, 0);
-      expect(Math.abs(start.x)).toBe(OFF_SCREEN);
-      expect(start.drape).toBe(0);
-      // Lying wholly on the face while it clings, sliding down it.
-      const early = tortillaAt(flight, LANDS + 0.05);
-      const late = tortillaAt(flight, LETS_GO - 0.01);
-      expect(early.drape).toBe(1);
-      expect(late.drape).toBe(1);
-      expect(early.x).toBe(0);
-      expect(late.y).toBeLessThan(early.y);
-      expect(early.y).toBeLessThanOrEqual(FACE.y);
-      // Peeled off and gone well below the head by the end of its loop.
-      const end = tortillaAt(flight, 1);
-      expect(end.drape).toBe(0);
-      expect(end.y).toBeLessThan(-250);
-    }
+    expect(hits).toHaveLength(1);
+    const [flight] = hits as [(typeof FLIGHTS)[number]];
+    // Once a loop of several seconds, its first hit a few seconds in.
+    expect(flight.seconds).toBeGreaterThanOrEqual(6);
+    const at = (t: number) =>
+      tortillaAt(flight, (((t / flight.seconds + flight.phase) % 1) + 1) % 1);
+    expect(at(0).drape).toBe(0);
+    expect(at(3.5).drape).toBe(1);
+    // In from off the screen's side, not from the front.
+    const start = tortillaAt(flight, 0.06);
+    expect(Math.abs(start.x)).toBeGreaterThan(OFF_SCREEN * 0.9);
+    expect(Math.sign(start.x)).toBe(HIT_SIDE);
+    // Lying on the cheek while it clings, sliding down it.
+    const early = tortillaAt(flight, LANDS + 0.05);
+    const late = tortillaAt(flight, LETS_GO - 0.01);
+    expect(early.drape).toBe(1);
+    expect(late.up).toBeLessThan(early.up);
+    // Peeled off and gone well below the head.
+    expect(tortillaAt(flight, 0.85).y).toBeLessThan(-250);
   });
 
   it('is as big as a real tortilla: wider than the face', () => {

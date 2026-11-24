@@ -1,55 +1,71 @@
-// How a tortilla thrown at the face (tortillaFlight.ts) lies on it: soft and
-// limp, it drapes over the face's own shape, wraps back round the cheeks and
-// hangs down past the chin, as a real one does. Worked out once from the
-// head's skin as a surface over the face (`drapeSurface`), then laid on each
-// frame (`drapeOnto`), in the head's own units.
+// How a tortilla thrown at the head (tortillaFlight.ts) lies on it: soft and
+// limp, it drapes over the head's own shape where it hits, wraps round it and
+// hangs down where nothing holds it up, as a real one does. Worked out once
+// from the head's skin as a surface seen from the way it was thrown
+// (`drapeSurface`), then laid on each frame (`drapeOnto`), in the head's own
+// units.
 
-// The grid the surface is worked out on, and its reach: across and up the
-// head's front, in the head's units, at CELL apart.
+// The way a tortilla meets the head, as a frame: `across` and `up` along the
+// surface it lands on, `out` toward where it came from. `local` turns a point
+// of the head into that frame, `world` back.
+export type Frame = {
+  local: (_x: number, _y: number, _z: number) => [number, number, number];
+  world: (
+    _across: number,
+    _up: number,
+    _out: number,
+  ) => [number, number, number];
+};
+
+// The side of the head on `side` (1 at +x, -1 at -x), its middle `middle`
+// along z: thrown at it from that side.
+export const sideOf = (side: 1 | -1, middle: number): Frame => ({
+  local: (x, y, z) => [(z - middle) * side, y, x * side],
+  world: (across, up, out) => [out * side, up, middle + across * side],
+});
+
+// The grid the surface is worked out on, and its reach, in the frame's
+// units, at CELL apart.
 const CELL = 4;
 const REACH = { left: -110, right: 110, low: -170, high: 90 };
 const COLS = Math.round((REACH.right - REACH.left) / CELL) + 1;
 const ROWS = Math.round((REACH.high - REACH.low) / CELL) + 1;
-// How steeply the tortilla falls away where nothing holds it up: below the
-// chin it hangs nearly straight down (HANG back for each unit down), and past
-// the side of the head it folds back round it (FOLD back for each unit out).
+// How steeply the tortilla falls away where nothing holds it up: below what
+// holds it it hangs nearly straight down (HANG back for each unit down), and
+// past the head's edge it folds back round it (FOLD back for each unit out).
 const HANG = 0.3;
 const FOLD = 1;
 // How far off the skin it lies.
 export const DRAPE_GAP = 1.5;
 
-export type Surface = (_x: number, _y: number) => number;
+export type Surface = (_across: number, _up: number) => number;
 
-const cellOf = (x: number, y: number) => ({
-  col: Math.round((x - REACH.left) / CELL),
-  row: Math.round((y - REACH.low) / CELL),
+const cellOf = (across: number, up: number) => ({
+  col: Math.round((across - REACH.left) / CELL),
+  row: Math.round((up - REACH.low) / CELL),
 });
 
-// Raises the cell at (col, row), if it is on the grid, to at least `z`.
-function raise(grid: Float32Array, col: number, row: number, z: number) {
+// Raises the cell at (col, row), if it is on the grid, to at least `out`.
+function raise(grid: Float32Array, col: number, row: number, out: number) {
   if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return;
-  grid[row * COLS + col] = Math.max(grid[row * COLS + col]!, z);
+  grid[row * COLS + col] = Math.max(grid[row * COLS + col]!, out);
 }
 
-// The skin's frontmost depth in each cell and the cells round it, so the
+const AROUND = [-1, 0, 1].flatMap((c) => [-1, 0, 1].map((r) => [c, r]));
+
+// The skin's outermost point in each cell and the cells round it, so the
 // tortilla never dips into the skin between cells (-Infinity where there is
 // no skin).
-function frontDepth(positions: ArrayLike<number>): Float32Array {
+function outermost(positions: ArrayLike<number>, frame: Frame) {
   const grid = new Float32Array(COLS * ROWS).fill(-Infinity);
   for (let k = 0; k < positions.length; k += 3) {
-    const { col, row } = cellOf(positions[k]!, positions[k + 1]!);
-    for (const [c, r] of [
-      [0, 0],
-      [-1, 0],
-      [1, 0],
-      [0, -1],
-      [0, 1],
-      [-1, -1],
-      [1, -1],
-      [-1, 1],
-      [1, 1],
-    ])
-      raise(grid, col + c!, row + r!, positions[k + 2]!);
+    const [across, up, out] = frame.local(
+      positions[k]!,
+      positions[k + 1]!,
+      positions[k + 2]!,
+    );
+    const { col, row } = cellOf(across, up);
+    for (const [c, r] of AROUND) raise(grid, col + c!, row + r!, out);
   }
   return grid;
 }
@@ -78,17 +94,19 @@ function fold(grid: Float32Array) {
   }
 }
 
-// The surface a tortilla drapes onto, over the face, for a skin of
-// `positions` (x, y, z in turn; the face looks along +z): at each point, the
-// skin's frontmost depth there, held up from above where the skin falls away
-// (below the chin) and from the middle where it ends (past the cheeks);
-// -Infinity where nothing holds it (above the head).
-export function drapeSurface(positions: ArrayLike<number>): Surface {
-  const grid = frontDepth(positions);
+// The surface a tortilla drapes onto, seen through `frame`, for a skin of
+// `positions` (x, y, z in turn): at each point, the skin's outermost there,
+// held up from above where the skin falls away and from the middle where it
+// ends; -Infinity where nothing holds it.
+export function drapeSurface(
+  positions: ArrayLike<number>,
+  frame: Frame,
+): Surface {
+  const grid = outermost(positions, frame);
   hang(grid);
   fold(grid);
-  return (x, y) => {
-    const { col, row } = cellOf(x, y);
+  return (across, up) => {
+    const { col, row } = cellOf(across, up);
     const c = Math.min(COLS - 1, Math.max(0, col));
     const r = Math.min(ROWS - 1, Math.max(0, row));
     return grid[r * COLS + c]!;
@@ -96,24 +114,25 @@ export function drapeSurface(positions: ArrayLike<number>): Surface {
 }
 
 // The tortilla's points (`rest`: a flat round about its middle, x, y, z in
-// turn) laid onto `surface` with their middle at `centre`, written into
-// `out`; `amount` 0 leaves it flat at `flatZ`, 1 lies it wholly on the
+// turn, x across and y up its face) laid onto `surface` with their middle at
+// `centre` (across, up), written into `out` as points of the head through
+// `frame`; `amount` 0 leaves it flat at `flat` out, 1 lies it wholly on the
 // surface (or flat, where nothing holds it).
 export function drapeOnto(
   rest: ArrayLike<number>,
-  centre: { x: number; y: number },
+  centre: { across: number; up: number },
   surface: Surface,
+  frame: Frame,
   amount: number,
-  flatZ: number,
+  flat: number,
   out: Float32Array,
 ): void {
   for (let k = 0; k < rest.length; k += 3) {
-    const x = centre.x + rest[k]!;
-    const y = centre.y + rest[k + 1]!;
-    const held = surface(x, y);
-    const lying = Number.isFinite(held) ? held + DRAPE_GAP : flatZ;
-    out[k] = x;
-    out[k + 1] = y;
-    out[k + 2] = flatZ + (lying - flatZ) * amount;
+    const across = centre.across + rest[k]!;
+    const up = centre.up + rest[k + 1]!;
+    const held = surface(across, up);
+    const lying = Number.isFinite(held) ? held + DRAPE_GAP : flat;
+    const point = frame.world(across, up, flat + (lying - flat) * amount);
+    out.set(point, k);
   }
 }

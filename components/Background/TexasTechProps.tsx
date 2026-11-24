@@ -16,14 +16,20 @@ import { Cap, CAP_PARTS, loadCap } from './capGeometry';
 import { headMood } from './headMood';
 import { turnHead } from './headTurn';
 import type { StoryProp } from './storyCue';
-import { drapeOnto, drapeSurface } from './tortillaDrape';
-import { FLIGHTS, TORTILLA_RADIUS, tortillaAt } from './tortillaFlight';
+import { drapeOnto, drapeSurface, sideOf } from './tortillaDrape';
+import {
+  FLIGHTS,
+  HIT,
+  HIT_SIDE,
+  TORTILLA_RADIUS,
+  tortillaAt,
+} from './tortillaFlight';
 
 // The home page's Texas Tech chapter, on the head itself: a graduation cap
 // (capGeometry.ts) that drops onto it and turns with it, as the sunglasses
 // do, and
-// tortillas thrown clear across the screen, a couple hitting its face, as
-// they flew at every kickoff (tortillaFlight.ts). `amounts` is how far
+// tortillas thrown clear across the screen behind it, one now and then
+// hitting it on the cheek, as they flew at every kickoff (tortillaFlight.ts).
 // in each prop is (StoryProps.tsx).
 
 // A flour tortilla's face: pale and floury, with scattered toasted blisters
@@ -189,9 +195,10 @@ export default function TexasTechProps({
   );
   // The surface over the face a tortilla drapes onto, and each thrown at
   // the face's own copy of the shape, which bends to lie on it.
+  const frame = useMemo(() => sideOf(HIT_SIDE, HIT.middle), []);
   const surface = useMemo(
-    () => drapeSurface(skin.getAttribute('position').array),
-    [skin],
+    () => drapeSurface(skin.getAttribute('position').array, frame),
+    [skin, frame],
   );
   const draping = useMemo(
     () =>
@@ -239,10 +246,11 @@ export default function TexasTechProps({
           child.position.set(0, 0, 0);
           drapeOnto(
             tortilla.shape.getAttribute('position').array,
-            at,
+            { across: 0, up: at.up },
             surface,
+            frame,
             at.drape,
-            at.z,
+            HIT.out,
             position.array as Float32Array,
           );
         } else {
