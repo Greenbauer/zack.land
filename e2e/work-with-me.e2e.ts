@@ -403,6 +403,13 @@ test("the draft button looks and sweeps on hover as the site's buttons do, and t
   expect(await look(draft)).toEqual(
     await look(page.getByRole('button', { name: 'Send' })),
   );
+  // Stop the 3D scene, and with it the sky turning: on a slow runner it
+  // could turn the card from a dark sky to a light one between reading the
+  // button at rest and hovering it, and the hovered look over a light sky is
+  // the resting look over a dark one. The sweep itself is CSS.
+  await page.evaluate(() => {
+    window.requestAnimationFrame = () => 0;
+  });
   const state = () =>
     draft.evaluate((e) => {
       const { backgroundPositionX, color } = getComputedStyle(e);
