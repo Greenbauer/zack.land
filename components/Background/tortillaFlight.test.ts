@@ -1,39 +1,59 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  HIT_PHASE,
-  HIT_SECONDS,
-  HIT_SIDE,
-  LANDS,
-  LETS_GO,
-  OFF_SCREEN,
+  AZIMUTHS,
+  flyerAt,
+  FLYERS,
+  THROW_SECONDS,
+  throwAt,
+  THROWS,
   TORTILLA_RADIUS,
-  tortillaAt,
 } from './tortillaFlight';
 
-describe('the tortilla thrown for Texas Tech', () => {
-  // Where it is `t` seconds into the chapter.
-  const at = (t: number) =>
-    tortillaAt((((t / HIT_SECONDS + HIT_PHASE) % 1) + 1) % 1);
-
-  it('hits only now and then: once a loop of several seconds, first a few seconds in', () => {
-    expect(HIT_SECONDS).toBeGreaterThanOrEqual(6);
-    expect(at(0).drape).toBe(0);
-    expect(at(3.5).drape).toBe(1);
+describe('the tortillas of Texas Tech', () => {
+  it('always has some crossing, each clear across the window behind the head', () => {
+    let some = 0;
+    for (let t = 0; t < 120; t += 0.5) {
+      const flying = Array.from({ length: FLYERS }, (_, k) => flyerAt(k, t));
+      if (flying.some(Boolean)) some++;
+      for (const at of flying)
+        if (at) expect(at.z).toBeLessThan(-TORTILLA_RADIUS * 2);
+    }
+    expect(some).toBe(240);
+    for (let k = 0; k < FLYERS; k++) {
+      const xs: number[] = [];
+      for (let t = 0; t < 30; t += 0.02) {
+        const at = flyerAt(k, t);
+        if (at) xs.push(at.x);
+      }
+      expect(Math.min(...xs)).toBeLessThan(-500);
+      expect(Math.max(...xs)).toBeGreaterThan(500);
+    }
   });
 
-  it('comes in from off the screen at the side, not the front', () => {
-    const start = tortillaAt(0.06);
-    expect(Math.abs(start.x)).toBeGreaterThan(OFF_SCREEN * 0.9);
-    expect(Math.sign(start.x)).toBe(HIT_SIDE);
+  it('throws none at the head at first, and then one only now and then', () => {
+    for (let t = 0; t < 5; t += 0.1) expect(throwAt(t)).toBeNull();
+    THROWS.slice(1).forEach((thrown, k) =>
+      expect(thrown.at - THROWS[k]!.at).toBeGreaterThan(THROW_SECONDS),
+    );
+    expect(throwAt(THROWS[0]!.at + 1)?.thrown).toBe(THROWS[0]);
   });
 
-  it('lies on the side of the head while it clings, sliding down, then drops away', () => {
-    const early = tortillaAt(LANDS + 0.05);
-    const late = tortillaAt(LETS_GO - 0.01);
-    expect(early.drape).toBe(1);
-    expect(late.up).toBeLessThan(early.up);
-    expect(tortillaAt(0.85).y).toBeLessThan(-250);
+  it('never throws the same way twice running, always at the sides', () => {
+    THROWS.slice(1).forEach((thrown, k) => {
+      const last = THROWS[k]!;
+      expect(thrown.azimuth).not.toBe(last.azimuth);
+      const sameSide = AZIMUTHS[thrown.azimuth]! * AZIMUTHS[last.azimuth]! > 0;
+      if (sameSide) expect(thrown.kind).not.toBe(last.kind);
+    });
+    for (const azimuth of AZIMUTHS)
+      expect(Math.abs(azimuth)).toBeGreaterThan(Math.PI / 4);
+    // All the ways it can go come up.
+    const soon = THROWS.slice(0, 12);
+    expect(new Set(soon.map((thrown) => thrown.kind)).size).toBe(2);
+    expect(new Set(soon.map((thrown) => thrown.azimuth)).size).toBeGreaterThan(
+      3,
+    );
   });
 
   it('is as big as a real tortilla: wider than the face', () => {

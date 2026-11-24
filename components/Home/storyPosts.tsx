@@ -112,15 +112,12 @@ export const GULP: Content = {
 };
 
 export const TODAY: Content = {
-  name: 'Leading AI Coding Work',
+  name: 'Leading AI Agents',
   description: (
     <p>
-      Today I lead AI agent work at a distribution company. I direct AI coding
-      agents, programs that write code, and I build the tests, reviews and
-      checks that keep their work honest. Agents are fast, but they&rsquo;re not
-      always right, so on the side I built Vibe Verifier, an open-source tool
-      that tests the code they write before a person reviews it. Trust, but
-      verify. Mostly verify.
+      Today I lead AI agent work at a distribution company. Agents write code
+      fast, but not always right, so on the side I built Vibe Verifier, an
+      open-source checker. Trust, but verify. Mostly verify.
     </p>
   ),
   technology: 'Claude Code, Codex, TypeScript, GitHub Actions, CI/CD, Evals',

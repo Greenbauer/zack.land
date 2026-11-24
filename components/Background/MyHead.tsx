@@ -6,6 +6,7 @@ import {
   Group,
   Material,
   Mesh,
+  PerspectiveCamera,
   Raycaster,
   Vector2,
   Vector3,
@@ -25,6 +26,7 @@ import { blinkAmount, startBlink, stepBlink } from './blink';
 import { easeRate, easeToward, shareOver } from './faceExpression';
 import { faceTargets } from './headFace';
 import { decodeHead, loadHead } from './headGeometry';
+import { knockAt } from './headKnock';
 import {
   gazeTarget,
   heading,
@@ -62,11 +64,13 @@ import { faceInView, idleWait, PAGE_TARGETS } from './pageWatch';
 import PhoneCall, { phoneShown } from './PhoneCall';
 import { SHOWN_EXPRESSIONS, SHOWN_SIDED } from './shownExpressions';
 import { withSides } from './sideMorphs';
+import { slideOff } from './slideOff';
 import { isStill } from './stillScene';
 import { cueLook } from './storyCue';
 import { phoneSwap } from './storyProp';
-import StoryProps, { wireShown } from './StoryProps';
+import StoryProps from './StoryProps';
 import { startWander, TIP, TURN, WANDER_TURN } from './wander';
+import { fadeSkin } from './WireHead';
 
 type MyHeadGeometry = { [key: string]: BufferGeometry };
 
@@ -92,6 +96,9 @@ const STILL_LOOK = { x: 0, y: 0 };
 // How quickly the sky follows the head while it looks around on its own: a
 // share each frame, so it trails behind the head's glances.
 const WANDER_SKY_SPEED = 0.01;
+
+// How far the shoulders reach either side of the head's middle, in its units.
+const SHOULDERS = 160;
 
 export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
   const myHeadRef = useRef<Group>(null);
@@ -288,7 +295,12 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
       Math.random,
       alone.current.wandering !== null,
     );
-    headTurn.value.set(head.x, head.y, ambient.current.tilt);
+    const knock = knockAt(performance.now() / 1000);
+    headTurn.value.set(
+      head.x,
+      head.y + knock.round,
+      ambient.current.tilt + knock.tilt,
+    );
   };
 
   // The face's expression of its own now and then (ambient.ts), unless the
@@ -360,20 +372,17 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
       }
     }
     rotateMyHead(clock.elapsedTime, delta);
-    // The last chapter's phone takes the head's place: the head shrinks
-    // away as it comes (PhoneCall.tsx).
-    const shrink = phoneSwap(phoneShown.value).head;
-    myHeadRef.current!.visible = shrink > 0.001;
-    myHeadRef.current!.scale.setScalar(Math.max(shrink, 0.001));
-    // This website's chapter shows the head as its wireframe alone: the skin
-    // fades away (still drawn, so it hides the lines behind it), and the
-    // mouth and the eyeballs with it, which showed bare inside the wireframe
-    // (StoryProps.tsx).
-    const skin = 1 - wireShown.value;
-    for (const mesh of [skinRef.current, liningRef.current])
-      (mesh!.material as Material).opacity = skin;
-    for (const mesh of [mouthRef, leftEyeRef, rightEyeRef])
-      mesh.current!.visible = skin > 0.5;
+    // The last chapter's phone takes the head's place: the head slides off
+    // the window's left side before it comes (PhoneCall.tsx).
+    const gone = phoneSwap(phoneShown.value).head;
+    myHeadRef.current!.visible = gone < 0.999;
+    myHeadRef.current!.position.x =
+      -gone * slideOff(camera as PerspectiveCamera, size.height, SHOULDERS);
+    fadeSkin(skinRef.current!, liningRef.current!, [
+      mouthRef.current!,
+      leftEyeRef.current!,
+      rightEyeRef.current!,
+    ]);
     // Where the head is looking, back in screen pixels, against where the
     // eyes are on screen.
     const spot = lookOnScreen(heading.target, {

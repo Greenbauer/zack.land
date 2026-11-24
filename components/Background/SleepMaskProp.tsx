@@ -17,7 +17,7 @@ import { snoreZ } from './snoreZ';
 import type { StoryProp } from './storyCue';
 
 // The smart bed's chapter, on the head itself (StoryProps.tsx): a sleep mask
-// that shrinks onto it as it shuts its eyes, and Zs floating up beside it.
+// that slides down onto it as it shuts its eyes, and Zs floating up beside it.
 // `amounts` is how far in each prop is.
 
 // The Zs floating up from the sleeping head: how many at once, and how
@@ -37,8 +37,7 @@ export default function SleepMaskProp({
   amounts: RefObject<Record<StoryProp, number>>;
 }) {
   // The smart bed's sleep mask (sleepMask.ts): its pad, lashes and strap,
-  // fitted to the head's own shape, its print (maskPrint.ts), the head's
-  // middle it is laid round, and the Zs that float up from the sleeper.
+  // fitted to the head's own shape, its satin (maskPrint.ts), and the Zs that float up from the sleeper.
   const mask = useMemo(() => {
     const l = centre(leftEye);
     const r = centre(rightEye);
@@ -54,7 +53,6 @@ export default function SleepMaskProp({
       pad: onSkull(pad),
       lashes: onSkull(lashes),
       strap: onSkull(strap),
-      middle: profile.middle,
       print: maskPrint(),
       z: snoreZ(spread * 0.42),
       // Where the Zs rise from: beside the head on the side away from the
@@ -69,15 +67,12 @@ export default function SleepMaskProp({
 
   useFrame(() => {
     const now = performance.now() / 1000;
-    // The sleep mask slides down onto the eyes from the forehead.
+    // It slides down onto the eyes from above the head, slowing as it lands,
+    // and back up as its chapter goes, as the sunglasses and the cap do.
     const sleeping = amounts.current.sleepmask;
     if (maskRef.current) {
       maskRef.current.visible = sleeping > 0.01;
-      // It shrinks onto the head from a little larger, about the head's
-      // middle, so no part of it passes through the face on the way.
-      const size = 1 + 0.35 * (1 - sleeping) ** 2;
-      maskRef.current.scale.setScalar(size);
-      maskRef.current.position.copy(mask.middle).multiplyScalar(1 - size);
+      maskRef.current.position.y = (1 - sleeping) ** 2 * mask.spread * 9;
     }
     // Once it is on, Zs float up from the sleeper, one after another, each
     // growing as it rises and fading away.

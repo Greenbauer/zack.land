@@ -26,8 +26,9 @@ export type StoryProp =
   'sunglasses' | 'sleepmask' | 'plane' | 'wireframe' | 'tortillas' | 'phone';
 
 // `since`: when the chapter's beats start (seconds, performance.now() /
-// 1000). `card`: the look target (headLook.ts units) that points at its
-// card. `prop`: what it brings into the scene, if anything.
+// 1000); its prop comes in at once. `card`: the look target (headLook.ts
+// units) that points at its card. `prop`: what it brings into the scene, if
+// anything.
 export type StoryCue = {
   beats: Beat[];
   since: number;

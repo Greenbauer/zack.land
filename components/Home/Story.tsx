@@ -8,7 +8,11 @@ import { lookOrigin } from '@/components/Background/headPlace';
 import type { StoryCue } from '@/components/Background/storyCue';
 import Button from '@/components/Button';
 import MediaMelt from '@/components/MediaMelt';
-import { requestGlide } from '@/components/PageScroller/pageGlide';
+import {
+  requestGlide,
+  Turn,
+  TURN_EVENT,
+} from '@/components/PageScroller/pageGlide';
 import ScrollArrows from '@/components/PageScroller/ScrollArrows';
 import SnapPager from '@/components/PageScroller/SnapPager';
 import Post from '@/components/Post';
@@ -35,6 +39,20 @@ const cardLook = (card: HTMLElement | null) =>
       )
     : { x: 0, y: 0 };
 
+// Gives the head `chapter`'s cue, unless it has it already (a turn brings it,
+// then its post arrives), and returns when its beats start.
+function bring(chapter: Chapter, card: HTMLElement | null): number {
+  const has = headMood.cue?.beats === chapter.beats ? headMood.cue : null;
+  const cue: StoryCue = {
+    beats: chapter.beats,
+    since: has?.since ?? performance.now() / 1000 + LEAD_SECONDS,
+    card: cardLook(card),
+    prop: chapter.prop,
+  };
+  headMood.cue = cue;
+  return cue.since;
+}
+
 // The home page: the name over the head, then Zack's story, one chapter per
 // page turn, each a post exactly as the portfolio pages show them (Post.tsx,
 // turned by SnapPager, with the scroll arrows beside them). As each arrives
@@ -56,19 +74,25 @@ export default function Story() {
         if (k === 0) setIndex((was) => (was === 0 ? -1 : was));
         return;
       }
-      const starts = performance.now() / 1000 + LEAD_SECONDS;
-      const cue: StoryCue = {
-        beats: chapter.beats,
-        since: starts,
-        card: cardLook(card),
-        prop: chapter.prop,
-      };
-      headMood.cue = cue;
       setIndex(k);
-      setSince(starts);
+      setSince(bring(chapter, card));
     },
     [],
   );
+  // A page turn brings its chapter's cue as it sets off, with everything else
+  // the turn moves, rather than when its post is half way up the window.
+  useEffect(() => {
+    const turn = (event: Event) => {
+      const { to } = (event as CustomEvent<Turn>).detail;
+      const post = document.querySelectorAll('[data-post]')[to];
+      const chapter = CHAPTERS[to - 1];
+      if (chapter && post)
+        bring(chapter, post.querySelector<HTMLElement>('section'));
+      else headMood.cue = null;
+    };
+    addEventListener(TURN_EVENT, turn);
+    return () => removeEventListener(TURN_EVENT, turn);
+  }, []);
   const handlers = useMemo(
     () =>
       CHAPTERS.map(

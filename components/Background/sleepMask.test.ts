@@ -1,6 +1,7 @@
 import { Vector2, Vector3 } from 'three';
 import { describe, expect, it } from 'vitest';
 
+import { headDepth } from './headDepthFixture';
 import { meshes } from './headFixture';
 import {
   edgeDistance,
@@ -44,15 +45,6 @@ describe("the smart bed's sleep mask", () => {
     }
     return kept;
   })();
-  // The skin's frontmost depth near (x, y).
-  const front = (x: number, y: number) => {
-    let z = -Infinity;
-    for (let k = 0; k < skin.length; k += 3)
-      if (Math.abs(skin[k]! - x) < 2 && Math.abs(skin[k + 1]! - y) < 2)
-        z = Math.max(z, skin[k + 2]!);
-    return z;
-  };
-
   it('is shaped like a sleep mask: wider than tall, notched over the nose', () => {
     expect(bounds.right - bounds.left).toBeGreaterThan(
       2 * (bounds.high - bounds.low),
@@ -73,11 +65,23 @@ describe("the smart bed's sleep mask", () => {
     }
   });
 
-  it('never sinks into the face', () => {
-    for (const p of pad.filter((_, k) => k % 37 === 0))
-      if (p.z > eyes.z - spread * 0.6)
-        expect(p.z).toBeGreaterThanOrEqual(front(p.x, p.y) - 0.5);
-  });
+  it('sinks into the head nowhere, on it or sliding up and down above it', () => {
+    const points = [
+      ...pad.filter((_, k) => k % 29 === 0),
+      ...[mask.strap, mask.lashes].flatMap((part) => {
+        const position = part.getAttribute('position');
+        return Array.from({ length: Math.floor(position.count / 7) }, (_, k) =>
+          new Vector3().fromBufferAttribute(position, k * 7),
+        );
+      }),
+    ];
+    for (const slid of [0, 3, 8, 15, 22, 35, 60])
+      for (const p of points)
+        expect(
+          headDepth(p.clone().setY(p.y + slid)),
+          `slid ${slid}`,
+        ).toBeLessThan(0.5);
+  }, 60_000);
 
   it('has its strap round the back of the head, above the eyes', () => {
     const position = mask.strap.getAttribute('position');

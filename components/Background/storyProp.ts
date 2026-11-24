@@ -1,38 +1,30 @@
 import type { StoryCue, StoryProp } from './storyCue';
 
-// When each prop comes in, seconds after its chapter's beats start
-// (storyCue.ts since): the sunglasses as the head smiles at the camera
-// (components/Home/chapters.ts), the wireframe as it gasps, the phone once
-// the head has winked, the rest at once.
-export const PROP_DELAY: Record<StoryProp, number> = {
-  sunglasses: 1.6,
-  // The smart bed's sleep mask, just before the head closes its eyes.
-  sleepmask: 2.2,
-  wireframe: 2.3,
-  plane: 0.6,
-  tortillas: 0.5,
-  phone: 1.4,
-};
-
-// How much of `prop` the story asks for at `now`: 1 from its delay on while
-// its chapter shows, else 0.
+// How much of `prop` the story asks for: all of it from the moment the page
+// turns to its chapter (Story.tsx sets the cue as the turn begins), along
+// with everything else the turn moves, and none from the moment it turns
+// away; but a wireframe stays as it is (its amount in `now`) until the head
+// has slid off for the phone.
 export function propTarget(
   cue: StoryCue | null,
   prop: StoryProp,
-  now: number,
+  now?: Record<StoryProp, number>,
 ): number {
-  if (!cue || cue.prop !== prop) return 0;
-  return now - cue.since >= PROP_DELAY[prop] ? 1 : 0;
+  if (now && prop === 'wireframe' && cue?.prop === 'phone' && now.phone < 0.5)
+    return now.wireframe;
+  return cue?.prop === prop ? 1 : 0;
 }
 
-// The phone's swap with the head, for how far in the phone is (0 to 1): the
-// head shrinks away over the first half, then the phone grows in over the
-// second, each easing in and out, so the two never show at once. Each is a
-// scale, 1 its full size; going out runs the same in reverse.
-export function phoneSwap(amount: number): { head: number; phone: number } {
-  const ease = (from: number) => {
-    const t = Math.min(1, Math.max(0, (amount - from) * 2));
-    return t * t * (3 - 2 * t);
-  };
-  return { head: 1 - ease(0), phone: ease(0.5) };
+// How long the phone takes to swap with the head, all told, in seconds.
+export const PHONE_SECONDS = 1.4;
+
+// The phone's swap with the head, for how far through it is (0 to 1): each
+// one's slide off the window's left side, 0 in its place and 1 wholly off.
+// The head slides out over the first half, then the phone in over the
+// second, gathering speed as it goes and slowing into place as it comes, as
+// the page's cards do, so the two never show at once and the window is never
+// long empty; going back runs the same in reverse.
+export function phoneSwap(through: number): { head: number; phone: number } {
+  const half = (from: number) => Math.min(1, Math.max(0, (through - from) * 2));
+  return { head: half(0) ** 2, phone: (1 - half(0.5)) ** 2 };
 }

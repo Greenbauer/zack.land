@@ -7,6 +7,7 @@ import {
   Group,
   Mesh,
   MeshBasicMaterial,
+  PerspectiveCamera,
   Shape,
   ShapeGeometry,
   SRGBColorSpace,
@@ -15,6 +16,7 @@ import {
 
 import { headMood } from './headMood';
 import { HEAD_LIFT } from './headPlace';
+import { slideOff } from './slideOff';
 import { phoneSwap } from './storyProp';
 
 // The home page's last chapter, What's Next: the head steps aside for a
@@ -22,12 +24,13 @@ import { phoneSwap } from './storyProp';
 // calls you. On its screen, as the caller's photo, is the head itself
 // (public/story/head-call.mp4, recorded from this site, and its poster),
 // over "Zack" and "Let's talk", with Decline and Accept below and two soft
-// rings pulsing out of Accept, then a pause, as a ringtone does. It floats gently and never
-// shakes. How far in it is comes from StoryProps.tsx (`phoneShown`); the
-// head shrinks away as it comes (phoneSwap, storyProp.ts, read by
-// MyHead.tsx).
+// rings pulsing out of Accept, then a pause, as a ringtone does. It floats
+// gently and never shakes. How far through its swap with the head it is comes
+// from StoryProps.tsx (`phoneShown`): the head slides off the window's left
+// side, then the phone slides in from there (phoneSwap, storyProp.ts, read by
+// MyHead.tsx too).
 
-// How far in the phone is, 0 to 1, set each frame by StoryProps.tsx.
+// How far through its swap with the head the phone is, 0 to 1, set each frame by StoryProps.tsx.
 export const phoneShown = { value: 0 };
 
 // The phone, in its own units: a body W by H, D deep, its screen a canvas
@@ -238,12 +241,12 @@ export default function PhoneCall({
   const screenRef = useRef<Mesh>(null);
   const started = useRef(0);
 
-  useFrame(({ clock }) => {
+  useFrame(({ camera, clock, size }) => {
     const group = ref.current;
     if (!group) return;
-    const { phone } = phoneSwap(phoneShown.value);
+    const { phone: off } = phoneSwap(phoneShown.value);
     const v = video.current;
-    group.visible = phone > 0.001;
+    group.visible = off < 0.999;
     if (!group.visible) {
       if (v && !v.paused) v.pause();
       started.current = 0;
@@ -252,8 +255,12 @@ export default function PhoneCall({
     if (v?.paused) v.play().catch(() => {});
     const t = clock.elapsedTime;
     if (!started.current) started.current = t;
-    group.scale.setScalar(place.scale * phone);
+    group.scale.setScalar(place.scale);
     group.position.copy(place.at);
+    // In from off the window's left side, where the head went.
+    group.position.x -=
+      off *
+      slideOff(camera as PerspectiveCamera, size.height, H * place.scale * 0.5);
     group.position.y += Math.sin(t * 1.1) * 0.12 * place.scale;
     group.rotation.set(
       0.04 + Math.sin(t * 0.7) * 0.03,

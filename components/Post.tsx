@@ -231,7 +231,7 @@ export default function Post({ content, isFirst = false, onShown }: PostProps) {
           </div>
           <div
             ref={linksRef}
-            className={`flex shrink-0 flex-col gap-3 md:w-64 md:gap-4 md:self-start md:pt-2 ${
+            className={`flex shrink-0 flex-col gap-3 md:w-[min(16rem,36%)] md:gap-4 md:self-start md:pt-2 ${
               isClamped
                 ? 'max-md:flex-row max-md:flex-wrap max-md:items-center max-md:justify-end'
                 : ''

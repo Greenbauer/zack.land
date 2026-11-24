@@ -1,5 +1,5 @@
 import { useFrame } from '@react-three/fiber';
-import { RefObject, useEffect, useMemo, useRef, useState } from 'react';
+import { RefObject, useMemo, useRef } from 'react';
 import {
   BufferGeometry,
   CanvasTexture,
@@ -14,26 +14,31 @@ import {
 } from 'three';
 
 import { Cap, CAP_PARTS, loadCap } from './capGeometry';
+import { headKnock } from './headKnock';
 import { headMood } from './headMood';
 import { turnHead } from './headTurn';
 import type { StoryProp } from './storyCue';
-import { drapeOnto, drapeSurface, sideOf } from './tortillaDrape';
+import { drapeSurface, everyFace, frameAt } from './tortillaDrape';
 import {
-  FLIGHT,
-  HIT,
-  HIT_PHASE,
-  HIT_SECONDS,
-  HIT_SIDE,
+  AZIMUTHS,
+  FLIES,
+  flyerAt,
+  FLYERS,
+  throwAt,
   TORTILLA_RADIUS,
-  tortillaAt,
 } from './tortillaFlight';
+import { holdOf, poseThrow } from './tortillaPose';
+import { useOnceCued } from './useOnceCued';
 
 // The home page's Texas Tech chapter, on the head itself: a graduation cap
 // (capGeometry.ts) that drops onto it and turns with it, as the sunglasses
-// do, and
-// a tortilla thrown at the side of its head now and then, as they flew at
-// every kickoff (tortillaFlight.ts).
-// in each prop is (StoryProps.tsx).
+// do, and tortillas flying past behind it, as they did at every kickoff, one
+// of which hits it now and then (tortillaFlight.ts). `amounts` is how far in
+// each prop is (StoryProps.tsx).
+
+// How much of the sky's light a tortilla takes: less than all, so the scene's
+// lamps shade its bends (under the sky alone it was one flat white).
+const TORTILLA_SKY = 0.5;
 
 // A flour tortilla's face: pale and floury, with scattered toasted blisters
 // (each a small cluster, dark in the middle), no two alike.
@@ -41,7 +46,7 @@ function tortillaFace() {
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = 512;
   const g = canvas.getContext('2d')!;
-  g.fillStyle = '#f6eedb';
+  g.fillStyle = '#e7cd97';
   g.fillRect(0, 0, 512, 512);
   let seed = 23;
   const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
@@ -122,7 +127,7 @@ function clothWeave() {
 // A tortilla's shape: a thin round (its edge only just uneven), bending a
 // little as a soft one does in the air (two sides up, two down).
 function tortillaShape(radius: number) {
-  const shape = new RingGeometry(0.001, radius, 56, 7);
+  const shape = new RingGeometry(0.001, radius, 64, 14);
   const position = shape.getAttribute('position');
   for (let k = 0; k < position.count; k++) {
     const [x, y] = [position.getX(k), position.getY(k)];
@@ -151,15 +156,21 @@ function carried(geometry: BufferGeometry) {
   return geometry;
 }
 
-// Sets how fully the head turns `geometry` (turnHead): wholly while a
-// tortilla lies on the face, so it turns with it; not at all in flight.
-function turnWith(geometry: BufferGeometry, head: boolean) {
+// Sets how far the head turns `geometry` (turnHead), 0 to 1: a tortilla on
+// the head turns with it, and not at all in the air.
+function turnWith(geometry: BufferGeometry, head: number) {
   for (const name of ['headWeight', 'turnWeight']) {
     const weight = geometry.getAttribute(name);
-    if (weight.getX(0) === (head ? 1 : 0)) continue;
-    (weight.array as Float32Array).fill(head ? 1 : 0);
+    if (weight.getX(0) === head) continue;
+    (weight.array as Float32Array).fill(head);
     weight.needsUpdate = true;
   }
+}
+
+async function loadCarriedCap(): Promise<Cap> {
+  const cap = await loadCap();
+  for (const part of CAP_PARTS) carried(cap[part]);
+  return cap;
 }
 
 export default function TexasTechProps({
@@ -175,81 +186,72 @@ export default function TexasTechProps({
 }) {
   // The cap, fetched once the story has started (a chapter's cue): its own
   // chapter is the first, so it is usually there as that card arrives.
-  const [cap, setCap] = useState<Cap | null>(null);
-  useEffect(() => {
-    if (cap) return;
-    const timer = setInterval(() => {
-      if (!headMood.cue) return;
-      clearInterval(timer);
-      loadCap().then(
-        (loaded) => {
-          for (const part of CAP_PARTS) carried(loaded[part]);
-          setCap(loaded);
-        },
-        () => {},
-      );
-    }, 300);
-    return () => clearInterval(timer);
-  }, [cap]);
+  const cap = useOnceCued(loadCarriedCap);
   const weave = useMemo(() => clothWeave(), []);
   const tortilla = useMemo(
     () => ({ shape: tortillaShape(TORTILLA_RADIUS), face: tortillaFace() }),
     [],
   );
-  // The surface on the side of the head the tortilla drapes onto, and its
-  // own copy of the shape, which bends to lie on it.
-  const frame = useMemo(() => sideOf(HIT_SIDE, HIT.middle), []);
-  const surface = useMemo(
-    () => drapeSurface(skin.getAttribute('position').array, frame),
-    [skin, frame],
-  );
+  // The head's shape where a thrown one hits it, from each way one is
+  // thrown, and its own copy of the shape, which bends to lie on it.
+  const places = useMemo(() => {
+    const skinAnyFace = everyFace(
+      skin.getAttribute('position').array,
+      (skin.morphAttributes.position ?? []).map(({ array }) => array),
+    );
+    return AZIMUTHS.map((azimuth) => {
+      const frame = frameAt(azimuth);
+      return { frame, surface: drapeSurface(skinAnyFace, frame) };
+    });
+  }, [skin]);
   const draping = useMemo(() => carried(tortilla.shape.clone()), [tortilla]);
   const capRef = useRef<Group>(null);
-  const tossRef = useRef<Mesh>(null);
+  const flyersRef = useRef<Group>(null);
+  const throwRef = useRef<Mesh>(null);
 
   useFrame(() => {
     const amount = amounts.current.tortillas;
     // The cap drops from above onto the head, slowing as it lands.
     if (capRef.current) {
       capRef.current.visible = amount > 0.01;
-      capRef.current.position.y = (1 - amount) ** 2 * spread * 5;
+      capRef.current.position.y = (1 - amount) ** 2 * spread * 8;
     }
-    if (!tossRef.current) return;
-    tossRef.current.visible = amount > 0.01;
     const cue = headMood.cue;
     const t = cue ? performance.now() / 1000 - cue.since : 0;
-    const toss = tossRef.current;
-    const at = tortillaAt((((t / HIT_SECONDS + HIT_PHASE) % 1) + 1) % 1);
-    // Flying, it spins like a thrown disc; on the head it lies there,
-    // laid out in the head's own place and bent over it
-    // (tortillaDrape.ts), turning with it.
-    const flying = at.drape > 0 ? 0 : 1;
-    toss.rotation.set(
-      flying * (-Math.PI / 2 + FLIGHT.lean + Math.sin(t * 3) * FLIGHT.wobble),
-      flying * Math.sin(t * 2.2) * FLIGHT.wobble,
-      flying * t * FLIGHT.spin,
-    );
-    turnWith(draping, at.drape > 0);
-    const position = draping.getAttribute('position');
-    const rest = tortilla.shape.getAttribute('position').array;
-    if (at.drape > 0) {
-      toss.position.set(0, 0, 0);
-      drapeOnto(
-        rest,
-        { across: 0, up: at.up },
-        surface,
-        frame,
-        at.drape,
-        HIT.out,
-        position.array as Float32Array,
-      );
-    } else {
-      toss.position.set(at.x, at.y, at.z);
-      (position.array as Float32Array).set(rest);
+    const shows = amount > 0.01;
+    // They drop away below as the chapter goes.
+    const away = -((1 - amount) ** 2) * 600;
+    flyersRef.current?.children.forEach((child, k) => {
+      const at = shows ? flyerAt(k, t) : null;
+      child.visible = !!at;
+      if (!at) return;
+      child.position.set(at.x, at.y + away, at.z);
+      child.rotation.set(at.lean, at.roll, at.spin);
+    });
+    const toss = throwRef.current;
+    if (!toss) return;
+    const now = shows && cue?.prop === 'tortillas' ? throwAt(t) : null;
+    toss.visible = !!now;
+    if (!now) return;
+    // The head is knocked as it hits.
+    if (now.since >= FLIES) {
+      headKnock.at = performance.now() / 1000 - (now.since - FLIES);
+      headKnock.side = Math.sign(AZIMUTHS[now.thrown.azimuth]!);
     }
+    const { frame, surface } = places[now.thrown.azimuth]!;
+    const position = draping.getAttribute('position');
+    poseThrow(
+      now.thrown,
+      now.since,
+      tortilla.shape.getAttribute('position').array,
+      frame,
+      surface,
+      position.array as Float32Array,
+    );
     position.needsUpdate = true;
     draping.computeVertexNormals();
-    toss.scale.setScalar(amount);
+    turnWith(draping, holdOf(now.since));
+    toss.position.y = away;
   });
 
   return (
@@ -301,10 +303,30 @@ export default function TexasTechProps({
           </>
         )}
       </group>
-      <mesh ref={tossRef} geometry={draping} visible={false}>
+      <group ref={flyersRef}>
+        {Array.from({ length: FLYERS }, (_, k) => (
+          <mesh key={k} geometry={tortilla.shape} visible={false}>
+            <meshStandardMaterial
+              map={tortilla.face}
+              roughness={0.95}
+              envMapIntensity={TORTILLA_SKY}
+              side={DoubleSide}
+            />
+          </mesh>
+        ))}
+      </group>
+      {/* Its points move every frame, so it is never culled by where they
+          began. */}
+      <mesh
+        ref={throwRef}
+        geometry={draping}
+        visible={false}
+        frustumCulled={false}
+      >
         <meshStandardMaterial
           map={tortilla.face}
           roughness={0.95}
+          envMapIntensity={TORTILLA_SKY}
           side={DoubleSide}
           onBeforeCompile={turnHead}
         />
