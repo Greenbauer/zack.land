@@ -49,24 +49,33 @@ test('keeps the button readable on hover while it is focused', async ({
   await page.locator('textarea[name="message"]').fill('Hello there');
   const submit = page.locator('form button[type="submit"]');
   await expect(submit).toBeEnabled();
-  // The text colour on each side of the sky, set and read in one step since
-  // the site sets the side itself as the sky changes.
-  const colour = (sky: string) =>
-    submit.evaluate((button, side) => {
-      button.style.transition = 'none';
-      button.closest('section')!.setAttribute('data-sky', side);
-      return getComputedStyle(button).color;
-    }, sky);
+  // Stop the 3D scene: drawn in software on CI, it held every browser call
+  // here for seconds (20 calls ran past the test's 90 seconds), and the
+  // button's colours don't use it. It also stops the site setting the
+  // card's side of the sky itself.
+  await page.evaluate(() => {
+    window.requestAnimationFrame = () => 0;
+  });
+  // The text colour on one side of the sky, after focusing or blurring the
+  // button, or neither.
+  const colour = (sky: string, focus?: boolean) =>
+    submit.evaluate(
+      (button, [side, toFocus]) => {
+        button.style.transition = 'none';
+        button.closest('section')!.setAttribute('data-sky', side as string);
+        if (toFocus === true) button.focus();
+        if (toFocus === false) button.blur();
+        return getComputedStyle(button).color;
+      },
+      [sky, focus],
+    );
   for (const sky of ['dark', 'light']) {
-    await submit.evaluate((button: HTMLButtonElement) => button.blur());
     await page.mouse.move(5, 5);
-    const rest = await colour(sky);
-    await submit.focus();
-    expect(await colour(sky), `focused, ${sky}`).toBe(rest);
+    const rest = await colour(sky, false);
+    expect(await colour(sky, true), `focused, ${sky}`).toBe(rest);
     await submit.hover();
     const focused = await colour(sky);
-    await submit.evaluate((button: HTMLButtonElement) => button.blur());
-    const hovered = await colour(sky);
+    const hovered = await colour(sky, false);
     expect(hovered, `hovered, ${sky}`).not.toBe(rest);
     expect(focused, `hovered while focused, ${sky}`).toBe(hovered);
   }
