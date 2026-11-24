@@ -1,8 +1,10 @@
 import { BufferAttribute, BufferGeometry, Vector3 } from 'three';
 
 // The smart bed's sleep mask (StoryProps.tsx), made to fit the head's own
-// skin: a smooth band round the head, wide over the eyes as a padded pad and
-// narrow at the sides and back as its strap, above the ears. It is laid out
+// skin: a smooth band round the head, wide over the eyes as a puffy pad
+// (printed with closed eyes, long curly lashes and a Zzz: maskPrint.ts, laid
+// on by its texture coordinates) and a thin elastic strap round the back,
+// above the ears. It is laid out
 // round an upright line through the middle of the head: at each angle round
 // it and each height, as far out as the skin there, bridged over the eye
 // sockets (it rests on the brow and the cheeks, as a real one does, not in
@@ -10,11 +12,11 @@ import { BufferAttribute, BufferGeometry, Vector3 } from 'three';
 // under it (chapters.ts).
 
 // The band's heights, in eye spreads (the distance between the eyes) from the
-// eyes: the pad from below the eyes to above the brows, the strap from
-// STRAP.low (above the ears) to the same top. The pad covers the front,
-// PAD_ANGLE either side of it, its padding easing into the strap's.
+// eyes: the pad from below the eyes to above the brows, the strap a thin band
+// above the ears. The pad covers the front, PAD_ANGLE either side of it,
+// easing into the strap.
 const PAD = { low: -0.42, high: 0.6 };
-const STRAP = { low: 0.34 };
+const STRAP = { low: 0.4, high: 0.52 };
 const PAD_ANGLE = (75 * Math.PI) / 180;
 // The pad's shape, by its lower edge: full depth over the eyes out to
 // LOBE_ANGLE, narrowing from there into the strap by PAD_ANGLE, and cut up
@@ -30,7 +32,11 @@ const DOWN = 18;
 // How far it stands off the skin, in eye spreads: the pad padded, the strap
 // a thin elastic.
 const PAD_LIFT = 0.06;
-const STRAP_LIFT = 0.025;
+const STRAP_LIFT = 0.02;
+// How much more the pad puffs out over each eye, in eye spreads, and how far
+// the puff spreads (round, in radians, and down, in eye spreads).
+const PUFF = 0.07;
+const PUFF_SPREAD = { across: 0.22, down: 0.3 };
 // How many steps either way a hollow is bridged across (the eye sockets).
 const BRIDGE = 3;
 
@@ -111,8 +117,23 @@ function bottomAt(col: number): number {
   return lobe + (NOTCH - lobe) * notch;
 }
 
+// The mask's upper edge: the pad's top over the front, the strap's at the
+// sides and back.
+const topAt = (col: number) =>
+  STRAP.high + (PAD.high - STRAP.high) * padShare(col);
+
+// Where the eyes are on the pad's print, as texture coordinates (u across
+// the pad from one side's PAD_ANGLE to the other's, v up from its bottom
+// edge), for maskPrint.ts.
+export const PRINT_EYES = {
+  u: 0.5 + Math.atan(0.5 / MIDDLE_BACK) / (2 * PAD_ANGLE),
+  v: -PAD.low / (PAD.high - PAD.low),
+};
+
 // The mask for a skin of `positions` (x, y, z in turn), its eyes' middle at
-// `eyes`, `spread` apart.
+// `eyes`, `spread` apart. Its first group of triangles is the pad, its
+// second the strap; `userData.middle` is the head's middle it is laid out
+// round.
 export function sleepMask(
   positions: ArrayLike<number>,
   eyes: Vector3,
@@ -122,27 +143,49 @@ export function sleepMask(
   const low = eyes.y + PAD.low * spread;
   const high = eyes.y + PAD.high * spread;
   const reach = smoothed(bridge(skinReach(positions, middle, low, high)));
+  const eyeAngle = Math.atan(0.5 / MIDDLE_BACK);
+  // How much more the pad puffs out at a step round and height: most over
+  // each eye, easing off around it.
+  const puff = (angle: number, up: number) =>
+    Math.max(
+      ...[-eyeAngle, eyeAngle].map(
+        (eye) =>
+          Math.exp(-(((angle - eye) / PUFF_SPREAD.across) ** 2)) *
+          Math.exp(-((up / PUFF_SPREAD.down) ** 2)),
+      ),
+    );
   const out: number[] = [];
-  const index: number[] = [];
+  const uv: number[] = [];
+  const pad: number[] = [];
+  const strap: number[] = [];
   const at = new Map<string, number>();
-  // A point of the mask: as far out as the skin there and lifted off it,
-  // and never below the mask's lower edge (the rows below are folded up
-  // onto it, to nothing, so the edge runs smooth rather than in steps).
+  // A point of the mask: as far out as the skin there and lifted off it
+  // (puffed over the eyes), held between the mask's lower and upper edges
+  // (the rows past them are folded onto them, to nothing, so the edges run
+  // smooth rather than in steps).
   const vertex = (col: number, row: number) => {
     const key = `${col} ${row}`;
     if (!at.has(key)) {
       const angle = angleOf(col);
-      const lift = STRAP_LIFT + (PAD_LIFT - STRAP_LIFT) * padShare(col);
-      const r = reach[col]![row]! + lift * spread;
-      at.set(key, out.length / 3);
-      out.push(
-        middle.x + r * Math.sin(angle),
+      const share = padShare(col);
+      const y = Math.min(
         Math.max(
           low + (row / DOWN) * (high - low),
           eyes.y + bottomAt(col) * spread,
         ),
+        eyes.y + topAt(col) * spread,
+      );
+      const up = (y - eyes.y) / spread;
+      const lift =
+        STRAP_LIFT + (PAD_LIFT - STRAP_LIFT) * share + PUFF * puff(angle, up);
+      const r = reach[col]![row]! + lift * spread;
+      at.set(key, out.length / 3);
+      out.push(
+        middle.x + r * Math.sin(angle),
+        y,
         middle.z + r * Math.cos(angle),
       );
+      uv.push(0.5 + angle / (2 * PAD_ANGLE), (y - low) / (high - low));
     }
     return at.get(key)!;
   };
@@ -158,11 +201,15 @@ export function sleepMask(
       const [a, b, c, d] = corners.map(([c, r]) => vertex(c, r));
       // Facing out, away from the head: round the quad anticlockwise as
       // seen from outside.
-      index.push(a!, b!, c!, a!, c!, d!);
+      (padShare(col) > 0.5 ? pad : strap).push(a!, b!, c!, a!, c!, d!);
     }
   const mask = new BufferGeometry();
   mask.setAttribute('position', new BufferAttribute(new Float32Array(out), 3));
-  mask.setIndex(index);
+  mask.setAttribute('uv', new BufferAttribute(new Float32Array(uv), 2));
+  mask.setIndex([...pad, ...strap]);
+  mask.addGroup(0, pad.length, 0);
+  mask.addGroup(pad.length, strap.length, 1);
   mask.computeVertexNormals();
+  mask.userData.middle = new Vector3(middle.x, eyes.y, middle.z);
   return mask;
 }

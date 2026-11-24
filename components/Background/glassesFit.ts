@@ -60,24 +60,29 @@ const fromHinge = (x: number, z: number, hinge: Hinge, side: 1 | -1) => ({
 });
 
 // How much of an arm's length, from its hinge, runs straight back over the
-// head: behind it the arm hooks down behind the ear, which it rests on, so
-// the ear does not push it open.
+// head: behind it the arm hooks down behind the ear. The arm clears the skull
+// all along its length at the straight part's height (its top band), so its
+// back does not cut into the head above the ear; the ear below that band,
+// which the hook rests on and curls behind, does not push it open.
 export const STRAIGHT_SHARE = 0.7;
 
 // A point of an arm or the head, from the hinge (fromHinge).
 type Place = { out: number; back: number };
 
-// The arm's straight part: how far it runs back from the hinge
-// (STRAIGHT_SHARE of the whole arm) and its lowest and highest points there.
-function straightPart(arm: ArrayLike<number>, hinge: Hinge, side: 1 | -1) {
-  let whole = 0;
+// The arm's whole length back from the hinge, and the band of heights its
+// straight part (STRAIGHT_SHARE of it) runs at.
+function armBand(arm: ArrayLike<number>, hinge: Hinge, side: 1 | -1) {
+  let length = 0;
   for (let k = 0; k < arm.length; k += 3)
-    whole = Math.max(whole, fromHinge(arm[k]!, arm[k + 2]!, hinge, side).back);
-  const length = whole * STRAIGHT_SHARE;
+    length = Math.max(
+      length,
+      fromHinge(arm[k]!, arm[k + 2]!, hinge, side).back,
+    );
   let low = Infinity;
   let high = -Infinity;
   for (let k = 0; k < arm.length; k += 3) {
-    if (fromHinge(arm[k]!, arm[k + 2]!, hinge, side).back > length) continue;
+    const back = fromHinge(arm[k]!, arm[k + 2]!, hinge, side).back;
+    if (back > length * STRAIGHT_SHARE) continue;
     low = Math.min(low, arm[k + 1]!);
     high = Math.max(high, arm[k + 1]!);
   }
@@ -110,16 +115,18 @@ function fillGaps(inner: (Place | null)[], length: number): Place[] {
   });
 }
 
-// The arm's innermost point at each place along its straight part, or none
-// if it has no point there at all.
+// The arm's innermost point within its band at each place along it, or
+// none if it has no point there at all.
 function armInner(
   arm: ArrayLike<number>,
   hinge: Hinge,
   side: 1 | -1,
-  length: number,
+  { length, low, high }: { length: number; low: number; high: number },
 ): Place[] | null {
   const inner = new Array<Place | null>(STEPS).fill(null);
   for (let k = 0; k < arm.length; k += 3) {
+    const y = arm[k + 1]!;
+    if (y < low || y > high) continue;
     const p = fromHinge(arm[k]!, arm[k + 2]!, hinge, side);
     if (p.back <= 0 || p.back > length) continue;
     const step = stepAt(p.back, length);
@@ -151,10 +158,9 @@ function headNeed(
 
 // The least angle an arm (its `arm` positions, already placed) must swing
 // open at `hinge`, on `side`, for its inner face to clear the head (`head`
-// positions) beside it by `margin` along its straight part (STRAIGHT_SHARE):
-// at each place along it, the head's outermost point there against the
-// arm's innermost. Only the head between that part's own lowest and highest
-// points counts.
+// positions) beside it by `margin` all along it, at the height of its
+// straight part (STRAIGHT_SHARE): at each place along it, the head's
+// outermost point there against the arm's innermost.
 export function openAngle(
   head: ArrayLike<number>,
   arm: ArrayLike<number>,
@@ -162,9 +168,9 @@ export function openAngle(
   side: 1 | -1,
   margin: number,
 ): number {
-  const part = straightPart(arm, hinge, side);
+  const part = armBand(arm, hinge, side);
   if (part.length <= 0) return 0;
-  const inner = armInner(arm, hinge, side, part.length);
+  const inner = armInner(arm, hinge, side, part);
   if (!inner) return 0;
   const need = headNeed(head, hinge, side, part, margin);
   const clears = (angle: number) =>

@@ -19,6 +19,7 @@ import { noseBridge, openAngle, swingArm, templeWidth } from './glassesFit';
 import { Glasses, loadGlasses } from './glassesGeometry';
 import { headMood } from './headMood';
 import { turnHead } from './headTurn';
+import { maskPrint } from './maskPrint';
 import { fadeNeck } from './neckFade';
 import { phoneShown } from './PhoneCall';
 import { sleepMask } from './sleepMask';
@@ -150,6 +151,10 @@ function fitGlasses(
   };
 }
 
+// How much of the sky's light the printed frame and arms take: little, so
+// they keep their own colours.
+const PRINTED_SKY = 0.3;
+
 // A folded paper plane, nose along -x: two wings meeting at a keel.
 function paperPlane() {
   const g = new BufferGeometry();
@@ -214,21 +219,13 @@ export default function StoryProps({
     }, 500);
     return () => clearInterval(timer);
   }, [model]);
-  // The builder's own lens textures (public/story/lens, from banner-builder's
-  // Textures/Lens): its Midnight Blue mirror and its logo, loaded with the
-  // glasses.
-  const lensTextures = useMemo(() => {
-    if (!model) return { matcap: null, logo: null };
-    const loader = new TextureLoader();
-    const load = (url: string) => {
-      const texture = loader.load(url);
-      texture.colorSpace = SRGBColorSpace;
-      return texture;
-    };
-    return {
-      matcap: load('/story/lens/matcap-midnight-blue.jpg'),
-      logo: load('/story/lens/logo.png'),
-    };
+  // The builder's own lens logo (public/story/lens, from banner-builder's
+  // Textures/Lens), loaded with the glasses.
+  const lensLogo = useMemo(() => {
+    if (!model) return null;
+    const texture = new TextureLoader().load('/story/lens/logo.png');
+    texture.colorSpace = SRGBColorSpace;
+    return texture;
   }, [model]);
   const glasses = useMemo(
     () => model && fitGlasses(model, centre(leftEye), centre(rightEye), skin),
@@ -243,17 +240,18 @@ export default function StoryProps({
     phone: 0,
   });
   const glassesRef = useRef<Group>(null);
-  // The smart bed's sleep mask, cast from the skin (sleepMask.ts), and how
-  // far above the eyes it slides down from (an eye spread).
+  // The smart bed's sleep mask, cast from the skin (sleepMask.ts), the head's
+  // middle it is laid round, and its print (maskPrint.ts).
   const mask = useMemo(() => {
     const l = centre(leftEye);
     const r = centre(rightEye);
-    const spread = l.distanceTo(r);
     const eyes = l.clone().add(r).multiplyScalar(0.5);
     const { array } = skin.getAttribute('position');
+    const geometry = onSkull(sleepMask(array, eyes, l.distanceTo(r)));
     return {
-      geometry: onSkull(sleepMask(array, eyes, spread)),
-      drop: spread,
+      geometry,
+      middle: geometry.userData.middle as Vector3,
+      print: maskPrint(),
     };
   }, [leftEye, rightEye, skin]);
   const maskRef = useRef<Mesh>(null);
@@ -278,7 +276,11 @@ export default function StoryProps({
     const sleeping = amount.current.sleepmask;
     if (maskRef.current) {
       maskRef.current.visible = sleeping > 0.01;
-      maskRef.current.position.y = (1 - sleeping) ** 2 * mask.drop;
+      // It shrinks onto the head from a little larger, about the head's
+      // middle, so no part of it passes through the face on the way.
+      const size = 1 + 0.35 * (1 - sleeping) ** 2;
+      maskRef.current.scale.setScalar(size);
+      maskRef.current.position.copy(mask.middle).multiplyScalar(1 - size);
     }
 
     // The sunglasses drop from above onto the face, slowing as they land.
@@ -323,23 +325,31 @@ export default function StoryProps({
           {/* As the pair in the Banner Eyewear post's laptop photo: grey
               frame, Midnight Blue mirrored lenses with the builder's logo in
               their top corner, BANNER on an orange arm and EYEWEAR on a pink
-              one, all matte, as printed nylon is. */}
+              one. The frame and arms are matte, as printed nylon is, and
+              take little of the sky (PRINTED_SKY), whose lavender washed the
+              grey toward white and the pink toward salmon. The lenses are a
+              mirror: they show the sky. */}
           <mesh geometry={glasses.frame}>
             <meshStandardMaterial
-              color="#9c9b96"
+              color="#8f8e89"
               roughness={0.85}
+              envMapIntensity={PRINTED_SKY}
               onBeforeCompile={turnHead}
             />
           </mesh>
           <mesh geometry={glasses.lenses}>
-            <meshMatcapMaterial
-              matcap={lensTextures.matcap}
+            <meshPhysicalMaterial
+              color="#2a2470"
+              metalness={0.9}
+              roughness={0.08}
+              clearcoat={1}
+              clearcoatRoughness={0.05}
               onBeforeCompile={turnHead}
             />
           </mesh>
           <mesh geometry={glasses.lenses}>
             <meshBasicMaterial
-              map={lensTextures.logo}
+              map={lensLogo}
               transparent
               depthWrite={false}
               polygonOffset
@@ -360,20 +370,30 @@ export default function StoryProps({
               <meshStandardMaterial
                 color={color}
                 roughness={0.95}
+                envMapIntensity={PRINTED_SKY}
                 onBeforeCompile={turnHead}
               />
             </mesh>
           ))}
         </group>
       )}
-      {/* A soft satin mask in the theme's rose, its strap the same. */}
+      {/* A puffy satin pad with its print, and a thin plum elastic. */}
       <mesh ref={maskRef} geometry={mask.geometry} visible={false}>
         <meshPhysicalMaterial
-          color={head.rose}
-          roughness={0.55}
+          attach="material-0"
+          map={mask.print}
+          roughness={0.5}
           sheen={0.8}
-          sheenRoughness={0.4}
+          sheenRoughness={0.35}
           sheenColor={head.peach}
+          envMapIntensity={0.4}
+          onBeforeCompile={turnHead}
+        />
+        <meshStandardMaterial
+          attach="material-1"
+          color="#4a2240"
+          roughness={0.8}
+          envMapIntensity={0.3}
           onBeforeCompile={turnHead}
         />
       </mesh>
@@ -388,7 +408,7 @@ export default function StoryProps({
           onBeforeCompile={skinShader}
         />
       </mesh>
-      <TexasTechProps spread={spread} amounts={amount} />
+      <TexasTechProps spread={spread} amounts={amount} skin={skin} />
       <group ref={planeRef} visible={false}>
         <mesh geometry={plane}>
           <meshPhysicalMaterial

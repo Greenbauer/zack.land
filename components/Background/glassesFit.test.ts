@@ -31,8 +31,13 @@ describe('fitting a pair of glasses to a head, as a real pair fits', () => {
     const angle = openAngle(head, arm, { x: 40, z: 0 }, 1, 1);
     expect(angle).toBeGreaterThan(Math.atan(6 / 40) - 0.01);
     expect(angle).toBeLessThan(Math.atan(6 / 40) + 0.02);
-    // Not the ear the hook behind the straight part rests on.
-    expect(openAngle([45, 1, -55], arm, { x: 40, z: 0 }, 1, 1)).toBe(0);
+    // The skull beside its back, at its height, counts; the ear below,
+    // which its hook curls down behind, does not.
+    const hooked = [...arm, 40, -12, -58];
+    expect(
+      openAngle([45, 1, -55], hooked, { x: 40, z: 0 }, 1, 1),
+    ).toBeGreaterThan(0);
+    expect(openAngle([45, -10, -55], hooked, { x: 40, z: 0 }, 1, 1)).toBe(0);
     // Only the head beside the arm, between its heights, counts.
     expect(openAngle([45, 9, -40], arm, { x: 40, z: 0 }, 1, 1)).toBe(0);
     // The other side, the other way.

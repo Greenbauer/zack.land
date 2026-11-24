@@ -7,6 +7,7 @@ import {
   LANDS,
   LETS_GO,
   OFF_SCREEN,
+  TORTILLA_RADIUS,
   tortillaAt,
 } from './tortillaFlight';
 
@@ -19,20 +20,34 @@ describe('the tortillas thrown for Texas Tech', () => {
       expect(Math.sign(start.x)).toBe(-Math.sign(end.x));
       // One arc: it comes back to the height it was thrown from.
       expect(end.y).toBeCloseTo(start.y);
-      // In front of the face clear of the nose, or behind the head.
-      expect(flight.depth > 70 || flight.depth < -70).toBe(true);
+      // Behind the head, clear of it at a real tortilla's size.
+      expect(flight.depth).toBeLessThan(-TORTILLA_RADIUS * 2);
     }
   });
 
-  it('throws some at the face: in from off screen, stuck, then slid away', () => {
+  it('throws some at the face: in from off screen, splatted on it, then dropped', () => {
     const hits = FLIGHTS.filter((f) => f.hits);
     expect(hits).toHaveLength(HITS);
     for (const flight of hits) {
-      expect(Math.abs(tortillaAt(flight, 0).x)).toBe(OFF_SCREEN);
-      const landed = tortillaAt(flight, (LANDS + LETS_GO) / 2);
-      expect(landed).toEqual({ x: 0, ...FACE, stuck: true });
-      // Gone well below the head by the end of its loop.
-      expect(tortillaAt(flight, 1).y).toBeLessThan(-250);
+      const start = tortillaAt(flight, 0);
+      expect(Math.abs(start.x)).toBe(OFF_SCREEN);
+      expect(start.drape).toBe(0);
+      // Lying wholly on the face while it clings, sliding down it.
+      const early = tortillaAt(flight, LANDS + 0.05);
+      const late = tortillaAt(flight, LETS_GO - 0.01);
+      expect(early.drape).toBe(1);
+      expect(late.drape).toBe(1);
+      expect(early.x).toBe(0);
+      expect(late.y).toBeLessThan(early.y);
+      expect(early.y).toBeLessThanOrEqual(FACE.y);
+      // Peeled off and gone well below the head by the end of its loop.
+      const end = tortillaAt(flight, 1);
+      expect(end.drape).toBe(0);
+      expect(end.y).toBeLessThan(-250);
     }
+  });
+
+  it('is as big as a real tortilla: wider than the face', () => {
+    expect(TORTILLA_RADIUS * 2).toBeGreaterThan(84);
   });
 });
