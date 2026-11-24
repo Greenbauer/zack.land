@@ -9,8 +9,9 @@ export type MediaSource = {
   // (components/collageLayout.ts).
   width?: number;
   height?: number;
-  // An image laid out as its post's largest tile, in its own shape, when the
-  // post has no video (components/PostCollage.tsx).
+  // An image or silent loop laid out as its post's largest tile, in its own
+  // shape, never cropped taller, when the post has no YouTube video (the
+  // first so marked, components/PostCollage.tsx).
   main?: true;
 };
 

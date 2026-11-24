@@ -11,6 +11,7 @@ import {
   SHOWN_SIDED,
 } from '@/components/Background/shownExpressions';
 import { SIDES } from '@/components/Background/sideMorphs';
+import { layOut } from '@/components/PostCollage';
 
 import { Chapter, CHAPTERS } from './chapters';
 
@@ -112,6 +113,33 @@ describe("the home page's story", () => {
       'this-website': 'wireframe',
       'whats-next': 'phone',
     });
+  });
+
+  it('never crops a story loop narrower than its own shape, whatever the room', () => {
+    // An illustration has text to its edges (the pipe's bug reports): cut to
+    // a taller shape, a medium window lost them.
+    for (const { id, content } of CHAPTERS) {
+      const loops = (content.mediaSources ?? []).filter(
+        (m) => m.type === 'video' && m.key.startsWith('/story/'),
+      );
+      if (!loops.length) continue;
+      for (let width = 300; width <= 1400; width += 50)
+        for (let height = 150; height <= 900; height += 50) {
+          const { sources, tiles } = layOut(
+            content.mediaSources!,
+            width,
+            height,
+          );
+          sources.forEach((source, k) => {
+            if (!loops.includes(source) || loops.indexOf(source) > 0) return;
+            const tile = tiles[k]!;
+            expect(
+              tile.width / tile.height,
+              `${id} at ${width} by ${height}`,
+            ).toBeGreaterThan((source.width! / source.height!) * 0.97);
+          });
+        }
+    }
   });
 
   it('ends on Work with me', () => {

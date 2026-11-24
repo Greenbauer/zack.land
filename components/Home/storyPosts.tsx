@@ -13,6 +13,10 @@ import { Content, MediaSource } from '@/types';
 // The facts are from Zack's resume. His current employer is not named, and
 // nothing here gives numbers from that job.
 
+// A loop is its post's main tile (the first, where a post has two), so it
+// keeps its own shape: an illustration has text to its edges, and cropped to
+// a taller shape, as the collage may crop a tile to fill its room, a medium
+// window cut the pipe's bug reports off at the sides.
 const loop = (
   name: string,
   alt: string,
@@ -24,6 +28,7 @@ const loop = (
   type: 'video',
   width,
   height,
+  main: true,
 });
 
 export const TEXAS_TECH: Content = {
