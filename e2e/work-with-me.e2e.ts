@@ -218,30 +218,34 @@ test('the footer speaks to each audience, and here jumps to the form', async ({
   await expect(email).toBeInViewport();
 });
 
-test('the video plays once, muted, as the page opens, and its button pauses and replays it', async ({
+test('the video melts in as the page opens, then plays once, muted, and its button pauses and replays it', async ({
   page,
 }) => {
-  // Where the video was as the dark screen over a first visit went
-  // (data-page-in): it waits for that rather than playing under it.
+  // Whether its tile had come to rest when the video first played: its melt
+  // done (data-whole), or where it can't melt, its slide; and the dark
+  // screen over a first visit gone (data-page-in).
   await page.addInitScript(() =>
-    document.addEventListener('DOMContentLoaded', () => {
-      const html = document.documentElement;
-      const seen = new MutationObserver(() => {
-        if (!html.hasAttribute('data-page-in')) return;
-        seen.disconnect();
-        html.dataset.videoAtPageIn = String(
-          document.querySelector<HTMLVideoElement>('article video')
-            ?.currentTime,
+    document.addEventListener(
+      'playing',
+      () => {
+        const html = document.documentElement;
+        if (html.dataset.firstPlay) return;
+        const figure = document.querySelector('article figure')!;
+        const tile = figure.querySelector('.collage-tile')!;
+        const isAtRest = html.hasAttribute('data-melts')
+          ? figure.hasAttribute('data-whole')
+          : getComputedStyle(tile).transform === 'none';
+        html.dataset.firstPlay = String(
+          isAtRest && html.hasAttribute('data-page-in'),
         );
-      });
-      seen.observe(html, { attributes: true });
-    }),
+      },
+      true,
+    ),
   );
   await opened(page, '/work-with-me');
   const video = page.locator('article video');
-  expect(
-    Number(await page.locator('html').getAttribute('data-video-at-page-in')),
-  ).toBeLessThan(0.5);
+  await expect(page.locator('article figure')).toHaveClass(/collage/);
+  await expect(page.locator('html')).toHaveAttribute('data-first-play', 'true');
   await expect(video).toHaveAttribute('src', '/work-with-me/offer.mp4');
   await expect(video).toHaveAttribute('poster', '/work-with-me/offer.jpg');
   expect(await video.evaluate((v: HTMLVideoElement) => v.muted)).toBe(true);
@@ -277,6 +281,38 @@ test('the video plays once, muted, as the page opens, and its button pauses and 
       video.evaluate((v: HTMLVideoElement) => !v.paused && v.currentTime < 5),
     )
     .toBe(true);
+});
+
+test('with no WebGL the video slides in, then plays', async ({ page }) => {
+  // No melt (MediaMelt.tsx draws it with WebGL), so the tile slides in, as
+  // the 404 page's video does there, and the video waits for that.
+  await page.addInitScript(() => {
+    const getContext = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function (
+      this: HTMLCanvasElement,
+      kind: string,
+      ...rest: unknown[]
+    ) {
+      if (kind.startsWith('webgl')) return null;
+      return getContext.call(this, kind, ...(rest as []));
+    } as typeof getContext;
+    document.addEventListener(
+      'playing',
+      () => {
+        const html = document.documentElement;
+        if (html.dataset.firstPlay) return;
+        const tile = document.querySelector('article figure .collage-tile')!;
+        html.dataset.firstPlay = String(
+          getComputedStyle(tile).transform === 'none' &&
+            html.hasAttribute('data-page-in'),
+        );
+      },
+      true,
+    );
+  });
+  await opened(page, '/work-with-me');
+  await expect(page.locator('html')).not.toHaveAttribute('data-melts');
+  await expect(page.locator('html')).toHaveAttribute('data-first-play', 'true');
 });
 
 test('with reduced motion the video waits for its button', async ({

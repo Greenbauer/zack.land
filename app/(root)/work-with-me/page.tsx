@@ -4,6 +4,7 @@ import { ReactNode } from 'react';
 
 import Button from '@/components/Button';
 import EdgeCard from '@/components/EdgeCard';
+import MediaMelt from '@/components/MediaMelt';
 
 import BuildForm from './BuildForm';
 import OfferVideo from './OfferVideo';
@@ -134,10 +135,12 @@ function Price({
 export default function WorkWithMe() {
   return (
     <div className="relative flex size-full justify-end">
+      {/* The video melts in on this, behind the card (OfferVideo.tsx). */}
+      <MediaMelt />
       {/* The contact page's card: its glass runs out past the window's
           right side (and a phone's left), and it slides in from the left as
           what is on it fades in. */}
-      <EdgeCard className="motion-safe:animate-card-in">
+      <EdgeCard className="relative z-20 motion-safe:animate-card-in">
         <article className="flex flex-col gap-4 pb-6 motion-safe:animate-content-in">
           <h2>
             I build AI tools that handle the repetitive work for small teams
