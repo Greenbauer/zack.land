@@ -133,9 +133,23 @@ export default function Story() {
     [],
   );
 
+  // Watch my story: under the name on a wide screen; on a phone, in the
+  // footer in place of the scroll arrow while the opening shows
+  // (ScrollArrows' `lead`), so the name keeps its place under the header.
+  const watch = !isStill && (
+    <Button
+      onClick={() => {
+        setWatching(true);
+        requestGlide(1);
+      }}
+    >
+      Watch my story
+    </Button>
+  );
+
   return (
     <div className="flex w-full">
-      <ScrollArrows />
+      <ScrollArrows lead={watch || undefined} />
       <div className="flex min-w-0 flex-1 flex-col gap-[var(--post-gap)]">
         <SnapPager />
         <MediaMelt />
@@ -148,19 +162,12 @@ export default function Story() {
         >
           <TitleBox>
             <Title />
-            {!isStill && (
+            {watch && (
               <div
                 data-watch
-                className="mt-6 flex justify-center lg:justify-start"
+                className="mt-6 flex justify-center max-md:hidden lg:justify-start"
               >
-                <Button
-                  onClick={() => {
-                    setWatching(true);
-                    requestGlide(1);
-                  }}
-                >
-                  Watch my story
-                </Button>
+                {watch}
               </div>
             )}
           </TitleBox>

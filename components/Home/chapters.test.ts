@@ -131,7 +131,7 @@ describe("the home page's story", () => {
             height,
           );
           sources.forEach((source, k) => {
-            if (!loops.includes(source) || loops.indexOf(source) > 0) return;
+            if (!loops.includes(source)) return;
             const tile = tiles[k]!;
             expect(
               tile.width / tile.height,

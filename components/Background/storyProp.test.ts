@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { StoryCue } from './storyCue';
 import { phoneSwap, propTarget } from './storyProp';
+import { ARM_COLOURS } from './StoryProps';
 
 const cue = (prop: StoryCue['prop']): StoryCue => ({
   beats: [],
@@ -35,7 +36,6 @@ describe("a chapter's prop", () => {
     const now = {
       sunglasses: 0,
       sleepmask: 0,
-      plane: 0,
       tortillas: 0,
       wireframe: 0.9,
       phone: 0.3,
@@ -45,5 +45,20 @@ describe("a chapter's prop", () => {
       0,
     );
     expect(propTarget(cue('sleepmask'), 'wireframe', now)).toBe(0);
+  });
+});
+
+describe('the sunglasses arms', () => {
+  it('are one pink arm and one orange arm, each with its word in its own colour', () => {
+    const colour = Object.fromEntries(ARM_COLOURS);
+    expect(colour.left).toBe(colour.leftText);
+    expect(colour.right).toBe(colour.rightText);
+    expect(new Set(Object.values(colour)).size).toBe(2);
+    expect(ARM_COLOURS.map(([part]) => part).sort()).toEqual([
+      'left',
+      'leftText',
+      'right',
+      'rightText',
+    ]);
   });
 });

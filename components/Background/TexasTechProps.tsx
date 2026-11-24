@@ -28,7 +28,6 @@ import {
   TORTILLA_RADIUS,
 } from './tortillaFlight';
 import { holdOf, poseThrow } from './tortillaPose';
-import { useOnceCued } from './useOnceCued';
 
 // The home page's Texas Tech chapter, on the head itself: a graduation cap
 // (capGeometry.ts) that drops onto it and turns with it, as the sunglasses
@@ -167,26 +166,28 @@ function turnWith(geometry: BufferGeometry, head: number) {
   }
 }
 
-async function loadCarriedCap(): Promise<Cap> {
+// The cap, carried with the head. StoryProps fetches it (useOnceCued), so
+// the page is told of the tortillas only once the cap is in too.
+export async function loadCarriedCap(): Promise<Cap> {
   const cap = await loadCap();
   for (const part of CAP_PARTS) carried(cap[part]);
   return cap;
 }
 
 export default function TexasTechProps({
+  cap,
   spread,
   amounts,
   skin,
 }: {
+  // The cap, null until it has loaded.
+  cap: Cap | null;
   // The distance between the head's eyes: its own measure.
   spread: number;
   amounts: RefObject<Record<StoryProp, number>>;
   // The head's skin, which a tortilla thrown at the face drapes over.
   skin: BufferGeometry;
 }) {
-  // The cap, fetched once the story has started (a chapter's cue): its own
-  // chapter is the first, so it is usually there as that card arrives.
-  const cap = useOnceCued(loadCarriedCap);
   const weave = useMemo(() => clothWeave(), []);
   const tortilla = useMemo(
     () => ({ shape: tortillaShape(TORTILLA_RADIUS), face: tortillaFace() }),

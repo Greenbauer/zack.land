@@ -39,6 +39,10 @@ const FLEX = 0.36;
 const DROOP = 0.058;
 const BACK = 0.75;
 const CURL = 0.5;
+// How much more the right arm (at -x) flexes out than the left: the scanned
+// head is not quite even, its right ear's inner wall about a unit further
+// out, and with the left's flex that arm stopped 2 mm short of the ear.
+const RIGHT_FLEX = 0.045;
 
 export type Fitted = Glasses & {
   // How far above its place the pair drops from.
@@ -74,7 +78,7 @@ export function fitGlasses(
         p.fromBufferAttribute(position, k);
         const along = (hinge.z - p.z) * ARM;
         const out = p.x - hinge.x;
-        const flex = (FLEX * along) / length;
+        const flex = ((FLEX + (side < 0 ? RIGHT_FLEX : 0)) * along) / length;
         const turn = OPEN + flex;
         const past = Math.max(0, along / length - BACK);
         const down = DROOP * along + CURL * length * past * past;

@@ -72,6 +72,10 @@ test.describe('on a wide screen', () => {
       // longer than the default wait to bring the card in.
       await expect(title(page, k)).toBeVisible({ timeout: 20_000 });
       await expect(title(page, k)).toHaveText(chapter.content.name);
+      if (k === 0)
+        await expect(post(page, 0).locator('section')).toContainText(
+          'Hi, I’m Zack. Well, the head part.',
+        );
       if (chapter.content.mediaSources?.length)
         await expect(
           post(page, k).locator('.collage-tile').first(),
@@ -233,6 +237,62 @@ test.describe('on a phone', () => {
     const card = await post(page, 1).locator('section').boundingBox();
     // The tiles tuck 8px under the card's top, as a post's do (Post.tsx).
     expect(tile!.y + tile!.height).toBeLessThanOrEqual(card!.y + 10);
+  });
+
+  test('keeps the name in its place, with Watch my story where the scroll arrow is', async ({
+    page,
+  }) => {
+    await open(page);
+    // The name centred 40px plus a tenth of the window down, as it was
+    // before the story (TitleBox.tsx), not pushed up toward the menu.
+    const name = await post(page, -1)
+      .locator('[data-head-avoid]')
+      .boundingBox();
+    expect(
+      Math.abs(name!.y + name!.height / 2 - (40 + 0.1 * 812)),
+    ).toBeLessThan(3);
+    // Watch sits in the footer, in the scroll arrow's place.
+    const watch = page.getByRole('button', { name: 'Watch my story' });
+    await expect(watch).toHaveCount(1);
+    await expect(page.locator('footer').locator('[data-watch]')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Scroll down' })).toHaveCount(
+      0,
+    );
+    // A turn on, the arrow is back in its place, and Watch is gone.
+    await turn(page);
+    await expect(title(page, 0)).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'Scroll down' }),
+    ).toBeVisible();
+    await expect(watch).toHaveCount(0);
+  });
+
+  test('fetches no prop while the head is off the screen, and fetches them once it shows', async ({
+    page,
+  }) => {
+    // The props' files (StoryProps.tsx, PhoneCall.tsx).
+    const PROPS = /\/(glasses|cap|wire)\.[^/]*bin$|head-call\.|lens\/logo\./;
+    const fetched: string[] = [];
+    page.on('request', (r) => {
+      if (PROPS.test(r.url())) fetched.push(r.url());
+    });
+    await open(page);
+    // Through Banner Eyewear's chapter: the head steps off the screen for
+    // each card, so none comes.
+    for (let k = 0; k < 3; k++) {
+      await turn(page);
+      await expect(title(page, k)).toBeVisible({ timeout: 20_000 });
+      await page.waitForTimeout(1500);
+    }
+    await page.waitForTimeout(3000);
+    expect(fetched).toEqual([]);
+    // Widened, the head comes back beside the card, and they come.
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await expect
+      .poll(() => fetched.some((url) => /glasses\./.test(url)), {
+        timeout: 30_000,
+      })
+      .toBe(true);
   });
 });
 

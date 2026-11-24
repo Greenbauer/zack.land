@@ -14,10 +14,10 @@ import {
   Vector3,
 } from 'three';
 
-import { headMood } from './headMood';
 import { HEAD_LIFT } from './headPlace';
 import { slideOff } from './slideOff';
 import { phoneSwap } from './storyProp';
+import { propsMayLoad } from './useOnceCued';
 
 // The home page's last chapter, What's Next: the head steps aside for a
 // phone, standing where it was and turned a little toward the card, that
@@ -210,13 +210,13 @@ export default function PhoneCall({
     [parts],
   );
   // The head's recording and its poster (its first frame, shown until it
-  // plays), fetched once the story has started (a chapter's cue), well
-  // before this chapter comes round.
+  // plays), fetched once the story's props may (propsMayLoad: a chapter's
+  // cue, with the head on the screen), well before this chapter comes round.
   const video = useRef<HTMLVideoElement | null>(null);
   const poster = useRef<HTMLImageElement | null>(null);
   useEffect(() => {
     const timer = setInterval(() => {
-      if (!headMood.cue) return;
+      if (!propsMayLoad()) return;
       clearInterval(timer);
       const v = document.createElement('video');
       Object.assign(v, {

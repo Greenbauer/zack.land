@@ -20,7 +20,7 @@ import SleepMaskProp from './SleepMaskProp';
 import { isStill } from './stillScene';
 import { StoryProp } from './storyCue';
 import { PHONE_SECONDS, propTarget } from './storyProp';
-import TexasTechProps from './TexasTechProps';
+import TexasTechProps, { loadCarriedCap } from './TexasTechProps';
 import { useOnceCued } from './useOnceCued';
 import WireHead from './WireHead';
 
@@ -46,6 +46,14 @@ const PRINTED_SKY = 0.15;
 const FRAME_GREY = '#4c4740';
 const ARM_ORANGE = '#e8430a';
 const ARM_PINK = '#cc1f7a';
+// Each arm and its word in one colour: EYEWEAR's (left) pink, BANNER's
+// (right) orange.
+export const ARM_COLOURS = [
+  ['left', ARM_PINK],
+  ['leftText', ARM_PINK],
+  ['right', ARM_ORANGE],
+  ['rightText', ARM_ORANGE],
+] as const;
 
 // The sky the lenses mirror, turned so the dawn's horizon is in them whichever
 // way the scene's own sky is turned: half the time that has its dark side
@@ -57,12 +65,14 @@ const IN_RATE = 3;
 const OUT_RATE = 3.5;
 
 // Names what the scene shows on the page, as data-story-prop on <html>: each
-// prop once it is well in (the sunglasses once their model has loaded).
-function nameDrawn(amounts: Record<StoryProp, number>, hasGlasses: boolean) {
+// prop once it is well in and drawn (the sunglasses once their model has
+// loaded, the tortillas once the cap has: `loaded`).
+function nameDrawn(
+  amounts: Record<StoryProp, number>,
+  loaded: Partial<Record<StoryProp, boolean>>,
+) {
   const named = (Object.keys(amounts) as StoryProp[])
-    .filter(
-      (prop) => amounts[prop] > 0.5 && (prop !== 'sunglasses' || hasGlasses),
-    )
+    .filter((prop) => amounts[prop] > 0.5 && loaded[prop] !== false)
     .join(' ');
   const root = document.documentElement;
   if (root.dataset.storyProp !== named) root.dataset.storyProp = named;
@@ -84,9 +94,12 @@ export default function StoryProps({
     () => Math.abs(centre(rightEye).x - centre(leftEye).x),
     [leftEye, rightEye],
   );
-  // The sunglasses, fetched once the story has started (a chapter's cue),
-  // well before Banner Eyewear's chapter comes round.
+  // The sunglasses and the cap, fetched once the story's props may load
+  // (useOnceCued), the sunglasses well before Banner Eyewear's chapter comes
+  // round; the cap's is the first, so it is usually there as that card
+  // arrives.
   const model = useOnceCued(loadGlasses);
+  const cap = useOnceCued(loadCarriedCap);
   // The builder's own lens logo (public/story/lens, from banner-builder's
   // Textures/Lens), loaded with the glasses.
   const lensLogo = useMemo(() => {
@@ -129,7 +142,7 @@ export default function StoryProps({
           : was + (target - was) * Math.min(1, rate * delta);
     }
     const { sunglasses: wearing } = amount.current;
-    nameDrawn(amount.current, !!glasses);
+    nameDrawn(amount.current, { sunglasses: !!glasses, tortillas: !!cap });
     phoneShown.value = amount.current.phone;
 
     // The sunglasses drop from above onto the face, slowing as they land.
@@ -188,14 +201,7 @@ export default function StoryProps({
               onBeforeCompile={turnHead}
             />
           </mesh>
-          {(
-            [
-              ['left', ARM_PINK],
-              ['leftText', ARM_PINK],
-              ['right', ARM_ORANGE],
-              ['rightText', ARM_ORANGE],
-            ] as const
-          ).map(([part, color]) => (
+          {ARM_COLOURS.map(([part, color]) => (
             <mesh key={part} geometry={glasses[part]}>
               <meshStandardMaterial
                 color={color}
@@ -214,7 +220,7 @@ export default function StoryProps({
         amounts={amount}
       />
       <WireHead skin={skin} skinRef={skinRef} amounts={amount} />
-      <TexasTechProps spread={spread} amounts={amount} skin={skin} />
+      <TexasTechProps cap={cap} spread={spread} amounts={amount} skin={skin} />
     </>
   );
 }

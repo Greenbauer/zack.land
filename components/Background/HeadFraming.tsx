@@ -6,7 +6,13 @@ import { PerspectiveCamera } from 'three';
 
 import { menuOpen } from './focusBlur';
 import { BODY_TURN } from './headLook';
-import { framedHead, HEAD_LIFT, headCentre, stepHead } from './headPlace';
+import {
+  framedHead,
+  HEAD_LIFT,
+  headBesideCard,
+  headCentre,
+  stepHead,
+} from './headPlace';
 import {
   IN_MOUTH,
   intro,
@@ -134,7 +140,9 @@ export default function HeadFraming() {
         see(intro.state.phase === 'flying');
         return;
       }
-      target.current = place(beside.some((box) => box.card));
+      const byCard = beside.some((box) => box.card);
+      target.current = place(byCard);
+      if (byCard) headBesideCard.x = target.current;
       // A place off the window (a card arriving over the head) starts no
       // count: the head is on its way off, a frame later, or seconds on a
       // starved runner. On the first load it is at the intro's place until

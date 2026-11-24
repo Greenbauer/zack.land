@@ -136,6 +136,15 @@ describe('the sunglasses on the head', () => {
       const under = Math.min(...over.map((p) => p.y));
       expect(under - top).toBeGreaterThan(-4);
       expect(under - top).toBeLessThan(0.5);
+      // And touches it there: the arm comes within a few tenths of a unit
+      // (under a millimetre) of the skin round the ear's top.
+      const gap = Math.min(
+        ...arm
+          .filter((p) => p.z < highest.z + 6 && p.z > highest.z - 10)
+          .map((p) => -headDepth(p))
+          .filter(Number.isFinite),
+      );
+      expect(gap, part).toBeLessThan(0.3);
       // Its tip is behind the ear, and hooks down below its top.
       const tip = arm.filter((p) => p.z < back);
       expect(tip.length).toBeGreaterThan(0);

@@ -47,6 +47,11 @@ export const HEAD_LIFT = 5;
 // frame.
 export const framedHead = { x: Number.NaN, speed: 0 };
 
+// Where the head's middle goes while a post's card shows (HeadFraming,
+// measured ten times a second): below 0 where it steps off the window for
+// the card, as on a phone; NaN until a card has shown.
+export const headBesideCard = { x: Number.NaN };
+
 // About how long the head takes to glide to a new place, in seconds.
 export const GLIDE_SECONDS = 0.9;
 
