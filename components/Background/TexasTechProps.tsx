@@ -6,6 +6,7 @@ import {
   DoubleSide,
   Float32BufferAttribute,
   Group,
+  Mesh,
   RepeatWrapping,
   RingGeometry,
   SRGBColorSpace,
@@ -18,8 +19,10 @@ import { turnHead } from './headTurn';
 import type { StoryProp } from './storyCue';
 import { drapeOnto, drapeSurface, sideOf } from './tortillaDrape';
 import {
-  FLIGHTS,
+  FLIGHT,
   HIT,
+  HIT_PHASE,
+  HIT_SECONDS,
   HIT_SIDE,
   TORTILLA_RADIUS,
   tortillaAt,
@@ -28,8 +31,8 @@ import {
 // The home page's Texas Tech chapter, on the head itself: a graduation cap
 // (capGeometry.ts) that drops onto it and turns with it, as the sunglasses
 // do, and
-// tortillas thrown clear across the screen behind it, one now and then
-// hitting it on the cheek, as they flew at every kickoff (tortillaFlight.ts).
+// a tortilla thrown at the side of its head now and then, as they flew at
+// every kickoff (tortillaFlight.ts).
 // in each prop is (StoryProps.tsx).
 
 // A flour tortilla's face: pale and floury, with scattered toasted blisters
@@ -193,22 +196,16 @@ export default function TexasTechProps({
     () => ({ shape: tortillaShape(TORTILLA_RADIUS), face: tortillaFace() }),
     [],
   );
-  // The surface over the face a tortilla drapes onto, and each thrown at
-  // the face's own copy of the shape, which bends to lie on it.
+  // The surface on the side of the head the tortilla drapes onto, and its
+  // own copy of the shape, which bends to lie on it.
   const frame = useMemo(() => sideOf(HIT_SIDE, HIT.middle), []);
   const surface = useMemo(
     () => drapeSurface(skin.getAttribute('position').array, frame),
     [skin, frame],
   );
-  const draping = useMemo(
-    () =>
-      FLIGHTS.map((flight) =>
-        flight.hits ? carried(tortilla.shape.clone()) : tortilla.shape,
-      ),
-    [tortilla],
-  );
+  const draping = useMemo(() => carried(tortilla.shape.clone()), [tortilla]);
   const capRef = useRef<Group>(null);
-  const tossRef = useRef<Group>(null);
+  const tossRef = useRef<Mesh>(null);
 
   useFrame(() => {
     const amount = amounts.current.tortillas;
@@ -221,49 +218,38 @@ export default function TexasTechProps({
     tossRef.current.visible = amount > 0.01;
     const cue = headMood.cue;
     const t = cue ? performance.now() / 1000 - cue.since : 0;
-    tossRef.current.children.forEach((child, k) => {
-      const flight = FLIGHTS[k]!;
-      const u = (((t / flight.seconds + flight.phase) % 1) + 1) % 1;
-      const at = tortillaAt(flight, u);
-      // Flying, it spins like a thrown disc; on the face it lies flat on it,
-      // its shape bent over the face (tortillaDrape.ts).
-      // (Lying on the face, it is laid out in the head's own place, so it
-      // takes no turn of its own.)
-      const flying = at.drape > 0 ? 0 : 1;
-      child.rotation.set(
-        flying *
-          (-Math.PI / 2 + flight.lean + Math.sin(t * 3 + k) * flight.wobble),
-        flying * Math.sin(t * 2.2 + k * 2) * flight.wobble,
-        flying * t * flight.spin,
+    const toss = tossRef.current;
+    const at = tortillaAt((((t / HIT_SECONDS + HIT_PHASE) % 1) + 1) % 1);
+    // Flying, it spins like a thrown disc; on the head it lies there,
+    // laid out in the head's own place and bent over it
+    // (tortillaDrape.ts), turning with it.
+    const flying = at.drape > 0 ? 0 : 1;
+    toss.rotation.set(
+      flying * (-Math.PI / 2 + FLIGHT.lean + Math.sin(t * 3) * FLIGHT.wobble),
+      flying * Math.sin(t * 2.2) * FLIGHT.wobble,
+      flying * t * FLIGHT.spin,
+    );
+    turnWith(draping, at.drape > 0);
+    const position = draping.getAttribute('position');
+    const rest = tortilla.shape.getAttribute('position').array;
+    if (at.drape > 0) {
+      toss.position.set(0, 0, 0);
+      drapeOnto(
+        rest,
+        { across: 0, up: at.up },
+        surface,
+        frame,
+        at.drape,
+        HIT.out,
+        position.array as Float32Array,
       );
-      if (!flight.hits) {
-        child.position.set(at.x, at.y, at.z);
-      } else {
-        const geometry = draping[k]!;
-        turnWith(geometry, at.drape > 0);
-        const position = geometry.getAttribute('position');
-        if (at.drape > 0) {
-          child.position.set(0, 0, 0);
-          drapeOnto(
-            tortilla.shape.getAttribute('position').array,
-            { across: 0, up: at.up },
-            surface,
-            frame,
-            at.drape,
-            HIT.out,
-            position.array as Float32Array,
-          );
-        } else {
-          child.position.set(at.x, at.y, at.z);
-          (position.array as Float32Array).set(
-            tortilla.shape.getAttribute('position').array,
-          );
-        }
-        position.needsUpdate = true;
-        geometry.computeVertexNormals();
-      }
-      child.scale.setScalar(amount);
-    });
+    } else {
+      toss.position.set(at.x, at.y, at.z);
+      (position.array as Float32Array).set(rest);
+    }
+    position.needsUpdate = true;
+    draping.computeVertexNormals();
+    toss.scale.setScalar(amount);
   });
 
   return (
@@ -315,18 +301,14 @@ export default function TexasTechProps({
           </>
         )}
       </group>
-      <group ref={tossRef} visible={false}>
-        {FLIGHTS.map((_, k) => (
-          <mesh key={k} geometry={draping[k]}>
-            <meshStandardMaterial
-              map={tortilla.face}
-              roughness={0.95}
-              side={DoubleSide}
-              onBeforeCompile={FLIGHTS[k]!.hits ? turnHead : undefined}
-            />
-          </mesh>
-        ))}
-      </group>
+      <mesh ref={tossRef} geometry={draping} visible={false}>
+        <meshStandardMaterial
+          map={tortilla.face}
+          roughness={0.95}
+          side={DoubleSide}
+          onBeforeCompile={turnHead}
+        />
+      </mesh>
     </>
   );
 }

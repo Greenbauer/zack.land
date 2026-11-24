@@ -36,7 +36,7 @@ import { isStill } from './stillScene';
 import { StoryProp } from './storyCue';
 import { propTarget } from './storyProp';
 import TexasTechProps from './TexasTechProps';
-import { wireIndex } from './wireSeam';
+import { wireStrength } from './wireSeam';
 
 // What a chapter of the home page's story brings into the scene around the
 // head (components/Home/chapters.ts, through headMood.cue): sunglasses that
@@ -86,7 +86,9 @@ function fitGlasses(
     back: eyes.z - spread,
     front: eyes.z - spread * 0.5,
   });
-  const scale = temples / (frame.max.x - frame.min.x);
+  // A touch narrower than the temples: as wide as them, it stood out past
+  // them as the head turned.
+  const scale = (FRAME_WIDTH * temples) / (frame.max.x - frame.min.x);
   // The bridge's back (the frame's rearmost point near its middle), in the
   // model's millimetres.
   const positions = glasses.frame.getAttribute('position');
@@ -177,7 +179,16 @@ const MOST_TILT = (15 * Math.PI) / 180;
 
 // How much of the sky's light the printed frame and arms take: little, so
 // they keep their own colours.
-const PRINTED_SKY = 0.3;
+const PRINTED_SKY = 0.15;
+// The pair's colours as the laptop photo shows them under this scene's
+// lavender light, which lifts and cools colours: a mid grey, a true orange
+// and a deep pink (the builder's #9c9b96, #f57a3d and #d742a0 came out
+// lilac-white, peach and candy pink).
+const FRAME_GREY = '#454440';
+const ARM_ORANGE = '#e8430a';
+const ARM_PINK = '#cc1f7a';
+// How wide the frame is against the head at the temples.
+const FRAME_WIDTH = 0.94;
 
 // A folded paper plane, nose along -x: two wings meeting at a keel.
 function paperPlane() {
@@ -265,19 +276,22 @@ export default function StoryProps({
   });
   const glassesRef = useRef<Group>(null);
   const wireRef = useRef<Mesh>(null);
-  // The wireframe's own triangles over the skin's points and expressions:
-  // the skin's, thinned at the seam round the neck (wireSeam.ts).
+  // The wireframe: the skin's own points, triangles and expressions, each
+  // point's lines drawn as strongly as wireSeam.ts says (fainter where the
+  // seam round the neck crowds them), as its colours' alpha.
   const wire = useMemo(() => {
     const geometry = new BufferGeometry();
-    geometry.attributes = skin.attributes;
+    geometry.attributes = { ...skin.attributes };
     geometry.morphAttributes = skin.morphAttributes;
     geometry.morphTargetsRelative = skin.morphTargetsRelative;
-    geometry.setIndex(
-      new BufferAttribute(
-        wireIndex(skin.getAttribute('position').array, skin.getIndex()!.array),
-        1,
-      ),
+    geometry.setIndex(skin.getIndex());
+    const strength = wireStrength(
+      skin.getAttribute('position').array,
+      skin.getIndex()!.array,
     );
+    const colours = new Float32Array(strength.length * 4).fill(1);
+    strength.forEach((a, i) => (colours[i * 4 + 3] = a));
+    geometry.setAttribute('color', new BufferAttribute(colours, 4));
     return geometry;
   }, [skin]);
   const planeRef = useRef<Group>(null);
@@ -344,7 +358,7 @@ export default function StoryProps({
               mirror: they show the sky. */}
           <mesh geometry={glasses.frame}>
             <meshStandardMaterial
-              color="#8f8e89"
+              color={FRAME_GREY}
               roughness={0.85}
               envMapIntensity={PRINTED_SKY}
               onBeforeCompile={turnHead}
@@ -373,10 +387,10 @@ export default function StoryProps({
           </mesh>
           {(
             [
-              ['left', '#d742a0'],
-              ['leftText', '#d742a0'],
-              ['right', '#f57a3d'],
-              ['rightText', '#f57a3d'],
+              ['left', ARM_PINK],
+              ['leftText', ARM_PINK],
+              ['right', ARM_ORANGE],
+              ['rightText', ARM_ORANGE],
             ] as const
           ).map(([part, color]) => (
             <mesh key={part} geometry={glasses[part]}>
@@ -401,6 +415,7 @@ export default function StoryProps({
             hardly showed on the light sky. */}
         <meshBasicMaterial
           color={head.indigo}
+          vertexColors
           wireframe
           transparent
           depthWrite={false}

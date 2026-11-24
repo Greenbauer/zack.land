@@ -35,6 +35,8 @@ export const PUFF = 0.11;
 const ROUND = 0.22;
 // The strap: its heights, and how far it lies off the skin.
 const STRAP = { low: 0.26, high: 0.38, lift: 0.015 };
+// How much the outline's drawn shape is narrowed to sit within the face.
+const WIDTH = 0.84;
 // The grid the pad is drawn on.
 const PAD_ACROSS = 220;
 const PAD_UP = 90;
@@ -53,7 +55,8 @@ export function maskOutline(): Vector2[] {
   half.bezierCurveTo(1.45, 0.3, 1.45, -0.12, 1.25, -0.28);
   half.bezierCurveTo(1.05, -0.46, 0.62, -0.52, 0.38, -0.4);
   half.bezierCurveTo(0.22, -0.32, 0.12, -0.12, 0, -0.1);
-  const right = half.getPoints(48);
+  // As wide as the face, no wider: drawn wider, it stood out past the head.
+  const right = half.getPoints(48).map((p) => new Vector2(p.x * WIDTH, p.y));
   const left = right
     .slice(1, -1)
     .reverse()
@@ -242,27 +245,46 @@ function padSheet(outline: Vector2[], bounds: Bounds, place: Place) {
   return sheet;
 }
 
-// The long curly lashes: from each closed lid, LASHES of them hang down and
-// curl up and outward at their tips, longer toward the eye's outer corner.
+// The long curly lashes: from each closed lid, LASHES of them hang down,
+// then curl up and round at their tips in a loop, longer toward the eye's
+// outer corner, standing out from the pad.
 const LASHES = 7;
+const CURL_STEPS = 10;
+function lashCurve(root: Vector2, side: 1 | -1, t: number, place: Place) {
+  const outer = (side * t + 1) / 2;
+  const length = 0.18 + 0.14 * outer;
+  // Each leans away from the middle of its eye, more toward the corners.
+  const lean = 0.25 * t * LIDS.half;
+  const curl = length * 0.32;
+  // Straight down from the lid, then round a loop that turns out and up.
+  const centre = new Vector2(
+    root.x + lean + side * curl * 0.2,
+    root.y - length + curl,
+  );
+  const points = [
+    place(root.x, root.y, PUFF * 0.9),
+    place(root.x + lean * 0.5, root.y - length * 0.45, PUFF + 0.06),
+  ];
+  for (let k = 0; k <= CURL_STEPS; k++) {
+    // From the bottom of the loop, round outward and up, and a little past.
+    const a = -Math.PI / 2 + side * (k / CURL_STEPS) * Math.PI * 1.35;
+    points.push(
+      place(
+        centre.x + curl * Math.cos(a),
+        centre.y + curl * Math.sin(a),
+        PUFF + 0.12 + 0.12 * (k / CURL_STEPS),
+      ),
+    );
+  }
+  return new CatmullRomCurve3(points);
+}
 function lashTubes(place: Place, spread: number): BufferGeometry {
   const tubes: BufferGeometry[] = [];
   for (const side of [-1, 1] as const)
     for (let k = 0; k < LASHES; k++) {
       const t = -0.85 + (1.7 * k) / (LASHES - 1);
-      const root = lidAt(side, t);
-      const outer = (side * t + 1) / 2;
-      const length = 0.2 + 0.16 * outer;
-      const lean = (0.03 + 0.14 * outer) * Math.sign(t * side || 1) * side;
-      const points = [
-        place(root.x, root.y, PUFF * 0.95),
-        place(root.x + lean * 0.4, root.y - length * 0.5, PUFF + 0.08),
-        place(root.x + lean * 0.9, root.y - length * 0.9, PUFF + 0.2),
-        place(root.x + lean * 1.4, root.y - length * 0.7, PUFF + 0.32),
-      ];
-      tubes.push(
-        new TubeGeometry(new CatmullRomCurve3(points), 20, spread * 0.02, 6),
-      );
+      const curve = lashCurve(lidAt(side, t), side, t, place);
+      tubes.push(new TubeGeometry(curve, 40, spread * 0.018, 6));
     }
   return mergeGeometries(tubes);
 }
@@ -313,9 +335,14 @@ function smoothAcross(
   const raw = Array.from({ length: SAMPLES + 1 }, (_, k) =>
     reach(from + ((to - from) * k) / SAMPLES),
   );
-  const even = raw.map((_, k) => {
-    const near = raw.slice(Math.max(0, k - SMOOTH), k + SMOOTH + 1);
-    return Math.max(raw[k]!, near.reduce((a, b) => a + b, 0) / near.length);
+  // Raised to the furthest out nearby, then averaged: smooth, and still
+  // clear of the head.
+  const window = (values: number[], k: number) =>
+    values.slice(Math.max(0, k - SMOOTH), k + SMOOTH + 1);
+  const raised = raw.map((_, k) => Math.max(...window(raw, k)));
+  const even = raised.map((_, k) => {
+    const near = window(raised, k);
+    return near.reduce((a, b) => a + b, 0) / near.length;
   });
   return (angle: number) => {
     const at = ((acrossOf(angle) - from) / (to - from)) * SAMPLES;

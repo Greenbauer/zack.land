@@ -1,44 +1,52 @@
 import { describe, expect, it } from 'vitest';
 
 import { meshes } from './headFixture';
-import { aboveSeam, wireIndex } from './wireSeam';
+import { aboveSeam, linesPerBand, wireStrength } from './wireSeam';
 
 describe("the wireframe's seam round the neck", () => {
   const { positions, indices } = meshes.get('skin')!;
-  const wire = wireIndex(positions, indices);
-  // How many triangles have their middle in each 2-unit band above (or
-  // below) the seam, round the back and sides of the neck.
-  const bands = (index: ArrayLike<number>) => {
-    const count = new Map<number, number>();
-    for (let t = 0; t < index.length; t += 3) {
-      const [y, z] = [1, 2].map(
-        (axis) =>
-          [0, 1, 2].reduce(
-            (sum, k) => sum + positions[index[t + k]! * 3 + axis]!,
-            0,
-          ) / 3,
-      );
-      const band = Math.round(aboveSeam(y!, z!) / 2) * 2;
-      count.set(band, (count.get(band) ?? 0) + 1);
-    }
-    return count;
-  };
+  const count = linesPerBand(positions, indices);
+  const strength = wireStrength(positions, indices);
+  // How dark each 2-unit band draws: its lines, each as strong as its ends
+  // on average.
+  const darkness = (() => {
+    const out = new Map<number, number>();
+    const seen = new Set<string>();
+    for (let t = 0; t < indices.length; t += 3)
+      for (let k = 0; k < 3; k++) {
+        const a = indices[t + k]!;
+        const b = indices[t + ((k + 1) % 3)]!;
+        const key = a < b ? `${a} ${b}` : `${b} ${a}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const band = Math.round(
+          aboveSeam(
+            (positions[a * 3 + 1]! + positions[b * 3 + 1]!) / 2,
+            (positions[a * 3 + 2]! + positions[b * 3 + 2]!) / 2,
+          ) / 2,
+        );
+        out.set(band, (out.get(band) ?? 0) + (strength[a]! + strength[b]!) / 2);
+      }
+    return out;
+  })();
+  const around = [darkness.get(5)!, darkness.get(-6)!];
 
-  it('is no denser at the seam than either side of it', () => {
-    const skin = bands(indices);
-    const drawn = bands(wire);
-    // The skin itself is crowded there: that was the line.
-    expect(skin.get(-2)!).toBeGreaterThan(1.8 * skin.get(10)!);
-    // Its wireframe is not.
-    const around = Math.max(drawn.get(10)!, drawn.get(-12)!);
-    for (const band of [-4, -2, 0])
-      expect(drawn.get(band)!).toBeLessThan(1.3 * around);
+  it('was crowded at the seam: that was the line', () => {
+    expect(count.get(-1)!).toBeGreaterThan(1.8 * count.get(5)!);
   });
 
-  it('leaves the rest of the head as it is', () => {
-    const skin = bands(indices);
-    const drawn = bands(wire);
-    for (const band of [-30, -20, 20, 30])
-      expect(drawn.get(band)).toBe(skin.get(band));
+  it('draws the seam about as dark as the neck either side, no line and no gap', () => {
+    for (const band of [-2, -1, 0]) {
+      expect(darkness.get(band)!).toBeLessThan(1.25 * Math.max(...around));
+      expect(darkness.get(band)!).toBeGreaterThan(0.75 * Math.min(...around));
+    }
+  });
+
+  it('draws the rest of the head at full strength', () => {
+    for (let i = 0; i < strength.length; i += 97)
+      if (
+        Math.abs(aboveSeam(positions[i * 3 + 1]!, positions[i * 3 + 2]!)) > 20
+      )
+        expect(strength[i]).toBe(1);
   });
 });
