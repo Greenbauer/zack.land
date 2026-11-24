@@ -31,8 +31,14 @@ const TILT = 0.12;
 const OPEN = 0.02;
 const FLEX = 0.36;
 // How far each arm is angled down at its hinge, in radians, so it comes down
-// from the brow to rest on the top of the ear, as worn arms do.
-const DROOP = 0.05;
+// from the brow to rest on the top of the ear, as worn arms do; and, past the
+// ear's top (BACK of the arm's length from the hinge), how much more it curls
+// down behind the ear (CURL, of the arm's length at its tip, by the square of
+// the way past BACK), so its back half sits on the ear rather than arching
+// over it.
+const DROOP = 0.058;
+const BACK = 0.75;
+const CURL = 0.5;
 
 export type Fitted = Glasses & {
   // How far above its place the pair drops from.
@@ -70,10 +76,12 @@ export function fitGlasses(
         const out = p.x - hinge.x;
         const flex = (FLEX * along) / length;
         const turn = OPEN + flex;
+        const past = Math.max(0, along / length - BACK);
+        const down = DROOP * along + CURL * length * past * past;
         position.setXYZ(
           k,
           hinge.x + side * (OPEN + flex / 2) * along + out * Math.cos(turn),
-          p.y - DROOP * along,
+          p.y - down,
           hinge.z -
             along * (1 - (turn * turn) / 6) +
             side * out * Math.sin(turn),

@@ -59,16 +59,17 @@ describe('the sunglasses on the head', () => {
     }
   });
 
-  it('only lengthens and flexes its arms: nothing on them is stretched further', () => {
+  it('only lengthens, flexes and curls its arms: nothing on them is stretched further', () => {
     for (const part of ['left', 'right', 'leftText', 'rightText'] as const) {
       const at = worn(part);
-      // Points near each other stay as far apart.
+      // Points near each other stay as far apart, but for the arm's length
+      // and the little the curl behind the ear adds.
       for (let k = 0; k + 9 < at.real.length; k += 3 * 41) {
         const real = apart(at.real, k, k + 3);
         if (real < 1) continue;
         const ratio = (apart(at.worn, k, k + 3) * UNIT_MM) / real;
         expect(ratio).toBeGreaterThan(0.9);
-        expect(ratio).toBeLessThan(1.1 * ARM);
+        expect(ratio).toBeLessThan(1.15 * ARM);
       }
     }
   });
@@ -133,7 +134,7 @@ describe('the sunglasses on the head', () => {
       // just inside it, level with it or a little under, not up off it.
       const over = arm.filter((p) => Math.abs(p.z - highest.z) < 3);
       const under = Math.min(...over.map((p) => p.y));
-      expect(under - top).toBeGreaterThan(-3);
+      expect(under - top).toBeGreaterThan(-4);
       expect(under - top).toBeLessThan(0.5);
       // Its tip is behind the ear, and hooks down below its top.
       const tip = arm.filter((p) => p.z < back);

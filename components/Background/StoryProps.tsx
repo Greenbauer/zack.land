@@ -46,9 +46,6 @@ const PRINTED_SKY = 0.15;
 const FRAME_GREY = '#4c4740';
 const ARM_ORANGE = '#e8430a';
 const ARM_PINK = '#cc1f7a';
-// Behind their raised letters, in the letters' own shade.
-const TRACK_ORANGE = '#b83306';
-const TRACK_PINK = '#99145a';
 
 // The sky the lenses mirror, turned so the dawn's horizon is in them whichever
 // way the scene's own sky is turned: half the time that has its dark side
@@ -193,9 +190,9 @@ export default function StoryProps({
           </mesh>
           {(
             [
-              ['left', TRACK_PINK],
+              ['left', ARM_PINK],
               ['leftText', ARM_PINK],
-              ['right', TRACK_ORANGE],
+              ['right', ARM_ORANGE],
               ['rightText', ARM_ORANGE],
             ] as const
           ).map(([part, color]) => (
