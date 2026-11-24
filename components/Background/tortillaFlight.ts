@@ -17,7 +17,7 @@ export const OFF_SCREEN = 480;
 // HIT_FIRST seconds into the chapter; and in its loop, 0 to 1, it sets off,
 // lands, has splatted onto the head, lets go and is gone below.
 export const HIT_SIDE = -1;
-export const HIT = { middle: -16, up: 10, out: 52 };
+export const HIT = { middle: -6, up: -8, out: 52 };
 export const HIT_SECONDS = 8;
 const HIT_FIRST = 3;
 const SETS_OFF = 0.05;

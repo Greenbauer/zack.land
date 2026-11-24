@@ -60,7 +60,7 @@ export default function SleepMaskProp({
       // Where the Zs rise from: beside the head on the side away from the
       // card, level with the brow, so they stay clear of the card and the
       // top of the window.
-      from: new Vector3(eyes.x - spread * 1.25, eyes.y + spread * 0.7, eyes.z),
+      from: new Vector3(eyes.x - spread * 1.6, eyes.y + spread * 0.9, eyes.z),
       spread,
     };
   }, [leftEye, rightEye, skin]);
@@ -141,8 +141,8 @@ export default function SleepMaskProp({
       <group ref={snoreRef} visible={false}>
         {Array.from({ length: SNORE_ZS }, (_, k) => (
           <mesh key={k} geometry={mask.z}>
-            {/* Unlit, in a rose that shows on the light sky and the dark. */}
-            <meshBasicMaterial color="#e0447f" transparent depthWrite={false} />
+            {/* Unlit, in a deep rose that stands out on the lavender sky. */}
+            <meshBasicMaterial color="#8c1650" transparent depthWrite={false} />
           </mesh>
         ))}
       </group>

@@ -184,7 +184,7 @@ const PRINTED_SKY = 0.15;
 // lavender light, which lifts and cools colours: a mid grey, a true orange
 // and a deep pink (the builder's #9c9b96, #f57a3d and #d742a0 came out
 // lilac-white, peach and candy pink).
-const FRAME_GREY = '#454440';
+const FRAME_GREY = '#4c4740';
 const ARM_ORANGE = '#e8430a';
 const ARM_PINK = '#cc1f7a';
 // How wide the frame is against the head at the temples.

@@ -69,7 +69,7 @@ export function wireStrength(
   const strengthOf = (band: number) =>
     Math.abs(band) > reach
       ? 1
-      : Math.min(1, usual / (count.get(band) ?? usual));
+      : Math.min(1, (usual / (count.get(band) ?? usual)) ** 1.25);
   const out = new Float32Array(positions.length / 3);
   for (let i = 0; i < out.length; i++) {
     const at = aboveSeam(positions[i * 3 + 1]!, positions[i * 3 + 2]!) / BAND;

@@ -105,11 +105,22 @@ export function drapeSurface(
   const grid = outermost(positions, frame);
   hang(grid);
   fold(grid);
+  // Read between cells, so the tortilla lies smooth rather than in steps
+  // (which drew its edge ragged); -Infinity where any cell round is empty.
+  const at = (c: number, r: number) =>
+    grid[
+      Math.min(ROWS - 1, Math.max(0, r)) * COLS +
+        Math.min(COLS - 1, Math.max(0, c))
+    ]!;
   return (across, up) => {
-    const { col, row } = cellOf(across, up);
-    const c = Math.min(COLS - 1, Math.max(0, col));
-    const r = Math.min(ROWS - 1, Math.max(0, row));
-    return grid[r * COLS + c]!;
+    const x = (across - REACH.left) / CELL;
+    const y = (up - REACH.low) / CELL;
+    const [c, r] = [Math.floor(x), Math.floor(y)];
+    const [u, v] = [x - c, y - r];
+    return (
+      (at(c, r) * (1 - u) + at(c + 1, r) * u) * (1 - v) +
+      (at(c, r + 1) * (1 - u) + at(c + 1, r + 1) * u) * v
+    );
   };
 }
 

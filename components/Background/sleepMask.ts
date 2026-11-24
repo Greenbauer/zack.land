@@ -50,9 +50,9 @@ const smoothstep = (t: number) => {
 // rounded, a rounded pad under each eye and a notch over the nose.
 export function maskOutline(): Vector2[] {
   const half = new Shape();
-  half.moveTo(0, 0.6);
-  half.bezierCurveTo(0.55, 0.62, 1.05, 0.58, 1.28, 0.42);
-  half.bezierCurveTo(1.45, 0.3, 1.45, -0.12, 1.25, -0.28);
+  half.moveTo(0, 0.48);
+  half.bezierCurveTo(0.55, 0.5, 1.05, 0.47, 1.28, 0.34);
+  half.bezierCurveTo(1.45, 0.24, 1.45, -0.12, 1.25, -0.28);
   half.bezierCurveTo(1.05, -0.46, 0.62, -0.52, 0.38, -0.4);
   half.bezierCurveTo(0.22, -0.32, 0.12, -0.12, 0, -0.1);
   // As wide as the face, no wider: drawn wider, it stood out past the head.
@@ -193,7 +193,7 @@ export type Mask = {
 // Where the eyes' closed lids are on the pad (eye spreads): their middles
 // across and up, how far across either side each runs, and how far its
 // middle droops below its ends.
-export const LIDS = { across: 0.5, up: 0.06, half: 0.27, droop: 0.1 };
+export const LIDS = { across: 0.42, up: 0.06, half: 0.22, droop: 0.08 };
 
 // A closed lid's line at `t` (-1 to 1 across it) for the eye on `side`.
 export const lidAt = (side: 1 | -1, t: number) =>
@@ -252,7 +252,7 @@ const LASHES = 7;
 const CURL_STEPS = 10;
 function lashCurve(root: Vector2, side: 1 | -1, t: number, place: Place) {
   const outer = (side * t + 1) / 2;
-  const length = 0.18 + 0.14 * outer;
+  const length = 0.17 + 0.09 * outer;
   // Each leans away from the middle of its eye, more toward the corners.
   const lean = 0.25 * t * LIDS.half;
   const curl = length * 0.32;
@@ -391,7 +391,8 @@ export function sleepMask(profile: Profile): Mask {
   return {
     pad: padSheet(outline, bounds, place),
     lashes: lashTubes(place, spread),
-    strap: strapBand(profile, ends[1] - 0.05, ends[0] + 2 * Math.PI + 0.05),
+    // From just under the pad's ends, so it goes in under them.
+    strap: strapBand(profile, ends[1] - 0.2, ends[0] + 2 * Math.PI + 0.2),
     bounds,
   };
 }
