@@ -1,7 +1,14 @@
 import { BufferGeometry, Float32BufferAttribute } from 'three';
 import { describe, expect, it } from 'vitest';
 
-import { noseBridge, openAngle, swingArm, templeWidth } from './glassesFit';
+import {
+  earTop,
+  flexAmount,
+  flexArm,
+  flexShape,
+  noseBridge,
+  templeWidth,
+} from './glassesFit';
 
 describe('fitting a pair of glasses to a head, as a real pair fits', () => {
   it('measures the head across its temples, in its band only', () => {
@@ -17,51 +24,49 @@ describe('fitting a pair of glasses to a head, as a real pair fits', () => {
     expect(noseBridge(head, { low: 0, high: 10, reach: 3 })).toBe(41);
   });
 
-  it('leaves an arm shut when the head is clear of it', () => {
-    // An arm along x = 40, from the hinge back 60; the head inside, at 30.
-    const arm = [40, 0, 0, 40, 0, -60, 40, 2, -30];
-    const head = [30, 1, -20, 35, 1, -50];
-    expect(openAngle(head, arm, { x: 40, z: 0 }, 1, 1)).toBe(0);
+  it('flexes an arm as a beam bends: none at the hinge, most at the end', () => {
+    expect(flexShape(0)).toBe(0);
+    expect(flexShape(1)).toBe(1);
+    expect(flexShape(0.5)).toBeLessThan(0.5);
+    for (let t = 0.1; t <= 1; t += 0.1)
+      expect(flexShape(t)).toBeGreaterThan(flexShape(t - 0.1));
   });
 
-  it('opens an arm just enough to clear the head beside it', () => {
+  it('flexes an arm just enough to clear the head beside it, not for the ear below', () => {
+    // An arm along x = 40 from the hinge back 60, between heights 0 and 2.
     const arm = [40, 0, 0, 40, 0, -60, 40, 2, -30];
-    // The head 5 out past the arm, 40 back: about atan(6 / 40) with the gap.
-    const head = [45, 1, -40];
-    const angle = openAngle(head, arm, { x: 40, z: 0 }, 1, 1);
-    expect(angle).toBeGreaterThan(Math.atan(6 / 40) - 0.01);
-    expect(angle).toBeLessThan(Math.atan(6 / 40) + 0.02);
-    // The skull beside its back, at its height, counts; the ear below,
-    // which its hook curls down behind, does not.
-    const hooked = [...arm, 40, -12, -58];
-    expect(
-      openAngle([45, 1, -55], hooked, { x: 40, z: 0 }, 1, 1),
-    ).toBeGreaterThan(0);
-    expect(openAngle([45, -10, -55], hooked, { x: 40, z: 0 }, 1, 1)).toBe(0);
-    // Only the head beside the arm, between its heights, counts.
-    expect(openAngle([45, 9, -40], arm, { x: 40, z: 0 }, 1, 1)).toBe(0);
+    const hinge = { x: 40, z: 0 };
+    // Clear of the head: no flex.
+    expect(flexAmount([30, 1, -20], arm, hinge, 1, 1)).toBe(0);
+    // The skull 5 out past it 40 back: flexed so it clears there.
+    const amount = flexAmount([45, 1, -40], arm, hinge, 1, 1);
+    expect(40 + amount * flexShape(40 / 60)).toBeGreaterThanOrEqual(46 - 0.3);
+    // An ear below the arm's height does not push it.
+    expect(flexAmount([45, -10, -40], arm, hinge, 1, 1)).toBe(0);
     // The other side, the other way.
     const mirror = [-40, 0, 0, -40, 0, -60, -40, 2, -30];
-    expect(openAngle([-45, 1, -40], mirror, { x: -40, z: 0 }, -1, 1)).toBe(
-      angle,
-    );
+    expect(
+      flexAmount([-45, 1, -40], mirror, { x: -40, z: 0 }, -1, 1),
+    ).toBeCloseTo(amount);
   });
 
-  it('swings an arm whole about its hinge, never reshaping it', () => {
+  it('bends the arm outward, the hinge staying put', () => {
     const g = new BufferGeometry();
     g.setAttribute(
       'position',
       new Float32BufferAttribute([40, 0, 0, 40, 0, -60, 40, 5, -30], 3),
     );
-    const p = swingArm(g, { x: 40, z: 0 }, 1, Math.PI / 6).getAttribute(
-      'position',
-    );
-    // The hinge stays put; the end swings out, as far from it as before.
+    const p = flexArm(g, { x: 40, z: 0 }, 1, 8, 60).getAttribute('position');
     expect(p.getX(0)).toBeCloseTo(40);
-    expect(p.getZ(0)).toBeCloseTo(0);
-    expect(p.getX(1)).toBeCloseTo(40 + 60 * Math.sin(Math.PI / 6));
-    expect(p.getZ(1)).toBeCloseTo(-60 * Math.cos(Math.PI / 6));
-    expect(Math.hypot(p.getX(1) - 40, p.getZ(1))).toBeCloseTo(60);
+    expect(p.getX(1)).toBeCloseTo(48);
+    expect(p.getX(2)).toBeCloseTo(40 + 8 * flexShape(0.5));
+    expect(p.getZ(1)).toBe(-60);
     expect(p.getY(2)).toBe(5);
+  });
+
+  it('finds the tops of the ears: the highest point standing out past the skull', () => {
+    // x, y, z: an ear's top and lobe, the skull above, and a point in front.
+    const head = [50, 5, -20, 50, -20, -20, 40, 30, -20, 52, 12, 30];
+    expect(earTop(head, { beyond: 45, back: -40, front: 0, high: 20 })).toBe(5);
   });
 });

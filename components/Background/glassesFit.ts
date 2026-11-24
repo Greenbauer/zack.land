@@ -1,8 +1,10 @@
-// Fitting a pair of glasses to a head as a real pair fits a real head: the
-// model is never reshaped. It is scaled as one piece so its front is as wide
-// as the head at the temples (templeWidth), set with its bridge on the nose
-// (noseBridge), and each arm swings open at its hinge, as a real one does,
-// just far enough to clear the side of the head (openAngle, swingArm).
+// Fitting a pair of glasses to a head as a real pair sits on a face: its
+// front scaled as one piece to the head's width at the temples
+// (templeWidth), set with its bridge on the nose (noseBridge), tipped about
+// the bridge until the arms rest on the tops of the ears (earTop), and each arm flexed outward in one smooth curve, as a real arm
+// bends round a head, just enough to clear the skull all along it
+// (flexAmount, flexArm). The front, the lenses and each arm's own shape are
+// the model's; only the arms' flex is added.
 
 import type { BufferGeometry } from 'three';
 
@@ -48,9 +50,6 @@ export function noseBridge(
 
 // How many places along an arm its clearance is checked at.
 const STEPS = 24;
-// The widest an arm opens, in radians, and the step it opens by.
-const MOST_OPEN = (40 * Math.PI) / 180;
-const OPEN_STEP = (0.25 * Math.PI) / 180;
 
 // Where a point lies from a hinge: `out` away from the head (sideways, along
 // `side`: 1 at +x, -1 at -x) and `back` behind the hinge.
@@ -156,12 +155,20 @@ function headNeed(
   return need;
 }
 
-// The least angle an arm (its `arm` positions, already placed) must swing
-// open at `hinge`, on `side`, for its inner face to clear the head (`head`
+// The shape of an arm's flex along it, from its hinge (0) to its end (1):
+// a beam held at one end and pushed at the other, 0 at the hinge, 1 at the
+// end, bending most toward the end.
+export const flexShape = (t: number) => {
+  const c = Math.min(1, Math.max(0, t));
+  return (c * c * (3 - c)) / 2;
+};
+
+// How far an arm's end must flex outward (along `side`: 1 at +x, -1 at -x)
+// for the arm (its `arm` positions, already placed) to clear the head (`head`
 // positions) beside it by `margin` all along it, at the height of its
 // straight part (STRAIGHT_SHARE): at each place along it, the head's
-// outermost point there against the arm's innermost.
-export function openAngle(
+// outermost point there against the arm's innermost, flexed by flexShape.
+export function flexAmount(
   head: ArrayLike<number>,
   arm: ArrayLike<number>,
   hinge: Hinge,
@@ -173,38 +180,59 @@ export function openAngle(
   const inner = armInner(arm, hinge, side, part);
   if (!inner) return 0;
   const need = headNeed(head, hinge, side, part, margin);
-  const clears = (angle: number) =>
-    inner.every(
-      (p, step) =>
-        p.out * Math.cos(angle) + p.back * Math.sin(angle) >= need[step]!,
-    );
-  for (let angle = 0; angle <= MOST_OPEN; angle += OPEN_STEP)
-    if (clears(angle)) return angle;
-  return MOST_OPEN;
+  return inner.reduce((most, p, step) => {
+    // The flex at the near end of its place, so it clears all of it.
+    const shape = flexShape(Math.min(p.back / part.length, step / STEPS));
+    return shape > 0 ? Math.max(most, (need[step]! - p.out) / shape) : most;
+  }, 0);
 }
 
-// The geometry turned whole by `angle` about the upright line through
-// `hinge`, opening outward on `side`: as a real arm swings at its hinge.
-export function swingArm(
+// The geometry flexed outward along `side` by `amount` at its end (`length`
+// behind `hinge`), by flexShape along it: as a real arm bends round a head.
+export function flexArm(
   geometry: BufferGeometry,
   hinge: Hinge,
   side: 1 | -1,
-  angle: number,
+  amount: number,
+  length: number,
 ): BufferGeometry {
   const position = geometry.getAttribute('position');
-  const [cos, sin] = [Math.cos(angle), Math.sin(angle)];
   for (let k = 0; k < position.count; k++) {
-    const { out, back } = fromHinge(
-      position.getX(k),
-      position.getZ(k),
-      hinge,
-      side,
+    const back = hinge.z - position.getZ(k);
+    position.setX(
+      k,
+      position.getX(k) + side * amount * flexShape(back / length),
     );
-    position.setX(k, hinge.x + side * (out * cos + back * sin));
-    position.setZ(k, hinge.z - (back * cos - out * sin));
   }
   position.needsUpdate = true;
   geometry.computeVertexNormals();
   geometry.computeBoundingBox();
   return geometry;
 }
+
+// The highest point of the ears between `back` and `front` (z) and below
+// `high`: the head's points standing out past `beyond` from its middle (x),
+// which only the ears do at their height.
+export function earTop(
+  positions: ArrayLike<number>,
+  {
+    beyond,
+    back,
+    front,
+    high,
+  }: { beyond: number; back: number; front: number; high: number },
+): number {
+  let top = -Infinity;
+  for (let k = 0; k < positions.length; k += 3) {
+    const y = positions[k + 1]!;
+    const z = positions[k + 2]!;
+    if (Math.abs(positions[k]!) < beyond || z < back || z > front || y > high)
+      continue;
+    top = Math.max(top, y);
+  }
+  return top;
+}
+
+// The arm's whole length back from the hinge (armBand), for flexArm.
+export const armLength = (arm: ArrayLike<number>, hinge: Hinge, side: 1 | -1) =>
+  armBand(arm, hinge, side).length;

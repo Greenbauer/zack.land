@@ -16,7 +16,15 @@ import {
 
 import head from '@/theme/head.json';
 
-import { noseBridge, openAngle, swingArm, templeWidth } from './glassesFit';
+import {
+  armLength,
+  earTop,
+  flexAmount,
+  flexArm,
+  noseBridge,
+  STRAIGHT_SHARE,
+  templeWidth,
+} from './glassesFit';
 import { Glasses, loadGlasses } from './glassesGeometry';
 import { headMood } from './headMood';
 import { turnHead } from './headTurn';
@@ -112,39 +120,68 @@ function fitGlasses(
   });
   const lift = (lensBox.min.y + lensBox.max.y) / 2;
   const at = new Vector3(eyes.x, eyes.y + spread * 0.04, nose + spread * 0.03);
-  const placed = (geometry: BufferGeometry) => {
+  // Tipped about the bridge (the lenses barely move) by `tilt`, so the arms
+  // rest on the tops of the ears: down onto them, or up over them.
+  const pivot = new Vector3(at.x, at.y, at.z);
+  const placed = (geometry: BufferGeometry, tilt = 0) => {
     const g = geometry.clone();
     g.translate(0, -lift, -bridgeBack);
     g.scale(scale, scale, scale);
     g.translate(at.x, at.y, at.z);
+    g.translate(-pivot.x, -pivot.y, -pivot.z);
+    g.rotateX(-tilt);
+    g.translate(pivot.x, pivot.y, pivot.z);
     g.computeBoundingBox();
     return g;
   };
-  // Each arm and its word swing open together about the arm's hinge: its
-  // front end's outer edge.
+  // How far to tip it: until the underside of the arms' straight part, at
+  // the ears, rests just on the tops of the ears (its hooks curl down
+  // behind them), so the ears do not push the arms out.
+  const ears = earTop(head, {
+    beyond: temples / 2 + spread * 0.15,
+    back: eyes.z - spread * 2.5,
+    front: eyes.z - spread * 0.6,
+    high: eyes.y + spread * 0.6,
+  });
+  const level = placed(glasses.left).getAttribute('position');
+  let behind = 0;
+  for (let k = 0; k < level.count; k++)
+    behind = Math.max(behind, pivot.z - level.getZ(k));
+  const reach = behind * STRAIGHT_SHARE;
+  let under = Infinity;
+  for (let k = 0; k < level.count; k++)
+    if (Math.abs(pivot.z - level.getZ(k) - reach) < spread * 0.2)
+      under = Math.min(under, level.getY(k) - pivot.y);
+  const tilt = Number.isFinite(ears)
+    ? Math.min(
+        Math.max(
+          Math.atan2(under - (ears - pivot.y) - spread * 0.03, reach),
+          -MOST_TILT,
+        ),
+        MOST_TILT,
+      )
+    : 0;
+  // Each arm and its word flexed together, outward from the arm's hinge
+  // (its front end's outer edge), just enough to clear the skull.
   const arm = (side: 1 | -1, track: BufferGeometry, word: BufferGeometry) => {
-    const [armPlaced, wordPlaced] = [placed(track), placed(word)];
+    const [armPlaced, wordPlaced] = [placed(track, tilt), placed(word, tilt)];
     const box = armPlaced.boundingBox!;
     const hinge = { x: side > 0 ? box.max.x : box.min.x, z: box.max.z };
-    const angle = openAngle(
-      head,
-      [
-        ...armPlaced.getAttribute('position').array,
-        ...wordPlaced.getAttribute('position').array,
-      ],
-      hinge,
-      side,
-      spread * 0.03,
-    );
+    const points = [
+      ...armPlaced.getAttribute('position').array,
+      ...wordPlaced.getAttribute('position').array,
+    ];
+    const amount = flexAmount(head, points, hinge, side, spread * 0.03);
+    const length = armLength(points, hinge, side);
     return [armPlaced, wordPlaced].map((g) =>
-      onSkull(swingArm(g, hinge, side, angle)),
+      onSkull(flexArm(g, hinge, side, amount, length)),
     ) as [BufferGeometry, BufferGeometry];
   };
   const [leftArm, leftText] = arm(1, glasses.left, glasses.leftText);
   const [rightArm, rightText] = arm(-1, glasses.right, glasses.rightText);
   return {
-    frame: onSkull(placed(glasses.frame)),
-    lenses: onSkull(placed(glasses.lenses)),
+    frame: onSkull(placed(glasses.frame, tilt)),
+    lenses: onSkull(placed(glasses.lenses, tilt)),
     left: leftArm,
     right: rightArm,
     leftText,
@@ -152,6 +189,10 @@ function fitGlasses(
     drop: spread * 5,
   };
 }
+
+// The most the sunglasses are tipped either way to bring their arms onto
+// the ears (radians): about a real pair's tilt.
+const MOST_TILT = (15 * Math.PI) / 180;
 
 // How much of the sky's light the printed frame and arms take: little, so
 // they keep their own colours.
@@ -356,11 +397,11 @@ export default function StoryProps({
           </mesh>
           <mesh geometry={glasses.lenses}>
             <meshPhysicalMaterial
-              color="#2a2470"
-              metalness={0.9}
-              roughness={0.08}
+              color="#3a3290"
+              metalness={1}
+              roughness={0.38}
               clearcoat={1}
-              clearcoatRoughness={0.05}
+              clearcoatRoughness={0.03}
               onBeforeCompile={turnHead}
             />
           </mesh>
