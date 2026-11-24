@@ -21,8 +21,10 @@ type State = 'waiting' | 'playing' | 'paused' | 'ended';
 // With reduced motion it waits for the button, showing its last frame (its
 // poster), which says the offer in two lines. Sized as the 404 page's video
 // is (components/NotFound/NotFoundVideo.tsx): as wide as the card, or
-// narrower where the window's height is the limit. Only the headline is above
+// narrower where the window's height is the limit, but never under 20rem (a
+// phone on its side has no height to spare). Only the headline is above
 // it, so the whole of it shows clear of the footer's fade on a laptop.
+// The button sits bottom right, the one corner the video's words never reach.
 export default function OfferVideo() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [state, setState] = useState<State>('waiting');
@@ -52,7 +54,7 @@ export default function OfferVideo() {
     state === 'playing' ? FaPause : state === 'ended' ? FaRedo : FaPlay;
 
   return (
-    <figure className="relative m-0 aspect-video w-[min(100%,calc((100dvh_-_var(--page-top)_-_var(--page-bottom)_-_10rem)*16/9))] overflow-hidden rounded-2xl bg-head-dark">
+    <figure className="relative m-0 aspect-video w-[min(100%,max(20rem,calc((100dvh_-_var(--page-top)_-_var(--page-bottom)_-_10rem)*16/9)))] overflow-hidden rounded-2xl bg-head-dark">
       <video
         ref={videoRef}
         className="size-full"
@@ -70,9 +72,9 @@ export default function OfferVideo() {
         type="button"
         aria-label={label}
         onClick={press}
-        className="absolute bottom-3 left-3 rounded-full bg-head-dark/60 p-3 text-head-light backdrop-blur-sm"
+        className="absolute bottom-2 right-2 rounded-full bg-head-dark/60 p-2 text-head-light backdrop-blur-sm md:bottom-3 md:right-3 md:p-3"
       >
-        <Icon size={18} />
+        <Icon className="size-4 md:size-[18px]" />
       </button>
       <figcaption id="offer-video-story" className="sr-only">
         {STORY}

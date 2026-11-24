@@ -388,3 +388,31 @@ test("the draft button looks and sweeps on hover as the site's buttons do, and t
     page.getByLabel('What does your team do over and over?'),
   ).toHaveJSProperty('tagName', 'TEXTAREA');
 });
+
+test('the video stays on a phone on its side, with its button clear of the words', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 812, height: 375 });
+  await opened(page, '/work-with-me');
+  const video = page.locator('article figure');
+  expect((await video.boundingBox())!.width).toBeGreaterThanOrEqual(300);
+  // Along the video's bottom its words end 82.3% of the way across (measured
+  // in its source, every 0.1s): the button stays right of them.
+  for (const [width, height] of [
+    [812, 375],
+    [320, 640],
+    [375, 812],
+    [1280, 800],
+  ] as const) {
+    await page.setViewportSize({ width, height });
+    const frame = (await video.boundingBox())!;
+    const button = (await video.getByRole('button').boundingBox())!;
+    expect(
+      (button.x - frame.x) / frame.width,
+      `button's left at ${width}px`,
+    ).toBeGreaterThan(0.825);
+    expect(button.y + button.height).toBeLessThanOrEqual(
+      frame.y + frame.height,
+    );
+  }
+});
