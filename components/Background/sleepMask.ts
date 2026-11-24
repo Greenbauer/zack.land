@@ -34,6 +34,83 @@ const STRAP_LIFT = 0.025;
 // How many steps either way a hollow is bridged across (the eye sockets).
 const BRIDGE = 3;
 
+type Grid = number[][];
+
+const around = (col: number, by: number) => (col + by + AROUND) % AROUND;
+// A step round's angle from straight ahead, -PI to PI.
+const angleOf = (col: number) => {
+  const a = (col / AROUND) * 2 * Math.PI;
+  return a > Math.PI ? a - 2 * Math.PI : a;
+};
+const smoothstep = (t: number) => {
+  const c = Math.min(1, Math.max(0, t));
+  return c * c * (3 - 2 * c);
+};
+// How much of the pad's shape and padding a step round has: all of it out
+// to LOBE_ANGLE, none from PAD_ANGLE on.
+const padShare = (col: number) =>
+  1 -
+  smoothstep((Math.abs(angleOf(col)) - LOBE_ANGLE) / (PAD_ANGLE - LOBE_ANGLE));
+
+// How far out the skin is from `middle` at each step round and down (0 where
+// there is none), its rows from `low` to `high`.
+function skinReach(
+  positions: ArrayLike<number>,
+  middle: { x: number; z: number },
+  low: number,
+  high: number,
+): Grid {
+  const reach = Array.from({ length: AROUND }, () =>
+    new Array<number>(DOWN + 1).fill(0),
+  );
+  for (let k = 0; k < positions.length; k += 3) {
+    const row = Math.round(((positions[k + 1]! - low) / (high - low)) * DOWN);
+    if (row < 0 || row > DOWN) continue;
+    const dx = positions[k]! - middle.x;
+    const dz = positions[k + 2]! - middle.z;
+    const col = around(
+      Math.round((Math.atan2(dx, dz) / (2 * Math.PI)) * AROUND),
+      0,
+    );
+    reach[col]![row] = Math.max(reach[col]![row]!, Math.hypot(dx, dz));
+  }
+  return reach;
+}
+
+// The furthest out within BRIDGE steps round and one down of a point, so the
+// mask spans the hollows of the eye sockets.
+function bridge(reach: Grid): Grid {
+  const most = (col: number, row: number) => {
+    const near: number[] = [];
+    for (let by = -BRIDGE; by <= BRIDGE; by++)
+      near.push(
+        ...reach[around(col, by)]!.slice(Math.max(0, row - 1), row + 2),
+      );
+    return Math.max(...near);
+  };
+  return reach.map((column, col) => column.map((_, row) => most(col, row)));
+}
+
+// Each point averaged with its neighbours round, so the mask runs smooth.
+const smoothed = (grid: Grid): Grid =>
+  grid.map((column, col) =>
+    column.map(
+      (r, row) =>
+        (grid[around(col, -1)]![row]! + 2 * r + grid[around(col, 1)]![row]!) /
+        4,
+    ),
+  );
+
+// The mask's lower edge at each step round, in eye spreads from the eyes:
+// the notch over the nose, the lobes over the eyes, easing up into the
+// strap at the sides.
+function bottomAt(col: number): number {
+  const a = Math.abs(angleOf(col));
+  const lobe = STRAP.low + (PAD.low - STRAP.low) * padShare(col);
+  const notch = smoothstep((NOSE_ANGLE - a) / (NOSE_ANGLE * 0.6) + 0.5);
+  return lobe + (NOTCH - lobe) * notch;
+}
+
 // The mask for a skin of `positions` (x, y, z in turn), its eyes' middle at
 // `eyes`, `spread` apart.
 export function sleepMask(
@@ -44,111 +121,45 @@ export function sleepMask(
   const middle = { x: eyes.x, z: eyes.z - MIDDLE_BACK * spread };
   const low = eyes.y + PAD.low * spread;
   const high = eyes.y + PAD.high * spread;
-  const rowOf = (y: number) => Math.round(((y - low) / (high - low)) * DOWN);
-  const colOf = (angle: number) =>
-    (Math.round((angle / (2 * Math.PI)) * AROUND) + AROUND) % AROUND;
-  // How far out the skin is at each step round and down (0 where none).
-  const reach = Array.from({ length: AROUND }, () =>
-    new Array<number>(DOWN + 1).fill(0),
-  );
-  for (let k = 0; k < positions.length; k += 3) {
-    const row = rowOf(positions[k + 1]!);
-    if (row < 0 || row > DOWN) continue;
-    const dx = positions[k]! - middle.x;
-    const dz = positions[k + 2]! - middle.z;
-    const col = colOf(Math.atan2(dx, dz));
-    reach[col]![row] = Math.max(reach[col]![row]!, Math.hypot(dx, dz));
-  }
-  // Bridged: the furthest out nearby, so it spans hollows; then smoothed.
-  const around = (col: number, by: number) => (col + by + AROUND) % AROUND;
-  const bridged = reach.map((column, col) =>
-    column.map((_, row) => {
-      let most = 0;
-      for (let by = -BRIDGE; by <= BRIDGE; by++)
-        for (let down = -1; down <= 1; down++) {
-          const r = reach[around(col, by)]![row + down];
-          if (r !== undefined) most = Math.max(most, r);
-        }
-      return most;
-    }),
-  );
-  const smooth = bridged.map((column, col) =>
-    column.map((r, row) => {
-      const near = [-1, 0, 1].map((by) => bridged[around(col, by)]![row]!);
-      return (near[0]! + 2 * r + near[2]!) / 4;
-    }),
-  );
-  // Which rows each column holds: the pad's at the front, the strap's else.
-  const angleOf = (col: number) => {
-    const a = (col / AROUND) * 2 * Math.PI;
-    return a > Math.PI ? a - 2 * Math.PI : a;
-  };
-  const smoothstep = (t: number) => {
-    const c = Math.min(1, Math.max(0, t));
-    return c * c * (3 - 2 * c);
-  };
-  // The mask's lower edge at each step round, in eye spreads from the eyes:
-  // the notch over the nose, the lobes over the eyes, easing up into the
-  // strap at the sides.
-  const bottom = (col: number) => {
-    const a = Math.abs(angleOf(col));
-    const lobe =
-      PAD.low +
-      (STRAP.low - PAD.low) *
-        smoothstep((a - LOBE_ANGLE) / (PAD_ANGLE - LOBE_ANGLE));
-    const notch = smoothstep((NOSE_ANGLE - a) / (NOSE_ANGLE * 0.6) + 0.5);
-    return eyes.y + (lobe + (NOTCH - lobe) * notch) * spread;
-  };
-  // Every column holds every row, but the rows below its lower edge are
-  // folded up onto it (to nothing), so the edge runs smooth from column to
-  // column rather than in steps.
-  const holds = (col: number, row: number) => smooth[col]![row]! > 0;
+  const reach = smoothed(bridge(skinReach(positions, middle, low, high)));
   const out: number[] = [];
   const index: number[] = [];
   const at = new Map<string, number>();
+  // A point of the mask: as far out as the skin there and lifted off it,
+  // and never below the mask's lower edge (the rows below are folded up
+  // onto it, to nothing, so the edge runs smooth rather than in steps).
   const vertex = (col: number, row: number) => {
     const key = `${col} ${row}`;
     if (!at.has(key)) {
       const angle = angleOf(col);
-      const r =
-        smooth[col]![row]! +
-        (STRAP_LIFT +
-          (PAD_LIFT - STRAP_LIFT) *
-            (1 -
-              smoothstep(
-                (Math.abs(angle) - LOBE_ANGLE) / (PAD_ANGLE - LOBE_ANGLE),
-              ))) *
-          spread;
+      const lift = STRAP_LIFT + (PAD_LIFT - STRAP_LIFT) * padShare(col);
+      const r = reach[col]![row]! + lift * spread;
       at.set(key, out.length / 3);
       out.push(
         middle.x + r * Math.sin(angle),
-        Math.max(low + (row / DOWN) * (high - low), bottom(col)),
+        Math.max(
+          low + (row / DOWN) * (high - low),
+          eyes.y + bottomAt(col) * spread,
+        ),
         middle.z + r * Math.cos(angle),
       );
     }
     return at.get(key)!;
   };
-  for (let col = 0; col < AROUND; col++) {
-    const next = around(col, 1);
+  for (let col = 0; col < AROUND; col++)
     for (let row = 0; row < DOWN; row++) {
       const corners = [
         [col, row],
-        [next, row],
-        [next, row + 1],
+        [around(col, 1), row],
+        [around(col, 1), row + 1],
         [col, row + 1],
       ] as const;
-      if (!corners.every(([c, r]) => holds(c, r))) continue;
-      const [a, b, c, d] = corners.map(([c, r]) => vertex(c, r)) as [
-        number,
-        number,
-        number,
-        number,
-      ];
+      if (corners.some(([c, r]) => !reach[c]![r])) continue;
+      const [a, b, c, d] = corners.map(([c, r]) => vertex(c, r));
       // Facing out, away from the head: round the quad anticlockwise as
       // seen from outside.
-      index.push(a, b, c, a, c, d);
+      index.push(a!, b!, c!, a!, c!, d!);
     }
-  }
   const mask = new BufferGeometry();
   mask.setAttribute('position', new BufferAttribute(new Float32Array(out), 3));
   mask.setIndex(index);

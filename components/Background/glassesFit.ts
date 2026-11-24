@@ -64,6 +64,91 @@ const fromHinge = (x: number, z: number, hinge: Hinge, side: 1 | -1) => ({
 // the ear does not push it open.
 export const STRAIGHT_SHARE = 0.7;
 
+// A point of an arm or the head, from the hinge (fromHinge).
+type Place = { out: number; back: number };
+
+// The arm's straight part: how far it runs back from the hinge
+// (STRAIGHT_SHARE of the whole arm) and its lowest and highest points there.
+function straightPart(arm: ArrayLike<number>, hinge: Hinge, side: 1 | -1) {
+  let whole = 0;
+  for (let k = 0; k < arm.length; k += 3)
+    whole = Math.max(whole, fromHinge(arm[k]!, arm[k + 2]!, hinge, side).back);
+  const length = whole * STRAIGHT_SHARE;
+  let low = Infinity;
+  let high = -Infinity;
+  for (let k = 0; k < arm.length; k += 3) {
+    if (fromHinge(arm[k]!, arm[k + 2]!, hinge, side).back > length) continue;
+    low = Math.min(low, arm[k + 1]!);
+    high = Math.max(high, arm[k + 1]!);
+  }
+  return { length, low, high };
+}
+
+// Which of STEPS places along a part `length` long a point `back` behind
+// the hinge falls in.
+const stepAt = (back: number, length: number) =>
+  Math.min(STEPS - 1, Math.floor((back / length) * STEPS));
+
+// A place with no point of the arm takes its inner face from the places
+// either side of it.
+function fillGaps(inner: (Place | null)[], length: number): Place[] {
+  const known = inner.flatMap((p, step) => (p ? [step] : []));
+  return inner.map((p, step) => {
+    if (p) return p;
+    const before = known.filter((k) => k < step).at(-1);
+    const after = known.find((k) => k > step);
+    const a = inner[before ?? after!]!;
+    const b = inner[after ?? before!]!;
+    const t =
+      before === undefined || after === undefined
+        ? 0
+        : (step - before) / (after - before);
+    return {
+      out: a.out + (b.out - a.out) * t,
+      back: ((step + 0.5) / STEPS) * length,
+    };
+  });
+}
+
+// The arm's innermost point at each place along its straight part, or none
+// if it has no point there at all.
+function armInner(
+  arm: ArrayLike<number>,
+  hinge: Hinge,
+  side: 1 | -1,
+  length: number,
+): Place[] | null {
+  const inner = new Array<Place | null>(STEPS).fill(null);
+  for (let k = 0; k < arm.length; k += 3) {
+    const p = fromHinge(arm[k]!, arm[k + 2]!, hinge, side);
+    if (p.back <= 0 || p.back > length) continue;
+    const step = stepAt(p.back, length);
+    if (!inner[step] || p.out < inner[step]!.out) inner[step] = p;
+  }
+  return inner.some(Boolean) ? fillGaps(inner, length) : null;
+}
+
+// How far out the arm must be at each place to clear the head there by
+// `margin`: the head's outermost point beside the straight part.
+function headNeed(
+  head: ArrayLike<number>,
+  hinge: Hinge,
+  side: 1 | -1,
+  { length, low, high }: { length: number; low: number; high: number },
+  margin: number,
+): number[] {
+  const need = new Array<number>(STEPS).fill(-Infinity);
+  for (let k = 0; k < head.length; k += 3) {
+    const y = head[k + 1]!;
+    if (y < low || y > high) continue;
+    const p = fromHinge(head[k]!, head[k + 2]!, hinge, side);
+    if (p.back <= 0 || p.back > length) continue;
+    const step = stepAt(p.back, length);
+    need[step] = Math.max(need[step]!, p.out + margin);
+  }
+  return need;
+}
+
 // The least angle an arm (its `arm` positions, already placed) must swing
 // open at `hinge`, on `side`, for its inner face to clear the head (`head`
 // positions) beside it by `margin` along its straight part (STRAIGHT_SHARE):
@@ -77,62 +162,15 @@ export function openAngle(
   side: 1 | -1,
   margin: number,
 ): number {
-  let whole = 0;
-  for (let k = 0; k < arm.length; k += 3)
-    whole = Math.max(whole, fromHinge(arm[k]!, arm[k + 2]!, hinge, side).back);
-  const length = whole * STRAIGHT_SHARE;
-  if (length <= 0) return 0;
-  let low = Infinity;
-  let high = -Infinity;
-  for (let k = 0; k < arm.length; k += 3) {
-    if (fromHinge(arm[k]!, arm[k + 2]!, hinge, side).back > length) continue;
-    low = Math.min(low, arm[k + 1]!);
-    high = Math.max(high, arm[k + 1]!);
-  }
-  const at = (back: number) =>
-    Math.min(STEPS - 1, Math.floor((back / length) * STEPS));
-  // The arm's innermost point at each place, and the head's outermost.
-  const inner = new Array<{ out: number; back: number } | null>(STEPS).fill(
-    null,
-  );
-  for (let k = 0; k < arm.length; k += 3) {
-    const p = fromHinge(arm[k]!, arm[k + 2]!, hinge, side);
-    if (p.back <= 0 || p.back > length) continue;
-    const step = at(p.back);
-    if (!inner[step] || p.out < inner[step]!.out) inner[step] = p;
-  }
-  // A place with no point of the arm takes its inner face from the places
-  // either side of it.
-  const known = inner.flatMap((p, step) => (p ? [step] : []));
-  if (!known.length) return 0;
-  for (let step = 0; step < STEPS; step++) {
-    if (inner[step]) continue;
-    const before = known.filter((k) => k < step).at(-1);
-    const after = known.find((k) => k > step);
-    const a = inner[before ?? after!]!;
-    const b = inner[after ?? before!]!;
-    const t =
-      before === undefined || after === undefined
-        ? 0
-        : (step - before) / (after - before);
-    inner[step] = {
-      out: a.out + (b.out - a.out) * t,
-      back: ((step + 0.5) / STEPS) * length,
-    };
-  }
-  const need = new Array<number>(STEPS).fill(-Infinity);
-  for (let k = 0; k < head.length; k += 3) {
-    const y = head[k + 1]!;
-    if (y < low || y > high) continue;
-    const p = fromHinge(head[k]!, head[k + 2]!, hinge, side);
-    if (p.back <= 0 || p.back > length) continue;
-    const step = at(p.back);
-    need[step] = Math.max(need[step]!, p.out + margin);
-  }
+  const part = straightPart(arm, hinge, side);
+  if (part.length <= 0) return 0;
+  const inner = armInner(arm, hinge, side, part.length);
+  if (!inner) return 0;
+  const need = headNeed(head, hinge, side, part, margin);
   const clears = (angle: number) =>
     inner.every(
       (p, step) =>
-        !p || p.out * Math.cos(angle) + p.back * Math.sin(angle) >= need[step]!,
+        p.out * Math.cos(angle) + p.back * Math.sin(angle) >= need[step]!,
     );
   for (let angle = 0; angle <= MOST_OPEN; angle += OPEN_STEP)
     if (clears(angle)) return angle;
