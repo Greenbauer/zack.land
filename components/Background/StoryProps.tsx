@@ -45,6 +45,24 @@ const skinShader: Material['onBeforeCompile'] = (shader) => {
   fadeNeck(shader);
 };
 
+// Where the scanned head is joined to the body below it (JOIN in
+// scripts/build-head.mjs): a slanted line, its height at a depth z the
+// SEAM's height at the back plus SLOPE for each unit forward. The stitched
+// band that closes it is thin triangles, which in the wireframe drew a
+// dense line round the neck; the wireframe fades out over WIRE_FADE units
+// above it, so the head's wireframe ends cleanly under the chin.
+const SEAM = { z: -56, y: -38, slope: (-76 + 38) / (15 + 56) };
+const WIRE_FADE = [4, 18];
+const wireShader: Material['onBeforeCompile'] = (shader, renderer) => {
+  skinShader(shader, renderer);
+  shader.fragmentShader = shader.fragmentShader.replace(
+    '#include <opaque_fragment>',
+    `#include <opaque_fragment>
+      float aboveSeam = vLocal.y - (${SEAM.y.toFixed(1)} + (vLocal.z - (${SEAM.z.toFixed(1)})) * ${SEAM.slope.toFixed(4)});
+      gl_FragColor.a *= smoothstep(${WIRE_FADE[0]!.toFixed(1)}, ${WIRE_FADE[1]!.toFixed(1)}, aboveSeam);`,
+  );
+};
+
 // A geometry carried whole by the skull: every vertex fully the head's, for
 // turnHead.
 function onSkull(geometry: BufferGeometry): BufferGeometry {
@@ -405,7 +423,7 @@ export default function StoryProps({
           wireframe
           transparent
           depthWrite={false}
-          onBeforeCompile={skinShader}
+          onBeforeCompile={wireShader}
         />
       </mesh>
       <TexasTechProps spread={spread} amounts={amount} skin={skin} />
