@@ -226,17 +226,24 @@ test.describe('on a phone', () => {
     // The second chapter: the first (Texas Tech) is told by the head alone.
     await open(page);
     await turn(page);
-    await expect(title(page, 0)).toBeVisible();
+    // As on a wide screen: a turn in WebKit on CI's software renderer can
+    // take longer than the default wait to bring the card in.
+    await expect(title(page, 0)).toBeVisible({ timeout: 20_000 });
     await page.waitForTimeout(1500);
     await turn(page);
-    await expect(title(page, 1)).toBeVisible();
-    const tile = await post(page, 1)
-      .locator('.collage-tile')
-      .first()
-      .boundingBox();
-    const card = await post(page, 1).locator('section').boundingBox();
-    // The tiles tuck 8px under the card's top, as a post's do (Post.tsx).
-    expect(tile!.y + tile!.height).toBeLessThanOrEqual(card!.y + 10);
+    await expect(title(page, 1)).toBeVisible({ timeout: 20_000 });
+    // The tiles tuck 8px under the card's top, as a post's do (Post.tsx),
+    // once the page's glide has ended: the card is already in its fixed
+    // place while the tiles still scroll up with the page.
+    const overlap = async () => {
+      const tile = await post(page, 1)
+        .locator('.collage-tile')
+        .first()
+        .boundingBox();
+      const card = await post(page, 1).locator('section').boundingBox();
+      return tile!.y + tile!.height - card!.y;
+    };
+    await expect.poll(overlap, { timeout: 10_000 }).toBeLessThanOrEqual(10);
   });
 
   test('keeps the name in its place, with Watch my story where the scroll arrow is', async ({
