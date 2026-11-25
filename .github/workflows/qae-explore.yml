@@ -129,8 +129,10 @@ jobs:
     # minutes: a CPU-drawn scene froze the page for seconds a frame (84fed81 draws it at a quarter
     # of the pixels), an explorer could not load /favicon.ico (e8f5824) and one could not sample
     # a page from navigation (d82820d), both now in the site notes. Walks at 84fed81 took 11 to
-    # 24 minutes, apart from those two.
-    timeout-minutes: 30
+    # 24 minutes, apart from those two. 50 since PR 198: the home page's story criteria turn
+    # through up to fifteen chapters each, at two widths, and six of them (one explorer: the
+    # catalog sizes one for six walks) ran past 30 minutes with the last criteria unwalked.
+    timeout-minutes: 50
     permissions:
       contents: read
       pull-requests: read   # reads the body and changed files; the verify job posts the one comment
