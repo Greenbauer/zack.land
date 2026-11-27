@@ -1,10 +1,13 @@
 import { FileLoader } from 'three';
 
+import { unpackHead } from './headPack';
+
 // head.bin, written by scripts/build-head.mjs (all its expressions, in
 // scripts/head/) and scripts/build-page-files.mjs (the page's copy, with
 // only the shown ones, in ./files/): the head's meshes and expressions in a
 // compact binary form, gzipped (the site serves it as it is, so it is
-// compressed ahead). Unzipped, little-endian:
+// compressed ahead; the page's copy packed first, headPack.ts). Unzipped
+// (and unpacked), little-endian:
 //
 //   'HEAD', u32 version (5), u32 mesh count,
 //   f32 min x, y, z, f32 max x, y, z (the box positions are quantized over),
@@ -114,8 +117,8 @@ export function decodeHead(
   return { meshes, expressions: all.filter((_, k) => kept[k]) };
 }
 
-// The file, fetched (through three's loader, so the page's loading spinner
-// counts it) and unzipped, once. A failed load is not kept, so the next call
+// The page's file, fetched (through three's loader, so the page's loading
+// spinner counts it), unzipped and unpacked (headPack.ts), once. A failed load is not kept, so the next call
 // tries again.
 let loading: Promise<ArrayBuffer> | undefined;
 export function loadHead(): Promise<ArrayBuffer> {
@@ -129,6 +132,7 @@ export function loadHead(): Promise<ArrayBuffer> {
           .pipeThrough(new DecompressionStream('gzip')),
       ).arrayBuffer(),
     )
+    .then((packed) => unpackHead(new Uint8Array(packed)))
     .catch((error) => {
       loading = undefined;
       throw error;

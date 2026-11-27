@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { gunzipSync } from 'node:zlib';
 
 import { decodeHead } from '../../components/Background/headGeometry.ts';
+import { unpackHead } from '../../components/Background/headPack.ts';
 
 const out = process.argv[2];
 if (!out) throw new Error('Name the folder to write to.');
@@ -14,11 +15,7 @@ mkdirSync(out, { recursive: true });
 const zipped = readFileSync(
   new URL('../../components/Background/files/head.bin', import.meta.url),
 );
-const raw = gunzipSync(zipped);
-const head = decodeHead(
-  raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength),
-  [],
-);
+const head = decodeHead(unpackHead(gunzipSync(zipped)), []);
 const skin = head.meshes.get('skin');
 let obj = 'o skin\n';
 for (let k = 0; k < skin.positions.length; k += 3)

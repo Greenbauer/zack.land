@@ -2,7 +2,6 @@ import { useFrame } from '@react-three/fiber';
 import { use, useEffect, useMemo, useRef } from 'react';
 import {
   BackSide,
-  BufferGeometry,
   Group,
   Material,
   Mesh,
@@ -25,7 +24,7 @@ import {
 import { blinkAmount, startBlink, stepBlink } from './blink';
 import { easeRate, easeToward, shareOver } from './faceExpression';
 import { faceTargets } from './headFace';
-import { decodeHead, loadHead } from './headGeometry';
+import { loadHead } from './headGeometry';
 import { knockAt } from './headKnock';
 import {
   gazeTarget,
@@ -57,13 +56,11 @@ import {
 import { intro, introFace, introHolds, introTip } from './intro';
 import { Own, stepPage, usedAt, watched } from './leftAlone';
 import { clamp } from './maths';
-import { morphGeometry } from './morphGeometry';
+import { builtHead } from './morphGeometry';
 import { fadeNeck, fadeTime } from './neckFade';
 import { neckExpressions } from './neckPose';
 import { faceInView, idleWait, PAGE_TARGETS } from './pageWatch';
 import PhoneCall, { phoneShown } from './PhoneCall';
-import { SHOWN_EXPRESSIONS, SHOWN_SIDED } from './shownExpressions';
-import { withSides } from './sideMorphs';
 import { slideOff } from './slideOff';
 import { isStill } from './stillScene';
 import { cueLook } from './storyCue';
@@ -71,8 +68,6 @@ import { phoneSwap } from './storyProp';
 import StoryProps from './StoryProps';
 import { startWander, TIP, TURN, WANDER_TURN } from './wander';
 import { fadeSkin } from './WireHead';
-
-type MyHeadGeometry = { [key: string]: BufferGeometry };
 
 type MyHeadProps = {
   // Where the pointer has the head look, now, as a look target (headLook.ts).
@@ -114,17 +109,7 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
   const leftEyeRef = useRef<Mesh>(null);
   const rightEyeRef = useRef<Mesh>(null);
 
-  const { geometry: myHeadGeometry, expressions } = useMemo(() => {
-    // The expressions the page shows (shownExpressions.ts), with one-sided
-    // brows and squints (sideMorphs.ts) for ambient.ts.
-    const { meshes, expressions } = withSides(
-      decodeHead(myHeadFile, SHOWN_EXPRESSIONS),
-      SHOWN_SIDED,
-    );
-    const geometry: MyHeadGeometry = {};
-    for (const [name, part] of meshes) geometry[name] = morphGeometry(part);
-    return { geometry, expressions };
-  }, [myHeadFile]);
+  const { geometry: myHeadGeometry, expressions } = builtHead(myHeadFile);
   // Each expression's strength now, eased toward what the look calls for.
   const strengths = useRef<Record<string, number>>({});
   // The blinks' clock (blink.ts), and where the head looked last frame.
