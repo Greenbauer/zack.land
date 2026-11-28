@@ -40,15 +40,18 @@ const settledChapter = async (page: Page) => {
 // One page turn by Page Down. A press the pager did not hear (on CI's slow
 // runner, one sent before the page has hydrated, or while a card's arrival
 // still holds turns) moves nothing, so it is sent again; one that was heard
-// starts the glide at once, so it never turns twice.
+// starts the glide at once, so it never turns twice. Each look at the page
+// gets 10 seconds: on CI's software renderer, with the scene drawing, the
+// page took 1 to 3.3 seconds to answer each one, so a 3-second wait timed
+// out on turns that had happened.
 async function turn(page: Page) {
   const top = () =>
     page.evaluate(() => document.getElementById('page')!.scrollTop);
   const from = await top();
   await expect(async () => {
     if ((await top()) === from) await page.keyboard.press('PageDown');
-    await expect.poll(top, { timeout: 3000 }).not.toBe(from);
-  }).toPass({ timeout: 30_000 });
+    await expect.poll(top, { timeout: 10_000 }).not.toBe(from);
+  }).toPass({ timeout: 60_000 });
 }
 
 // The page as it opens: the name, and the pager ready for a first turn
