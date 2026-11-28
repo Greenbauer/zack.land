@@ -1,0 +1,39 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Vibe Verifier: a real run</title>
+<style>
+  html, body { margin: 0; background: #0b0830; overflow: hidden; }
+  #fit { width: 1280px; height: 720px; transform-origin: 0 0; background: radial-gradient(120% 90% at 30% 20%, #2a2360 0%, #120e3d 55%, #070522 100%); display: grid; place-items: center; }
+  .win { width: 1060px; height: 610px; border-radius: 16px; background: #0d0b1f; box-shadow: 0 40px 90px rgba(0,0,0,.55), 0 0 0 1px rgba(233,216,210,.25); overflow: hidden; }
+  .bar { height: 46px; background: #1b1838; display: flex; align-items: center; gap: 9px; padding: 0 18px; color: rgba(233,216,210,.7); font: 500 17px ui-sans-serif, system-ui; }
+  .bar i { width: 14px; height: 14px; border-radius: 99px; background: #ef5b4c; } .bar i:nth-child(2) { background: #f3bf4f; } .bar i:nth-child(3) { background: #55c26a; margin-right: 14px; }
+  pre { margin: 0; padding: 22px 30px; font: 500 25px/1.42 ui-monospace, Menlo, monospace; color: #e9d8d2; white-space: pre; }
+  .dim { color: rgba(233,216,210,.55); } .ok { color: #55c26a; font-weight: 700; } .warn { color: #f3bf4f; }
+</style></head><body><div id="fit"><div class="win"><div class="bar"><i></i><i></i><i></i>Gates on this website's own pull request</div><pre id="out"></pre></div></div>
+<script>
+// Vibe Verifier's illustration: the real summary it printed for this site's
+// pull request (its Gates check on GitHub), shown line by line. render.mjs
+// records it as scene vibe-verifier.
+const GATES = ['no-duplicate-package-json-keys', 'build-tools-in-devdependencies', 'gitleaks', 'actionlint', 'zizmor', 'cognitive-complexity', 'max-file-lines', 'feature-map', 'repo-rules', 'prose', 'eslint'];
+const out = document.getElementById('out');
+window.LOOP = 6;
+window.render = (time) => {
+  const t = ((time % 6) + 6) % 6;
+  const typed = '$ vibe-verifier run --base-ref origin/master'.slice(0, Math.floor(t * 60));
+  let html = typed + (t < 0.9 && Math.floor(t * 4) % 2 ? '▌' : '') + '\n';
+  if (t > 1.0) html += '\n<span class="dim">vibe-verifier summary</span>\n';
+  GATES.forEach((name, k) => {
+    const at = 1.2 + k * 0.3;
+    if (t < at) return;
+    const done = t > at + 0.22;
+    html += '  ' + name.padEnd(36) + (done ? '<span class="ok">PASS</span>' : '<span class="dim">' + '·'.repeat(1 + Math.floor((t - at) * 14) % 3) + '</span>') + '\n';
+  });
+  out.innerHTML = html;
+};
+const q = new URLSearchParams(location.search);
+const fit = () => { document.getElementById('fit').style.transform = `scale(${Math.min(innerWidth / 1280, innerHeight / 720)})`; };
+addEventListener('resize', fit); fit();
+if (q.has('t')) window.render(+q.get('t'));
+else if (!q.has('scene')) { const t0 = performance.now(); const loop = () => { window.render((performance.now() - t0) / 1000); requestAnimationFrame(loop); }; loop(); }
+window.SCENES = ['vibe-verifier'];
+window.ready = true;
+</script></body></html>

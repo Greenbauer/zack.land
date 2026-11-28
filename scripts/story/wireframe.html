@@ -1,0 +1,199 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Freelance: wireframes</title>
+<style>
+  html, body { margin: 0; background: #0b0830; overflow: hidden; }
+  #fit { width: 1280px; height: 720px; transform-origin: 0 0; }
+  #stage { width: 1280px; height: 720px; position: relative; overflow: hidden; perspective: 1500px;
+    background: radial-gradient(120% 90% at 30% 20%, #2a2360 0%, #120e3d 55%, #070522 100%); }
+  #world { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-style: preserve-3d; will-change: transform; }
+  #dots { position: absolute; left: -1600px; top: -1200px; width: 5200px; height: 3600px;
+    background-image: radial-gradient(rgba(233,216,210,.16) 1.5px, transparent 1.6px); background-size: 40px 40px; }
+  .b { position: absolute; box-sizing: border-box; }
+  .w { border: 2px solid rgba(233,216,210,.85); border-radius: 8px; }
+  .board { border: 2px solid rgba(233,216,210,.9); background: rgba(13,10,52,.82); border-radius: 14px; overflow: hidden;
+    box-shadow: 0 40px 90px rgba(0,0,0,.45); }
+  .bar { background: rgba(233,216,210,.8); border-radius: 99px; }
+  .soft { background: rgba(233,216,210,.38); border-radius: 99px; }
+  .x { border: 2px solid rgba(233,216,210,.85); border-radius: 8px;
+    background:
+      linear-gradient(to top right, transparent calc(50% - 1px), rgba(233,216,210,.5) calc(50% - 1px), rgba(233,216,210,.5) calc(50% + 1px), transparent calc(50% + 1px)),
+      linear-gradient(to bottom right, transparent calc(50% - 1px), rgba(233,216,210,.5) calc(50% - 1px), rgba(233,216,210,.5) calc(50% + 1px), transparent calc(50% + 1px)); }
+  .tagl { font: 600 22px/1 ui-monospace, Menlo, monospace; color: rgba(233,216,210,.75); letter-spacing: .04em; white-space: nowrap; }
+  .sel { border: 3px solid #7aa2ff; border-radius: 4px; pointer-events: none; }
+  .sel i { position: absolute; width: 12px; height: 12px; background: #fff; border: 3px solid #7aa2ff; box-sizing: border-box; }
+  .sel b { position: absolute; left: -3px; top: -34px; background: #7aa2ff; color: #06103a; font: 700 18px/1 ui-monospace, Menlo, monospace; padding: 6px 9px; border-radius: 4px; white-space: nowrap; }
+  .btn { border: 2px solid #f57a3d; border-radius: 99px; }
+  .fillo { background: #f57a3d; }
+  .badge { background: #f57a3d; color: #1b0d05; font: 800 20px/34px ui-sans-serif, system-ui; text-align: center; border-radius: 99px; }
+  #cursor { position: absolute; width: 44px; height: 44px; transform-origin: 4px 4px; filter: drop-shadow(0 4px 6px rgba(0,0,0,.5)); }
+  .ring { position: absolute; border: 3px solid #f57a3d; border-radius: 99px; }
+</style></head>
+<body><div id="fit"><div id="stage"><div id="world"><div id="dots"></div></div></div></div>
+<script>
+// The Freelance chapter's illustration: a shop page drawn as wireframes, on
+// a desktop board and a phone board (HTML and CSS in 3D; render.mjs records
+// it as scene freelance). The camera moves between them while the
+// parts change: a picture becomes a carousel, the grid takes a fourth column,
+// the cart counts, the phone page reflows and its menu opens.
+const L = 9;
+const world = document.getElementById('world');
+const clamp = (v) => Math.max(0, Math.min(1, v));
+const ease = (v) => { v = clamp(v); return v * v * (3 - 2 * v); };
+const seg = (t, a, b) => ease((t - a) / (b - a));
+const lerp = (a, b, k) => a + (b - a) * k;
+const el = (parent, cls, x, y, w, h, html) => {
+  const d = document.createElement('div'); d.className = 'b ' + cls;
+  Object.assign(d.style, { left: x + 'px', top: y + 'px', width: w + 'px', height: h + 'px' });
+  if (html) d.innerHTML = html; parent.appendChild(d); return d;
+};
+const place = (d, x, y, w, h) => { d.style.left = x + 'px'; d.style.top = y + 'px'; d.style.width = w + 'px'; d.style.height = h + 'px'; };
+
+// The desktop board.
+const D = el(world, 'board', 0, 0, 1280, 1180);
+el(world, 'tagl', 0, -40, 400, 24, 'DESKTOP · 1280');
+el(D, 'w', 32, 16, 96, 36); // logo
+[170, 270, 370].forEach((x) => el(D, 'soft', x, 28, 70, 12));
+const cart = el(D, 'w', 1180, 14, 44, 40);
+const badge = el(D, 'badge', 1210, 4, 34, 34, '0');
+el(D, 'soft', 0, 66, 1280, 2);
+const hero = el(D, 'w', 32, 96, 1216, 400);
+const h1 = el(D, 'bar', 76, 176, 420, 30), h2 = el(D, 'bar', 76, 224, 300, 30);
+el(D, 'soft', 76, 286, 380, 12); el(D, 'soft', 76, 310, 300, 12);
+const cta = el(D, 'btn', 76, 362, 190, 54);
+const ctaBar = el(D, 'bar', 116, 383, 110, 12);
+const pic = el(D, 'x', 680, 136, 528, 320);
+const slides = [0, 1, 2].map(() => el(D, 'x', 680, 136, 528, 320));
+const dotsRow = [0, 1, 2].map((k) => el(D, 'bar', 916 + k * 24, 470, 12, 12));
+el(D, 'bar', 32, 540, 220, 20);
+const tog3 = el(D, 'w', 1150, 530, 44, 40), tog4 = el(D, 'w', 1204, 530, 44, 40);
+[0, 1, 2].forEach((k) => el(tog3, 'soft', 6 + k * 11, 8, 7, 20));
+[0, 1, 2, 3].forEach((k) => el(tog4, 'soft', 5 + k * 8.5, 8, 5, 20));
+const cards = [...Array(8)].map(() => {
+  const c = el(D, 'w', 0, 0, 10, 10);
+  return { c, img: el(c, 'x', 0, 0, 10, 10), a: el(c, 'bar', 0, 0, 10, 12), b: el(c, 'soft', 0, 0, 10, 12), add: el(c, 'btn', 0, 0, 40, 40), plus: el(c, 'bar', 0, 0, 16, 4), plusV: el(c, 'bar', 0, 0, 4, 16) };
+});
+
+// The phone board.
+const P = el(world, 'board', 1480, 60, 390, 800); P.style.borderRadius = '46px';
+el(world, 'tagl', 1480, 20, 400, 24, 'PHONE · 390');
+el(P, 'w', 22, 22, 76, 32);
+const burger = [0, 1, 2].map((k) => el(P, 'bar', 330, 26 + k * 10, 36, 4));
+el(P, 'soft', 0, 70, 390, 2);
+el(P, 'x', 20, 88, 350, 190);
+el(P, 'bar', 20, 296, 250, 22); el(P, 'bar', 20, 328, 180, 22);
+const pcta = el(P, 'btn fillo', 20, 368, 350, 50);
+el(P, 'bar', 20, 440, 130, 14);
+const pcards = [...Array(4)].map(() => {
+  const c = el(P, 'w', 0, 0, 10, 10);
+  return { c, img: el(c, 'x', 0, 0, 10, 10), a: el(c, 'bar', 0, 0, 10, 10), b: el(c, 'soft', 0, 0, 10, 10) };
+});
+const drawer = el(P, 'board', 120, 0, 270, 800); drawer.style.borderRadius = '0 44px 44px 0'; drawer.style.background = '#1a1552';
+[0, 1, 2, 3, 4].forEach((k) => el(drawer, k ? 'soft' : 'bar', 30, 110 + k * 54, k ? 150 - k * 12 : 170, 16));
+el(drawer, 'btn fillo', 30, 420, 200, 46);
+
+const sel = el(world, 'sel', 0, 0, 10, 10, '<b></b>');
+['left:-9px;top:-9px', 'right:-9px;top:-9px', 'left:-9px;bottom:-9px', 'right:-9px;bottom:-9px'].forEach((s) => { const i = document.createElement('i'); i.style.cssText += s; sel.appendChild(i); });
+const selLabel = sel.querySelector('b');
+const ring = el(world, 'ring', 0, 0, 10, 10);
+const cursor = document.createElement('div'); cursor.id = 'cursor';
+cursor.innerHTML = '<svg viewBox="0 0 24 24" width="44" height="44"><path d="M3 2l7.5 18 2.6-7.2L20.5 10z" fill="#fff" stroke="#06103a" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+world.appendChild(cursor);
+
+// Camera stops: where it looks (in board units), how close, and its tilt.
+const WIDE = [935, 560, 0.5, 14, -12], HERO = [640, 300, 0.99, 5, -4], GRID = [640, 850, 0.99, 6, 4], PHONE = [1675, 440, 0.86, 4, -9];
+const CAM = [[0, WIDE], [0.5, WIDE], [1.5, HERO], [2.9, HERO], [3.6, GRID], [5.9, GRID], [6.7, PHONE], [8.2, PHONE], [9, WIDE]];
+const CUR = [[0, 760, 700], [1.2, 900, 380], [2.3, 180, 396], [2.9, 200, 400], [3.8, 1228, 556], [4.4, 1228, 556], [4.9, 250, 808], [5.4, 1210, 808], [6.0, 1210, 820], [7.3, 1832, 96], [8.2, 1832, 96], [9, 760, 700]];
+const track = (keys, t) => {
+  let k = 0; while (k < keys.length - 2 && t >= keys[k + 1][0]) k++;
+  const [t0, ...a] = keys[k], [t1, ...b] = keys[k + 1];
+  const u = ease((t - t0) / (t1 - t0 || 1));
+  const A = Array.isArray(a[0]) ? a[0] : a, B = Array.isArray(b[0]) ? b[0] : b;
+  return A.map((v, i) => lerp(v, B[i], u));
+};
+const click = (t, at) => Math.max(0, 1 - Math.abs(t - at) / 0.14);
+
+window.LOOP = L;
+window.render = (time) => {
+  const t = ((time % L) + L) % L;
+  const [cx, cy, s, rx, ry] = track(CAM, t);
+  world.style.transform = `translate3d(640px,360px,0) rotateX(${rx}deg) rotateY(${ry}deg) scale(${s}) translate3d(${-cx}px,${-cy}px,0)`;
+
+  // The hero picture becomes a carousel (and is a picture again, off camera).
+  const car = seg(t, 1.5, 2.0) * (1 - seg(t, 6.9, 7.2));
+  const slideAt = seg(t, 2.05, 2.6) * (1 - seg(t, 6.9, 7.2));
+  pic.style.opacity = 1 - car;
+  slides.forEach((d, k) => {
+    const x = 680 + (k - slideAt) * 548;
+    place(d, x, 136, 528, 320);
+    d.style.opacity = car * clamp(1 - Math.abs(k - slideAt) * 0.9) * (x > 560 ? 1 : 0.0);
+  });
+  dotsRow.forEach((d, k) => { d.style.opacity = car * (Math.round(slideAt) === k ? 1 : 0.4); });
+  h1.style.width = lerp(260, 420, seg(t, 1.3, 1.9)) + 'px';
+  h2.style.width = lerp(180, 300, seg(t, 1.5, 2.1)) + 'px';
+  const pressed = t > 2.62 && t < 6.9;
+  cta.classList.toggle('fillo', pressed); ctaBar.style.background = pressed ? '#1b0d05' : '';
+  cta.style.transform = `scale(${1 - click(t, 2.62) * 0.08})`;
+
+  // The grid takes a fourth column.
+  const g = seg(t, 4.1, 4.8) * (1 - seg(t, 6.9, 7.4));
+  tog3.style.background = g < 0.5 ? 'rgba(233,216,210,.25)' : ''; tog4.style.background = g >= 0.5 ? 'rgba(245,122,61,.55)' : '';
+  cards.forEach((card, k) => {
+    const w3 = 389.3, w4 = 286;
+    const x = lerp(32 + (k % 3) * (w3 + 24), 32 + (k % 4) * (w4 + 24), g);
+    const y = lerp(590 + Math.floor(k / 3) * 274, 590 + Math.floor(k / 4) * 274, g);
+    const w = lerp(w3, w4, g), h = 250;
+    place(card.c, x, y, w, h);
+    place(card.img, 10, 10, w - 24, 140);
+    place(card.a, 12, 168, w * 0.55, 14); place(card.b, 12, 196, w * 0.32, 14);
+    place(card.add, w - 58, 190, 40, 40); place(card.plus, w - 46, 208, 16, 4); place(card.plusV, w - 40, 202, 4, 16);
+    const pop = seg(t, 3.3 + k * 0.05, 3.7 + k * 0.05) + (t < 3 || t > 6 ? 1 : 0);
+    card.c.style.opacity = clamp(pop); card.c.style.transform = `scale(${lerp(0.9, 1, clamp(pop))})`;
+    const bought = (k === 0 && t > 5.0 && t < 6.9) || (k === 3 && t > 5.5 && t < 6.9);
+    card.add.classList.toggle('fillo', bought); card.plus.style.background = card.plusV.style.background = bought ? '#1b0d05' : '';
+  });
+  const count = t > 6.9 ? 0 : t > 5.5 ? 2 : t > 5.0 ? 1 : 0;
+  badge.textContent = count; badge.style.opacity = count ? 1 : 0.35;
+  badge.style.transform = `scale(${1 + (click(t, 5.06) + click(t, 5.56)) * 0.5})`;
+
+  // The phone page: one column to two, then its menu.
+  const p = t > 5 ? seg(t, 6.9, 7.4) : 1 - seg(t, 1.5, 2.2);
+  pcards.forEach((card, k) => {
+    const x = lerp(20, 20 + (k % 2) * 183, p), y = lerp(470 + k * 106, 470 + Math.floor(k / 2) * 170, p);
+    const w = lerp(350, 167, p), h = lerp(94, 156, p);
+    place(card.c, x, y, w, h);
+    place(card.img, 8, 8, lerp(110, w - 20, p), lerp(74, 84, p));
+    place(card.a, lerp(132, 10, p), lerp(22, 106, p), lerp(150, 110, p), 12);
+    place(card.b, lerp(132, 10, p), lerp(48, 128, p), lerp(90, 70, p), 12);
+  });
+  const open = seg(t, 7.55, 7.9) * (1 - seg(t, 8.25, 8.55));
+  drawer.style.transform = `translateX(${(1 - open) * 290}px)`;
+  burger.forEach((d, k) => { d.style.background = open > 0.5 ? '#f57a3d' : ''; });
+  pcta.style.opacity = 1;
+
+  // What is being changed: a selection box with its name.
+  const shots = [
+    [1.2, 2.9, 680, 136, 528, 320, 'Hero · carousel'],
+    [3.6, 5.9, 32, 590, 1216, 524, g < 0.5 ? 'Products · 3 columns' : 'Products · 4 columns'],
+    [6.8, 7.5, 1500, 530, 350, 330, p < 0.5 ? 'Products · 1 column' : 'Products · 2 columns'],
+    [7.55, 8.5, 1600, 60, 270, 800, 'Menu'],
+  ];
+  let on = 0;
+  for (const [a, b, x, y, w, h, name] of shots) {
+    const v = seg(t, a, a + 0.25) * (1 - seg(t, b - 0.25, b));
+    if (v > on) { on = v; place(sel, x - 8, y - 8, w + 16, h + 16); selLabel.textContent = name; }
+  }
+  sel.style.opacity = on;
+
+  const [, cxp, cyp] = [0, ...track(CUR, t)];
+  const hit = click(t, 2.62) + click(t, 4.1) + click(t, 5.02) + click(t, 5.52) + click(t, 7.55);
+  cursor.style.transform = `translate3d(${cxp}px,${cyp}px,0) scale(${1.5 - hit * 0.25})`;
+  const r = hit * 60; place(ring, cxp - r / 2, cyp - r / 2, r, r); ring.style.opacity = hit > 0 ? 1 - hit * 0.3 : 0;
+};
+const q = new URLSearchParams(location.search);
+const fit = () => { const k = Math.min(innerWidth / 1280, innerHeight / 720); document.getElementById('fit').style.transform = `scale(${k})`; };
+addEventListener('resize', fit); fit();
+if (q.has('t')) window.render(+q.get('t'));
+else if (!q.has('scene')) { const t0 = performance.now(); const loop = () => { window.render((performance.now() - t0) / 1000); requestAnimationFrame(loop); }; loop(); }
+window.SCENES = ['freelance'];
+window.ready = true;
+</script></body></html>

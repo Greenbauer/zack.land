@@ -1,0 +1,261 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Story Studio</title>
+<style>html, body { margin: 0; background: #594d69; overflow: hidden; } canvas { display: block; }</style>
+<script type="importmap">
+{ "imports": {
+  "three": "/node_modules/three/build/three.module.js",
+  "three/addons/": "/node_modules/three/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<script type="module">
+// The home page's story illustration that is built as real objects (the
+// pipe; the rest are wireframe.html and terminal.html): a six-second 3D loop, lit by the dawn sky the
+// head reflects, with real shadows, drawn frame by frame here and recorded
+// by render.mjs into public/story/<scene>.mp4 and its first frame,
+// <scene>.jpg. Open ?scene=<name>&t=<seconds> for one frame.
+import * as THREE from 'three';
+import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+const TAU = Math.PI * 2;
+const C = { peach: '#d3aba0', navy: '#040227', fail: '#ef5b4c' };
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1);
+renderer.setSize(1280, 720);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(30, 1280 / 720, 0.1, 500);
+const sky = await new RGBELoader().loadAsync('/scripts/environment/kiara_1_dawn_1k.hdr');
+sky.mapping = THREE.EquirectangularReflectionMapping;
+scene.environment = sky;
+scene.background = sky;
+scene.backgroundBlurriness = 0.6;
+scene.backgroundIntensity = 0.9;
+scene.environmentIntensity = 0.9;
+const key = new THREE.DirectionalLight('#fff1e0', 2.6);
+key.position.set(-6, 11, 8);
+key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+Object.assign(key.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9, near: 1, far: 40 });
+key.shadow.bias = -0.0004;
+key.shadow.radius = 7;
+scene.add(key);
+const rim = new THREE.DirectionalLight('#9fb4ff', 1.1);
+rim.position.set(7, 5, -8);
+scene.add(rim);
+
+const GLOSS = { clearcoat: 0.6, clearcoatRoughness: 0.1, roughness: 0.22, metalness: 0.25 };
+const gloss = (color, extra = {}) => new THREE.MeshPhysicalMaterial({ color, ...GLOSS, ...extra });
+const matte = (color, extra = {}) => new THREE.MeshPhysicalMaterial({ color, roughness: 0.6, clearcoat: 0.15, ...extra });
+const steel = (color = '#c9ccd6', extra = {}) => new THREE.MeshPhysicalMaterial({ color, metalness: 1, roughness: 0.3, clearcoat: 0.3, clearcoatRoughness: 0.25, ...extra });
+const glow = (color, opacity = 1) => new THREE.MeshBasicMaterial({ color, transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false });
+const box = (w, h, d, r = 0.06) => new RoundedBoxGeometry(w, h, d, 4, r);
+const cyl = (r, h, seg = 40, r2 = r) => new THREE.CylinderGeometry(r2, r, h, seg);
+const mesh = (g, m, parent = scene) => { const o = new THREE.Mesh(g, m); parent.add(o); return o; };
+const group = (parent = scene) => { const g = new THREE.Group(); parent.add(g); return g; };
+const at = (o, x, y, z) => { o.position.set(x, y, z); return o; };
+const look = (radius, height, angle, target) => {
+  camera.position.set(target.x + Math.sin(angle) * radius, target.y + height, target.z + Math.cos(angle) * radius);
+  camera.lookAt(target);
+};
+// The plinth every object stands on: a low glossy disc, top at y = 0.
+function plinth(radius = 5.4) {
+  const p = mesh(cyl(radius, 0.5, 96), gloss(C.navy, { roughness: 0.18 }));
+  p.position.y = -0.25;
+  const edge = mesh(new THREE.TorusGeometry(radius, 0.03, 8, 128), gloss(C.peach));
+  edge.rotation.x = Math.PI / 2;
+  edge.position.y = 0.0;
+}
+// A tube along points, rounded at its corners.
+function pipePath(points, bend = 0.7) {
+  const path = new THREE.CurvePath();
+  let from = points[0].clone();
+  for (let k = 1; k < points.length; k++) {
+    const corner = points[k];
+    if (k === points.length - 1) { path.add(new THREE.LineCurve3(from, corner.clone())); break; }
+    const before = corner.clone().add(from.clone().sub(corner).setLength(bend));
+    const after = corner.clone().add(points[k + 1].clone().sub(corner).setLength(bend));
+    path.add(new THREE.LineCurve3(from, before));
+    path.add(new THREE.QuadraticBezierCurve3(before, corner.clone(), after));
+    from = after;
+  }
+  return path;
+}
+// A drawn label as a texture (for screens and signs).
+function drawn(w, h, draw) {
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  draw(canvas.getContext('2d'), w, h);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 8;
+  return texture;
+}
+
+const SCENES = {
+  // Pipe engineer: the pipe as the analysis software shows it, and the
+  // software's own bugs as what they were: wrong answers on the screen.
+  'pipe-engineer'() {
+    scene.background = new THREE.Color('#12143a');
+    scene.environmentIntensity = 0.75;
+    const grid = new THREE.GridHelper(40, 40, '#3a3f86', '#22265c');
+    grid.position.y = 0;
+    scene.add(grid);
+    const floor = mesh(new THREE.PlaneGeometry(60, 60), new THREE.ShadowMaterial({ opacity: 0.35 }));
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = 0.01;
+    floor.receiveShadow = true;
+    const R = 0.42;
+    const points = [[-4.6, 1.3, 0.9], [-0.6, 1.3, 0.9], [-0.6, 3.7, 0.9], [2.6, 3.7, 0.9], [2.6, 3.7, -2.8]].map((p) => new THREE.Vector3(...p));
+    const path = pipePath(points, 0.85);
+    const tube = new THREE.TubeGeometry(path, 400, R, 40);
+    const map = [[0, '#2747b8'], [0.25, '#2fb7c9'], [0.5, '#56c46b'], [0.75, '#f1d04a'], [1, '#e8483b']];
+    const bends = [0.345, 0.56, 0.80];
+    // How stressed each point is at rest (most at the bends), and its
+    // colour at a given load.
+    const uv = tube.getAttribute('uv');
+    const rest = Array.from({ length: uv.count }, (_, k) => {
+      let s = 0.08;
+      for (const b of bends) s = Math.max(s, Math.exp(-(((uv.getX(k) - b) / 0.075) ** 2)));
+      return s;
+    });
+    const shades = map.map(([at, c]) => [at, new THREE.Color(c)]);
+    const colors = new THREE.Float32BufferAttribute(new Float32Array(uv.count * 3), 3);
+    tube.setAttribute('color', colors);
+    const color = new THREE.Color();
+    const load = (amount) => {
+      rest.forEach((s0, k) => {
+        const s = Math.min(1, s0 * amount);
+        let i = 0;
+        while (i < shades.length - 2 && s > shades[i + 1][0]) i++;
+        color.copy(shades[i][1]).lerp(shades[i + 1][1], (s - shades[i][0]) / (shades[i + 1][0] - shades[i][0]));
+        colors.setXYZ(k, color.r, color.g, color.b);
+      });
+      colors.needsUpdate = true;
+    };
+    mesh(tube, new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: 0.32, metalness: 0.15, clearcoat: 0.7, clearcoatRoughness: 0.15 }));
+    const flange = (p, axis) => {
+      const f = group();
+      f.position.copy(p);
+      f.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), axis);
+      for (const y of [-0.09, 0.09]) at(mesh(cyl(0.72, 0.14, 48), steel('#b8bcc8'), f), 0, y, 0);
+      for (let k = 0; k < 8; k++) { const a = (k / 8) * TAU; at(mesh(cyl(0.065, 0.46, 6), steel('#6f7484'), f), Math.cos(a) * 0.58, 0, Math.sin(a) * 0.58); }
+    };
+    const X = new THREE.Vector3(1, 0, 0), Yv = new THREE.Vector3(0, 1, 0), Z = new THREE.Vector3(0, 0, 1);
+    flange(new THREE.Vector3(-4.6, 1.3, 0.9), X);
+    flange(new THREE.Vector3(-0.6, 2.55, 0.9), Yv);
+    flange(new THREE.Vector3(1.2, 3.7, 0.9), X);
+    flange(new THREE.Vector3(2.6, 3.7, -2.8), Z);
+    const valve = group();
+    valve.position.set(-2.7, 1.3, 0.9);
+    mesh(box(0.9, 1.0, 1.0, 0.2), steel('#8f95a6'), valve);
+    at(mesh(cyl(0.2, 0.9, 24, 0.16), steel('#8f95a6'), valve), 0, 0.85, 0);
+    const wheel = mesh(new THREE.TorusGeometry(0.5, 0.06, 12, 48), gloss(C.fail), valve);
+    wheel.rotation.x = Math.PI / 2;
+    wheel.position.set(0, 1.4, 0);
+    // What the software adds: its supports as symbols and its node numbers.
+    const symbol = new THREE.MeshBasicMaterial({ color: '#7fd69a' });
+    for (const [x, y, z] of [[-3.7, 1.3, 0.9], [2.6, 3.7, -1.3]]) {
+      const cone = mesh(new THREE.ConeGeometry(0.34, 0.6, 4), symbol);
+      cone.position.set(x, y - R - 0.3, z);
+      const line = mesh(cyl(0.02, y - R - 0.6, 6), symbol);
+      line.position.set(x, (y - R - 0.6) / 2, z);
+    }
+    const nodes = [[-4.6, 1.3, 0.9, '10'], [-2.7, 1.3, 0.9, '20'], [-0.6, 1.3, 0.9, '30'], [-0.6, 3.7, 0.9, '40'], [2.6, 3.7, 0.9, '50'], [2.6, 3.7, -2.8, '60']];
+    for (const [x, y, z, label] of nodes) {
+      const tag = new THREE.Sprite(new THREE.SpriteMaterial({ map: drawn(128, 64, (g) => { g.fillStyle = 'rgba(12,14,46,.85)'; g.beginPath(); g.roundRect(8, 8, 112, 48, 12); g.fill(); g.strokeStyle = '#9fb4ff'; g.lineWidth = 3; g.stroke(); g.fillStyle = '#e8ecff'; g.font = '600 32px ui-monospace, monospace'; g.textAlign = 'center'; g.fillText(label, 64, 44); }), depthTest: false }));
+      tag.scale.set(0.9, 0.45, 1);
+      tag.position.set(x, y + R + 0.55, z + 0.2);
+      scene.add(tag);
+    }
+    // The axis triad, at the bottom.
+    for (const [dir, c] of [[X, '#ef5b4c'], [Yv, '#7fd69a'], [Z, '#6ea8ff']]) scene.add(new THREE.ArrowHelper(dir, new THREE.Vector3(1.5, 0.05, 2.9), 0.9, c, 0.26, 0.14));
+    // The window round it, and the bugs: the software getting it wrong.
+    const ui = document.createElement('div');
+    ui.innerHTML = `
+      <style>
+        .ui { position: fixed; inset: 0; font: 600 21px/1.2 ui-sans-serif, system-ui; color: #dfe3ff; pointer-events: none; }
+        .ui .top { position: absolute; left: 0; right: 0; top: 0; height: 50px; background: #1d1f52; display: flex; align-items: center; gap: 10px; padding: 0 18px; border-bottom: 1px solid #343890; }
+        .ui .top i { width: 14px; height: 14px; border-radius: 50%; background: #ef5b4c; } .ui .top i:nth-child(2) { background: #e2b659; } .ui .top i:nth-child(3) { background: #7fd69a; margin-right: 12px; }
+        .ui .top span { opacity: .75; font-weight: 500; margin-left: 22px; }
+        .ui .tools { position: absolute; left: 0; top: 50px; bottom: 46px; width: 56px; background: #181a47; border-right: 1px solid #343890; display: flex; flex-direction: column; align-items: center; gap: 11px; padding-top: 14px; }
+        .ui .tools b { width: 32px; height: 32px; border-radius: 7px; border: 2px solid #5a60c0; display: block; } .ui .tools b:first-child { background: #5a60c0; }
+        .ui .status { position: absolute; left: 0; right: 0; bottom: 0; height: 46px; background: #1d1f52; border-top: 1px solid #343890; display: flex; align-items: center; gap: 32px; padding: 0 18px 0 74px; font-weight: 500; }
+        .ui .status em { font-style: normal; color: #ffb4a8; font-weight: 700; }
+        .ui .legend { position: absolute; right: 22px; top: 76px; width: 118px; background: rgba(18,20,58,.85); border: 1px solid #343890; border-radius: 10px; padding: 10px 12px 12px; font-size: 17px; font-weight: 500; }
+        .ui .legend div { display: flex; gap: 10px; margin-top: 8px; } .ui .legend u { width: 18px; height: 180px; border-radius: 4px; background: linear-gradient(#e8483b, #f1d04a, #56c46b, #2fb7c9, #2747b8); display: block; }
+        .ui .legend p { margin: 0; display: flex; flex-direction: column; justify-content: space-between; }
+        /* Big enough to read at the size of a tile on the page. */
+        .ui .bug { position: absolute; width: 452px; opacity: 0; background: #f4f1f7; color: #1b1838; border-radius: 14px; box-shadow: 0 16px 38px rgba(0,0,0,.5); overflow: hidden; }
+        .ui .bug h4 { margin: 0; background: #d9483b; color: #fff; font-size: 23px; padding: 9px 16px; display: flex; justify-content: space-between; }
+        .ui .bug p { margin: 0; padding: 14px 18px 18px; font-weight: 600; font-size: 33px; line-height: 1.2; }
+      </style>
+      <div class="ui">
+        <div class="top"><i></i><i></i><i></i>Pipe stress analysis<span>File</span><span>Model</span><span>Loads</span><span>Results</span></div>
+        <div class="tools"><b></b><b></b><b></b><b></b><b></b></div>
+        <div class="legend">Stress<div><u></u><p><span>High</span><span>Low</span></p></div></div>
+        <div class="bug" style="left: 70px; top: 452px; --turn: -2deg"><h4><span>Bug 11</span><span>✕</span></h4><p>That can't be right.</p></div>
+        <div class="bug" style="left: 150px; top: 548px; --turn: 1.5deg"><h4><span>Bug 12</span><span>✕</span></h4><p>Neither can that.</p></div>
+        <div class="bug" style="left: 772px; top: 478px; --turn: 2deg"><h4><span>Bug 13</span><span>✕</span></h4><p>Found another one.</p></div>
+        <div class="status"><span class="release">Release test</span><span>6 nodes</span><span>Bugs found: <em>13</em></span></div>
+      </div>`;
+    document.body.appendChild(ui);
+    // The loop: a release under test. Two bugs are up as it starts and the
+    // third pops up; all three are reported and close, the next release
+    // loads, and its first two bugs pop up. Each: when it opens and closes.
+    const bugs = [...ui.querySelectorAll('.bug')];
+    const TIMES = [[4.2, 3.0], [5.2, 3.15], [1.2, 3.3]];
+    const count = ui.querySelector('.status em');
+    const release = ui.querySelector('.release');
+    const smooth = (x) => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x); };
+    // In with a little overshoot, as a window pops up.
+    const pop = (x) => { x = Math.min(1, Math.max(0, x)); return 1 + 2.2 * (x - 1) ** 3 + 1.2 * (x - 1) ** 2; };
+    return (t) => {
+      const u = ((t % 6) + 6) % 6;
+      let open = 0;
+      bugs.forEach((bug, k) => {
+        const [opens, closes] = TIMES[k];
+        const since = (u - opens + 6) % 6;
+        const stay = (closes - opens + 6) % 6;
+        const isOpen = since < stay;
+        if (isOpen) open++;
+        const size = isOpen ? pop(since / 0.28) : 1 - 0.2 * smooth((since - stay) / 0.22);
+        bug.style.opacity = isOpen ? Math.min(1, since / 0.1) : 1 - smooth((since - stay) / 0.22);
+        bug.style.transform = `rotate(var(--turn)) scale(${size})`;
+      });
+      count.textContent = 10 + open;
+      release.textContent = open ? 'Release test' : 'Next release';
+      // The load on the pipe rises and falls, and the view drifts.
+      load(0.86 + 0.14 * Math.sin((u / 3) * TAU));
+      look(15.2, 3.0, 0.42 + Math.sin((u / 6) * TAU) * 0.045, new THREE.Vector3(-0.2, 1.75, 0));
+    };
+  },
+};
+
+const params = new URLSearchParams(location.search);
+// With no scene named, only the list of scenes (for render.mjs).
+const update = SCENES[params.get('scene')]?.();
+scene.traverse((o) => {
+  if (o.isMesh && !(o.material.blending === THREE.AdditiveBlending) && !o.material.transmission) { o.castShadow = true; o.receiveShadow = true; }
+});
+const shade = () => scene.traverse((o) => {
+  if (o.isMesh && !(o.material.blending === THREE.AdditiveBlending) && !o.material.transmission) { o.castShadow = true; o.receiveShadow = true; }
+});
+window.LOOP = 6;
+window.render = (t) => { update?.(t); shade(); renderer.render(scene, camera); };
+window.render(+(params.get('t') ?? 0));
+window.SCENES = Object.keys(SCENES);
+window.ready = true;
+</script>
+</body>
+</html>

@@ -9,8 +9,9 @@ export type MediaSource = {
   // (components/collageLayout.ts).
   width?: number;
   height?: number;
-  // An image laid out as its post's largest tile, in its own shape, when the
-  // post has no video (components/PostCollage.tsx).
+  // An image or silent loop laid out as its post's largest tile, in its own
+  // shape, never cropped taller, when the post has no YouTube video (the
+  // first so marked, components/PostCollage.tsx).
   main?: true;
 };
 
@@ -23,4 +24,7 @@ export type Content = {
   technology?: string;
   // How a site was built: written by hand, or with an AI writing the code.
   coded?: 'hand' | 'vibe';
+  // A link on this site the post leads to, as its main button (the home
+  // page's story ends on Work with me).
+  action?: { href: string; label: string };
 };

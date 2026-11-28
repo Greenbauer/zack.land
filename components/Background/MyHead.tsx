@@ -2,10 +2,10 @@ import { useFrame } from '@react-three/fiber';
 import { use, useEffect, useMemo, useRef } from 'react';
 import {
   BackSide,
-  BufferGeometry,
   Group,
   Material,
   Mesh,
+  PerspectiveCamera,
   Raycaster,
   Vector2,
   Vector3,
@@ -24,7 +24,8 @@ import {
 import { blinkAmount, startBlink, stepBlink } from './blink';
 import { easeRate, easeToward, shareOver } from './faceExpression';
 import { faceTargets } from './headFace';
-import { decodeHead, loadHead } from './headGeometry';
+import { loadHead } from './headGeometry';
+import { knockAt } from './headKnock';
 import {
   gazeTarget,
   heading,
@@ -55,16 +56,18 @@ import {
 import { intro, introFace, introHolds, introTip } from './intro';
 import { Own, stepPage, usedAt, watched } from './leftAlone';
 import { clamp } from './maths';
-import { morphGeometry } from './morphGeometry';
+import { builtHead } from './morphGeometry';
 import { fadeNeck, fadeTime } from './neckFade';
 import { neckExpressions } from './neckPose';
 import { faceInView, idleWait, PAGE_TARGETS } from './pageWatch';
-import { SHOWN_EXPRESSIONS, SHOWN_SIDED } from './shownExpressions';
-import { withSides } from './sideMorphs';
+import PhoneCall, { phoneShown } from './PhoneCall';
+import { slideOff } from './slideOff';
 import { isStill } from './stillScene';
+import { cueLook } from './storyCue';
+import { phoneSwap } from './storyProp';
+import StoryProps from './StoryProps';
 import { startWander, TIP, TURN, WANDER_TURN } from './wander';
-
-type MyHeadGeometry = { [key: string]: BufferGeometry };
+import { fadeSkin } from './WireHead';
 
 type MyHeadProps = {
   // Where the pointer has the head look, now, as a look target (headLook.ts).
@@ -89,6 +92,9 @@ const STILL_LOOK = { x: 0, y: 0 };
 // share each frame, so it trails behind the head's glances.
 const WANDER_SKY_SPEED = 0.01;
 
+// How far the shoulders reach either side of the head's middle, in its units.
+const SHOULDERS = 160;
+
 export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
   const myHeadRef = useRef<Group>(null);
   // Where the head is looking: x tips it, y turns it (radians).
@@ -100,18 +106,10 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
   // shows it (intro.ts): the skin's inner faces, which are otherwise not
   // drawn, so the sky would show through the mouth.
   const liningRef = useRef<Mesh>(null);
+  const leftEyeRef = useRef<Mesh>(null);
+  const rightEyeRef = useRef<Mesh>(null);
 
-  const { geometry: myHeadGeometry, expressions } = useMemo(() => {
-    // The expressions the page shows (shownExpressions.ts), with one-sided
-    // brows and squints (sideMorphs.ts) for ambient.ts.
-    const { meshes, expressions } = withSides(
-      decodeHead(myHeadFile, SHOWN_EXPRESSIONS),
-      SHOWN_SIDED,
-    );
-    const geometry: MyHeadGeometry = {};
-    for (const [name, part] of meshes) geometry[name] = morphGeometry(part);
-    return { geometry, expressions };
-  }, [myHeadFile]);
+  const { geometry: myHeadGeometry, expressions } = builtHead(myHeadFile);
   // Each expression's strength now, eased toward what the look calls for.
   const strengths = useRef<Record<string, number>>({});
   // The blinks' clock (blink.ts), and where the head looked last frame.
@@ -234,6 +232,13 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
       alone.current = step.state;
       if (step.own)
         ({ lookPosition, rotationSpeed, skySpeed } = ownHeading(step.own));
+      // The home page's story can have it look at the chapter's card, the
+      // camera or up for a moment (storyCue.ts), unless it is greeting.
+      const cued =
+        headMood.cue && step.own?.kind !== 'greeting'
+          ? cueLook(headMood.cue, performance.now() / 1000)
+          : null;
+      if (cued) lookPosition = cued;
     }
 
     // With reduced motion it holds still, facing the camera (stillScene.ts).
@@ -275,7 +280,12 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
       Math.random,
       alone.current.wandering !== null,
     );
-    headTurn.value.set(head.x, head.y, ambient.current.tilt);
+    const knock = knockAt(performance.now() / 1000);
+    headTurn.value.set(
+      head.x,
+      head.y + knock.round,
+      ambient.current.tilt + knock.tilt,
+    );
   };
 
   // The face's expression of its own now and then (ambient.ts), unless the
@@ -347,6 +357,17 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
       }
     }
     rotateMyHead(clock.elapsedTime, delta);
+    // The last chapter's phone takes the head's place: the head slides off
+    // the window's left side before it comes (PhoneCall.tsx).
+    const gone = phoneSwap(phoneShown.value).head;
+    myHeadRef.current!.visible = gone < 0.999;
+    myHeadRef.current!.position.x =
+      -gone * slideOff(camera as PerspectiveCamera, size.height, SHOULDERS);
+    fadeSkin(skinRef.current!, liningRef.current!, [
+      mouthRef.current!,
+      leftEyeRef.current!,
+      rightEyeRef.current!,
+    ]);
     // Where the head is looking, back in screen pixels, against where the
     // eyes are on screen.
     const spot = lookOnScreen(heading.target, {
@@ -374,7 +395,11 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
           },
           size,
         );
-    stepFace(isGreeting || headMood.worried, clock.elapsedTime, delta);
+    stepFace(
+      isGreeting || headMood.worried || headMood.cue !== null,
+      clock.elapsedTime,
+      delta,
+    );
     // The neck's shapes follow the head's turn this frame, not eased: they
     // are part of the turn (neckPose.ts).
     const neck: Record<string, number> = neckExpressions(headTurn.value);
@@ -405,40 +430,53 @@ export default function MyHead({ lookPositionStart, pointer }: MyHeadProps) {
   });
 
   return (
-    <group position={[0, HEAD_LIFT, 0]} ref={myHeadRef}>
-      <mesh geometry={myHeadGeometry.skin} ref={skinRef}>
-        <meshPhysicalMaterial
-          color={SKIN_COLOR}
-          {...GLOSS}
-          transparent
-          onBeforeCompile={skinShader}
+    <>
+      <group position={[0, HEAD_LIFT, 0]} ref={myHeadRef}>
+        <mesh geometry={myHeadGeometry.skin} ref={skinRef}>
+          <meshPhysicalMaterial
+            color={SKIN_COLOR}
+            {...GLOSS}
+            transparent
+            onBeforeCompile={skinShader}
+          />
+        </mesh>
+        <mesh geometry={myHeadGeometry.skin} ref={liningRef}>
+          <meshBasicMaterial
+            color={MOUTH_COLOR}
+            side={BackSide}
+            transparent
+            onBeforeCompile={skinShader}
+          />
+        </mesh>
+        <mesh geometry={myHeadGeometry.mouth} ref={mouthRef}>
+          <meshBasicMaterial color={MOUTH_COLOR} onBeforeCompile={turnHead} />
+        </mesh>
+        <mesh geometry={myHeadGeometry.rightEye} ref={rightEyeRef}>
+          <meshPhysicalMaterial
+            color={EYE_COLOR}
+            {...GLOSS}
+            onBeforeCompile={turnHead}
+          />
+        </mesh>
+        <mesh geometry={myHeadGeometry.leftEye} ref={leftEyeRef}>
+          <meshPhysicalMaterial
+            color={EYE_COLOR}
+            {...GLOSS}
+            onBeforeCompile={turnHead}
+          />
+        </mesh>
+        {/* What the home page's story brings into the scene (StoryProps.tsx). */}
+        <StoryProps
+          leftEye={myHeadGeometry.leftEye!}
+          rightEye={myHeadGeometry.rightEye!}
+          skin={myHeadGeometry.skin!}
+          skinRef={skinRef}
         />
-      </mesh>
-      <mesh geometry={myHeadGeometry.skin} ref={liningRef}>
-        <meshBasicMaterial
-          color={MOUTH_COLOR}
-          side={BackSide}
-          transparent
-          onBeforeCompile={skinShader}
-        />
-      </mesh>
-      <mesh geometry={myHeadGeometry.mouth} ref={mouthRef}>
-        <meshBasicMaterial color={MOUTH_COLOR} onBeforeCompile={turnHead} />
-      </mesh>
-      <mesh geometry={myHeadGeometry.rightEye}>
-        <meshPhysicalMaterial
-          color={EYE_COLOR}
-          {...GLOSS}
-          onBeforeCompile={turnHead}
-        />
-      </mesh>
-      <mesh geometry={myHeadGeometry.leftEye}>
-        <meshPhysicalMaterial
-          color={EYE_COLOR}
-          {...GLOSS}
-          onBeforeCompile={turnHead}
-        />
-      </mesh>
-    </group>
+      </group>
+      <PhoneCall
+        leftEye={myHeadGeometry.leftEye!}
+        rightEye={myHeadGeometry.rightEye!}
+      />
+    </>
   );
 }

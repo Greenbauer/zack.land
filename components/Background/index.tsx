@@ -1,7 +1,7 @@
 'use client';
 
-import { PerspectiveCamera } from '@react-three/drei';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { PerspectiveCamera, useFont } from '@react-three/drei';
+import { Canvas, useFrame, useLoader } from '@react-three/fiber';
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { PerspectiveCamera as PerspectiveCameraType } from 'three';
 
@@ -11,10 +11,12 @@ import useWindowSize from '@/hooks/useWindowSize';
 import BackdropSampler from './BackdropSampler';
 import Grading from './Grading';
 import HeadFraming from './HeadFraming';
+import { loadHead } from './headGeometry';
 import { lookAt } from './headLook';
 import { lookOrigin } from './headPlace';
 import { CAMERA_HOME, endIntro, startIntro, stepIntro } from './intro';
 import Loader from './Loader';
+import { LUT_URL, LUTBytesLoader } from './lutBytes';
 import MyHead from './MyHead';
 import {
   askDrawsInSoftware,
@@ -33,7 +35,21 @@ import {
 } from './sceneReady';
 import Sky from './Sky';
 import SkyEnvironment from './SkyEnvironment';
+import { SKY_FILE, SkyLoader } from './skyLoader';
+import { FONT } from './titleLetters';
 import TitleName from './TitleName';
+
+// Every file the scene's loading boundary waits on, fetched together as the
+// scene starts. Left to the scene, each began only once the one before it had
+// come in (React stops rendering the boundary at the first part still
+// loading), so the head, the colour table, the sky and the title's font came
+// one after another, two seconds or more on a first visit.
+function preloadScene() {
+  loadHead().catch(() => {}); // MyHead asks again, and shows the failure.
+  useLoader.preload(LUTBytesLoader, LUT_URL);
+  useLoader.preload(SkyLoader, SKY_FILE);
+  useFont.preload(FONT);
+}
 
 export default function Background() {
   const mousePosition = useMousePosition();
@@ -66,6 +82,7 @@ export default function Background() {
     askDrawsInSoftware().then((software) => {
       if (isGone) return;
       if (software) markSoftware();
+      preloadScene();
       setIsSceneOn(true);
     });
     return () => {

@@ -2,6 +2,7 @@
 
 import {
   CSSProperties,
+  ReactNode,
   useEffect,
   useRef,
   useState,
@@ -82,8 +83,11 @@ const DOWN_TOP = `min(calc(${FOOTER_TOP} - 0.25rem - ${ARROW_HEIGHT}), max(calc(
 // over it; while a video plays they step behind it, glass and all, as behind
 // a modal (styles/globals.css). They
 // hide with the page while the phone menu is open (data-scroll-arrows,
-// styles/globals.css).
-export default function ScrollArrows() {
+// styles/globals.css). In the footer, while the first post shows (nothing
+// above it), `lead` takes the arrow's place if given (the home page's Watch
+// my story), in a box the arrow's height, so the footer doesn't change
+// height as the page turns.
+export default function ScrollArrows({ lead }: { lead?: ReactNode } = {}) {
   const [canGo, setCanGo] = useState({ up: false, down: false });
   // The body to portal to, once on the client.
   const body = useSyncExternalStore(
@@ -161,7 +165,18 @@ export default function ScrollArrows() {
   // In the footer, only while there is a post below: at the last post the
   // slot empties and the footer's text and links fade back in its place
   // (Footer/arrowSwap.ts).
-  if (footerSlot && (isPhone || isHeadAway))
+  if (footerSlot && (isPhone || isHeadAway)) {
+    if (lead && !canGo.up)
+      return createPortal(
+        <div
+          data-scroll-arrows
+          data-watch
+          className="pointer-events-auto flex h-[4.5rem] items-center"
+        >
+          {lead}
+        </div>,
+        footerSlot,
+      );
     return canGo.down
       ? createPortal(
           <div data-scroll-arrows>
@@ -170,6 +185,7 @@ export default function ScrollArrows() {
           footerSlot,
         )
       : null;
+  }
   if (!body) return null;
   return createPortal(
     <div ref={groupRef} data-scroll-arrows>

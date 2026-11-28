@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 
 import { pageFiles } from '../../scripts/pageFiles';
 import { decodeHead } from './headGeometry';
+import { unpackHead } from './headPack';
 import { LUTBytesLoader } from './lutBytes';
 import { SHOWN_EXPRESSIONS } from './shownExpressions';
 
@@ -22,14 +23,19 @@ const unzipped = (file: string) => arrayBuffer(zlib.gunzipSync(read(file)));
 
 describe("the page's scene files", () => {
   it('are up to date with their sources', () => {
-    // A gzipped file is compared unzipped: gzip's header names the system
-    // that wrote it, so the same head zips to other bytes on Linux.
-    const content = (file: string, bytes: Buffer) =>
-      file.endsWith('.bin') ? zlib.gunzipSync(bytes) : bytes;
+    // The head is compared unzipped (gzip's header names the system that
+    // wrote it, so the same head zips to other bytes on Linux) and, the
+    // page's copy, unpacked (build-page-files.mjs packs it).
+    const page = (file: string, bytes: Buffer) =>
+      file === 'head.bin'
+        ? Buffer.from(unpackHead(zlib.gunzipSync(bytes)))
+        : bytes;
+    const built = (file: string, bytes: Buffer) =>
+      file === 'head.bin' ? zlib.gunzipSync(bytes) : bytes;
     for (const [file, bytes] of Object.entries(pageFiles(SHOWN_EXPRESSIONS))) {
       expect(
-        content(file, read(`components/Background/files/${file}`)).equals(
-          content(file, bytes),
+        page(file, read(`components/Background/files/${file}`)).equals(
+          built(file, bytes),
         ),
         `run node scripts/build-page-files.mjs (${file})`,
       ).toBe(true);
@@ -41,7 +47,9 @@ describe("the page's scene files", () => {
       unzipped('scripts/head/head.bin'),
       SHOWN_EXPRESSIONS,
     );
-    const page = decodeHead(unzipped('components/Background/files/head.bin'));
+    const page = decodeHead(
+      unpackHead(zlib.gunzipSync(read('components/Background/files/head.bin'))),
+    );
     expect(page.expressions).toEqual(full.expressions);
     expect(page.expressions).toHaveLength(SHOWN_EXPRESSIONS.length);
     expect(page.meshes).toEqual(full.meshes);

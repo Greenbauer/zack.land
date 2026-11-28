@@ -92,11 +92,18 @@ export const taller = (crop: number) =>
 // its picture: it has to fill that much more to be worth the closer crop.
 const TALLER_COST = 0.85;
 
+// How much more a layout counts for spanning the box's width than for
+// filling it: as a power of the share of the width it spans. A narrower
+// block that filled more of a wide, short box (Banner Eyewear's three,
+// stacked) read as a picture that had not grown to the post's width, as
+// every other post's had.
+const ACROSS_WEIGHT = 4;
+
 // The best packing: of every split into columns or into rows, with each tile
 // at its own crop or one shape taller, the one that covers most of the box,
-// counting more for using its height (the tiles stack up the side of the card
-// before they spread across), and held back where it makes one tile much
-// smaller than another.
+// counting far more for spanning its width (ACROSS_WEIGHT), then for using
+// its height, and held back where it makes one tile much smaller than
+// another.
 function pack(
   crops: readonly number[],
   width: number,
@@ -108,12 +115,15 @@ function pack(
     const covered = areas.reduce((sum, a) => sum + a, 0);
     const top = Math.min(...boxes.map((b) => b.y));
     const bottom = Math.max(...boxes.map((b) => b.y + b.height));
+    const left = Math.min(...boxes.map((b) => b.x));
+    const right = Math.max(...boxes.map((b) => b.x + b.width));
     const largest = Math.max(...areas);
     // A main tile smaller than another counts for much less.
     const leads = main === undefined ? 1 : (areas[main]! / largest) ** 4;
     return (
       covered *
       (Math.min(...areas) / largest) ** 0.3 *
+      ((right - left) / width) ** ACROSS_WEIGHT *
       ((bottom - top) / height) *
       TALLER_COST ** tallerCount *
       leads

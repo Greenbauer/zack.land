@@ -1,23 +1,8 @@
-import NavHint from '@/components/Home/NavHint';
-import Title from '@/components/Home/Title';
-import TitleBox from '@/components/Home/TitleBox';
+import Story from '@/components/Home/Story';
 
-// Its title is the site's own (the root layout's default).
+// The home page: the name over the head, then Zack's story, told by the
+// head a chapter at a time (components/Home/Story.tsx). Its title is the
+// site's own (the root layout's default).
 export default function Page() {
-  return (
-    // Below lg the head fills the middle of the screen, so the title sits at
-    // the top, above it; on a phone it is centred between the header's
-    // bottom (80px) and the top of the head (a fifth of the way down: the
-    // head scales with the window's height), in TitleBox. From lg it sits
-    // beside the head, vertically centred.
-    <div className="flex size-full items-start justify-end lg:items-center">
-      {/* It slides in from the right, and away to the right before the
-          site leaves the page (TitleBox). */}
-      <TitleBox>
-        <Title />
-      </TitleBox>
-      {/* Left alone for a while, the page points up at Portfolio. */}
-      <NavHint />
-    </div>
-  );
+  return <Story />;
 }

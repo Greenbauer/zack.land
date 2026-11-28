@@ -209,13 +209,19 @@ test.describe('a YouTube video', () => {
 
   // Zach, Nov 2: "seems like the glass effect is not effecting the video in
   // the default state". Its tile lay over the glass, as only a playing one
-  // needs to.
-  test('at rest, the glass of the card below lies over it, as over the other tiles', async ({
+  // needs to: at rest it lies with the other tiles. And Nov 23: the glass
+  // laid over the bottom of a post's pictures, which only meet its card,
+  // showed its lenses as squares that cut into them, so no glass is laid
+  // over a grid that only meets its card (photoUnder, photoLens.ts), the
+  // video's tile and the others alike.
+  test('at rest, it lies with the other tiles, and no glass covers the grid above the card', async ({
     page,
   }) => {
-    await atVideoPost(page);
-    // Once its card has slid in, which places the glass.
-    await expect.poll(() => glassOverVideo(page)).toBe(true);
+    const { tile } = await atVideoPost(page);
+    await expect(tile).toHaveCSS('z-index', '0');
+    // Once its card has slid in, which would place the glass.
+    await page.waitForTimeout(1000);
+    expect(await glassOverVideo(page)).toBeNull();
   });
 
   // Zach, Nov 2: "the glass blur on the scroll arrows covers the video. this

@@ -1,6 +1,6 @@
 'use client';
 
-import { CSSProperties, useRef } from 'react';
+import { CSSProperties, useEffect, useRef } from 'react';
 import { HiHandRaised, HiSparkles } from 'react-icons/hi2';
 
 import Button from '@/components/Button';
@@ -19,8 +19,14 @@ import useMoreMotion from './useMoreMotion';
 import usePhoneWhole from './usePhoneWhole';
 
 // `isFirst`: the page's first post, in view as the page opens, whose
-// pictures load first.
-type PostProps = { content: Content; isFirst?: boolean };
+// pictures load first. `onShown`: told when the post becomes the one in view
+// and when it stops being so, with its card (the home page's story has the
+// head react to it: components/Home/Story.tsx).
+type PostProps = {
+  content: Content;
+  isFirst?: boolean;
+  onShown?: (_shown: boolean, _card: HTMLElement | null) => void;
+};
 
 // Where a post's card waits, by where its post is (PostPlace): in place for
 // the post in view, wholly off the window's right side for posts above it
@@ -49,7 +55,7 @@ const CONTENT_IN =
 const CONTENT_OUT =
   'opacity-0 [transition:opacity_var(--card-leave)_linear] motion-reduce:[transition:opacity_0.4s_ease-in]';
 
-export default function Post({ content, isFirst = false }: PostProps) {
+export default function Post({ content, isFirst = false, onShown }: PostProps) {
   const {
     name,
     mediaSources,
@@ -58,12 +64,16 @@ export default function Post({ content, isFirst = false }: PostProps) {
     coded,
     siteUrl,
     repositoryUrl,
+    action,
   } = content;
 
   const postRef = useRef<HTMLDivElement | null>(null);
   const cardRef = useRef<HTMLElement | null>(null);
   const place = useHeldCard(postRef, cardRef);
   const isCurrent = place === 'current';
+  useEffect(() => {
+    onShown?.(isCurrent, cardRef.current);
+  }, [isCurrent, onShown]);
   // More and Less move rather than jump, and a post left open closes again
   // once the page has moved on from it (useMoreMotion).
   const { isExpanded, isOpen, isClosed, toggle } = useMoreMotion(
@@ -221,7 +231,7 @@ export default function Post({ content, isFirst = false }: PostProps) {
           </div>
           <div
             ref={linksRef}
-            className={`flex shrink-0 flex-col gap-3 md:w-64 md:gap-4 md:self-start md:pt-2 ${
+            className={`flex shrink-0 flex-col gap-3 md:w-[min(16rem,36%)] md:gap-4 md:self-start md:pt-2 ${
               isClamped
                 ? 'max-md:flex-row max-md:flex-wrap max-md:items-center max-md:justify-end'
                 : ''
@@ -260,6 +270,11 @@ export default function Post({ content, isFirst = false }: PostProps) {
                 className={phone.linkClass}
               >
                 View Code
+              </Button>
+            )}
+            {!!action && (
+              <Button href={action.href} className={phone.linkClass}>
+                {action.label}
               </Button>
             )}
           </div>

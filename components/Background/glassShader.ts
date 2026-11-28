@@ -35,8 +35,9 @@ const frostEnd = (fieldLens: number) => `
           if (i >= uFieldCount) break;
           field = max(field, inField(p, uFields[i], uFieldRadius[i]));
         }
-        // How much of a lens the glass is here: less behind a field.
-        float lensed = frost * mix(1.0, ${fieldLens.toFixed(2)}, field);
+        // How much of a lens the glass is here: none past the card, and less
+        // behind a field (lensIn).
+        float lensed = lensIn * mix(1.0, ${fieldLens.toFixed(2)}, field);
         vec2 bent = mix(p, lens(p, box), lensed) / uSize;
         vec4 glass = mix(texture2D(tBlur, bent), texture2D(tSmooth, bent), field);
         gl_FragColor = mix(scene, glass, frost);`;
@@ -159,11 +160,13 @@ export function compositeShader(mode: 'frost' | 'tint', fieldLens: number) {
 
       // How much of a rounded box's frosting reaches a point: whole inside
       // and just past its edge, fading out by reach beyond (canvas pixels).
-      float inside(vec2 p, vec4 box, float radius, float reach) {
+      float outside(vec2 p, vec4 box, float radius) {
         vec2 centre = (box.xy + box.zw) * 0.5;
         vec2 extent = (box.zw - box.xy) * 0.5 - radius;
-        float d = length(max(abs(p - centre) - extent, 0.0)) - radius;
-        return 1.0 - smoothstep(uFeather.x, reach, d);
+        return length(max(abs(p - centre) - extent, 0.0)) - radius;
+      }
+      float inside(vec2 p, vec4 box, float radius, float reach) {
+        return 1.0 - smoothstep(uFeather.x, reach, outside(p, box, radius));
       }
 
 ${mode === 'frost' ? FROST : TINT}
@@ -175,6 +178,13 @@ ${mode === 'frost' ? FROST : TINT}
         int k = int(floor(at));
         float fade = mix(uFade[k], uFade[min(k + 1, ${FADE_SAMPLES - 1})], fract(at));
         float frost = 0.0;
+        // How much the glass's lenses bend here: whole uFeather.x inside the
+        // card, none from its edge out, as the card fades. Past the card each
+        // lens showed what lay there flipped and shrunk, so over the head or
+        // the phone (sharp edges, dark against light) the fade drew a patch
+        // of hard squares; there only the frost shows (and the same over
+        // photos: photoLens.ts bendAt).
+        float lensIn = 0.0;
         vec4 box = vec4(0.0, 0.0, 1.0, 1.0);
         float lightness = 0.0;
         vec2 bounds = vec2(0.0, 1.0);
@@ -185,6 +195,7 @@ ${mode === 'frost' ? FROST : TINT}
           float here = inside(p, uCards[i], uRadius[i], uReach[i]) * shown;
           if (here > frost) {
             frost = here;
+            lensIn = (1.0 - smoothstep(uFeather.x, 0.0, outside(p, uCards[i], uRadius[i]))) * shown;
             box = uCards[i];
             lightness = uLight[i];
             bounds = uBounds[i];
